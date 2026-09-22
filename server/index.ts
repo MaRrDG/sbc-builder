@@ -119,7 +119,7 @@ app.get('/api/extension.zip', async (req, reply) => {
   const zip = await buildExtensionZip(origin);
   return reply
     .header('Content-Type', 'application/zip')
-    .header('Content-Disposition', 'attachment; filename="fc27-sbc-builder-extension.zip"')
+    .header('Content-Disposition', 'attachment; filename="fc-solver-extension.zip"')
     .send(Buffer.from(zip));
 });
 
@@ -222,7 +222,7 @@ if (existsSync(dist))
   });
 
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
-console.log(`FC27 SBC builder API on http://localhost:${PORT}`);
+console.log(`FC Solver API on http://localhost:${PORT}`);
 
 void autoSyncAll();
 setInterval(() => void autoSyncAll(), 60 * 1000);

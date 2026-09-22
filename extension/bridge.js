@@ -15,18 +15,18 @@ function showUpdateNotice({ update, current, server }) {
     <style>
       .bar { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2147483647;
         display: flex; align-items: center; gap: 14px; max-width: min(640px, calc(100vw - 24px));
-        padding: 10px 10px 10px 16px; border-radius: 12px; background: #13232a; color: #e9f3f4;
+        padding: 10px 10px 10px 16px; border-radius: 12px; background: #0d1411; color: #f3f1ea;
         border: 1px solid #2fd99a66; box-shadow: 0 12px 32px #0009; font: 13px/1.4 system-ui, sans-serif; }
-      b { color: #2fd99a; }
+      b { color: #c8f53c; }
       .notes { color: #a9bcc1; margin-top: 2px; }
       a, button { font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer; white-space: nowrap; }
-      a { padding: 7px 12px; background: #2fd99a; color: #062017; text-decoration: none; }
+      a { padding: 7px 12px; background: #c8f53c; color: #0d1411; text-decoration: none; }
       button { padding: 7px 10px; border: 0; background: transparent; color: #a9bcc1; }
       button:hover { color: #fff; }
     </style>
     <div class="bar" role="status">
       <div>
-        <div><b>SBC Builder ${update.version}</b> is out (you have ${current}).</div>
+        <div><b>FC Solver ${update.version}</b> is out (you have ${current}).</div>
         ${update.notes?.length ? `<div class="notes">${update.notes.map((n) => n.replace(/[<>&]/g, '')).join(' · ')}</div>` : ''}
       </div>
       <a href="${server}/?update=1" target="_blank" rel="noreferrer">How to update</a>

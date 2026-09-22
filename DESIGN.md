@@ -1,6 +1,12 @@
 # Design
 
-Scene: a FUT player at a desk in the evening, alt-tabbing between the EA web app and this builder. Matching the web app's dark teal keeps that switch seamless, so the theme is dark by design, not by default.
+Scene: a FUT player at a desk in the evening, alt-tabbing between the EA web app and FC Solver. Matching the web app's dark teal keeps that switch seamless, so the theme is dark by design, not by default.
+
+## Brand
+FC Solver. Logo files live in `web/public/brand/`:
+- `logo-on-dark.svg` wordmark for dark surfaces (the app), `logo-on-light.svg` for light ones.
+- `icon-green.svg` square check icon: favicon, narrow topbar, extension icons (`extension/icons/*.png`, rendered from it). `icon-lime.svg` and `mark-fc.svg` are alternates.
+- Brand colors (logo only, the UI keeps the tokens below): deep green `#0E3B2B`, lime `#C8F53C`, cream `#F3F1EA`, ink `#0D1411`.
 
 ## Color (OKLCH, restrained + one accent)
 - `--bg-0` oklch(0.19 0.035 215) page base; background is a slow teal to green field like the web app.

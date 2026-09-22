@@ -1,7 +1,7 @@
 // Serves the Chrome extension as a zip, pre-configured for the server it was downloaded
 // from, so friends never have to type a server address.
 import { readdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
 import { ROOT } from './store.js';
 
@@ -26,17 +26,25 @@ export async function latestExtension(): Promise<ExtensionRelease> {
 
 export async function buildExtensionZip(origin: string): Promise<Uint8Array> {
   const files: Record<string, Uint8Array> = {};
-  for (const name of await readdir(DIR)) {
-    if (name === 'release.json') continue; // server-side notes, not part of the extension
-    let text = await readFile(join(DIR, name), 'utf8');
-    if (name.endsWith('.js')) text = text.replaceAll(DEFAULT_SERVER, origin);
-    if (name === 'manifest.json') {
+  for (const entry of await readdir(DIR, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue;
+    const rel = relative(DIR, join(entry.parentPath, entry.name)).split(sep).join('/');
+    if (rel === 'release.json') continue; // server-side notes, not part of the extension
+    // the folder name stays: updates are unzipped over the old folder, and a new name would be a new extension
+    const path = `fc27-sbc-builder/${rel}`;
+    if (!/\.(js|json|html)$/.test(rel)) {
+      files[path] = new Uint8Array(await readFile(join(DIR, rel))); // icons: copied byte for byte
+      continue;
+    }
+    let text = await readFile(join(DIR, rel), 'utf8');
+    if (rel.endsWith('.js')) text = text.replaceAll(DEFAULT_SERVER, origin);
+    if (rel === 'manifest.json') {
       const manifest = JSON.parse(text);
       const pattern = `${origin}/*`;
       if (!manifest.host_permissions.includes(pattern)) manifest.host_permissions.push(pattern);
       text = JSON.stringify(manifest, null, 2);
     }
-    files[`fc27-sbc-builder/${name}`] = strToU8(text);
+    files[path] = strToU8(text);
   }
   return zipSync(files, { level: 6 });
 }

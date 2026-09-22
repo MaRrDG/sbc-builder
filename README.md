@@ -1,4 +1,4 @@
-# FC27 SBC Builder
+# FC Solver
 
 Finds the cheapest squad **from your own club** that completes an EA FC 27 Squad Building Challenge, and shows it on a pitch that looks like the one in the Ultimate Team web app. You then rebuild the squad by hand in the web app. Nothing is ever bought, sold or submitted for you.
 

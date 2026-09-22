@@ -277,10 +277,13 @@ export default function App() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark">SBC</span>
-          <span className="brand-name">Builder</span>
-        </div>
+        <a className="brand" href="/" aria-label="FC Solver home">
+          {/* the wordmark needs ~120px; narrow phones get the square icon */}
+          <picture>
+            <source media="(max-width: 480px)" srcSet="/brand/icon-green.svg" />
+            <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="124" height="32" />
+          </picture>
+        </a>
 
         <div className="sync">
           <button type="button" className="ghost" disabled={busy || !account?.session} onClick={() => doSync('club')}>
@@ -579,12 +582,11 @@ function Onboarding({ error }: { error: string | null }) {
   return (
     <div className="onboarding">
       <div className="brand">
-        <span className="brand-mark">SBC</span>
-        <span className="brand-name">Builder</span>
+        <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="186" height="48" />
       </div>
       <h1>Cheapest SBC squads from your own club</h1>
       <p className="lede">
-        A small Chrome extension hands your FC27 web app session to the builder. It reads your club and SBCs; it never buys, sells
+        A small Chrome extension hands your FC27 web app session to FC Solver. It reads your club and SBCs; it never buys, sells
         or submits anything. Setup takes two minutes.
       </p>
       <SetupGuide />

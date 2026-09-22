@@ -75,8 +75,8 @@ export function SetupGuide({ compact = false }: { compact?: boolean }) {
       </li>
       <li>
         <div>
-          <h3>Open the builder</h3>
-          <p>Click the extension icon, then <b>Open builder</b>. Your club and SBCs load in about a minute.</p>
+          <h3>Open FC Solver</h3>
+          <p>Click the extension icon, then <b>Open FC Solver</b>. Your club and SBCs load in about a minute.</p>
         </div>
       </li>
     </ol>
