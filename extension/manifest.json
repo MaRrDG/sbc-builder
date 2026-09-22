@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "FC27 SBC Builder \u2013 Session Bridge",
+  "version": "0.3.0",
+  "description": "Sends your FC27 web app session to your SBC Builder so it can read your club and SBCs.",
+  "permissions": [
+    "webRequest",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://utas.mob.v1.prd.futc-ext.gcp.ea.com/*",
+    "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "FC27 SBC Builder"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/*"
+      ],
+      "js": [
+        "hook.js"
+      ],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}
