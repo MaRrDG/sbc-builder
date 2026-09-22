@@ -10,7 +10,7 @@ import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.j
 import { readCache, ROOT } from './store.js';
 import { applySubmittedSbc, autoSync, autoSyncAll, getChallenges, getStatus, syncClub, syncSbcs, type SetsData } from './sync.js';
 import { loadAccounts, registerSession, accountByKey, type Account } from './accounts.js';
-import { buildExtensionZip, requestOrigin } from './extension.js';
+import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, type WebAppEvent } from './events.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
@@ -49,11 +49,12 @@ function account(req: FastifyRequest): Account {
 const metaFor = (acc: Account) => loadMeta(acc.key('chemProfiles'));
 
 // ---- accounts / session ----------------------------------------------------
-app.post<{ Body: { sid: string; contentGuid?: string } }>('/api/session', async (req, reply) => {
-  const { sid, contentGuid } = req.body ?? ({} as never);
+app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('/api/session', async (req, reply) => {
+  const { sid, contentGuid, extVersion } = req.body ?? ({} as never);
   if (!sid || !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
   const guid = contentGuid && /^[0-9A-F-]{36}$/i.test(contentGuid) ? contentGuid : undefined;
-  const { account: acc, isNew } = await registerSession(sid, guid);
+  const version = extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined;
+  const { account: acc, isNew } = await registerSession(sid, guid, version);
   if (isNew) void autoSync(acc);
   // The key goes back only to the extension that proved it holds a live session.
   return { ok: true, account: acc, accessKey: acc.info.accessKey };
@@ -67,8 +68,11 @@ app.post<{ Body: { keys: string[] } }>('/api/accounts', async (req) => {
 
 app.get('/api/status', async (req) => {
   const acc = account(req);
-  return { account: acc, sync: await getStatus(acc) };
+  return { account: acc, sync: await getStatus(acc), extension: await latestExtension() };
 });
+
+/** Latest extension release; the extension polls this to show its own update notice. */
+app.get('/api/extension/version', () => latestExtension());
 
 app.post<{ Body: { what: 'club' | 'sbc' | 'all' } }>('/api/sync', async (req) => {
   const acc = account(req);

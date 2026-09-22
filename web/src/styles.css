@@ -1623,6 +1623,73 @@ button.card:active {
   font-size: 16px;
 }
 
+.update {
+  padding: 10px 20px;
+  border-bottom: 1px solid oklch(0.84 0.17 163 / 0.35);
+  background: oklch(0.84 0.17 163 / 0.1);
+}
+
+.update-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1184px;
+  margin: 0 auto;
+}
+
+.update-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  color: var(--go);
+}
+
+.update-text {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.update-text .muted {
+  font-size: 13px;
+}
+
+.update-steps {
+  max-width: 1184px;
+  margin: 8px auto 2px;
+  padding-left: 58px;
+  color: var(--ink-2);
+}
+
+.update-steps li {
+  padding: 2px 0;
+}
+
+.update-steps code {
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  font-size: 12.5px;
+}
+
+.update-steps .text {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 12.5px;
+}
+
+@media (max-width: 640px) {
+  .update-row {
+    flex-wrap: wrap;
+  }
+
+  .update-steps {
+    padding-left: 20px;
+  }
+}
+
 .notice.info {
   background: oklch(0.84 0.17 163 / 0.1);
   border-bottom-color: oklch(0.84 0.17 163 / 0.3);
