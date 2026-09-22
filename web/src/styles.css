@@ -676,6 +676,75 @@ h3 {
   font-size: 13px;
 }
 
+.settings-side {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
+.ea-count {
+  margin: 0 0 8px;
+  color: var(--ink-3);
+  font-family: var(--font-num);
+  font-size: 20px;
+}
+
+.ea-count b {
+  color: var(--ink);
+  font-size: 32px;
+}
+
+.req-bar.ea-bar {
+  display: block;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.ea-card > .muted {
+  font-size: 13px;
+}
+
+.ea-paused {
+  padding: 8px 10px;
+  border-radius: var(--r-ctl);
+  background: oklch(0.3 0.06 60 / 0.35);
+  color: oklch(0.92 0.05 85);
+  font-size: 13px;
+}
+
+.ea-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.ea-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-top: 1px solid oklch(0.42 0.03 210 / 0.3);
+}
+
+.ea-list code {
+  overflow: hidden;
+  color: var(--ink-2);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ea-list .bad {
+  color: var(--bad);
+}
+
+.ea-recent summary {
+  margin-top: 10px;
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+}
+
 /* local vs global note in the SBC settings drawer */
 .scope-note {
   margin-bottom: 12px;

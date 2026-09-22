@@ -51,12 +51,13 @@ Which of the keys stored in this browser are valid.
 ```json
 {
   "account": { "personaId": 1005016552645, "session": true, "extVersion": "0.3.0", "...": "..." },
-  "sync": { "running": null, "error": null, "clubAt": 1790064472801, "sbcAt": 1790062053735, "editedAt": null, "unassigned": 1 },
+  "sync": { "running": null, "error": null, "clubAt": 1790064472801, "sbcAt": 1790062053735, "editedAt": null, "unassigned": 1,
+            "ea": { "today": 12, "limit": 150, "pausedUntil": null, "byPath": { "/club": 3 }, "recent": [{ "at": 1790064472801, "method": "POST", "path": "/club", "status": 200 }] } },
   "extension": { "version": "0.4.0", "notes": ["Update notices in the web app and on the site"] }
 }
 ```
 
-`editedAt` changes whenever the cache was edited from web app activity; the UI polls this every 5 s and reloads when it moves. `unassigned` counts pack players not yet sent to the club.
+`ea` counts today's requests to EA for this account (paths grouped, ids replaced by `:id`); `pausedUntil` is set after EA signalled throttling. `editedAt` changes whenever the cache was edited from web app activity; the UI polls this every 5 s and reloads when it moves. `unassigned` counts pack players not yet sent to the club.
 
 ### `POST /api/sync` (key)
 
@@ -98,7 +99,7 @@ Refresh windows tick from `releaseTime` (the daily drop). A `REFRESH` set whose 
 
 ### `GET /api/sets/:id/challenges?refresh=1` (key)
 
-Challenges of one set, each with its parsed requirements. Loaded from cache; `refresh=1` (or a missing cache) asks EA.
+Challenges of one set, each with its parsed requirements. Always from cache (empty list if the set was never loaded); only `refresh=1` asks EA.
 
 ```json
 { "challenges": [{ "challengeId": 35, "name": "Celtic v Rangers", "formation": "f442", "status": "IN_PROGRESS", "elgOperation": "AND",
@@ -175,6 +176,11 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 | `GET /purchased/items` (Unassigned viewed) | Unassigned list replaced with `response.itemData` |
 | `PUT /item` with `{ itemData: [{ id, pile }] }` | `pile: "club"`: Unassigned → club. Any other pile: leaves club and Unassigned |
 | `DELETE /item/:id` or `/item?itemIds=…` | quick sold: leaves club and Unassigned |
+| `GET /sbs/sets` | replaces the cached SBC list |
+| `GET /sbs/setId/:id/challenges` | replaces that set's cached challenges |
+| `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club |
+| `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (other saved squads are ignored) |
+| `GET /chemistry/profiles` | replaces the promo chemistry profiles |
 
 ```json
 { "method": "PUT", "path": "/item", "query": "", "request": { "itemData": [{ "id": 945213335495, "pile": "club" }] }, "response": { "itemData": [{ "id": 945213335495, "success": true }] } }

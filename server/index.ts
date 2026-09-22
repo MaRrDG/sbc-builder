@@ -8,10 +8,10 @@ import { parseRequirements, serializeRequirement } from './sbc.js';
 import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
 import { readCache, ROOT } from './store.js';
-import { applySubmittedSbc, autoSync, autoSyncAll, getChallenges, getStatus, syncClub, syncSbcs, type SetsData } from './sync.js';
+import { applySubmittedSbc, autoSyncAll, getChallenges, getStatus, syncClub, syncSbcs, type SetsData } from './sync.js';
 import { loadAccounts, registerSession, accountByKey, type Account } from './accounts.js';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
-import { applyWebAppEvent, type WebAppEvent } from './events.js';
+import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
 const app = Fastify({ logger: { level: 'warn' }, trustProxy: true });
@@ -54,8 +54,8 @@ app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('
   if (!sid || !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
   const guid = contentGuid && /^[0-9A-F-]{36}$/i.test(contentGuid) ? contentGuid : undefined;
   const version = extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined;
-  const { account: acc, isNew } = await registerSession(sid, guid, version);
-  if (isNew) void autoSync(acc);
+  // no sync here: the minute ticker runs it once the session is a few minutes old (see autoSync)
+  const { account: acc } = await registerSession(sid, guid, version);
   // The key goes back only to the extension that proved it holds a live session.
   return { ok: true, account: acc, accessKey: acc.info.accessKey };
 });
@@ -103,11 +103,11 @@ app.post<{ Body: { challengeId: number; itemIds: number[] } }>('/api/sbc-submitt
   return { ok: true, ...(await applySubmittedSbc(acc, challengeId, itemIds)) };
 });
 
-/** Packs opened / items moved in the web app, relayed by the extension's page hook. */
+/** Packs opened, items moved and data loaded in the web app, relayed by the extension's page hook. */
 app.post<{ Body: WebAppEvent }>('/api/webapp-event', { bodyLimit: 2 * 1024 * 1024 }, async (req, reply) => {
   const acc = account(req);
   const ev = req.body;
-  if (!ev || typeof ev.method !== 'string' || typeof ev.path !== 'string' || !/^\/(purchased\/items|item(\/\d+)?)$/.test(ev.path))
+  if (!ev || typeof ev.method !== 'string' || typeof ev.path !== 'string' || !WATCHED_PATH.test(ev.path))
     return reply.code(400).send({ error: 'unsupported event' });
   return { ok: true, summary: await applyWebAppEvent(acc, ev) };
 });

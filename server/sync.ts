@@ -11,6 +11,7 @@ export interface SetsData {
 }
 
 export interface SyncStatus {
+  ea: Awaited<ReturnType<Account['meter']['summary']>>;
   running: string | null;
   error: string | null;
   clubAt: number | null;
@@ -29,6 +30,7 @@ export function markEdited(acc: Account) {
 
 export async function getStatus(acc: Account): Promise<SyncStatus> {
   return {
+    ea: await acc.meter.summary(),
     running: running.get(acc.id) ?? null,
     error: errors.get(acc.id) ?? null,
     editedAt: edited.get(acc.id) ?? null,
@@ -105,11 +107,15 @@ export function syncSbcs(acc: Account): Promise<Cached<SetsData>> {
   });
 }
 
+/**
+ * Challenges of a set, from cache only. Opening an SBC or solving never reaches EA; the cache is
+ * filled by syncs and by the extension when the user opens the set in the web app.
+ * `refresh` is an explicit user request and the only way this asks EA.
+ */
 export async function getChallenges(acc: Account, setId: number, refresh = false): Promise<Cached<Challenge[]> | null> {
   const key = acc.key(`challenges/${setId}`);
   const cached = await readCache<Challenge[]>(key);
-  if (cached && !refresh) return cached;
-  if (!acc.utas) return cached;
+  if (!refresh || !acc.utas) return cached;
   const ch = await acc.utas.challenges(setId);
   return writeCache(key, ch.challenges);
 }
@@ -200,8 +206,13 @@ export function lastSbcDrop(now = new Date()): number {
  * daily drop. Runs on startup, when a session arrives, and every minute (cheap: it only
  * reads cache timestamps unless something is actually due).
  */
+// A fresh session means the web app just opened: give it time to load club/SBCs itself
+// (the extension relays those responses), so the scheduled sync often has nothing to fetch.
+const SESSION_GRACE_MS = 3 * 60 * 1000;
+
 export async function autoSync(acc: Account): Promise<void> {
   if (!acc.utas || running.has(acc.id)) return;
+  if (Date.now() - acc.info.sidUpdatedAt < SESSION_GRACE_MS) return;
   try {
     await loadMeta(acc.key('chemProfiles'));
     if (isStale(await readCache(acc.key('club')))) await syncClub(acc);

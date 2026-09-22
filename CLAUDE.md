@@ -19,7 +19,7 @@ SOLVER_DUMP=/tmp/p.json npm run dev:api && solver/.venv/bin/python solver/cpsat.
 No automated test suite. Verify with typecheck + build, and against real cached EA data in `data/` or in the browser.
 
 ## Rules that matter
-- Be gentle with EA: everything is cached with `fetchedAt`; sync only when stale (club 24 h, SBCs after the 20:01 Europe/Bucharest drop). Extension events edit the cache in place and keep `fetchedAt`.
+- Be gentle with EA: only syncs may call EA (never a page load, set open or solve); everything is cached with `fetchedAt`; sync only when stale (club 24 h, SBCs after the 20:01 Europe/Bucharest drop). The extension relays what the web app loads (`server/events.ts`), which fills the cache for free. Every call is metered per account (`server/meter.ts`, daily cap `EA_DAILY_LIMIT`, 15 min pause on throttling codes).
 - Be exact: game formulas are 1:1 ports of the web app code. `found` comes from the `squad.ts` re-check, not from the solver. Don't "simplify" these formulas.
 - SBC repeatability comes from the set's `repeatabilityMode`: `NON_REPEATABLE`, `UNLIMITED`, or `REFRESH` (`repeats` per `repeatRefreshInterval` seconds, progress in `timesCompletedInInterval`). `repeatable: true` alone does not mean "can do it now".
 - Auth: the UI sends `X-Account-Key`; the EA SID never leaves the server. Keys come via URL fragment `#keys=` into `localStorage`.

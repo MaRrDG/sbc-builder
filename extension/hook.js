@@ -1,9 +1,10 @@
 // Runs inside the FC27 web app page (MAIN world). Watches only the web app's own
-// responses for opened packs and item moves, and hands a copy to the extension.
+// responses (opened packs, item moves, and the club / squad / SBC data it loads) and hands
+// a copy to the extension, so FC Solver rarely needs to ask EA itself.
 // It never sends requests to EA and ignores every other endpoint.
 (() => {
   const UTAS = /^https:\/\/utas\.[^/]+\/ut\/game\/fc27(\/[^?]*)/;
-  const WATCH = /^\/(purchased\/items|item)(\/\d+)?$/;
+  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|chemistry\/profiles)$/;
 
   function report(method, url, reqBody, status, resText) {
     const m = String(url).match(UTAS);
