@@ -322,7 +322,7 @@ export default function App() {
 
       {!account?.session && (
         <div className="notice">
-          Session expired. Open the FC27 web app once; the extension reconnects automatically. Cached data still works.{' '}
+          FC27 web app not open. FC Solver syncs only from your web app tab, so open it in this browser to sync. Cached data still works.{' '}
           <button type="button" className="text" onClick={() => setShowGuide(true)}>
             No extension yet?
           </button>

@@ -1,14 +1,14 @@
-// Watches the FC27 web app's own requests and tells the FC Solver server:
-//  1. the session id (X-UT-SID), so it can read your club and SBCs;
-//  2. which club items you just used in a submitted SBC, so they leave the cached club
-//     without another sync. Nothing is ever sent to EA by this extension.
+// Bridges the FC27 web app and FC Solver:
+//  1. tells FC Solver who is logged in (the SID only once, to prove a new account);
+//  2. hands sync jobs to the web app tab (hook.js runs them, so EA only ever sees the web app);
+//  3. reports which club items you used in a submitted SBC and what the web app loaded.
+// This service worker never sends anything to EA itself.
 const DEFAULT_SERVER = 'http://localhost:5178';
 const UTAS = 'https://utas.mob.v1.prd.futc-ext.gcp.ea.com/ut/game/fc27/';
 
 const VERSION = chrome.runtime.getManifest().version;
 
-const state = () =>
-  chrome.storage.local.get({ server: DEFAULT_SERVER, lastSid: null, lastVersion: null, contentGuid: null, accessKey: null, keys: [] });
+const state = () => chrome.storage.local.get({ server: DEFAULT_SERVER, contentGuid: null, accessKey: null, keys: [] });
 
 /** -1 / 0 / 1 for dotted numeric versions. */
 function compareVersions(a, b) {
@@ -62,38 +62,68 @@ chrome.runtime.onInstalled.addListener(() => {
   checkForUpdate(true);
 });
 
-async function pushSession(sid) {
-  const { server, lastSid, lastVersion, contentGuid, keys, accessKey } = await state();
-  if (sid === lastSid && accessKey && lastVersion === VERSION) return;
-  try {
-    const res = await fetch(`${server}/api/session`, {
+// ---- identity -----------------------------------------------------------------------------
+// The SID stays in this browser: kept in session storage (memory only) and sent to FC Solver
+// once, only to prove a new account. Known accounts are recognised by the key we already hold.
+chrome.webRequest.onSendHeaders.addListener(
+  (details) => {
+    const h = details.requestHeaders?.find((x) => x.name.toLowerCase() === 'x-ut-sid');
+    if (h?.value) chrome.storage.session.set({ sid: h.value });
+  },
+  { urls: [`${UTAS}*`] },
+  ['requestHeaders'],
+);
+
+async function hello(identity) {
+  const { server, contentGuid, keys, personaKeys = {} } = { ...(await state()), ...(await chrome.storage.local.get('personaKeys')) };
+  const { sid, helloFor } = await chrome.storage.session.get(['sid', 'helloFor']);
+  const marker = `${identity.personaId}:${sid ?? ''}`;
+  if (helloFor === marker) return; // already introduced this session
+  const send = (extra, key) =>
+    fetch(`${server}/api/hello`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sid, contentGuid, extVersion: VERSION }),
+      headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Account-Key': key } : {}) },
+      body: JSON.stringify({ personaId: identity.personaId, contentGuid, extVersion: VERSION, ...extra }),
     });
+  try {
+    let res = await send({}, personaKeys[identity.personaId]);
+    if (res.status === 401 && sid) res = await send({ sid }); // new account or new browser: prove it once
     const body = await res.json().catch(() => ({}));
-    const who = body.account ? `${body.account.personaName} (${body.account.clubName})` : '';
+    if (!res.ok || !body.accessKey) {
+      await chrome.storage.local.set({ lastStatus: `Server error: ${body.error ?? res.status}`, lastAt: Date.now() });
+      return;
+    }
     await chrome.storage.local.set({
-      lastSid: res.ok ? sid : null,
-      lastVersion: VERSION,
-      accessKey: body.accessKey ?? null,
-      keys: body.accessKey ? [...new Set([body.accessKey, ...keys])] : keys,
-      lastStatus: res.ok ? `Connected: ${who}` : `Server error: ${body.error ?? res.status}`,
+      accessKey: body.accessKey,
+      personaKeys: { ...personaKeys, [identity.personaId]: body.accessKey },
+      keys: [...new Set([body.accessKey, ...keys])],
+      lastStatus: `Connected: ${body.account.personaName} (${body.account.clubName})`,
       lastAt: Date.now(),
     });
+    await chrome.storage.session.set({ helloFor: marker });
   } catch {
     await chrome.storage.local.set({ lastStatus: `Server not reachable at ${server}`, lastAt: Date.now() });
   }
 }
 
-chrome.webRequest.onSendHeaders.addListener(
-  (details) => {
-    const h = details.requestHeaders?.find((x) => x.name.toLowerCase() === 'x-ut-sid');
-    if (h?.value) pushSession(h.value);
-  },
-  { urls: [`${UTAS}*`] },
-  ['requestHeaders'],
-);
+// ---- sync jobs: run by hook.js in the web app tab ---------------------------------------
+const LOCAL_DAILY_LIMIT = 200; // second guard next to the server's own budget
+
+async function callsToday() {
+  const day = new Date().toDateString();
+  const { callDay, callCount = 0 } = await chrome.storage.local.get(['callDay', 'callCount']);
+  return { day, count: callDay === day ? callCount : 0 };
+}
+
+async function api(path, init = {}) {
+  const { server, accessKey } = await state();
+  if (!accessKey) return null;
+  const res = await fetch(`${server}${path}`, {
+    ...init,
+    headers: { 'Content-Type': 'application/json', 'X-Account-Key': accessKey, ...(init.headers ?? {}) },
+  });
+  return res.ok ? res.json() : null;
+}
 
 // The content CDN path contains a GUID that changes between game updates.
 chrome.webRequest.onBeforeRequest.addListener(
@@ -165,6 +195,36 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === 'dismiss-update') {
     chrome.storage.local.set({ dismissedUpdate: msg.version });
+    return;
+  }
+  if (msg?.type === 'identity' && Number.isInteger(msg.identity?.personaId)) {
+    hello(msg.identity);
+    return;
+  }
+  if (msg?.type === 'poll') {
+    (async () => {
+      const { count } = await callsToday();
+      if (count >= LOCAL_DAILY_LIMIT) return sendResponse(null);
+      sendResponse(await api('/api/jobs/next').catch(() => null));
+    })();
+    return true; // async response
+  }
+  if (msg?.type === 'job-call') {
+    (async () => {
+      const { day, count } = await callsToday();
+      await chrome.storage.local.set({ callDay: day, callCount: count + 1 });
+      if (!msg.jobId) return; // identifying the account, before we have a job
+      await api(`/api/jobs/${encodeURIComponent(msg.jobId)}/call`, {
+        method: 'POST',
+        body: JSON.stringify({ method: msg.method, path: msg.path, status: msg.status }),
+      }).catch(() => {});
+    })();
+    return;
+  }
+  if (msg?.type === 'job-done') {
+    api(`/api/jobs/${encodeURIComponent(msg.jobId)}/done`, { method: 'POST', body: JSON.stringify({ ok: msg.ok, error: msg.error }) })
+      .then(() => chrome.storage.local.set({ lastStatus: msg.ok ? 'Synced from the web app' : `Sync failed: ${msg.error}`, lastAt: Date.now() }))
+      .catch(() => {});
     return;
   }
   if (msg?.type !== 'webapp-event') return;

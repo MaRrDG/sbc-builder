@@ -5,6 +5,7 @@ import { SessionError } from './ea.js';
 import { readCache, writeCache, isStale, type Cached } from './store.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
+import { enqueue, jobStatus, webAppOpen } from './jobs.js';
 
 export interface SetsData {
   categories: { categoryId: number; name: string; sets: SbcSet[] }[];
@@ -29,10 +30,11 @@ export function markEdited(acc: Account) {
 }
 
 export async function getStatus(acc: Account): Promise<SyncStatus> {
+  const jobs = acc.clientMode ? jobStatus(acc) : null;
   return {
     ea: await acc.meter.summary(),
-    running: running.get(acc.id) ?? null,
-    error: errors.get(acc.id) ?? null,
+    running: jobs ? jobs.running : running.get(acc.id) ?? null,
+    error: jobs ? jobs.error : errors.get(acc.id) ?? null,
     editedAt: edited.get(acc.id) ?? null,
     unassigned: (await readCache<unknown[]>(acc.key('unassigned')))?.data.length ?? 0,
     clubAt: (await readCache(acc.key('club')))?.fetchedAt ?? null,
@@ -58,6 +60,22 @@ async function run<T>(acc: Account, label: string, fn: () => Promise<T>): Promis
   } finally {
     running.delete(acc.id);
   }
+}
+
+/**
+ * Manual or scheduled sync. Client-mode accounts only queue a job for their web app tab
+ * (the data arrives through the extension); legacy accounts still fetch from the server.
+ */
+export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all') {
+  if (acc.clientMode) {
+    if (!webAppOpen(acc)) throw new SessionError('Open the FC27 web app in this browser to sync. FC Solver asks EA only from there.', 409);
+    await acc.meter.check(); // over today's budget or paused: refuse before the tab starts
+    if (what === 'club' || what === 'all') await enqueue(acc, 'club');
+    if (what === 'sbc' || what === 'all') await enqueue(acc, 'sbc');
+    return;
+  }
+  if (what === 'club' || what === 'all') await syncClub(acc);
+  if (what === 'sbc' || what === 'all') await syncSbcs(acc);
 }
 
 export function syncClub(acc: Account): Promise<Cached<ClubItem[]>> {
@@ -211,13 +229,20 @@ export function lastSbcDrop(now = new Date()): number {
 const SESSION_GRACE_MS = 3 * 60 * 1000;
 
 export async function autoSync(acc: Account): Promise<void> {
-  if (!acc.utas || running.has(acc.id)) return;
+  if (!acc.hasSession || running.has(acc.id)) return;
   if (Date.now() - acc.info.sidUpdatedAt < SESSION_GRACE_MS) return;
   try {
     await loadMeta(acc.key('chemProfiles'));
-    if (isStale(await readCache(acc.key('club')))) await syncClub(acc);
+    const clubDue = isStale(await readCache(acc.key('club')));
     const sets = await readCache(acc.key('sets'));
-    if (!sets || sets.fetchedAt < lastSbcDrop()) await syncSbcs(acc);
+    const sbcDue = !sets || sets.fetchedAt < lastSbcDrop();
+    if (acc.clientMode) {
+      if (jobStatus(acc).running) return;
+      if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc');
+      return;
+    }
+    if (clubDue) await syncClub(acc);
+    if (sbcDue) await syncSbcs(acc);
   } catch (e) {
     console.warn(`auto sync failed for ${acc.info.personaName}:`, (e as Error).message);
   }

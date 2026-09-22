@@ -1,4 +1,8 @@
 {
+  "0.7.0": [
+    "All requests to EA now come from your web app tab; FC Solver's server no longer keeps your session",
+    "Club and SBCs sync while the web app is open"
+  ],
   "0.6.0": [
     "Club, squad and SBCs you open in the web app update FC Solver directly, so it asks EA far less often"
   ],

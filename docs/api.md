@@ -17,9 +17,34 @@ The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extens
 
 ## Accounts and session
 
+### `POST /api/hello`
+
+Extension 0.7+. Says who is logged in to the web app, without handing over the session.
+
+```json
+{ "personaId": 1005016552645, "contentGuid": "27A3C9F1-…", "extVersion": "0.7.0" }
+```
+
+- With `X-Account-Key` for that same persona: accepted, nothing reaches EA.
+- Otherwise `401 { "needSid": true }`; the extension repeats the call with `"sid"` once, the server proves it with one `/usermassinfo` call and does not store it (at most 10 such proofs a minute).
+
+Returns `{ ok, account, accessKey }` and switches the account to client mode (its stored SID, if any, is deleted).
+
+### `GET /api/jobs/next` (key)
+
+The web app tab asks for work: `{ "job": { "id": "9f…", "kind": "club" | "sbc" | "challenges", "setIds": [16] } }` or `{ "job": null }`. One job runs at a time; nothing is handed out when today's budget is used or the account is paused. Calling this marks the web app as open (`session: true` for 30 s).
+
+### `POST /api/jobs/:id/call` (key)
+
+One EA request made for a job: `{ "method": "POST", "path": "/club", "status": 200 }`. Counted in `sync.ea`; 429/458/495/512/521 pause the account for 15 min.
+
+### `POST /api/jobs/:id/done` (key)
+
+`{ "ok": true }` or `{ "ok": false, "error": "EA asked to slow down (495)." }`. A finished `sbc` job queues a `challenges` job for sets that are new or changed.
+
 ### `POST /api/session`
 
-Called by the extension whenever the web app uses a new session id.
+Legacy (extension up to 0.6). Called whenever the web app uses a new session id.
 
 ```json
 { "sid": "b52b9d04-…", "contentGuid": "27A3C9F1-…", "extVersion": "0.4.0" }
@@ -61,7 +86,7 @@ Which of the keys stored in this browser are valid.
 
 ### `POST /api/sync` (key)
 
-Manual sync. `what`: `"club"` (players, active squad, chemistry profiles), `"sbc"` (sets + changed challenges) or `"all"`. Returns the new `sync` status. Fails with `409`/`401` if there is no live EA session.
+Manual sync. `what`: `"club"` (players, active squad, chemistry profiles), `"sbc"` (sets + changed challenges) or `"all"`. Returns the new `sync` status. Client mode: queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused. Legacy: syncs from the server, `409`/`401` without a live EA session.
 
 ---
 
