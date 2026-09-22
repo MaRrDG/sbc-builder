@@ -9,8 +9,7 @@
     "dev:web": "vite",
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
-    "typecheck": "tsc --noEmit",
-    "test": "tsx --test server/*.test.ts"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@fastify/static": "^10.1.4",

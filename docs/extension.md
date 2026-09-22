@@ -1,0 +1,45 @@
+# Chrome extension
+
+The extension is the bridge between the player's logged-in FC27 web app and the builder. It is small on purpose and never sends anything to EA itself.
+
+## Files
+
+| File | Runs in | Job |
+|---|---|---|
+| `manifest.json` | | MV3 manifest; `webRequest` + `storage`, host access to the web app, UTAS and the builder server |
+| `background.js` | service worker | session bridge, SBC submit tracking, relaying page events, update check |
+| `hook.js` | the web app page (MAIN world) | reads the web app's own responses for packs and item moves |
+| `bridge.js` | the web app page (isolated world) | relays `hook.js` messages to the worker; shows the update notice |
+| `popup.html` / `popup.js` | toolbar popup | status, server address, **Open builder** |
+| `release.json` | server only | release notes per version (not shipped in the zip) |
+
+## What it watches
+
+1. **Session.** `webRequest.onSendHeaders` on `utas…/ut/game/fc27/*` reads the `X-UT-SID` header and posts it to `POST /api/session` together with the CDN content GUID and its own version. It re-posts only when the SID or the extension version changes, or when it has no access key yet. The returned access key is stored and used for every later call.
+
+2. **SBC submits.** The web app first saves the squad (`PUT /sbs/challenge/{id}/squad`, body `{players:[{index, itemData:{id, dream}}]}`), then submits it (`PUT /sbs/challenge/{id}?skipUserSquadValidation=…`). The worker keeps the item ids from the save (concept players excluded) and, when the submit completes with HTTP 200, posts them to `/api/sbc-submitted`.
+
+3. **Packs and item moves.** Extensions cannot read response bodies through `webRequest`, and a pack's contents only exist in the response. `hook.js` wraps `XMLHttpRequest` and `fetch` inside the page and, for successful calls to exactly `/purchased/items`, `/item` and `/item/{id}`, posts `{method, path, query, request, response}` to `bridge.js`, which forwards it to the worker, which sends it to `/api/webapp-event`. Every other endpoint is ignored, and errors in the hook are swallowed so the web app can never break because of it.
+
+## Access keys and "Open builder"
+
+The popup opens `<server>/#keys=<key1>,<key2>`. The fragment is never sent to the server; the UI moves the keys to `localStorage` and cleans the address bar.
+
+## Server address
+
+`background.js` and `popup.js` contain `http://localhost:5178` as the default. `GET /api/extension.zip` replaces it with the origin the zip was downloaded from and adds that origin to `host_permissions`, so friends never configure anything.
+
+## Updates
+
+- The worker asks `GET /api/extension/version` at most every 30 min (and on browser start / install). If the server has a newer version it sets a **NEW** badge and remembers the release.
+- On the web app page, `bridge.js` asks the worker and shows a small notice (shadow DOM, so no style clashes) with **How to update** (opens the builder with the steps expanded) and **Later** (hidden until the next version).
+- The site shows its own banner when the version the extension last reported is older, or missing (0.2 and 0.3 did not report one).
+
+Updating keeps the extension id, storage and keys: unzip over the old folder, press reload in `chrome://extensions`, refresh the web app.
+
+## Releasing a new version
+
+1. Change the code in `extension/`.
+2. Bump `version` in `extension/manifest.json`.
+3. Add a line for that version in `extension/release.json`.
+4. Deploy the server. Everyone sees the notice on their next web app visit or builder load.
