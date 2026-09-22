@@ -1,4 +1,4 @@
-# FC27 SBC Builder
+# FC Solver
 
 Finds the cheapest squad from the user's own EA FC 27 club that completes an SBC and shows it on a web-app-lookalike pitch. Read-only toward EA: never buy, sell or submit anything (EA bans for it). Product intent: `PRODUCT.md`, visual rules: `DESIGN.md`.
 
@@ -25,6 +25,7 @@ No automated test suite. Verify with typecheck + build, and against real cached 
 - Auth: the UI sends `X-Account-Key`; the EA SID never leaves the server. Keys come via URL fragment `#keys=` into `localStorage`.
 - UI must look like the EA web app: dark teal, EA card art, `--go` green only for the primary action / met / selected, `--pos` yellow only for position pills. Controls 8px radius, containers 14px. Respect `prefers-reduced-motion`, WCAG AA, requirement state never by color alone.
 - New endpoint or payload change → update `docs/api.md`. Extension change → bump `extension/manifest.json` version + `extension/release.json`.
+- The extension zip folder stays `fc27-sbc-builder` (users unzip updates over it; a new name = a new extension and lost keys). Domain, container, Apache vhost and `localStorage` keys keep the old `sbc-*` names too; only user-facing branding is "FC Solver".
 
 ## Docs
 `docs/architecture.md` (data flow, sync), `docs/api.md` (endpoints), `docs/solver.md` (model), `docs/extension.md`, `docs/deploy.md` (Docker + Apache + Cloudflare, prod runs `dev` branch).

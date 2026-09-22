@@ -6,17 +6,17 @@ An SBC asks for 11 players that satisfy a list of requirements (team rating, che
 
 Three constraints shaped everything else:
 
-1. **No automation of game actions.** EA bans accounts that buy or submit automatically. The builder only reads, the user builds the squad by hand.
+1. **No automation of game actions.** EA bans accounts that buy or submit automatically. FC Solver only reads, the user builds the squad by hand.
 2. **Be gentle with EA.** Every request uses the player's own session. Requests are cached, serialized and spaced out; nothing is fetched twice when the answer cannot have changed.
 3. **Be exactly right.** A suggestion that looks valid here but fails in the game is worse than none. So the game formulas were ported from the web app's own code, and every solver result is re-checked with them.
 
 ## Data flow
 
 ```
- FC27 web app (browser)                       SBC Builder server                     Browser UI
+ FC27 web app (browser)                       FC Solver server                     Browser UI
  ──────────────────────                       ──────────────────                     ──────────
  X-UT-SID on every request ──extension──►  POST /api/session  ──► account + key ──► extension stores key,
-                                             (usermassinfo = who is this?)          "Open builder" passes it
+                                             (usermassinfo = who is this?)          "Open FC Solver" passes it
                                                      │
                                              Utas client (1 queue per account,
                                              ≥1.5 s between calls)
@@ -61,7 +61,7 @@ On top of that, the extension reports what the user does in the web app so the c
 
 ## Staying exact
 
-The web app is a large obfuscated bundle, but the relevant classes are readable. The builder ports them 1:1 (`server/squad.ts`):
+The web app is a large obfuscated bundle, but the relevant classes are readable. FC Solver ports them 1:1 (`server/squad.ts`):
 
 - `UTSquadEntity._calculateRating` (the float variant, which is enabled on live): sum, average, then each player above the average adds the difference again, round, integer-divide by 11.
 - `UTSquadChemCalculatorUtils.calculate`: nation / league / club thresholds (2/5/8, 3/5/8, 2/4/7), only in-position players contribute, icons and heroes count differently, linked men's/women's clubs count together, promo profiles fetched from `/chemistry/profiles`.

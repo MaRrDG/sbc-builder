@@ -1,4 +1,4 @@
-/* FC27 SBC Builder. Tokens mirror DESIGN.md; dark teal to echo the EA web app. */
+/* FC Solver. Tokens mirror DESIGN.md; dark teal to echo the EA web app. */
 :root {
   color-scheme: dark;
   --bg-0: oklch(0.19 0.035 215);
@@ -111,24 +111,15 @@ h3 {
 
 .brand {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  align-items: center;
   margin-right: auto;
-  font-family: var(--font-num);
-  font-size: 22px;
-  letter-spacing: 0.01em;
+  border-radius: var(--r-ctl);
 }
 
-.brand-mark {
-  padding: 0 7px;
-  border-radius: 4px;
-  background: var(--go);
-  color: var(--go-ink);
-  font-weight: 700;
-}
-
-.brand-name {
-  font-weight: 600;
+.brand img {
+  display: block;
+  width: auto;
+  height: 30px;
 }
 
 .sync {
@@ -2132,6 +2123,10 @@ button.card:active {
 
 .onboarding .brand {
   margin-bottom: 28px;
+}
+
+.onboarding .brand img {
+  height: 44px;
 }
 
 .onboarding h1 {

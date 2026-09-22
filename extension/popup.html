@@ -3,24 +3,25 @@
   <head>
     <meta charset="utf-8" />
     <style>
-      body { font: 13px system-ui, sans-serif; width: 280px; margin: 12px; background: #0f1a1f; color: #e8f1f2; }
-      h1 { font-size: 14px; margin: 0 0 8px; }
+      body { font: 13px system-ui, sans-serif; width: 280px; margin: 12px; background: #0d1411; color: #f3f1ea; }
+      h1 { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 0 0 8px; }
+      h1 img { width: 22px; height: 22px; }
       #version { font-weight: 500; font-size: 12px; opacity: .6; margin-left: 4px; }
       label { display: block; font-size: 11px; opacity: .7; margin-top: 10px; }
-      input { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px; border: 1px solid #2c4048; background: #16252b; color: inherit; }
-      #update { margin-top: 8px; padding: 8px; border-radius: 6px; background: #1ed69a22; color: #1ed69a; }
-      #status { margin-top: 8px; padding: 8px; border-radius: 6px; background: #16252b; }
-      button, a { margin-top: 10px; display: inline-block; padding: 6px 10px; border-radius: 6px; border: 0; background: #1ed69a; color: #062017; font-weight: 600; text-decoration: none; cursor: pointer; }
+      input { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px; border: 1px solid #2a3a33; background: #16211c; color: inherit; }
+      #update { margin-top: 8px; padding: 8px; border-radius: 6px; background: #c8f53c1f; color: #c8f53c; }
+      #status { margin-top: 8px; padding: 8px; border-radius: 6px; background: #16211c; }
+      button, a { margin-top: 10px; display: inline-block; padding: 6px 10px; border-radius: 6px; border: 0; background: #c8f53c; color: #0d1411; font-weight: 600; text-decoration: none; cursor: pointer; }
     </style>
   </head>
   <body>
-    <h1>FC27 SBC Builder <span id="version"></span></h1>
+    <h1><img src="icons/icon-48.png" alt="" /> FC Solver <span id="version"></span></h1>
     <div id="status">Open the FC web app to connect.</div>
     <div id="update" hidden></div>
-    <label for="server">Builder server</label>
+    <label for="server">FC Solver server</label>
     <input id="server" />
     <button id="save">Save</button>
-    <a id="open" target="_blank">Open builder</a>
+    <a id="open" target="_blank">Open FC Solver</a>
     <script src="popup.js"></script>
   </body>
 </html>

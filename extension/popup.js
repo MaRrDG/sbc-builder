@@ -12,7 +12,7 @@ chrome.storage.local.get({ server: 'http://localhost:5178', lastStatus: null, la
   if (s.lastStatus) $('status').textContent = `${s.lastStatus} · ${new Date(s.lastAt).toLocaleTimeString()}`;
   if (s.update) {
     $('update').hidden = false;
-    $('update').textContent = `Update ${s.update.version} available. Open the builder to install it.`;
+    $('update').textContent = `Update ${s.update.version} available. Open FC Solver to install it.`;
     $('open').href = `${s.server}/?update=1${s.keys.length ? `#keys=${s.keys.join(',')}` : ''}`;
   }
 });

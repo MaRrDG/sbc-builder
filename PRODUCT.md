@@ -5,7 +5,7 @@
 product
 
 ## Users
-FC27 Ultimate Team players (the owner and friends), each with their own EA account. They sit at a desk in the evening with the EA FC web app open in one tab and this builder in another, or check it on a phone between matches. Job: "which squad from MY club completes this SBC while burning the least valuable cards?", then build it by hand in the web app.
+FC27 Ultimate Team players (the owner and friends), each with their own EA account. They sit at a desk in the evening with the EA FC web app open in one tab and FC Solver in another, or check it on a phone between matches. Job: "which squad from MY club completes this SBC while burning the least valuable cards?", then build it by hand in the web app.
 
 ## Product Purpose
 Reads the player's club and the live SBC list (never submits anything to EA) and shows the cheapest valid squad on a pitch that looks like the one in the web app, so copying it over is effortless. Success: open an SBC, press Solve, get a correct squad in seconds, rebuild it in the web app without second-guessing.

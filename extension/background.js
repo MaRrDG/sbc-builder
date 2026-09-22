@@ -1,4 +1,4 @@
-// Watches the FC27 web app's own requests and tells the SBC Builder server:
+// Watches the FC27 web app's own requests and tells the FC Solver server:
 //  1. the session id (X-UT-SID), so it can read your club and SBCs;
 //  2. which club items you just used in a submitted SBC, so they leave the cached club
 //     without another sync. Nothing is ever sent to EA by this extension.
@@ -37,7 +37,7 @@ async function checkForUpdate(force = false) {
   }
 }
 
-/** Tells the builder which version is installed, so its update banner clears right away. */
+/** Tells FC Solver which version is installed, so its update banner clears right away. */
 async function reportVersion() {
   const { server, keys = [] } = await chrome.storage.local.get(['server', 'keys']);
   for (const key of keys) {

@@ -68,7 +68,7 @@ export function UpdateBanner({ installed, latest, expanded: startOpen, onDismiss
             >
               chrome://extensions {copied ? <Check weight="bold" /> : <Copy weight="bold" />}
             </button>{' '}
-            press the reload arrow on SBC Builder.
+            press the reload arrow on FC Solver (named SBC Builder before this update).
           </li>
           <li>Refresh the FC27 web app tab. Your settings and account stay as they are.</li>
         </ol>
