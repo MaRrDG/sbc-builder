@@ -5,7 +5,7 @@ import { SessionError } from './ea.js';
 import { readCache, writeCache, isStale, type Cached } from './store.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
-import { enqueue, jobStatus, webAppOpen } from './jobs.js';
+import { enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
 
 export interface SetsData {
   categories: { categoryId: number; name: string; sets: SbcSet[] }[];
@@ -13,6 +13,7 @@ export interface SetsData {
 
 export interface SyncStatus {
   ea: Awaited<ReturnType<Account['meter']['summary']>>;
+  clubSyncs: { used: number; limit: number }; // today, manual + scheduled
   running: string | null;
   error: string | null;
   clubAt: number | null;
@@ -33,6 +34,7 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
   const jobs = acc.clientMode ? jobStatus(acc) : null;
   return {
     ea: await acc.meter.summary(),
+    clubSyncs: { used: await clubSyncsToday(acc), limit: CLUB_SYNCS_PER_DAY },
     running: jobs ? jobs.running : running.get(acc.id) ?? null,
     error: jobs ? jobs.error : errors.get(acc.id) ?? null,
     editedAt: edited.get(acc.id) ?? null,
@@ -62,20 +64,53 @@ async function run<T>(acc: Account, label: string, fn: () => Promise<T>): Promis
   }
 }
 
+// Club syncs (button or schedule) are capped per account per day. The SBC list is never
+// synced on demand: only by the schedule, after the daily drop.
+export const CLUB_SYNCS_PER_DAY = Number(process.env.CLUB_SYNCS_PER_DAY ?? 3);
+const TZ_DAY = () => new Intl.DateTimeFormat('en-CA', { timeZone: DROP_TZ }).format(new Date());
+
+async function clubSyncsToday(acc: Account): Promise<number> {
+  const c = await readCache<{ day: string; club: number }>(acc.key('sync-count'));
+  return c?.data.day === TZ_DAY() ? c.data.club : 0;
+}
+
+async function countClubSync(acc: Account) {
+  await writeCache(acc.key('sync-count'), { day: TZ_DAY(), club: (await clubSyncsToday(acc)) + 1 });
+}
+
 /**
- * Manual or scheduled sync. Client-mode accounts only queue a job for their web app tab
- * (the data arrives through the extension); legacy accounts still fetch from the server.
+ * Manual (club only) or scheduled sync. Client-mode accounts only queue a job for their web app
+ * tab (the data arrives through the extension); legacy accounts still fetch from the server.
  */
-export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all') {
+export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all', scheduled = false) {
+  if (!scheduled && what !== 'club')
+    throw new SessionError('The SBC list refreshes on its own after the daily drop (20:01).', 403);
+  const club = what === 'club' || what === 'all';
+  const sbc = what === 'sbc' || what === 'all';
+  if (club && (await clubSyncsToday(acc)) >= CLUB_SYNCS_PER_DAY) {
+    if (!scheduled)
+      throw new SessionError(
+        `Club already synced ${CLUB_SYNCS_PER_DAY} times today. Opening your club in the web app still updates it for free.`,
+        429,
+      );
+    if (!sbc) return;
+  }
+  const doClub = club && (await clubSyncsToday(acc)) < CLUB_SYNCS_PER_DAY;
   if (acc.clientMode) {
     if (!webAppOpen(acc)) throw new SessionError('Open the FC27 web app in this browser to sync. FC Solver asks EA only from there.', 409);
     await acc.meter.check(); // over today's budget or paused: refuse before the tab starts
-    if (what === 'club' || what === 'all') await enqueue(acc, 'club');
-    if (what === 'sbc' || what === 'all') await enqueue(acc, 'sbc');
+    if (doClub && !hasPending(acc, 'club')) {
+      await enqueue(acc, 'club');
+      await countClubSync(acc);
+    }
+    if (sbc) await enqueue(acc, 'sbc');
     return;
   }
-  if (what === 'club' || what === 'all') await syncClub(acc);
-  if (what === 'sbc' || what === 'all') await syncSbcs(acc);
+  if (doClub) {
+    await countClubSync(acc);
+    await syncClub(acc);
+  }
+  if (sbc) await syncSbcs(acc);
 }
 
 export function syncClub(acc: Account): Promise<Cached<ClubItem[]>> {
@@ -238,11 +273,10 @@ export async function autoSync(acc: Account): Promise<void> {
     const sbcDue = !sets || sets.fetchedAt < lastSbcDrop();
     if (acc.clientMode) {
       if (jobStatus(acc).running) return;
-      if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc');
+      if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
       return;
     }
-    if (clubDue) await syncClub(acc);
-    if (sbcDue) await syncSbcs(acc);
+    if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
   } catch (e) {
     console.warn(`auto sync failed for ${acc.info.personaName}:`, (e as Error).message);
   }

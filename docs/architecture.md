@@ -55,8 +55,8 @@ Everything EA returns is written to JSON files with a `fetchedAt` timestamp (`se
 
 | Data | Refreshed when |
 |---|---|
-| Club players, active squad, chemistry profiles | older than 24 h, or the user presses **Club** |
-| SBC list | fetched before the latest 20:01 Europe/Bucharest drop, or the user presses **SBCs** |
+| Club players, active squad, chemistry profiles | older than 24 h, or the user presses **Club**; at most `CLUB_SYNCS_PER_DAY` (3) syncs a day per account, scheduled ones included |
+| SBC list | only by the schedule: fetched before the latest 20:01 Europe/Bucharest drop (no manual refresh) |
 | Challenges of a set | the set is new or its progress changed during an SBC sync; otherwise only when opened in the web app |
 | Static game data (names, formations, card art tunables) | older than 7 days (public CDN, no session needed) |
 

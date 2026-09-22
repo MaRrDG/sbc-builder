@@ -56,7 +56,7 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now }
           />
         </label>
       </header>
-      {categories.length === 0 && <p className="muted">No SBCs cached yet. Sync SBCs to load them.</p>}
+      {categories.length === 0 && <p className="muted">No SBCs yet. Open the SBC tab in the FC27 web app, or wait for the daily refresh after 20:01.</p>}
       {categories.length > 0 && matches.length === 0 && <p className="muted">No SBCs match “{filter}”.</p>}
       {groups.map(({ cat, sets }) => (
           <section key={cat.categoryId} className="set-section">

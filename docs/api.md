@@ -86,7 +86,7 @@ Which of the keys stored in this browser are valid.
 
 ### `POST /api/sync` (key)
 
-Manual sync. `what`: `"club"` (players, active squad, chemistry profiles), `"sbc"` (sets + changed challenges) or `"all"`. Returns the new `sync` status. Client mode: queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused. Legacy: syncs from the server, `409`/`401` without a live EA session.
+Manual sync, club only: `what: "club"` (players, active squad, chemistry profiles), at most `CLUB_SYNCS_PER_DAY` (3) a day per account including scheduled ones (`429` after that; `sync.clubSyncs` shows `{ used, limit }`). `"sbc"` is refused with `403`: the SBC list only refreshes on the schedule after the daily drop. Returns the new `sync` status. Client mode: queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused. Legacy: syncs from the server, `409`/`401` without a live EA session.
 
 ---
 

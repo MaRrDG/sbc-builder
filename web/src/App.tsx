@@ -41,6 +41,8 @@ type LocalMap = Record<number, SolveOptions>;
 
 const optionsKey = (key: string) => `sbc-options-${key.slice(0, 8)}`;
 const localKey = (key: string) => `sbc-local-options-${key.slice(0, 8)}`;
+const resultsKey = (key: string) => `sbc-results-${key.slice(0, 8)}`;
+const KEEP_RESULTS = 20; // solved squads kept per account, newest last
 
 export default function App() {
   const [linked, setLinked] = useState<Linked[] | null>(null);
@@ -120,7 +122,8 @@ export default function App() {
       setLocalOptions(readLocal<LocalMap>(localKey(key), {}));
       setSetId(null);
       setChallenges(null);
-      setResults({});
+      // solved squads survive reloads and tab switches; they are only replaced by solving again
+      setResults(readLocal<Record<number, SolveResult>>(resultsKey(key), {}));
       await loadAccountData();
     },
     [loadAccountData],
@@ -162,7 +165,6 @@ export default function App() {
           if (syncDone || edited) {
             void loadAccountData();
             if (setId) void api.challenges(setId).then((r) => setChallenges(r.challenges));
-            if (edited) setResults({});
           }
           return st.sync;
         });
@@ -240,7 +242,14 @@ export default function App() {
     setError(null);
     try {
       const r = await api.solve(challenge.setId, challenge.challengeId, opts, deep);
-      setResults((prev) => ({ ...prev, [challenge.challengeId]: r }));
+      setResults((prev) => {
+        const { [challenge.challengeId]: _old, ...rest } = prev;
+        const next = { ...rest, [challenge.challengeId]: r };
+        const ids = Object.keys(next);
+        for (const id of ids.slice(0, Math.max(0, ids.length - KEEP_RESULTS))) delete next[Number(id)];
+        if (activeKey) writeLocal(resultsKey(activeKey), next);
+        return next;
+      });
       if (!r.found && r.slots.some((s) => s.player)) setError('Closest squad shown. Your club cannot meet every requirement.');
     } catch (e) {
       setError((e as Error).message);
@@ -265,14 +274,12 @@ export default function App() {
     updateOptions({ ...options, excludeIds: ids });
   };
 
-  const doSync = async (what: 'club' | 'sbc') => {
+  const doSync = async (what: 'club') => {
     setSyncing(what);
     setError(null);
     try {
       setStatus(await api.sync(what));
       await loadAccountData();
-      if (setId && what === 'sbc') setChallenges((await api.challenges(setId)).challenges);
-      setResults({});
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -301,6 +308,9 @@ export default function App() {
   if (linked.length === 0) return <Onboarding error={error} />;
 
   const busy = !!syncing || !!status?.running;
+  const clubLeft = status?.clubSyncs ? Math.max(0, status.clubSyncs.limit - status.clubSyncs.used) : null;
+  // players of the shown squad that left the club since it was found (used, sold, moved)
+  const goneFromClub = result && club.length ? result.slots.filter((s) => s.player && !clubById.has(s.player.id)).length : 0;
 
   return (
     <div className="app">
@@ -314,16 +324,29 @@ export default function App() {
         </a>
 
         <div className="sync">
-          <button type="button" className="ghost" disabled={busy || !account?.session} onClick={() => doSync('club')}>
+          <button
+            type="button"
+            className="ghost"
+            disabled={busy || !account?.session || clubLeft === 0}
+            onClick={() => doSync('club')}
+            title={
+              clubLeft === 0
+                ? 'Club synced 3 times today. Opening your club in the web app still updates it.'
+                : `Sync your club from the web app (${clubLeft} left today)`
+            }
+          >
             <ArrowsClockwise weight="bold" className={syncing === 'club' || status?.running === 'club' ? 'spin' : ''} />
             <span>Club</span>
-            <small>{ago(status?.clubAt ?? null)}</small>
+            <small>
+              {ago(status?.clubAt ?? null)}
+              {clubLeft !== null && ` · ${clubLeft} left`}
+            </small>
           </button>
-          <button type="button" className="ghost" disabled={busy || !account?.session} onClick={() => doSync('sbc')}>
-            <ArrowsClockwise weight="bold" className={syncing === 'sbc' || status?.running === 'sbc' ? 'spin' : ''} />
+          <span className="ghost sync-info" title="The SBC list refreshes on its own after the daily drop (20:01).">
+            <ArrowsClockwise weight="bold" className={status?.running === 'sbc' ? 'spin' : ''} />
             <span>SBCs</span>
-            <small>{ago(status?.sbcAt ?? null)}</small>
-          </button>
+            <small>{ago(status?.sbcAt ?? null)} · auto 20:01</small>
+          </span>
         </div>
 
         <button
@@ -500,8 +523,7 @@ export default function App() {
                 {challenges === null && [0, 1, 2].map((i) => <span key={i} className="tab-skeleton" />)}
                 {challenges?.length === 0 && (
                   <p className="muted">
-                    This SBC is not loaded yet. Open it once in the FC27 web app and it appears here on its own
-                    {account?.session ? ', or press Sync SBCs.' : '.'}
+                    This SBC is not loaded yet. Open it once in the FC27 web app and it appears here on its own.
                   </p>
                 )}
                 {challenges?.map((c) => (
@@ -527,6 +549,12 @@ export default function App() {
                 <div className="board">
                   <div className="board-main">
                     {error && <div className="banner" role="alert">{error}</div>}
+                    {goneFromClub > 0 && !solving && (
+                      <div className="notice-inline" role="status">
+                        {goneFromClub} player{goneFromClub === 1 ? ' in this squad is' : 's in this squad are'} no longer in your club. Solve
+                        again for a squad you can build.
+                      </div>
+                    )}
                     {challenge.needsLayout && (
                       <div className="notice-inline" role="status">
                         {challenge.status === 'IN_PROGRESS' && account?.session ? (
@@ -640,7 +668,13 @@ export default function App() {
               local={local}
               onSetLocal={(o) => {
                 updateLocal(setId, o);
-                setResults({});
+                // squads of this SBC were found with the old settings
+                setResults((prev) => {
+                  const next = { ...prev };
+                  for (const c of challenges ?? []) delete next[c.challengeId];
+                  if (activeKey) writeLocal(resultsKey(activeKey), next);
+                  return next;
+                });
               }}
               clubById={clubById}
               club={club}
