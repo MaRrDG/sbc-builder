@@ -12,6 +12,7 @@ export const DEFAULT_OPTIONS: SolveOptions = {
   onlyUntradeable: false,
   maxRating: 99,
   excludeSpecial: true,
+  keepPlaced: false, // Solve gives a fresh squad; placed players are only shown until then
 };
 
 export const exclusionCount = (o: SolveOptions) =>
@@ -27,7 +28,7 @@ interface Props {
 
 /** The solver switches, exclusions and kept-out players; used by Settings and by one SBC's local settings. */
 export function SolverOptions({ options, onChange, clubById, club, meta }: Props) {
-  const toggle = (k: 'excludeActiveSquad' | 'excludeSquadReserves' | 'excludeSpecial' | 'onlyUntradeable') =>
+  const toggle = (k: 'excludeActiveSquad' | 'excludeSquadReserves' | 'excludeSpecial' | 'onlyUntradeable' | 'keepPlaced') =>
     onChange({ ...options, [k]: !options[k] });
   return (
     <>
@@ -46,6 +47,10 @@ export function SolverOptions({ options, onChange, clubById, club, meta }: Props
       <label className="switch">
         <input type="checkbox" checked={options.onlyUntradeable} onChange={() => toggle('onlyUntradeable')} />
         <span>Only use untradeables</span>
+      </label>
+      <label className="switch">
+        <input type="checkbox" checked={options.keepPlaced} onChange={() => toggle('keepPlaced')} />
+        <span>Keep players already placed in the web app</span>
       </label>
       <ExcludePicker
         meta={meta}

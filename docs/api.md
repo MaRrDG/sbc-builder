@@ -133,6 +133,12 @@ Challenges of one set, each with its parsed requirements. Always from cache (emp
 
 `scope`: `0` min, `1` max, `2` exactly. `keys` maps EA eligibility keys to accepted values (see [solver.md](solver.md)).
 
+Each challenge also has `layout` (`{ bricks: [{ index, custom, nation, league, club }], placed: [{ index, itemId }], capturedAt }`, or `null` until opened in the web app) and `needsLayout` (EA locks slots here but FC Solver has not seen which).
+
+### `POST /api/challenges/:id/read` (key)
+
+Client mode: queues a `challengeSquad` job that reads a challenge you already started (`GET /sbs/challenge/{id}/squad`) through the web app tab. `409` without an open web app tab.
+
 ---
 
 ## Solving
@@ -158,7 +164,7 @@ Challenges of one set, each with its parsed requirements. Always from cache (emp
 }
 ```
 
-`deep: true` gives the solver 30 s instead of 10 s. Any option left out uses the default above.
+`deep: true` gives the solver 30 s instead of 10 s. Any option left out uses the default above; `keepPlaced` (default `false`) keeps players already placed in the web app where the requirements allow. A brick challenge without a known layout answers `409`. Each slot in the answer carries `brick` (`null` or `{ custom, nation, league, club }`) and `fixed` (kept from the web app); `missingPlaced` lists placed items no longer in the club.
 
 Found:
 
@@ -206,6 +212,7 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 | `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club |
 | `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (other saved squads are ignored) |
 | `GET /chemistry/profiles` | replaces the promo chemistry profiles |
+| `POST /sbs/challenge/:id`, `GET/PUT /sbs/challenge/:id/squad` | the challenge's squad: locked slots and players already placed (last 6 kept raw in `challengeSquads/{id}`) |
 
 ```json
 { "method": "PUT", "path": "/item", "query": "", "request": { "itemData": [{ "id": 945213335495, "pile": "club" }] }, "response": { "itemData": [{ "id": 945213335495, "success": true }] } }

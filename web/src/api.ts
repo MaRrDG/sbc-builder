@@ -95,7 +95,25 @@ export interface Challenge {
   elgOperation: 'AND' | 'OR';
   timesCompleted: number;
   repeatable: boolean;
+  type?: string;
   requirements: Requirement[];
+  /** what the web app's squad for this challenge holds (null until opened there) */
+  layout: ChallengeLayout | null;
+  /** EA locks slots here but FC Solver has not seen which yet */
+  needsLayout: boolean;
+}
+
+export interface BrickInfo {
+  custom: boolean;
+  nation: number;
+  league: number;
+  club: number;
+}
+
+export interface ChallengeLayout {
+  bricks: (BrickInfo & { index: number })[];
+  placed: { index: number; itemId: number }[];
+  capturedAt: number;
 }
 
 export interface SolveOptions {
@@ -108,12 +126,15 @@ export interface SolveOptions {
   onlyUntradeable: boolean;
   maxRating: number;
   excludeSpecial: boolean;
+  keepPlaced: boolean;
 }
 
 export interface SlotResult {
   position: { uniqueId: number; name: string; typeId: number };
   player: Player | null;
   chem: number;
+  brick?: BrickInfo | null;
+  fixed?: boolean;
 }
 
 export interface SolveResult {
@@ -122,6 +143,8 @@ export interface SolveResult {
   status?: string;
   ms: number;
   cost?: number;
+  missingPlaced?: number[];
+  placed?: { kept: number; total: number };
   eval: { rating: number; chemistry: number; results: { text: string; met: boolean; actual: number | string }[]; allMet: boolean };
   slots: SlotResult[];
 }
@@ -182,6 +205,7 @@ export const api = {
   sets: () => req<{ fetchedAt: number | null; categories: { categoryId: number; name: string; sets: SbcSet[] }[] }>('/api/sets'),
   challenges: (setId: number, refresh = false) =>
     req<{ fetchedAt: number | null; challenges: Challenge[] }>(`/api/sets/${setId}/challenges${refresh ? '?refresh=1' : ''}`),
+  readChallenge: (challengeId: number) => req<SyncStatus>(`/api/challenges/${challengeId}/read`, { method: 'POST' }),
   solve: (setId: number, challengeId: number, options: SolveOptions, deep = false) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep } }),
 };

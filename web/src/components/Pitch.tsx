@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import type { Challenge, Meta, SolveResult } from '../api';
-import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck } from '@phosphor-icons/react';
-import { Card, EmptyCard } from './Card';
+import type { Challenge, Meta, Player, SolveResult } from '../api';
+import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin } from '@phosphor-icons/react';
+import { BrickCard, Card, EmptyCard } from './Card';
 
 // Base x (%) per position uniqueId; left side of the screen = left positions.
 const BASE_X: Record<number, number> = {
@@ -86,11 +86,13 @@ interface Props {
   /** Why this challenge cannot be solved right now (done once, daily limit reached). */
   lock: { title: string; text: string } | null;
   localOptions: boolean;
+  /** players already placed in the web app, by slot index; shown until a solve replaces them */
+  placed: Map<number, Player>;
   selectedId: number | null;
   onPlayerClick: (playerId: number) => void;
 }
 
-export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, selectedId, onPlayerClick }: Props) {
+export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick }: Props) {
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
   const { pos: coords, lines } = layout(positions.map((p) => p.uniqueId));
@@ -146,10 +148,20 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
         {positions.map((pos, i) => {
           const { x, y } = coords[i];
           const slot = result?.slots[i];
-          const player = solving ? null : slot?.player ?? null;
+          const player = solving ? null : result ? slot?.player ?? null : placed.get(i) ?? null;
+          const kept = result ? !!slot?.fixed : placed.has(i);
+          // locked slots are known before solving, from the squad the web app loaded
+          const brick = slot?.brick ?? challenge.layout?.bricks.find((b) => b.index === i) ?? null;
           return (
             <div key={i} className="slot" style={{ left: `${x}%`, top: `${y}%`, ['--i' as string]: i }}>
-              {player ? (
+              {kept && player && (
+                <span className="slot-fixed" title="Already placed in the web app, kept here">
+                  <PushPin weight="fill" aria-label="Kept from the web app" />
+                </span>
+              )}
+              {brick ? (
+                <BrickCard brick={brick} meta={meta} />
+              ) : player ? (
                 <Card
                   player={player}
                   meta={meta}
@@ -161,7 +173,7 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
                 <EmptyCard loading={solving} />
               )}
               <div className="slot-foot">
-                {player && <ChemDots value={slot?.chem ?? 0} />}
+                {(player || brick?.custom) && result && !solving && <ChemDots value={slot?.chem ?? 0} />}
                 <span className="slot-pos">{pos.name}</span>
               </div>
             </div>

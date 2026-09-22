@@ -7,9 +7,10 @@ import { loadMeta } from './meta.js';
 import { parseRequirements, serializeRequirement } from './sbc.js';
 import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
+import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
 import { applySubmittedSbc, autoSyncAll, getChallenges, getStatus, markEdited, requestSync, type SetsData } from './sync.js';
-import { findJob, finishJob, nextJob } from './jobs.js';
+import { enqueue, findJob, finishJob, nextJob, webAppOpen } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, hello, type Account } from './accounts.js';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
@@ -93,6 +94,17 @@ app.post<{ Body: { what: 'club' | 'sbc' | 'all' } }>('/api/sync', async (req) =>
   return getStatus(acc);
 });
 
+/** Read a started challenge's squad (locked slots, placed players) through the web app tab. */
+app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, reply) => {
+  const acc = account(req);
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return reply.code(400).send({ error: 'invalid challenge' });
+  if (!acc.clientMode || !webAppOpen(acc)) return reply.code(409).send({ error: 'Open the FC27 web app in this browser first.' });
+  await acc.meter.check();
+  await enqueue(acc, 'challengeSquad', undefined, id);
+  return getStatus(acc);
+});
+
 // ---- extension 0.7+: identity and sync jobs run in the web app tab ------------------
 /** The web app says who is logged in. A held key is enough; otherwise the SID proves it once (not stored). */
 app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVersion?: string } }>('/api/hello', async (req, reply) => {
@@ -119,7 +131,7 @@ app.get('/api/jobs/next', async (req) => {
     return { job: null }; // over budget or paused: the queue waits
   }
   const job = nextJob(acc);
-  return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds } };
+  return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId } };
 });
 
 /** One EA request the tab made for a job, for the daily count. Throttling codes pause the account. */
@@ -206,10 +218,18 @@ app.get<{ Params: { id: string }; Querystring: { refresh?: string } }>('/api/set
   const ch = await getChallenges(acc, Number(req.params.id), req.query.refresh === '1');
   return {
     fetchedAt: ch?.fetchedAt ?? null,
-    challenges: (ch?.data ?? []).map((c) => ({
-      ...c,
-      requirements: parseRequirements(c.elgReq, meta).map(serializeRequirement),
-    })),
+    challenges: await Promise.all(
+      (ch?.data ?? []).map(async (c) => {
+        const layout = await challengeLayout(acc, c.challengeId);
+        return {
+          ...c,
+          requirements: parseRequirements(c.elgReq, meta).map(serializeRequirement),
+          layout,
+          // EA locks slots in this challenge but we have not seen which yet
+          needsLayout: isBrickChallenge(c.type) && !layout,
+        };
+      }),
+    ),
   };
 });
 
@@ -223,6 +243,7 @@ const DEFAULT_OPTIONS: SolveOptions = {
   onlyUntradeable: false,
   maxRating: 99,
   excludeSpecial: true,
+  keepPlaced: false,
 };
 
 app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOptions>; deep?: boolean } }>(
@@ -239,15 +260,26 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     const options = { ...DEFAULT_OPTIONS, ...req.body.options };
     const t0 = Date.now();
     const squad = (await readCache<ActiveSquad>(acc.key('squad')))?.data ?? null;
-    const sol = await solve(players, ch.formation, reqs, ch.elgOperation, meta, options, squad, req.body.deep ? 30 : 10);
+    const layout = await challengeLayout(acc, challengeId);
+    if (isBrickChallenge(ch.type) && !layout)
+      return reply.code(409).send({
+        error: 'This SBC has locked slots. Open it once in the FC27 web app so FC Solver sees which, then solve again.',
+      });
+    const bricks = layout?.bricks ?? [];
+    const brickAt = new Map(bricks.map((b) => [b.index, b]));
+    const sol = await solve(players, ch.formation, reqs, ch.elgOperation, meta, options, squad, req.body.deep ? 30 : 10, layout);
     const slotsMeta = meta.formations[ch.formation];
+    const brickOf = (i: number) => {
+      const b = brickAt.get(i);
+      return b ? { custom: b.custom, nation: b.nation, league: b.league, club: b.club } : null;
+    };
     if (!sol) {
-      const empty = evaluate(slotsMeta.map(() => null), slotsMeta.map((s) => s.typeId), reqs, ch.elgOperation, meta);
+      const empty = evaluate(slotsMeta.map(() => null), slotsMeta.map((s) => s.typeId), reqs, ch.elgOperation, meta, bricks);
       return {
         found: false,
         ms: Date.now() - t0,
-        reasons: diagnose(players, reqs, meta, options, squad),
-        slots: slotsMeta.map((s) => ({ position: s, player: null, chem: 0 })),
+        reasons: diagnose(players, reqs, meta, options, squad, bricks),
+        slots: slotsMeta.map((s, i) => ({ position: s, player: null, chem: 0, brick: brickOf(i), fixed: false })),
         eval: empty,
       };
     }
@@ -257,7 +289,15 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
       ms: Date.now() - t0,
       cost: sol.cost,
       eval: sol.eval,
-      slots: slotsMeta.map((s, i) => ({ position: s, player: sol.slots[i], chem: sol.eval.perSlotChem[i] })),
+      slots: slotsMeta.map((s, i) => ({
+        position: s,
+        player: sol.slots[i],
+        chem: sol.eval.perSlotChem[i],
+        brick: brickOf(i),
+        fixed: !!sol.slots[i] && sol.fixedIds.includes(sol.slots[i]!.id),
+      })),
+      missingPlaced: sol.missingPlaced,
+      placed: { kept: sol.fixedIds.length, total: sol.placedCount },
     };
   },
 );

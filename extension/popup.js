@@ -11,16 +11,19 @@ const LIVE_MS = 30 * 1000;
 /** Green when a web app tab talked to FC Solver in the last 30 s, red otherwise. */
 async function renderStatus() {
   const { connectedAs, accessKey, lastStatus } = await chrome.storage.local.get(['connectedAs', 'accessKey', 'lastStatus']);
-  const { lastPollOkAt = 0 } = await chrome.storage.session.get('lastPollOkAt');
+  const { lastPollOkAt = 0, busy } = await chrome.storage.session.get(['lastPollOkAt', 'busy']);
   const live = !!accessKey && Date.now() - lastPollOkAt < LIVE_MS;
+  const working = !!busy && Date.now() - busy.since < 3 * 60 * 1000;
   const el = $('status');
-  el.className = live ? 'live' : 'off';
+  el.className = working ? 'busy' : live ? 'live' : 'off';
   el.replaceChildren();
   const title = document.createElement('b');
-  title.textContent = live ? 'Connected' : 'Not connected';
+  title.textContent = working ? `${busy.label}…` : live ? 'Connected' : 'Not connected';
   const detail = document.createElement('small');
   const problem = /error|not reachable|failed/i.test(lastStatus ?? '') ? ` Last: ${lastStatus}` : '';
-  detail.textContent = live
+  detail.textContent = working
+    ? connectedAs ?? 'Talking to EA from your web app tab'
+    : live
     ? connectedAs ?? 'Web app open'
     : (accessKey ? 'Open the FC27 web app in this browser.' : 'Open the FC27 web app and log in to link your account.') + problem;
   el.append(title, detail);

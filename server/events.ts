@@ -16,7 +16,7 @@ import { invalidateMeta } from './meta.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const WATCHED_PATH =
-  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|chemistry\/profiles)$/;
+  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles)$/;
 
 export interface WebAppEvent {
   method: string;
@@ -135,6 +135,15 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
   }
   const squad = ev.path.match(/^\/squad\/(active|\d+)$/)?.[1];
   if (method === 'GET' && squad) return onSquad(acc, squad === 'active' ? 'active' : Number(squad), res);
+  // A challenge's squad as the web app sees it (players already placed, EA's fixed "brick" slots).
+  // Kept raw for now: the exact shape still has to be read from real responses.
+  const sbcSquad = ev.path.match(/^\/sbs\/challenge\/(\d+)(\/squad)?$/);
+  if (sbcSquad) {
+    const key = acc.key(`challengeSquads/${sbcSquad[1]}`);
+    const prev = (await readCache<{ method: string; path: string; request: unknown; response: unknown; at: number }[]>(key))?.data ?? [];
+    await writeCache(key, [{ method, path: ev.path, request: ev.request ?? null, response: ev.response ?? null, at: Date.now() }, ...prev].slice(0, 6));
+    return 'SBC squad updated from the web app'; // non-null: the UI reloads and shows it
+  }
   if (method === 'GET' && ev.path === '/chemistry/profiles') {
     if (!Array.isArray(res.profiles)) return null;
     await writeCache<ChemProfilesResponse>(acc.key('chemProfiles'), res as unknown as ChemProfilesResponse);
