@@ -10,13 +10,18 @@
       label { display: block; font-size: 11px; opacity: .7; margin-top: 10px; }
       input { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px; border: 1px solid #2a3a33; background: #16211c; color: inherit; }
       #update { margin-top: 8px; padding: 8px; border-radius: 6px; background: #c8f53c1f; color: #c8f53c; }
-      #status { margin-top: 8px; padding: 8px; border-radius: 6px; background: #16211c; }
+      #status { display: grid; grid-template-columns: 10px 1fr; gap: 2px 8px; align-items: center; margin-top: 8px; padding: 8px 10px; border-radius: 6px; border: 1px solid; }
+      #status::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+      #status.live { background: #3ecf6e1a; border-color: #3ecf6e55; color: #7ee2a0; }
+      #status.off { background: #e5484d1f; border-color: #e5484d66; color: #ff9a9d; }
+      #status b { font-weight: 600; }
+      #status small { grid-column: 2; color: #f3f1ea99; }
       button, a { margin-top: 10px; display: inline-block; padding: 6px 10px; border-radius: 6px; border: 0; background: #c8f53c; color: #0d1411; font-weight: 600; text-decoration: none; cursor: pointer; }
     </style>
   </head>
   <body>
     <h1><img src="icons/icon-48.png" alt="" /> FC Solver <span id="version"></span></h1>
-    <div id="status">Open the FC web app to connect.</div>
+    <div id="status" class="off" role="status"><b>Not connected</b></div>
     <div id="update" hidden></div>
     <label for="server">FC Solver server</label>
     <input id="server" />

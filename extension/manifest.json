@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FC Solver \u2013 Session Bridge",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Connects the FC27 web app to FC Solver. Every request to EA is made from your web app tab.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -11,7 +11,8 @@
   },
   "permissions": [
     "webRequest",
-    "storage"
+    "storage",
+    "alarms"
   ],
   "host_permissions": [
     "https://utas.mob.v1.prd.futc-ext.gcp.ea.com/*",

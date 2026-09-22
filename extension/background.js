@@ -30,8 +30,7 @@ async function checkForUpdate(force = false) {
     const latest = await res.json();
     const update = latest.version && compareVersions(latest.version, VERSION) > 0 ? latest : null;
     await chrome.storage.local.set({ update, updateCheckedAt: Date.now() });
-    await chrome.action.setBadgeText({ text: update ? 'NEW' : '' });
-    if (update) await chrome.action.setBadgeBackgroundColor({ color: '#2fd99a' });
+    await refreshBadge();
   } catch {
     /* server unreachable: try again later */
   }
@@ -53,13 +52,37 @@ async function reportVersion() {
   }
 }
 
+// ---- connection state ------------------------------------------------------------------
+// Connected = a web app tab polled FC Solver successfully in the last 30 s. The toolbar badge
+// shows it: green dot connected, red dot not connected, NEW when an update is waiting.
+const LIVE_MS = 30 * 1000;
+
+async function refreshBadge() {
+  const { accessKey, update } = await chrome.storage.local.get(['accessKey', 'update']);
+  const { lastPollOkAt = 0 } = await chrome.storage.session.get('lastPollOkAt');
+  const live = !!accessKey && Date.now() - lastPollOkAt < LIVE_MS;
+  await chrome.storage.session.set({ live });
+  await chrome.action.setBadgeText({ text: update ? 'NEW' : ' ' });
+  await chrome.action.setBadgeBackgroundColor({ color: update ? '#c8f53c' : live ? '#3ecf6e' : '#e5484d' });
+  if (update) await chrome.action.setBadgeTextColor?.({ color: '#0d1411' });
+  await chrome.action.setTitle({ title: `FC Solver: ${live ? 'connected' : 'not connected, open the FC27 web app'}` });
+}
+
+// the service worker sleeps; an alarm turns the dot red soon after the web app tab closes
+chrome.alarms.onAlarm.addListener((a) => a.name === 'badge' && refreshBadge());
+const startAlarm = () => chrome.alarms.create('badge', { periodInMinutes: 0.5 });
+
 chrome.runtime.onStartup.addListener(() => {
   reportVersion();
   checkForUpdate(true);
+  startAlarm();
+  refreshBadge();
 });
 chrome.runtime.onInstalled.addListener(() => {
   reportVersion();
   checkForUpdate(true);
+  startAlarm();
+  refreshBadge();
 });
 
 // ---- identity -----------------------------------------------------------------------------
@@ -98,9 +121,11 @@ async function hello(identity) {
       personaKeys: { ...personaKeys, [identity.personaId]: body.accessKey },
       keys: [...new Set([body.accessKey, ...keys])],
       lastStatus: `Connected: ${body.account.personaName} (${body.account.clubName})`,
+      connectedAs: `${body.account.personaName} · ${body.account.clubName}`,
       lastAt: Date.now(),
     });
     await chrome.storage.session.set({ helloFor: marker });
+    await pollJobs(); // connected right away, without waiting for the tab's next poll
   } catch {
     await chrome.storage.local.set({ lastStatus: `Server not reachable at ${server}`, lastAt: Date.now() });
   }
@@ -123,6 +148,14 @@ async function api(path, init = {}) {
     headers: { 'Content-Type': 'application/json', 'X-Account-Key': accessKey, ...(init.headers ?? {}) },
   });
   return res.ok ? res.json() : null;
+}
+
+/** A web app tab asked for work and FC Solver answered: we are connected. */
+async function pollJobs() {
+  const res = await api('/api/jobs/next').catch(() => null);
+  if (res) await chrome.storage.session.set({ lastPollOkAt: Date.now() });
+  await refreshBadge();
+  return res;
 }
 
 // The content CDN path contains a GUID that changes between game updates.
@@ -205,7 +238,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     (async () => {
       const { count } = await callsToday();
       if (count >= LOCAL_DAILY_LIMIT) return sendResponse(null);
-      sendResponse(await api('/api/jobs/next').catch(() => null));
+      sendResponse(await pollJobs());
     })();
     return true; // async response
   }
