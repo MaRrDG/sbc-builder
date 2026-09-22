@@ -19,7 +19,7 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 
 2. **SBC submits.** The web app first saves the squad (`PUT /sbs/challenge/{id}/squad`, body `{players:[{index, itemData:{id, dream}}]}`), then submits it (`PUT /sbs/challenge/{id}?skipUserSquadValidation=…`). The worker keeps the item ids from the save (concept players excluded) and, when the submit completes with HTTP 200, posts them to `/api/sbc-submitted`.
 
-3. **Packs and item moves.** Extensions cannot read response bodies through `webRequest`, and a pack's contents only exist in the response. `hook.js` wraps `XMLHttpRequest` and `fetch` inside the page and, for successful calls to exactly `/purchased/items`, `/item` and `/item/{id}`, posts `{method, path, query, request, response}` to `bridge.js`, which forwards it to the worker, which sends it to `/api/webapp-event`. Every other endpoint is ignored, and errors in the hook are swallowed so the web app can never break because of it.
+3. **Packs, item moves and loaded data.** Extensions cannot read response bodies through `webRequest`, and a pack's contents only exist in the response. `hook.js` wraps `XMLHttpRequest` and `fetch` inside the page and, for successful calls to exactly `/purchased/items`, `/item`, `/item/{id}`, `/club`, `/squad/list|active|{id}`, `/sbs/sets`, `/sbs/setId/{id}/challenges` and `/chemistry/profiles`, posts `{method, path, query, request, response}` to `bridge.js`, which forwards it to the worker, which sends it to `/api/webapp-event`. Every other endpoint is ignored, and errors in the hook are swallowed so the web app can never break because of it.
 
 ## Access keys and "Open FC Solver"
 

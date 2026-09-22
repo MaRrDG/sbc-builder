@@ -48,10 +48,16 @@ Everything EA returns is written to JSON files with a `fetchedAt` timestamp (`se
 |---|---|
 | Club players, active squad, chemistry profiles | older than 24 h, or the user presses **Club** |
 | SBC list | fetched before the latest 20:01 Europe/Bucharest drop, or the user presses **SBCs** |
-| Challenges of a set | the set is new or its progress changed; finished one-off sets load only when opened |
+| Challenges of a set | the set is new or its progress changed during an SBC sync; otherwise only when opened in the web app |
 | Static game data (names, formations, card art tunables) | older than 7 days (public CDN, no session needed) |
 
-A one-minute ticker only compares timestamps; it costs nothing unless a sync is due. When the session is missing at 20:01, the SBC sync happens as soon as the next session arrives.
+A one-minute ticker only compares timestamps; it costs nothing unless a sync is due. When the session is missing at 20:01, the SBC sync happens as soon as the next session arrives. A fresh session waits 3 minutes before any automatic sync, because the web app is loading the same data at that moment and the extension hands it over for free.
+
+Opening an SBC or solving never asks EA: both read the cache only. Only syncs do.
+
+**The web app loads it for us.** The extension relays the web app's own responses for `/sbs/sets`, `/sbs/setId/{id}/challenges`, `/club` pages, `/squad/list` + `/squad/{id}` and `/chemistry/profiles`. These replace the cache directly. Club pages are special: a filtered or partial listing only refreshes the players it shows, but a plain listing scrolled from start to end (contiguous pages, same order, within 10 minutes) replaces the whole club and resets its 24 h timer, exactly like a club sync.
+
+**Budget.** Every request to EA is counted per account (`data/accounts/<id>/ea-requests.json`, shown in Settings). After `EA_DAILY_LIMIT` (default 150) requests in a day nothing more is sent; normal use is 10 to 25. If EA answers 429, 458, 495, 512 or 521 the account pauses all EA requests for 15 minutes.
 
 On top of that, the extension reports what the user does in the web app so the cache is edited in place (same `fetchedAt`, so the schedule does not shift):
 

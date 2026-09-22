@@ -1,5 +1,6 @@
 // Thin client for the FC27 web app backend (UTAS) + public content CDN.
 // All UTAS calls go through one throttled queue so we never burst EA.
+import type { RequestMeter } from './meter.js';
 
 const UTAS = 'https://utas.mob.v1.prd.futc-ext.gcp.ea.com/ut/game/fc27';
 const WEB_APP = 'https://www.ea.com/ea-sports-fc/ultimate-team/web-app';
@@ -112,7 +113,8 @@ export class Utas {
   private lastCallAt = 0;
   onExpired: (() => void) | null = null;
 
-  constructor(public sid: string) {}
+  /** `meter` counts and caps this account's requests; omitted only for the one-off "who is this?" call. */
+  constructor(public sid: string, private meter: RequestMeter | null = null) {}
 
   private enqueue<T>(fn: () => Promise<T>): Promise<T> {
     const run = async () => {
@@ -131,8 +133,10 @@ export class Utas {
 
   private call<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
     return this.enqueue(async () => {
+      const method = init.method ?? 'GET';
+      await this.meter?.check();
       const res = await fetch(UTAS + path, {
-        method: init.method ?? 'GET',
+        method,
         headers: {
           Accept: '*/*',
           'Content-Type': 'application/json',
@@ -142,12 +146,18 @@ export class Utas {
           'X-UT-SID': this.sid,
         },
         body: init.body === undefined ? undefined : JSON.stringify(init.body),
+      }).catch(async (e) => {
+        await this.meter?.record(method, path, null);
+        throw e;
       });
+      await this.meter?.record(method, path, res.status);
       if (res.status === 401 || res.status === 403) {
         this.onExpired?.();
         throw new SessionError('EA session expired. Reopen the web app to refresh it.', 401);
       }
-      if (res.status === 429 || res.status === 458 || res.status === 512 || res.status === 521) {
+      // 495's meaning is unconfirmed; the web app got it on rapid squad saves, so treat it as throttling too
+      if ([429, 458, 495, 512, 521].includes(res.status)) {
+        this.meter?.pause();
         throw new SessionError(`EA is rate limiting / blocking requests (HTTP ${res.status}). Try again later.`, 429);
       }
       if (!res.ok) throw new Error(`EA ${path} -> HTTP ${res.status}`);
@@ -180,7 +190,7 @@ export class Utas {
   }
 
   /** Item ids in the active squad: first 11 are the starting XI, the rest subs/reserves. */
-  async activeSquad(): Promise<{ starters: number[]; bench: number[] }> {
+  async activeSquad(): Promise<{ squadId: number; starters: number[]; bench: number[] }> {
     const list = await this.call<{ activeSquadId: number }>('/squad/list');
     const squad = await this.call<{ players: { index: number; itemData: { id: number } }[] }>(`/squad/${list.activeSquadId}`);
     const ids = squad.players
@@ -188,6 +198,7 @@ export class Utas {
       .sort((a, b) => a.index - b.index)
       .map((p) => ({ index: p.index, id: p.itemData.id }));
     return {
+      squadId: list.activeSquadId,
       starters: ids.filter((p) => p.index < 11).map((p) => p.id),
       bench: ids.filter((p) => p.index >= 11).map((p) => p.id),
     };

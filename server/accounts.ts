@@ -4,6 +4,7 @@ import { readdir } from 'node:fs/promises';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
 import { Utas, content } from './ea.js';
+import { RequestMeter } from './meter.js';
 import { DATA_DIR, readCache, writeCache } from './store.js';
 
 export interface AccountInfo {
@@ -18,8 +19,10 @@ export interface AccountInfo {
 
 export class Account {
   utas: Utas | null = null;
+  readonly meter: RequestMeter;
 
   constructor(public info: AccountInfo) {
+    this.meter = new RequestMeter(`accounts/${info.personaId}/ea-requests`);
     if (info.sid) this.attach(info.sid);
   }
 
@@ -36,7 +39,7 @@ export class Account {
   }
 
   attach(sid: string) {
-    this.utas = new Utas(sid);
+    this.utas = new Utas(sid, this.meter);
     this.utas.onExpired = () => {
       this.utas = null;
       this.info.sid = null;
@@ -100,6 +103,8 @@ export async function registerSession(
   account.info.sidUpdatedAt = Date.now();
   account.info.extVersion = extVersion ?? null;
   account.attach(sid);
+  // the "who is this?" call above ran before we knew the account; count it now
+  await account.meter.record('GET', '/usermassinfo', 200);
   await account.save();
   return { account, isNew };
 }

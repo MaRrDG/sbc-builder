@@ -11,6 +11,7 @@ import { SetList } from './components/SetList';
 import { ClubView } from './components/ClubView';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
+import { EaRequestsCard } from './components/EaRequestsCard';
 import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
@@ -408,6 +409,8 @@ export default function App() {
                 <div className="settings-card options">
                   <SolverOptions options={options} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
                 </div>
+                <div className="settings-side">
+                {status?.ea && <EaRequestsCard ea={status.ea} />}
                 <aside className="settings-card">
                   <h2>SBCs with their own settings</h2>
                   {Object.keys(localOptions).length === 0 ? (
@@ -430,6 +433,7 @@ export default function App() {
                     </ul>
                   )}
                 </aside>
+                </div>
               </div>
             </section>
           )}
@@ -457,7 +461,8 @@ export default function App() {
                 {challenges === null && [0, 1, 2].map((i) => <span key={i} className="tab-skeleton" />)}
                 {challenges?.length === 0 && (
                   <p className="muted">
-                    This SBC is not loaded yet. {account?.session ? 'Sync SBCs to load it.' : 'Open the FC27 web app so the extension reconnects, then sync SBCs.'}
+                    This SBC is not loaded yet. Open it once in the FC27 web app and it appears here on its own
+                    {account?.session ? ', or press Sync SBCs.' : '.'}
                   </p>
                 )}
                 {challenges?.map((c) => (

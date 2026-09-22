@@ -34,7 +34,16 @@ export interface Account {
   extVersion?: string | null;
 }
 
+export interface EaRequests {
+  today: number;
+  limit: number;
+  pausedUntil: number | null;
+  byPath: Record<string, number>;
+  recent: { at: number; method: string; path: string; status: number | null }[];
+}
+
 export interface SyncStatus {
+  ea: EaRequests;
   running: string | null;
   error: string | null;
   clubAt: number | null;
