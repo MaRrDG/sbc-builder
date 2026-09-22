@@ -6,10 +6,33 @@ function openUrl(server, keys) {
   return keys.length ? `${server}/#keys=${keys.join(',')}` : server;
 }
 
-chrome.storage.local.get({ server: 'http://localhost:5178', lastStatus: null, lastAt: null, keys: [], update: null }).then((s) => {
+const LIVE_MS = 30 * 1000;
+
+/** Green when a web app tab talked to FC Solver in the last 30 s, red otherwise. */
+async function renderStatus() {
+  const { connectedAs, accessKey } = await chrome.storage.local.get(['connectedAs', 'accessKey']);
+  const { lastPollOkAt = 0 } = await chrome.storage.session.get('lastPollOkAt');
+  const live = !!accessKey && Date.now() - lastPollOkAt < LIVE_MS;
+  const el = $('status');
+  el.className = live ? 'live' : 'off';
+  el.replaceChildren();
+  const title = document.createElement('b');
+  title.textContent = live ? 'Connected' : 'Not connected';
+  const detail = document.createElement('small');
+  detail.textContent = live
+    ? connectedAs ?? 'Web app open'
+    : accessKey
+      ? 'Open the FC27 web app in this browser.'
+      : 'Open the FC27 web app and log in to link your account.';
+  el.append(title, detail);
+}
+renderStatus();
+setInterval(renderStatus, 2000);
+chrome.storage.onChanged.addListener(renderStatus);
+
+chrome.storage.local.get({ server: 'http://localhost:5178', keys: [], update: null }).then((s) => {
   $('server').value = s.server;
   $('open').href = openUrl(s.server, s.keys);
-  if (s.lastStatus) $('status').textContent = `${s.lastStatus} · ${new Date(s.lastAt).toLocaleTimeString()}`;
   if (s.update) {
     $('update').hidden = false;
     $('update').textContent = `Update ${s.update.version} available. Open FC Solver to install it.`;
@@ -19,8 +42,9 @@ chrome.storage.local.get({ server: 'http://localhost:5178', lastStatus: null, la
 
 $('save').onclick = async () => {
   const server = $('server').value.replace(/\/$/, '');
-  await chrome.storage.local.set({ server, keys: [], accessKey: null, personaKeys: {} });
+  await chrome.storage.local.set({ server, keys: [], accessKey: null, personaKeys: {}, connectedAs: null });
   await chrome.storage.session.remove('helloFor');
   $('open').href = server;
-  $('status').textContent = 'Saved. Reload the FC web app to reconnect.';
+  await chrome.storage.session.remove('lastPollOkAt');
+  await chrome.storage.local.set({ lastStatus: 'Saved. Reload the FC web app to reconnect.', lastAt: Date.now() });
 };

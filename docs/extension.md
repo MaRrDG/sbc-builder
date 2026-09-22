@@ -6,7 +6,7 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 
 | File | Runs in | Job |
 |---|---|---|
-| `manifest.json` | | MV3 manifest; `webRequest` + `storage`, host access to the web app, UTAS and the FC Solver server |
+| `manifest.json` | | MV3 manifest; `webRequest` + `storage` + `alarms`, host access to the web app, UTAS and the FC Solver server |
 | `background.js` | service worker | session bridge, SBC submit tracking, relaying page events, update check |
 | `hook.js` | the web app page (MAIN world) | reads the web app's own responses for packs and item moves |
 | `bridge.js` | the web app page (isolated world) | relays `hook.js` messages to the worker; shows the update notice |
@@ -22,6 +22,10 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 3. **SBC submits. The web app first saves the squad (`PUT /sbs/challenge/{id}/squad`, body `{players:[{index, itemData:{id, dream}}]}`), then submits it (`PUT /sbs/challenge/{id}?skipUserSquadValidation=…`). The worker keeps the item ids from the save (concept players excluded) and, when the submit completes with HTTP 200, posts them to `/api/sbc-submitted`.
 
 4. **Packs, item moves and loaded data.** Extensions cannot read response bodies through `webRequest`, and a pack's contents only exist in the response. `hook.js` wraps `XMLHttpRequest` and `fetch` inside the page and, for successful calls to exactly `/purchased/items`, `/item`, `/item/{id}`, `/club`, `/squad/list|active|{id}`, `/sbs/sets`, `/sbs/setId/{id}/challenges` and `/chemistry/profiles`, posts `{method, path, query, request, response}` to `bridge.js`, which forwards it to the worker, which sends it to `/api/webapp-event`. Every other endpoint is ignored, and errors in the hook are swallowed so the web app can never break because of it.
+
+## Connected or not
+
+The extension is **connected** when a web app tab polled FC Solver successfully in the last 30 s. It connects by itself when you open the web app (identity → `/api/hello` → first poll). The toolbar badge shows a green dot when connected and a red dot when not (**NEW** wins while an update is waiting); an `alarms` tick every 30 s turns it red soon after the tab closes. The popup shows the same state in green or red, with the linked account.
 
 ## Access keys and "Open FC Solver"
 
