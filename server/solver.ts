@@ -269,21 +269,30 @@ const NO_FILTERS: SolveOptions = {
   excludeClubs: [], onlyUntradeable: false, maxRating: 99, excludeSpecial: false, keepPlaced: true,
 };
 
+/** Why no squad exists, as data the site words in the user's language (web/src/messages.ts). */
+export interface Reason {
+  code: 'pool' | 'count' | 'sameGroup' | 'distinct' | 'rating' | 'combo';
+  req?: string; // requirement text as EA words it
+  have?: number;
+  need?: number;
+  hidden?: number; // extra players the user's settings hide
+  all?: number; // best rating without the settings
+}
+
 /**
  * Why no squad exists: per-requirement checks that are cheap and certain. Each reason says
  * how many usable players there are, and whether the user's own settings are what hides them.
  */
 export function diagnose(
   players: Player[], reqs: Requirement[], meta: Meta, options: SolveOptions, squad: ActiveSquad | null, bricks: BrickSlot[] = [],
-): string[] {
+): Reason[] {
   const need = requiredPlayers(bricks);
   const pool = eligiblePool(players, reqs, options, squad);
   const everyone = eligiblePool(players, reqs, NO_FILTERS, null);
-  const hidden = (n: number, all: number) => (all > n ? ` Your solver settings hide ${all - n} more.` : '');
-  const reasons: string[] = [];
+  const hidden = (n: number, all: number) => (all > n ? all - n : 0);
+  const reasons: Reason[] = [];
 
-  if (pool.length < need)
-    reasons.push(`Only ${pool.length} players are usable, ${need} are needed.${hidden(pool.length, everyone.length)}`);
+  if (pool.length < need) reasons.push({ code: 'pool', have: pool.length, need, hidden: hidden(pool.length, everyone.length) });
 
   const groupOf = (p: Player, key: number) =>
     key === Key.NATION_COUNT || key === Key.SAME_NATION_COUNT ? p.nation
@@ -302,7 +311,7 @@ export function diagnose(
       const f = r.combined ? matchAll : (p: Player) => matchesKey(p, key, vals);
       const have = new Set(pool.filter(f).map((p) => p.assetId)).size; // same player twice is not allowed
       const all = new Set(everyone.filter(f).map((p) => p.assetId)).size;
-      if (have < need) reasons.push(`${r.text}: you have ${have} usable.${hidden(have, all)}`);
+      if (have < need) reasons.push({ code: 'count', req: r.text, have, hidden: hidden(have, all) });
       continue;
     }
     if (key === Key.SAME_NATION_COUNT || key === Key.SAME_LEAGUE_COUNT || key === Key.SAME_CLUB_COUNT) {
@@ -312,11 +321,11 @@ export function diagnose(
         return Math.max(0, ...[...m.values()].map((x) => x.size));
       };
       const have = best(pool);
-      if (have < v) reasons.push(`${r.text}: your biggest group has ${have}.${hidden(have, best(everyone))}`);
+      if (have < v) reasons.push({ code: 'sameGroup', req: r.text, have, hidden: hidden(have, best(everyone)) });
     }
     if (key === Key.NATION_COUNT || key === Key.LEAGUE_COUNT || key === Key.CLUB_COUNT) {
       const have = new Set(pool.map((p) => groupOf(p, key))).size;
-      if (have < v) reasons.push(`${r.text}: your usable players cover only ${have}.`);
+      if (have < v) reasons.push({ code: 'distinct', req: r.text, have });
     }
     if (key === Key.TEAM_RATING || key === Key.TEAM_STAR_RATING) {
       const best = (list: Player[]) => {
@@ -327,13 +336,11 @@ export function diagnose(
       const target = key === Key.TEAM_RATING ? v : STAR_RATING_THRESHOLDS[v - 1] + 1;
       const have = best(pool);
       if (have < target) {
-        const all = best(everyone);
-        reasons.push(`${r.text}: your best ${need} usable players only reach ${have}.${all > have ? ` Without your solver settings: ${all}.` : ''}`);
+        reasons.push({ code: 'rating', req: r.text, need, have, all: best(everyone) });
       }
     }
   }
-  if (reasons.length === 0)
-    reasons.push('Each requirement is possible on its own, but not all together with your club. Usually chemistry and rating pull in opposite directions.');
+  if (reasons.length === 0) reasons.push({ code: 'combo' });
   return reasons;
 }
 

@@ -30,8 +30,10 @@ app.addHook('onRequest', async (req, reply) => {
 });
 
 app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
-  const code = err instanceof SessionError ? err.status : err.statusCode ?? 500;
-  reply.code(code).send({ error: err.message });
+  const status = err instanceof SessionError ? err.status : err.statusCode ?? 500;
+  // `code` / `params` are ours (SessionError), for the site to translate; never Fastify's own codes
+  const own = err instanceof SessionError && err.msgCode ? { code: err.msgCode, params: err.params ?? {} } : {};
+  reply.code(status).send({ error: err.message, ...own });
 });
 
 await loadAccounts();
@@ -44,7 +46,7 @@ const keyOf = (req: FastifyRequest) => {
 /** Account for this request, identified by its secret access key. */
 function account(req: FastifyRequest): Account {
   const acc = accountByKey(keyOf(req));
-  if (!acc) throw Object.assign(new Error('Unknown account. Connect through the extension first.'), { statusCode: 401 });
+  if (!acc) throw new SessionError('Unknown account. Connect through the extension first.', 401, 'unknownAccount');
   return acc;
 }
 
@@ -99,7 +101,8 @@ app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, rep
   const acc = account(req);
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return reply.code(400).send({ error: 'invalid challenge' });
-  if (!acc.clientMode || !webAppOpen(acc)) return reply.code(409).send({ error: 'Open the FC27 web app in this browser first.' });
+  if (!acc.clientMode || !webAppOpen(acc))
+    return reply.code(409).send({ error: 'Open the FC27 web app in this browser first.', code: 'webAppClosed', params: {} });
   await acc.meter.check();
   await enqueue(acc, 'challengeSquad', undefined, id);
   return getStatus(acc);
@@ -253,9 +256,9 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     const meta = await metaFor(acc);
     const { setId, challengeId } = req.body;
     const ch = (await getChallenges(acc, setId))?.data.find((c) => c.challengeId === challengeId);
-    if (!ch) return reply.code(404).send({ error: 'challenge not found (open it in the web app first)' });
+    if (!ch) return reply.code(404).send({ error: 'challenge not found (open it in the web app first)', code: 'challengeNotFound', params: {} });
     const { players } = await clubPlayers(acc);
-    if (players.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)' });
+    if (players.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)', code: 'clubEmpty', params: {} });
     const reqs = parseRequirements(ch.elgReq, meta);
     const options = { ...DEFAULT_OPTIONS, ...req.body.options };
     const t0 = Date.now();
@@ -264,6 +267,8 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     if (isBrickChallenge(ch.type) && !layout)
       return reply.code(409).send({
         error: 'This SBC has locked slots. Open it once in the FC27 web app so FC Solver sees which, then solve again.',
+        code: 'needsLayout',
+        params: {},
       });
     const bricks = layout?.bricks ?? [];
     const brickAt = new Map(bricks.map((b) => [b.index, b]));

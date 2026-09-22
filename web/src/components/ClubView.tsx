@@ -4,6 +4,7 @@ import type { Meta, Player } from '../api';
 import { Card } from './Card';
 import { PlayerPanel } from './PlayerPanel';
 import { Pager, clampPage } from './Pager';
+import { useI18n } from '../i18n';
 
 const PER_PAGE = 60;
 
@@ -11,12 +12,12 @@ type Filter = 'all' | 'untradeable' | 'tradeable' | 'special' | 'squad' | 'kept'
 type Sort = 'rating' | 'name' | 'position';
 
 const FILTERS: [Filter, string][] = [
-  ['all', 'All'],
-  ['untradeable', 'Untradeable'],
-  ['tradeable', 'Tradeable'],
-  ['special', 'Special'],
-  ['squad', 'Active squad'],
-  ['kept', 'Kept out'],
+  ['all', 'club.all'],
+  ['untradeable', 'club.untradeable'],
+  ['tradeable', 'club.tradeable'],
+  ['special', 'club.special'],
+  ['squad', 'club.activeSquad'],
+  ['kept', 'club.keptOut'],
 ];
 
 const POS_ORDER = ['GK', 'RB', 'RWB', 'CB', 'LB', 'LWB', 'CDM', 'RM', 'CM', 'LM', 'CAM', 'RW', 'LW', 'CF', 'ST'];
@@ -31,6 +32,7 @@ interface Props {
 
 /** The players in the club, searchable; a card opens its details and can be kept out of SBCs. */
 export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Props) {
+  const { t } = useI18n();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [sort, setSort] = useState<Sort>('rating');
@@ -93,27 +95,25 @@ export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Pro
     <div className="club-view">
       <header className="page-head">
         <div>
-          <h1>Club</h1>
-          <p className="muted">
-            {owned.length} players · {untradeable} untradeable · {kept.size} kept out of SBCs
-          </p>
+          <h1>{t('club.title')}</h1>
+          <p className="muted">{t('club.summary', { players: owned.length, untradeable, kept: kept.size })}</p>
         </div>
         <label className="search">
           <MagnifyingGlass aria-hidden="true" />
           <input
-            placeholder="Search players"
+            placeholder={t('club.search')}
             value={q}
             onChange={(e) => {
               setQ(e.target.value);
               setPage(1);
             }}
-            aria-label="Search players"
+            aria-label={t('club.search')}
           />
         </label>
       </header>
 
       <div className="club-tools">
-        <div className="chips-row" role="group" aria-label="Filter players">
+        <div className="chips-row" role="group" aria-label={t('club.filter')}>
           {FILTERS.map(([f, label]) => (
             <button
               key={f}
@@ -125,12 +125,12 @@ export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Pro
                 setPage(1);
               }}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
         <label className="sort">
-          <span>Sort</span>
+          <span>{t('club.sort')}</span>
           <select
             value={sort}
             onChange={(e) => {
@@ -138,27 +138,27 @@ export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Pro
               setPage(1);
             }}
           >
-            <option value="rating">Rating</option>
-            <option value="position">Position</option>
-            <option value="name">Name</option>
+            <option value="rating">{t('club.sortRating')}</option>
+            <option value="position">{t('club.sortPosition')}</option>
+            <option value="name">{t('club.sortName')}</option>
           </select>
         </label>
       </div>
 
       <div className="club-body">
         {shown.length === 0 ? (
-          <p className="muted">No players match.</p>
+          <p className="muted">{t('club.noMatch')}</p>
         ) : (
           <div className="club-list">
             <ul className="club-grid">
               {pageItems.map((p) => (
                 <li key={p.id} className={kept.has(p.id) ? 'kept-out' : ''}>
                   <Card player={p} meta={meta} size="sm" selected={p.id === selectedId} onClick={onCardClick(p.id)} />
-                  {kept.has(p.id) && <Prohibit className="kept-mark" weight="bold" aria-label="Kept out of SBCs" />}
+                  {kept.has(p.id) && <Prohibit className="kept-mark" weight="bold" aria-label={t('club.keptMark')} />}
                 </li>
               ))}
             </ul>
-            <Pager page={current} total={shown.length} perPage={PER_PAGE} onPage={turnPage} label="Club pages" />
+            <Pager page={current} total={shown.length} perPage={PER_PAGE} onPage={turnPage} label={t('club.pages')} />
           </div>
         )}
         {selected && (
@@ -169,7 +169,7 @@ export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Pro
               meta={meta}
               inSquad={role(selected.id)}
               excluded={kept.has(selected.id)}
-              excludeLabel="Keep out of SBCs"
+              excludeLabel={t('player.keepOut')}
               onExclude={() => onToggleExclude(selected.id)}
               onClose={() => setSelectedId(null)}
             />

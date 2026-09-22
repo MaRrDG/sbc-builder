@@ -1,6 +1,7 @@
 import { memo, useState } from 'react';
 import { Coins, LockSimple, UserCircle } from '@phosphor-icons/react';
 import type { BrickInfo, Meta, Player } from '../api';
+import { useI18n } from '../i18n';
 
 const hex = (n: number | undefined) => (n === undefined ? undefined : `#${n.toString(16).padStart(6, '0')}`);
 
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export const Card = memo(function Card({ player, meta, position, size = 'md', selected, onClick }: Props) {
+  const { t } = useI18n();
   const art = cardArt(player, meta);
   const [bgOk, setBgOk] = useState(true);
   const offPos = position !== undefined && !player.possiblePositions.includes(position);
@@ -38,7 +40,7 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
       {...(onClick ? { type: 'button' as const, onClick, 'aria-pressed': !!selected } : {})}
       className={`card card-${size} tier-${player.tier}${bgOk ? '' : ' card-fallback'}${selected ? ' selected' : ''}`}
       style={{ color: art.text }}
-      title={`${player.name} · ${player.possiblePositions.join(', ')}${player.untradeable ? ' · untradeable' : ' · tradeable'}`}
+      title={`${player.name} · ${player.possiblePositions.join(', ')} · ${player.untradeable ? t('card.untradeable') : t('card.tradeable')}`}
     >
       {art.bg && bgOk && <img className="card-bg" src={art.bg} alt="" decoding="async" onError={() => setBgOk(false)} />}
       <div className="card-rating">{player.rating}</div>
@@ -50,17 +52,20 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
         <img src={art.league} alt={meta.names.league[player.league] ?? ''} loading="lazy" />
         <img src={art.club} alt={meta.names.club[player.club] ?? ''} loading="lazy" />
       </div>
-      {!player.untradeable && <Coins className="card-tradeable" weight="fill" aria-label="Tradeable" />}
+      {!player.untradeable && <Coins className="card-tradeable" weight="fill" aria-label={t('card.tradeableIcon')} />}
     </Tag>
   );
 });
 
 /** A slot EA locked in this SBC. Custom bricks show the club / league / nation they stand for. */
 export function BrickCard({ brick, meta, size = 'md' }: { brick: BrickInfo; meta: Meta; size?: 'md' | 'sm' }) {
+  const { t } = useI18n();
   const base = `${meta.contentBase}/items/images/mobile`;
   const label = brick.custom
-    ? `Locked by EA: ${[meta.names.club[brick.club], meta.names.league[brick.league], meta.names.nation[brick.nation]].filter(Boolean).join(', ')}. Counts for chemistry, not for rating or requirements.`
-    : 'Locked by EA. This slot stays empty and counts for nothing.';
+    ? t('card.brickCustom', {
+        what: [meta.names.club[brick.club], meta.names.league[brick.league], meta.names.nation[brick.nation]].filter(Boolean).join(', '),
+      })
+    : t('card.brickPlain');
   return (
     <div className={`card card-${size} card-empty card-brick`} role="img" aria-label={label} title={label}>
       <LockSimple className="brick-lock" weight="fill" aria-hidden="true" />

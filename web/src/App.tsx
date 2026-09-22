@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowsClockwise, Cards, CheckCircle, GearSix, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, CheckCircle, GearSix, List, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
-  api, ago, absorbKeysFromUrl, setAccountKey, storeKeys,
+  api, absorbKeysFromUrl, setAccountKey, storeKeys,
   type Account, type Challenge, type Meta, type Player, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
 } from './api';
 import { Pitch, ReqTick } from './components/Pitch';
@@ -13,6 +13,10 @@ import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
 import { canGoBack, useRoute, type Route } from './route';
+import { useAgo, useI18n, type Lang } from './i18n';
+import { LangMenu } from './components/LangMenu';
+import { Guide } from './components/Guide';
+import { errorText, reasonText } from './messages';
 import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
@@ -52,6 +56,8 @@ export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [club, setClub] = useState<Player[]>([]);
   const [categories, setCategories] = useState<{ categoryId: number; name: string; sets: SbcSet[] }[]>([]);
+  const { t, lang, setLang } = useI18n();
+  const ago = useAgo();
   // which screen is open lives in the URL (see route.ts), so browser Back works
   const [route, navigate] = useRoute();
   const view: View = route.view;
@@ -66,6 +72,7 @@ export default function App() {
   const [localOptions, setLocalOptions] = useState<LocalMap>({});
   const [showOptions, setShowOptions] = useState(false);
   const [filter, setFilter] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false); // phone navigation menu
   const [syncing, setSyncing] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -100,9 +107,9 @@ export default function App() {
   const setRepeat = currentSet ? repeatOf(currentSet, now) : null;
   const lock =
     !challenge ? null
-    : challenge.status === 'COMPLETED' && !challenge.repeatable ? { title: 'Completed', text: 'This challenge can only be done once.' }
+    : challenge.status === 'COMPLETED' && !challenge.repeatable ? { title: t('set.lockCompleted'), text: t('set.lockOnce') }
     : setRepeat?.kind === 'limited' && !setRepeat.available
-      ? { title: 'Limit reached', text: `Done ${setRepeat.limit}/${setRepeat.limit} times. Available again in ${untilText(setRepeat.resetAt!, now)}.` }
+      ? { title: t('set.lockLimit'), text: t('set.lockLimitText', { limit: setRepeat.limit!, until: untilText(t, setRepeat.resetAt!, now) }) }
       : null;
 
   const loadAccountData = useCallback(async () => {
@@ -218,6 +225,13 @@ export default function App() {
     readFromWebApp(challenge.challengeId);
   }, [challenge, account?.session, readAsked, readFromWebApp]);
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [menuOpen]);
+
   // refresh windows of repeatable SBCs roll over while the page is open
   useEffect(() => {
     const tick = () => !document.hidden && setNow(Date.now());
@@ -266,9 +280,9 @@ export default function App() {
         if (activeKey) writeLocal(resultsKey(activeKey), next);
         return next;
       });
-      if (!r.found && r.slots.some((s) => s.player)) setError('Closest squad shown. Your club cannot meet every requirement.');
+      if (!r.found && r.slots.some((s) => s.player)) setError(t('set.closest'));
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e, t));
     } finally {
       setSolving(false);
     }
@@ -276,7 +290,7 @@ export default function App() {
 
   const selectedSlot = result?.slots.find((sl) => sl.player?.id === selectedId) ?? null;
   const selected = selectedSlot?.player ?? null;
-  const squadRole = (id: number) => (squad?.starters.includes(id) ? 'XI' : squad?.bench.includes(id) ? 'Subs' : null);
+  const squadRole = (id: number) => (squad?.starters.includes(id) ? 'XI' : squad?.bench.includes(id) ? 'Subs' : null) as 'XI' | 'Subs' | null;
 
   const excludeAndResolve = (playerId: number) => {
     const next = { ...effective, excludeIds: [...new Set([...effective.excludeIds, playerId])] };
@@ -297,13 +311,14 @@ export default function App() {
       setStatus(await api.sync(what));
       await loadAccountData();
     } catch (e) {
-      setError((e as Error).message);
+      setError(errorText(e, t));
     } finally {
       setSyncing(null);
     }
   };
 
   const pickSet = (id: number) => {
+    setMenuOpen(false);
     navigate({ view: 'sbcs', setId: id, challengeId: null });
     setShowOptions(false);
     setError(null);
@@ -311,6 +326,7 @@ export default function App() {
 
   const go = (v: View) => {
     setShowOptions(false);
+    setMenuOpen(false);
     // pressing SBCs again goes back to the list
     navigate(v === 'sbcs' ? { view: 'sbcs', setId: null, challengeId: null } : { view: v });
     setError(null);
@@ -320,17 +336,76 @@ export default function App() {
   const closeGuide = () => (canGoBack() ? history.back() : go('sbcs'));
 
   if (linked === null) return <div className="boot" aria-busy="true" />;
-  if (linked.length === 0) return <Onboarding error={error} />;
+  if (linked.length === 0) return <Onboarding error={error} lang={lang} setLang={setLang} />;
 
   const busy = !!syncing || !!status?.running;
   const clubLeft = status?.clubSyncs ? Math.max(0, status.clubSyncs.limit - status.clubSyncs.used) : null;
   // players of the shown squad that left the club since it was found (used, sold, moved)
   const goneFromClub = result && club.length ? result.slots.filter((s) => s.player && !clubById.has(s.player.id)).length : 0;
 
+  const controls = (
+    <>
+          <div className="sync">
+            <button
+              type="button"
+              className="ghost"
+              disabled={busy || !account?.session || clubLeft === 0}
+              onClick={() => doSync('club')}
+              title={
+                clubLeft === 0
+                  ? t('top.clubNoneLeft', { limit: status?.clubSyncs.limit ?? 3 })
+                  : t('top.clubTitle', { n: clubLeft ?? 0 })
+              }
+            >
+              <ArrowsClockwise weight="bold" className={syncing === 'club' || status?.running === 'club' ? 'spin' : ''} />
+              <span>{t('top.club')}</span>
+              <small>
+                {ago(status?.clubAt ?? null)}
+                {clubLeft !== null && ` · ${t('top.clubLeft', { n: clubLeft })}`}
+              </small>
+            </button>
+            <span className="ghost sync-info" title={t('top.sbcTitle')}>
+              <ArrowsClockwise weight="bold" className={status?.running === 'sbc' ? 'spin' : ''} />
+              <span>{t('top.sbcs')}</span>
+              <small>{ago(status?.sbcAt ?? null)} · {t('top.sbcAuto')}</small>
+            </span>
+          </div>
+
+          <button
+            type="button"
+            className={`ghost icon-label${showGuide ? ' on' : ''}`}
+            onClick={() => (showGuide ? closeGuide() : go('setup'))}
+            aria-pressed={showGuide}
+          >
+            <Question weight="bold" /> <span>{t('top.setup')}</span>
+          </button>
+
+          <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
+
+          <label className="account">
+            <span className={`session ${account?.session ? 'on' : ''}`}>{account?.session ? t('top.live') : t('top.offline')}</span>
+            <select
+              value={activeKey ?? ''}
+              onChange={(e) => {
+                navigate({ view: 'sbcs', setId: null, challengeId: null });
+                void selectAccount(e.target.value);
+              }}
+              aria-label={t('top.account')}
+            >
+              {linked.map((l) => (
+                <option key={l.key} value={l.key}>
+                  {l.account.personaName} · {l.account.clubName}
+                </option>
+              ))}
+            </select>
+          </label>
+    </>
+  );
+
   return (
     <div className="app">
       <header className="topbar">
-        <a className="brand" href="/" aria-label="FC Solver home">
+        <a className="brand" href="/" aria-label={t('top.home')}>
           {/* the wordmark needs ~120px; narrow phones get the square icon */}
           <picture>
             <source media="(max-width: 480px)" srcSet="/brand/icon-green.svg" />
@@ -338,65 +413,29 @@ export default function App() {
           </picture>
         </a>
 
-        <div className="sync">
-          <button
-            type="button"
-            className="ghost"
-            disabled={busy || !account?.session || clubLeft === 0}
-            onClick={() => doSync('club')}
-            title={
-              clubLeft === 0
-                ? 'Club synced 3 times today. Opening your club in the web app still updates it.'
-                : `Sync your club from the web app (${clubLeft} left today)`
-            }
-          >
-            <ArrowsClockwise weight="bold" className={syncing === 'club' || status?.running === 'club' ? 'spin' : ''} />
-            <span>Club</span>
-            <small>
-              {ago(status?.clubAt ?? null)}
-              {clubLeft !== null && ` · ${clubLeft} left`}
-            </small>
-          </button>
-          <span className="ghost sync-info" title="The SBC list refreshes on its own after the daily drop (20:01).">
-            <ArrowsClockwise weight="bold" className={status?.running === 'sbc' ? 'spin' : ''} />
-            <span>SBCs</span>
-            <small>{ago(status?.sbcAt ?? null)} · auto 20:01</small>
-          </span>
-        </div>
+        <div className="top-controls">{controls}</div>
 
+        <span className={`session mobile-only ${account?.session ? 'on' : ''}`}>{account?.session ? t('top.live') : t('top.offline')}</span>
         <button
           type="button"
-          className={`ghost icon-label${showGuide ? ' on' : ''}`}
-          onClick={() => (showGuide ? closeGuide() : go('setup'))}
-          aria-pressed={showGuide}
+          className="hamburger mobile-only"
+          aria-expanded={menuOpen}
+          aria-controls="mobile-menu"
+          aria-label={menuOpen ? t('nav.close') : t('nav.open')}
+          onClick={() => setMenuOpen((v) => !v)}
         >
-          <Question weight="bold" /> <span>Setup</span>
+          {menuOpen ? <X weight="bold" /> : <List weight="bold" />}
         </button>
-
-        <label className="account">
-          <span className={`session ${account?.session ? 'on' : ''}`}>{account?.session ? 'Live' : 'Offline'}</span>
-          <select
-            value={activeKey ?? ''}
-            onChange={(e) => {
-              navigate({ view: 'sbcs', setId: null, challengeId: null });
-              void selectAccount(e.target.value);
-            }}
-            aria-label="EA account"
-          >
-            {linked.map((l) => (
-              <option key={l.key} value={l.key}>
-                {l.account.personaName} · {l.account.clubName}
-              </option>
-            ))}
-          </select>
-        </label>
       </header>
 
       {!account?.session && (
         <div className="notice">
-          FC27 web app not open. FC Solver syncs only from your web app tab, so open it in this browser to sync. Cached data still works.{' '}
+          {t('notice.webAppClosed')}{' '}
           <button type="button" className="text" onClick={() => go('setup')}>
-            No extension yet?
+            {t('notice.noExtension')}
+          </button>{' '}
+          <button type="button" className="text" onClick={() => go('guide')}>
+            {t('notice.howItWorks')}
           </button>
         </div>
       )}
@@ -415,28 +454,34 @@ export default function App() {
 
       {!!status?.unassigned && (
         <div className="notice info">
-          {status.unassigned} new player{status.unassigned === 1 ? '' : 's'} from packs waiting in Unassigned. Send them to your club in the web
-          app and they show up here automatically.
+          {t('notice.unassigned', { count: status.unassigned })}
         </div>
       )}
 
       <div className="layout">
-        <nav className="sidebar" aria-label="Sections">
+        {menuOpen && <div className="menu-scrim mobile-only" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
+        <nav id="mobile-menu" className={`sidebar${menuOpen ? ' open' : ''}`} aria-label={t('nav.sections')}>
           <button type="button" className="nav-item" aria-current={view === 'sbcs' && !showGuide ? 'page' : undefined} onClick={() => go('sbcs')}>
             <Cards weight="bold" aria-hidden="true" />
-            <span>SBC</span>
+            <span>{t('nav.sbc')}</span>
             <small>{setsById.size}</small>
           </button>
           <button type="button" className="nav-item" aria-current={view === 'club' && !showGuide ? 'page' : undefined} onClick={() => go('club')}>
             <UsersThree weight="bold" aria-hidden="true" />
-            <span>Club</span>
+            <span>{t('nav.club')}</span>
             <small>{club.length}</small>
           </button>
           <button type="button" className="nav-item" aria-current={view === 'settings' && !showGuide ? 'page' : undefined} onClick={() => go('settings')}>
             <GearSix weight="bold" aria-hidden="true" />
-            <span>Settings</span>
+            <span>{t('nav.settings')}</span>
             {exclusionCount(options) > 0 && <em className="badge">{exclusionCount(options)}</em>}
           </button>
+          <button type="button" className="nav-item" aria-current={view === 'guide' ? 'page' : undefined} onClick={() => go('guide')}>
+            <BookOpenText weight="bold" aria-hidden="true" />
+            <span>{t('nav.guide')}</span>
+          </button>
+          {/* on phones the top bar only has the logo; its controls live in this menu */}
+          <div className="menu-controls mobile-only">{controls}</div>
         </nav>
 
         <main className="main">
@@ -444,15 +489,22 @@ export default function App() {
           {showGuide && (
             <section className="guide-panel">
               <header>
-                <h1>Set up the extension</h1>
-                <button type="button" className="icon" onClick={closeGuide} aria-label="Close setup guide">
+                <h1>{t('setup.title')}</h1>
+                <button type="button" className="icon" onClick={closeGuide} aria-label={t('setup.close')}>
                   <X weight="bold" />
                 </button>
               </header>
-              <p className="muted">Each friend installs it once in their own Chrome. It only reads your club and SBC list.</p>
+              <p className="muted">
+                {t('setup.lede')}{' '}
+                <button type="button" className="text" onClick={() => go('guide')}>
+                  {t('setup.more')}
+                </button>
+              </p>
               <SetupGuide />
             </section>
           )}
+
+          {view === 'guide' && <Guide clubSyncs={status?.clubSyncs.limit ?? 3} eaLimit={status?.ea.limit ?? 150} />}
 
           {!showGuide && view === 'sbcs' && !setId && (
             <SetList
@@ -473,8 +525,8 @@ export default function App() {
             <section className="settings-page">
               <header className="page-head">
                 <div>
-                  <h1>Settings</h1>
-                  <p className="muted">Used by every SBC on this account, unless the SBC has its own settings.</p>
+                  <h1>{t('settings.title')}</h1>
+                  <p className="muted">{t('settings.lede')}</p>
                 </div>
               </header>
               <div className="settings-grid">
@@ -484,9 +536,9 @@ export default function App() {
                 <div className="settings-side">
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
                 <aside className="settings-card">
-                  <h2>SBCs with their own settings</h2>
+                  <h2>{t('settings.ownTitle')}</h2>
                   {Object.keys(localOptions).length === 0 ? (
-                    <p className="muted">None. Open an SBC and press Options to give it its own settings.</p>
+                    <p className="muted">{t('settings.ownNone')}</p>
                   ) : (
                     <ul className="local-list">
                       {[...localSets].map((id) => {
@@ -494,10 +546,10 @@ export default function App() {
                         return (
                           <li key={id}>
                             <button type="button" className="text" onClick={() => pickSet(id)} disabled={!set}>
-                              {set?.name ?? `SBC #${id} (no longer available)`}
+                              {set?.name ?? t('settings.gone', { id })}
                             </button>
                             <button type="button" className="ghost" onClick={() => updateLocal(id, null)}>
-                              Use global
+                              {t('settings.useGlobal')}
                             </button>
                           </li>
                         );
@@ -513,15 +565,15 @@ export default function App() {
           {!showGuide && view === 'sbcs' && setId && (
             <>
               <button type="button" className="back" onClick={() => go('sbcs')}>
-                <ArrowLeft weight="bold" aria-hidden="true" /> All SBCs
+                <ArrowLeft weight="bold" aria-hidden="true" /> {t('set.back')}
               </button>
               <div className="set-head">
                 <h1>{currentSet?.name}</h1>
                 {currentSet?.description && <p className="muted">{currentSet.description}</p>}
                 <div className="set-meta">
-                  {currentSet && repeatLine(currentSet, now) && (
+                  {currentSet && repeatLine(currentSet, now, t) && (
                     <span className={`repeat-pill${setRepeat?.available ? '' : ' spent'}`}>
-                      <ArrowsClockwise weight="bold" aria-hidden="true" /> {repeatLine(currentSet, now)}
+                      <ArrowsClockwise weight="bold" aria-hidden="true" /> {repeatLine(currentSet, now, t)}
                     </span>
                   )}
                   {challenge?.status === 'IN_PROGRESS' && account?.session && (
@@ -530,23 +582,21 @@ export default function App() {
                       className="ghost icon-label"
                       disabled={status?.running === 'squad'}
                       onClick={() => readFromWebApp(challenge.challengeId)}
-                      title="Read the players you placed in this challenge in the web app"
+                      title={t('set.squadTitle')}
                     >
                       <ArrowsClockwise weight="bold" className={status?.running === 'squad' ? 'spin' : ''} />{' '}
-                      <span>{status?.running === 'squad' ? 'Reading squad…' : 'Squad from web app'}</span>
+                      <span>{status?.running === 'squad' ? t('set.readingSquad') : t('set.squadFromWebApp')}</span>
                     </button>
                   )}
                   <button type="button" className={`ghost icon-label${local ? ' on' : ''}`} onClick={() => setShowOptions(true)}>
-                    <SlidersHorizontal weight="bold" /> <span>{local ? 'Local settings' : 'Global settings'}</span>
+                    <SlidersHorizontal weight="bold" /> <span>{local ? t('set.localSettings') : t('set.globalSettings')}</span>
                   </button>
                 </div>
               </div>
-              <nav className="challenge-tabs" aria-label="Challenges">
+              <nav className="challenge-tabs" aria-label={t('set.challenges')}>
                 {challenges === null && [0, 1, 2].map((i) => <span key={i} className="tab-skeleton" />)}
                 {challenges?.length === 0 && (
-                  <p className="muted">
-                    This SBC is not loaded yet. Open it once in the FC27 web app and it appears here on its own.
-                  </p>
+                  <p className="muted">{t('set.notLoaded')}</p>
                 )}
                 {challenges?.map((c) => (
                   <button
@@ -562,7 +612,7 @@ export default function App() {
                     }}
                   >
                     {c.name}
-                    {c.status === 'COMPLETED' && !c.repeatable && <CheckCircle weight="fill" aria-label="completed" />}
+                    {c.status === 'COMPLETED' && !c.repeatable && <CheckCircle weight="fill" aria-label={t('set.completedIcon')} />}
                     {c.repeatable && c.timesCompleted > 0 && <span className="times">×{c.timesCompleted}</span>}
                   </button>
                 ))}
@@ -574,51 +624,48 @@ export default function App() {
                     {error && <div className="banner" role="alert">{error}</div>}
                     {goneFromClub > 0 && !solving && (
                       <div className="notice-inline" role="status">
-                        {goneFromClub} player{goneFromClub === 1 ? ' in this squad is' : 's in this squad are'} no longer in your club. Solve
-                        again for a squad you can build.
+                        {t('set.goneFromClub', { count: goneFromClub })}
                       </div>
                     )}
                     {challenge.needsLayout && (
                       <div className="notice-inline" role="status">
                         {challenge.status === 'IN_PROGRESS' && account?.session ? (
                           <>
-                            EA locks some slots in this SBC.{' '}
+                            {t('set.bricksRead')}{' '}
                             <button
                               type="button"
                               className="text"
                               disabled={status?.running === 'squad'}
-                              onClick={() => api.readChallenge(challenge.challengeId).then(setStatus).catch((e) => setError(e.message))}
+                              onClick={() => api.readChallenge(challenge.challengeId).then(setStatus).catch((e) => setError(errorText(e, t)))}
                             >
-                              {status?.running === 'squad' ? 'Reading it from the web app…' : 'Read them from the web app'}
+                              {status?.running === 'squad' ? t('set.bricksReading') : t('set.bricksReadButton')}
                             </button>
                           </>
                         ) : (
-                          'EA locks some slots in this SBC. Open it once in the FC27 web app so FC Solver sees which, then solve.'
+                          t('set.bricksOpen')
                         )}
                       </div>
                     )}
                     {result?.found && result.placed && result.placed.kept < result.placed.total && !solving && (
                       <div className="notice-inline" role="status">
-                        Kept {result.placed.kept} of the {result.placed.total} players you placed in the web app (marked with a pin). The
-                        rest could not meet the requirements, so they were replaced.
+                        {t('set.keptPlaced', { kept: result.placed.kept, total: result.placed.total })}
                       </div>
                     )}
                     {!!result?.missingPlaced?.length && !solving && (
                       <div className="notice-inline" role="status">
-                        {result.missingPlaced.length} player{result.missingPlaced.length === 1 ? '' : 's'} you placed in the web app{' '}
-                        {result.missingPlaced.length === 1 ? 'is' : 'are'} no longer in your club, so {result.missingPlaced.length === 1 ? 'that slot was' : 'those slots were'} filled again.
+                        {t('set.missingPlaced', { count: result.missingPlaced.length })}
                       </div>
                     )}
                     {result && !result.found && result.reasons && !solving && (
                       <div className="no-solution" role="alert">
-                        <strong>No squad possible from your club</strong>
+                        <strong>{t('set.noSquad')}</strong>
                         <ul>
-                          {result.reasons.map((r) => (
-                            <li key={r}>{r}</li>
+                          {result.reasons.map((r, i) => (
+                            <li key={i}>{reasonText(r, t)}</li>
                           ))}
                         </ul>
                         <button type="button" className="text" onClick={() => setShowOptions(true)}>
-                          Review settings for this SBC
+                          {t('set.reviewSettings')}
                         </button>
                       </div>
                     )}
@@ -637,7 +684,7 @@ export default function App() {
                     />
                     {result && !solving && (
                       <p className="hint">
-                        Tap a card for player details. Found in {(result.ms / 1000).toFixed(1)}s.
+                        {t('set.hint', { s: (result.ms / 1000).toFixed(1) })}
                       </p>
                     )}
                   </div>
@@ -668,7 +715,7 @@ export default function App() {
                           );
                         })}
                       </ul>
-                      {challenge.elgOperation === 'OR' && <p className="muted">Meeting any one requirement is enough.</p>}
+                      {challenge.elgOperation === 'OR' && <p className="muted">{t('set.orHint')}</p>}
                     </section>
 
                   </div>
@@ -683,7 +730,7 @@ export default function App() {
       {showOptions && meta && setId && (
         <>
           <div className="scrim" onClick={() => setShowOptions(false)} aria-hidden="true" />
-          <aside className="drawer" aria-label="Settings for this SBC">
+          <aside className="drawer" aria-label={t('set.drawer')}>
             <LocalOptions
               key={setId}
               setName={currentSet?.name ?? ''}
@@ -711,17 +758,16 @@ export default function App() {
   );
 }
 
-function Onboarding({ error }: { error: string | null }) {
+function Onboarding({ error, lang, setLang }: { error: string | null; lang: Lang; setLang: (l: Lang) => void }) {
+  const { t } = useI18n();
   return (
     <div className="onboarding">
-      <div className="brand">
+      <div className="brand onboarding-top">
         <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="186" height="48" />
+        <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
       </div>
-      <h1>Cheapest SBC squads from your own club</h1>
-      <p className="lede">
-        A small Chrome extension hands your FC27 web app session to FC Solver. It reads your club and SBCs; it never buys, sells
-        or submits anything. Setup takes two minutes.
-      </p>
+      <h1>{t('onb.title')}</h1>
+      <p className="lede">{t('onb.lede')}</p>
       <SetupGuide />
       {error && <p className="banner">{error}</p>}
     </div>

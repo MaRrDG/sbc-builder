@@ -1,4 +1,5 @@
 import { CaretLeft, CaretRight } from '@phosphor-icons/react';
+import { useI18n } from '../i18n';
 
 /** Page numbers to show: first, last, and a window around the current page. */
 function pages(current: number, count: number): (number | '…')[] {
@@ -23,6 +24,7 @@ interface Props {
 }
 
 export function Pager({ page, total, perPage, onPage, label }: Props) {
+  const { t } = useI18n();
   const count = Math.max(1, Math.ceil(total / perPage));
   if (count <= 1) return null;
   const from = (page - 1) * perPage + 1;
@@ -30,9 +32,9 @@ export function Pager({ page, total, perPage, onPage, label }: Props) {
   return (
     <nav className="pager" aria-label={label}>
       <span className="pager-range">
-        {from}–{to} of {total}
+        {t('pager.range', { from, to, total })}
       </span>
-      <button type="button" className="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label="Previous page">
+      <button type="button" className="icon" disabled={page <= 1} onClick={() => onPage(page - 1)} aria-label={t('pager.prev')}>
         <CaretLeft weight="bold" />
       </button>
       {pages(page, count).map((p, i) =>
@@ -44,7 +46,7 @@ export function Pager({ page, total, perPage, onPage, label }: Props) {
           </button>
         ),
       )}
-      <button type="button" className="icon" disabled={page >= count} onClick={() => onPage(page + 1)} aria-label="Next page">
+      <button type="button" className="icon" disabled={page >= count} onClick={() => onPage(page + 1)} aria-label={t('pager.next')}>
         <CaretRight weight="bold" />
       </button>
     </nav>

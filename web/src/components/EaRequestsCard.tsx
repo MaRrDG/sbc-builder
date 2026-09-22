@@ -1,26 +1,25 @@
 import type { EaRequests } from '../api';
-import { ago } from '../api';
+import { useAgo, useI18n } from '../i18n';
 
 /** How many requests FC Solver sent to EA today with this account's session, and to which endpoints. */
 export function EaRequestsCard({ ea }: { ea: EaRequests }) {
+  const { t } = useI18n();
+  const ago = useAgo();
   const pct = Math.min(100, (ea.today / ea.limit) * 100);
   const paths = Object.entries(ea.byPath).sort((a, b) => b[1] - a[1]);
   return (
     <section className="settings-card ea-card">
-      <h2>EA requests today</h2>
+      <h2>{t('ea.title')}</h2>
       <p className="ea-count">
         <b>{ea.today}</b> / {ea.limit}
       </p>
       <span className="req-bar ea-bar" aria-hidden="true">
         <span style={{ width: `${pct}%` }} />
       </span>
-      <p className="muted">
-        Only syncs ask EA. Opening SBCs and solving use the cache, and what you open in the web app updates it for free. FC Solver
-        stops at {ea.limit} a day.
-      </p>
+      <p className="muted">{t('ea.lede', { limit: ea.limit })}</p>
       {ea.pausedUntil && (
         <p className="ea-paused" role="status">
-          EA asked us to slow down. Paused until {new Date(ea.pausedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.
+          {t('ea.paused', { time: new Date(ea.pausedUntil).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) })}
         </p>
       )}
       {paths.length > 0 && (
@@ -35,7 +34,7 @@ export function EaRequestsCard({ ea }: { ea: EaRequests }) {
       )}
       {ea.recent.length > 0 && (
         <details className="ea-recent">
-          <summary>Last requests</summary>
+          <summary>{t('ea.recent')}</summary>
           <ul className="ea-list">
             {ea.recent.map((r, i) => (
               <li key={i}>
@@ -43,7 +42,7 @@ export function EaRequestsCard({ ea }: { ea: EaRequests }) {
                   {r.method} {r.path}
                 </code>
                 <span className={r.status && r.status < 300 ? 'muted' : 'bad'}>
-                  {r.status ?? 'failed'} · {ago(r.at)}
+                  {r.status ?? t('ea.failed')} · {ago(r.at)}
                 </span>
               </li>
             ))}

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { ArrowCircleUp, Check, Copy, DownloadSimple, X } from '@phosphor-icons/react';
+import { useI18n } from '../i18n';
+import { fill } from './SetupGuide';
 
 export interface ExtensionRelease {
   version: string;
@@ -29,6 +31,7 @@ interface Props {
 }
 
 export function UpdateBanner({ installed, latest, expanded: startOpen, onDismiss }: Props) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(startOpen);
   const [copied, setCopied] = useState(false);
   return (
@@ -36,23 +39,24 @@ export function UpdateBanner({ installed, latest, expanded: startOpen, onDismiss
       <div className="update-row">
         <ArrowCircleUp weight="fill" className="update-icon" aria-hidden="true" />
         <div className="update-text">
-          <strong>Extension {latest.version} is out</strong>
+          <strong>{t('update.title', { v: latest.version })}</strong>
           <span className="muted">
-            {installed ? `You have ${installed}.` : 'Your copy is older.'} {latest.notes.join(' · ')}
+            {installed ? t('update.youHave', { v: installed }) : t('update.older')} {latest.notes.join(' · ')}
           </span>
         </div>
         <a className="step-action primary" href="/api/extension.zip" download onClick={() => setOpen(true)}>
-          <DownloadSimple weight="bold" /> Get update
+          <DownloadSimple weight="bold" /> {t('update.get')}
         </a>
-        <button type="button" className="icon" onClick={onDismiss} aria-label="Hide until next update">
+        <button type="button" className="icon" onClick={onDismiss} aria-label={t('update.hide')}>
           <X weight="bold" />
         </button>
       </div>
       {open && (
         <ol className="update-steps">
-          <li>Unzip it over your old <code>fc27-sbc-builder</code> folder and replace the files.</li>
+          <li>{fill(t('update.s1'), { folder: <code>fc27-sbc-builder</code> })}</li>
           <li>
-            In{' '}
+            {fill(t('update.s2'), {
+              url: (
             <button
               type="button"
               className="text"
@@ -67,10 +71,11 @@ export function UpdateBanner({ installed, latest, expanded: startOpen, onDismiss
               }}
             >
               chrome://extensions {copied ? <Check weight="bold" /> : <Copy weight="bold" />}
-            </button>{' '}
-            press the reload arrow on FC Solver (named SBC Builder before this update).
+            </button>
+              ),
+            })}
           </li>
-          <li>Refresh the FC27 web app tab. Your settings and account stay as they are.</li>
+          <li>{t('update.s3')}</li>
         </ol>
       )}
     </div>

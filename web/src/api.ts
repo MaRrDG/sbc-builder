@@ -140,7 +140,7 @@ export interface SlotResult {
 
 export interface SolveResult {
   found: boolean;
-  reasons?: string[];
+  reasons?: (Reason | string)[]; // strings only in squads saved by older versions
   status?: string;
   ms: number;
   cost?: number;
@@ -148,6 +148,23 @@ export interface SolveResult {
   placed?: { kept: number; total: number };
   eval: { rating: number; chemistry: number; results: { text: string; met: boolean; actual: number | string }[]; allMet: boolean };
   slots: SlotResult[];
+}
+
+/** A server error; `code` + `params` let the UI say it in the user's language. */
+export class ApiError extends Error {
+  constructor(message: string, public code: string | null, public params: Record<string, string | number>) {
+    super(message);
+  }
+}
+
+/** Why the solver found no squad: a code the UI translates, plus the values to fill in. */
+export interface Reason {
+  code: 'pool' | 'count' | 'sameGroup' | 'distinct' | 'rating' | 'combo';
+  req?: string; // the requirement text, as EA words it
+  have?: number;
+  need?: number;
+  hidden?: number; // players the user's settings hide
+  all?: number; // rating without the settings
 }
 
 // Access keys come from the extension (URL fragment #keys=...) and live in this browser only.
@@ -192,7 +209,10 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((data as { error?: string }).error ?? `HTTP ${res.status}`);
+  if (!res.ok) {
+    const d = data as { error?: string; code?: string; params?: Record<string, string | number> };
+    throw new ApiError(d.error ?? `HTTP ${res.status}`, d.code ?? null, d.params ?? {});
+  }
   return data as T;
 }
 
@@ -210,12 +230,3 @@ export const api = {
   solve: (setId: number, challengeId: number, options: SolveOptions, deep = false) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep } }),
 };
-
-export function ago(ts: number | null): string {
-  if (!ts) return 'never';
-  const s = Math.round((Date.now() - ts) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.round(s / 60)}m ago`;
-  if (s < 86400) return `${Math.round(s / 3600)}h ago`;
-  return `${Math.round(s / 86400)}d ago`;
-}

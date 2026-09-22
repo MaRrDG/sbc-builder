@@ -4,6 +4,7 @@ import type { SbcSet } from '../api';
 import { repeatOf } from '../repeat';
 import { SetBadge } from './SetBadge';
 import { Pager, clampPage } from './Pager';
+import { useI18n } from '../i18n';
 
 const PER_PAGE = 24;
 
@@ -18,6 +19,7 @@ interface Props {
 
 /** Every SBC set, grouped by category like the web app; a click opens the set. */
 export function SetList({ categories, filter, onFilter, onPick, localSets, now }: Props) {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const q = useDeferredValue(filter).trim().toLowerCase();
   const total = categories.reduce((n, c) => n + c.sets.length, 0);
@@ -40,24 +42,24 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now }
     <div className="set-list">
       <header className="page-head">
         <div>
-          <h1>SBCs</h1>
-          <p className="muted">{total} SBCs available. Pick one to solve it from your club.</p>
+          <h1>{t('sets.title')}</h1>
+          <p className="muted">{t('sets.count', { count: total })}</p>
         </div>
         <label className="search">
           <MagnifyingGlass aria-hidden="true" />
           <input
-            placeholder="Search SBCs"
+            placeholder={t('sets.search')}
             value={filter}
             onChange={(e) => {
               onFilter(e.target.value);
               setPage(1);
             }}
-            aria-label="Search SBCs"
+            aria-label={t('sets.search')}
           />
         </label>
       </header>
-      {categories.length === 0 && <p className="muted">No SBCs yet. Open the SBC tab in the FC27 web app, or wait for the daily refresh after 20:01.</p>}
-      {categories.length > 0 && matches.length === 0 && <p className="muted">No SBCs match “{filter}”.</p>}
+      {categories.length === 0 && <p className="muted">{t('sets.empty')}</p>}
+      {categories.length > 0 && matches.length === 0 && <p className="muted">{t('sets.noMatch', { q: filter })}</p>}
       {groups.map(({ cat, sets }) => (
           <section key={cat.categoryId} className="set-section">
             <h2>{cat.name}</h2>
@@ -73,7 +75,7 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now }
                     {s.description && <span className="set-desc">{s.description}</span>}
                     {localSets.has(s.setId) && (
                       <span className="set-local">
-                        <SlidersHorizontal weight="bold" aria-hidden="true" /> Own settings
+                        <SlidersHorizontal weight="bold" aria-hidden="true" /> {t('sets.ownSettings')}
                       </span>
                     )}
                   </button>
@@ -90,7 +92,7 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now }
           setPage(n);
           window.scrollTo({ top: 0 });
         }}
-        label="SBC pages"
+        label={t('sets.pages')}
       />
     </div>
   );

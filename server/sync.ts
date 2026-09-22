@@ -45,13 +45,13 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
 }
 
 function utasOf(acc: Account) {
-  if (!acc.utas) throw new SessionError('No EA session for this account. Open the FC web app with the extension.', 401);
+  if (!acc.utas) throw new SessionError('No EA session for this account. Open the FC web app with the extension.', 401, 'noSession');
   return acc.utas;
 }
 
 async function run<T>(acc: Account, label: string, fn: () => Promise<T>): Promise<T> {
   const busy = running.get(acc.id);
-  if (busy) throw new Error(`Sync already running (${busy})`);
+  if (busy) throw new SessionError(`Sync already running (${busy})`, 409, 'syncRunning');
   running.set(acc.id, label);
   errors.set(acc.id, null);
   try {
@@ -84,7 +84,7 @@ async function countClubSync(acc: Account) {
  */
 export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all', scheduled = false) {
   if (!scheduled && what !== 'club')
-    throw new SessionError('The SBC list refreshes on its own after the daily drop (20:01).', 403);
+    throw new SessionError('The SBC list refreshes on its own after the daily drop (20:01).', 403, 'sbcScheduleOnly');
   const club = what === 'club' || what === 'all';
   const sbc = what === 'sbc' || what === 'all';
   if (club && (await clubSyncsToday(acc)) >= CLUB_SYNCS_PER_DAY) {
@@ -92,12 +92,14 @@ export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all', sc
       throw new SessionError(
         `Club already synced ${CLUB_SYNCS_PER_DAY} times today. Opening your club in the web app still updates it for free.`,
         429,
+        'clubLimit',
+        { limit: CLUB_SYNCS_PER_DAY },
       );
     if (!sbc) return;
   }
   const doClub = club && (await clubSyncsToday(acc)) < CLUB_SYNCS_PER_DAY;
   if (acc.clientMode) {
-    if (!webAppOpen(acc)) throw new SessionError('Open the FC27 web app in this browser to sync. FC Solver asks EA only from there.', 409);
+    if (!webAppOpen(acc)) throw new SessionError('Open the FC27 web app in this browser to sync. FC Solver asks EA only from there.', 409, 'webAppClosed');
     await acc.meter.check(); // over today's budget or paused: refuse before the tab starts
     if (doClub && !hasPending(acc, 'club')) {
       await enqueue(acc, 'club');
