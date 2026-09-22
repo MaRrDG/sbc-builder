@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
-import { Coins, UserCircle } from '@phosphor-icons/react';
-import type { Meta, Player } from '../api';
+import { Coins, LockSimple, UserCircle } from '@phosphor-icons/react';
+import type { BrickInfo, Meta, Player } from '../api';
 
 const hex = (n: number | undefined) => (n === undefined ? undefined : `#${n.toString(16).padStart(6, '0')}`);
 
@@ -54,6 +54,26 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
     </Tag>
   );
 });
+
+/** A slot EA locked in this SBC. Custom bricks show the club / league / nation they stand for. */
+export function BrickCard({ brick, meta, size = 'md' }: { brick: BrickInfo; meta: Meta; size?: 'md' | 'sm' }) {
+  const base = `${meta.contentBase}/items/images/mobile`;
+  const label = brick.custom
+    ? `Locked by EA: ${[meta.names.club[brick.club], meta.names.league[brick.league], meta.names.nation[brick.nation]].filter(Boolean).join(', ')}. Counts for chemistry, not for rating or requirements.`
+    : 'Locked by EA. This slot stays empty and counts for nothing.';
+  return (
+    <div className={`card card-${size} card-empty card-brick`} role="img" aria-label={label} title={label}>
+      <LockSimple className="brick-lock" weight="fill" aria-hidden="true" />
+      {brick.custom && (
+        <div className="brick-badges">
+          {brick.club > 0 && <img src={`${base}/clubs/dark/${brick.club}.png`} alt="" />}
+          {brick.league > 0 && <img src={`${base}/leagues/dark/${brick.league}.png`} alt="" />}
+          {brick.nation > 0 && <img src={`${base}/flags/dark/${brick.nation}.png`} alt="" />}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function EmptyCard({ size = 'md', loading = false }: { size?: 'md' | 'sm'; loading?: boolean }) {
   return (

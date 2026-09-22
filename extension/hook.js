@@ -7,8 +7,12 @@
 (() => {
   const SRC = 'sbc-builder-hook';
   const UTAS = /^(https:\/\/utas\.[^/]+\/ut\/game\/fc27)(\/[^?]*)/;
-  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|chemistry\/profiles)$/;
-  const GAP_MS = 1500; // between our own requests, like the server used to
+  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles)$/;
+  // Our requests go through one queue, one at a time, with a short random pause between them,
+  // and only once the web app itself has been quiet for a moment, so they never pile up on its own.
+  const GAP_MIN_MS = 1500;
+  const GAP_JITTER_MS = 1500;
+  const WEB_APP_QUIET_MS = 2000; // waited for at most 15 s
   const PAGE = 91;
   const THROTTLE = [429, 458, 495, 512, 521];
 
@@ -35,9 +39,13 @@
     post({ kind: 'identity', identity });
   }
 
+  let webAppLastAt = 0; // last request the web app itself sent to EA
+
   function learnRequest(url, sent, withCredentials) {
     const m = String(url).match(UTAS);
-    if (!m || !sent) return;
+    if (!m) return;
+    webAppLastAt = Date.now();
+    if (!sent) return;
     const sid = Object.entries(sent).find(([k]) => k.toLowerCase() === 'x-ut-sid')?.[1];
     if (!sid) return;
     const prevSid = headers && Object.entries(headers).find(([k]) => k.toLowerCase() === 'x-ut-sid')?.[1];
@@ -124,12 +132,33 @@
 
   // ---- sync jobs -----------------------------------------------------------------------
   let lastCallAt = 0;
+  let queue = Promise.resolve();
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  /** One read request to EA exactly as the web app would make it; reported for FC Solver's daily count. */
-  async function call(jobId, method, path, body) {
-    const wait = lastCallAt + GAP_MS - Date.now();
-    if (wait > 0) await sleep(wait);
+  /** Waits for our turn: previous request done, a breathing pause, and the web app quiet. */
+  async function turn() {
+    const gap = GAP_MIN_MS + Math.random() * GAP_JITTER_MS;
+    const since = Date.now();
+    for (;;) {
+      // a web app that is never quiet (periodic refreshes) must not stall us forever
+      const quiet = Date.now() - since < 15000 ? webAppLastAt + WEB_APP_QUIET_MS : 0;
+      const wait = Math.max(lastCallAt + gap, quiet) - Date.now();
+      if (wait <= 0) return;
+      await sleep(wait);
+    }
+  }
+
+  /** One read request to EA exactly as the web app would make it, queued behind all our others. */
+  function call(jobId, method, path, body) {
+    const run = queue.then(async () => {
+      await turn();
+      return request(jobId, method, path, body);
+    });
+    queue = run.catch(() => {});
+    return run;
+  }
+
+  async function request(jobId, method, path, body) {
     let status = null;
     let data = null;
     try {
@@ -165,6 +194,11 @@
     },
     async challenges(c, job) {
       for (const id of (job.setIds ?? []).slice(0, 40)) if (Number.isInteger(id)) await c('GET', `/sbs/setId/${id}/challenges`);
+    },
+    // only for a challenge already opened in the web app; opening one for the first time is a
+    // POST that starts it, which FC Solver never does
+    async challengeSquad(c, job) {
+      if (Number.isInteger(job.challengeId)) await c('GET', `/sbs/challenge/${job.challengeId}/squad`);
     },
   };
 

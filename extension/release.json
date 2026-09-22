@@ -1,4 +1,14 @@
 {
+  "0.7.5": [
+    "Requests to EA wait in one queue with a short pause between them and never overlap the web app's own",
+    "Yellow status while connecting or syncing"
+  ],
+  "0.7.4": [
+    "Knows the locked slots and players already placed in an SBC, and can read them for SBCs you already started"
+  ],
+  "0.7.3": [
+    "Reads the squad of the SBC you open in the web app (players already placed, fixed slots)"
+  ],
   "0.7.2": [
     "Reconnects without reloading the web app, and the popup shows why when it cannot"
   ],

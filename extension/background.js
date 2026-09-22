@@ -57,16 +57,28 @@ async function reportVersion() {
 // shows it: green dot connected, red dot not connected, NEW when an update is waiting.
 const LIVE_MS = 30 * 1000;
 
+// Yellow while working: connecting (hello) or running a sync job. Stale markers expire.
+const BUSY_MAX_MS = 3 * 60 * 1000;
+
+async function setBusy(busy) {
+  await chrome.storage.session.set({ busy: busy ? { ...busy, since: Date.now() } : null });
+  await refreshBadge();
+}
+
 async function refreshBadge() {
   const { accessKey, update } = await chrome.storage.local.get(['accessKey', 'update']);
-  const { lastPollOkAt = 0 } = await chrome.storage.session.get('lastPollOkAt');
+  const { lastPollOkAt = 0, busy } = await chrome.storage.session.get(['lastPollOkAt', 'busy']);
   const live = !!accessKey && Date.now() - lastPollOkAt < LIVE_MS;
+  const working = !!busy && Date.now() - busy.since < BUSY_MAX_MS;
   await chrome.storage.session.set({ live });
   await chrome.action.setBadgeText({ text: update ? 'NEW' : ' ' });
-  await chrome.action.setBadgeBackgroundColor({ color: update ? '#c8f53c' : live ? '#3ecf6e' : '#e5484d' });
+  await chrome.action.setBadgeBackgroundColor({ color: update ? '#c8f53c' : working ? '#f5c542' : live ? '#3ecf6e' : '#e5484d' });
   if (update) await chrome.action.setBadgeTextColor?.({ color: '#0d1411' });
-  await chrome.action.setTitle({ title: `FC Solver: ${live ? 'connected' : 'not connected, open the FC27 web app'}` });
+  const state = working ? busy.label : live ? 'connected' : 'not connected, open the FC27 web app';
+  await chrome.action.setTitle({ title: `FC Solver: ${state}` });
 }
+
+const JOB_LABEL = { club: 'Syncing club', sbc: 'Syncing SBC list', challenges: 'Syncing SBC challenges', challengeSquad: 'Reading SBC squad' };
 
 // the service worker sleeps; an alarm turns the dot red soon after the web app tab closes
 chrome.alarms.onAlarm.addListener((a) => a.name === 'badge' && refreshBadge());
@@ -109,6 +121,7 @@ async function hello(identity) {
       headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Account-Key': key } : {}) },
       body: JSON.stringify({ personaId: identity.personaId, contentGuid, extVersion: VERSION, ...extra }),
     });
+  await setBusy({ label: 'Connecting' });
   try {
     let res = await send({}, personaKeys[identity.personaId]);
     if (res.status === 401 && sid) {
@@ -135,6 +148,9 @@ async function hello(identity) {
     await pollJobs(); // connected right away, without waiting for the tab's next poll
   } catch {
     await chrome.storage.local.set({ lastStatus: `Server not reachable at ${server}`, lastAt: Date.now() });
+  } finally {
+    const { busy } = await chrome.storage.session.get('busy');
+    if (busy?.label === 'Connecting') await setBusy(null);
   }
 }
 
@@ -161,7 +177,8 @@ async function api(path, init = {}) {
 async function pollJobs() {
   const res = await api('/api/jobs/next').catch(() => null);
   if (res) await chrome.storage.session.set({ lastPollOkAt: Date.now() });
-  await refreshBadge();
+  if (res?.job) await setBusy({ label: JOB_LABEL[res.job.kind] ?? 'Syncing', jobId: res.job.id });
+  else await refreshBadge();
   return res;
 }
 
@@ -267,6 +284,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return;
   }
   if (msg?.type === 'job-done') {
+    setBusy(null);
     api(`/api/jobs/${encodeURIComponent(msg.jobId)}/done`, { method: 'POST', body: JSON.stringify({ ok: msg.ok, error: msg.error }) })
       .then(() => chrome.storage.local.set({ lastStatus: msg.ok ? 'Synced from the web app' : `Sync failed: ${msg.error}`, lastAt: Date.now() }))
       .catch(() => {});

@@ -7,7 +7,9 @@ import { NATION, LEAGUE, CLUB, STAR_RATING_THRESHOLDS, LEGENDS_LEAGUE_ID, type P
 import { Key, Scope, type Requirement } from './sbc.js';
 import {
   type Player, type SquadEval, FIELD_PLAYERS, evaluate, matchesKey, normClub, profileFor, isLegend, isHero, squadRating,
+  brickPlayer, requiredPlayers,
 } from './squad.js';
+import type { BrickSlot, ChallengeLayout } from './layout.js';
 import { ROOT } from './store.js';
 
 const PYTHON = process.env.SOLVER_PYTHON ?? join(ROOT, 'solver/.venv/bin/python');
@@ -23,10 +25,14 @@ export interface SolveOptions {
   onlyUntradeable: boolean;
   maxRating: number; // don't use players above this OVR (99 = no limit)
   excludeSpecial: boolean; // keep promo / special cards out
+  keepPlaced: boolean; // players already placed in the web app stay where they are
 }
 
 export interface Solution {
-  slots: Player[];
+  slots: (Player | null)[]; // null on locked slots
+  fixedIds: number[]; // players kept from the web app's squad
+  placedCount: number; // placed in the web app and still in the club
+  missingPlaced: number[]; // placed in the web app but no longer in the club
   eval: SquadEval;
   cost: number;
   status: string;
@@ -101,11 +107,13 @@ function ratingBounds(reqs: Requirement[]): { min: number | null; max: number | 
 
 const OP = ['>=', '<=', '='] as const;
 
-function buildProblem(pool: Player[], slotTypes: number[], reqs: Requirement[], meta: Meta, timeLimit: number) {
+function buildProblem(
+  pool: Player[], slotTypes: number[], reqs: Requirement[], meta: Meta, timeLimit: number,
+  bricks: BrickSlot[] = [], fixed: Map<number, number> = new Map(),
+) {
   const groupOf = (p: Player, param: ParamId) =>
     param === CLUB ? normClub(meta, p.club) : param === LEAGUE ? p.league : p.nation;
-
-  const players = pool.map((p) => {
+  const chemOf = (p: Player) => {
     const prof = profileFor(p, meta);
     const contrib = (param: ParamId) => {
       if (param === CLUB && RESTRICTED_CLUBS.has(p.club)) return 0;
@@ -113,15 +121,29 @@ function buildProblem(pool: Player[], slotTypes: number[], reqs: Requirement[], 
       return prof.rules[param]?.value ?? 0;
     };
     return {
-      rating: p.rating,
-      cost: playerCost(p),
-      asset: p.assetId,
-      slots: slotTypes.flatMap((t, s) => (p.positions.includes(t) ? [s] : [])),
       groups: { 1: groupOf(p, NATION), 2: groupOf(p, LEAGUE), 3: groupOf(p, CLUB) },
       contrib: { 1: contrib(NATION), 2: contrib(LEAGUE), 3: contrib(CLUB) },
       maxChem: prof.maxChem || isLegend(p) || isHero(p),
     };
-  });
+  };
+  const locked = new Set(bricks.map((b) => b.index));
+  const slotOfPlayer = new Map([...fixed].map(([slot, id]) => [id, slot]));
+
+  const players = pool.map((p) => ({
+    rating: p.rating,
+    cost: playerCost(p),
+    asset: p.assetId,
+    slots: slotTypes.flatMap((t, s) => (!locked.has(s) && p.positions.includes(t) ? [s] : [])),
+    fixed: slotOfPlayer.get(p.id) ?? null,
+    ...chemOf(p),
+  }));
+  // custom bricks: always there, in chemistry only
+  const brickChem = bricks
+    .filter((b) => b.custom)
+    .map((b) => {
+      const bp = brickPlayer(b, slotTypes[b.index]);
+      return { slot: b.index, inpos: bp.positions.includes(slotTypes[b.index]), ...chemOf(bp) };
+    });
 
   const matching = (f: (p: Player) => boolean) => pool.flatMap((p, i) => (f(p) ? [i] : []));
   const constraints: Record<string, unknown>[] = [];
@@ -170,6 +192,8 @@ function buildProblem(pool: Player[], slotTypes: number[], reqs: Requirement[], 
   return {
     players,
     nSlots: slotTypes.length,
+    blocked: [...locked],
+    bricks: brickChem,
     thresholds: Object.fromEntries(
       ([NATION, LEAGUE, CLUB] as ParamId[]).map((param) => [param, meta.thresholds[param].map((t) => [t.requirement, t.points])]),
     ),
@@ -183,7 +207,8 @@ function buildProblem(pool: Player[], slotTypes: number[], reqs: Requirement[], 
 
 interface CpResult {
   status: string;
-  slots?: number[];
+  slots?: (number | null)[];
+  kept?: number[]; // pool indexes of placed players the solver kept
   cost?: number;
   wallTime?: number;
 }
@@ -209,35 +234,56 @@ function runCpSat(problem: unknown): Promise<CpResult> {
 }
 
 async function solveAnd(
-  players: Player[], slotTypes: number[], reqs: Requirement[], meta: Meta, options: SolveOptions, squad: ActiveSquad | null, timeLimit: number,
+  players: Player[], slotTypes: number[], reqs: Requirement[], meta: Meta, options: SolveOptions, squad: ActiveSquad | null,
+  timeLimit: number, layout: ChallengeLayout | null,
 ): Promise<Solution | null> {
-  const pool = eligiblePool(players, reqs, options, squad);
-  if (pool.length < FIELD_PLAYERS) return null;
-  const problem = buildProblem(pool, slotTypes, reqs, meta, timeLimit);
+  const bricks = layout?.bricks ?? [];
+  let pool = eligiblePool(players, reqs, options, squad);
+  // players the user already placed are kept where possible, even if the settings would keep them out
+  const fixed = new Map<number, number>();
+  const missingPlaced: number[] = [];
+  if (options.keepPlaced)
+    for (const pl of layout?.placed ?? []) {
+      const p = players.find((x) => x.id === pl.itemId);
+      if (!p) {
+        missingPlaced.push(pl.itemId);
+        continue;
+      }
+      if (!pool.includes(p)) pool = [...pool, p];
+      fixed.set(pl.index, p.id);
+    }
+  if (pool.length < requiredPlayers(bricks)) return null;
+  const problem = buildProblem(pool, slotTypes, reqs, meta, timeLimit, bricks, fixed);
   if (process.env.SOLVER_DUMP) (await import("node:fs")).writeFileSync(process.env.SOLVER_DUMP, JSON.stringify(problem));
   const res = await runCpSat(problem);
   if (!res.slots) return null;
-  const slots = res.slots.map((i) => pool[i]);
-  return { slots, eval: evaluate(slots, slotTypes, reqs, 'AND', meta), cost: res.cost ?? 0, status: res.status };
+  const slots = res.slots.map((i) => (i === null ? null : pool[i]));
+  return {
+    slots, fixedIds: (res.kept ?? []).map((i) => pool[i].id), placedCount: fixed.size, missingPlaced,
+    eval: evaluate(slots, slotTypes, reqs, 'AND', meta, bricks), cost: res.cost ?? 0, status: res.status,
+  };
 }
 
 const NO_FILTERS: SolveOptions = {
   excludeIds: [], excludeActiveSquad: false, excludeSquadReserves: false, excludeNations: [], excludeLeagues: [],
-  excludeClubs: [], onlyUntradeable: false, maxRating: 99, excludeSpecial: false,
+  excludeClubs: [], onlyUntradeable: false, maxRating: 99, excludeSpecial: false, keepPlaced: true,
 };
 
 /**
  * Why no squad exists: per-requirement checks that are cheap and certain. Each reason says
  * how many usable players there are, and whether the user's own settings are what hides them.
  */
-export function diagnose(players: Player[], reqs: Requirement[], meta: Meta, options: SolveOptions, squad: ActiveSquad | null): string[] {
+export function diagnose(
+  players: Player[], reqs: Requirement[], meta: Meta, options: SolveOptions, squad: ActiveSquad | null, bricks: BrickSlot[] = [],
+): string[] {
+  const need = requiredPlayers(bricks);
   const pool = eligiblePool(players, reqs, options, squad);
   const everyone = eligiblePool(players, reqs, NO_FILTERS, null);
   const hidden = (n: number, all: number) => (all > n ? ` Your solver settings hide ${all - n} more.` : '');
   const reasons: string[] = [];
 
-  if (pool.length < FIELD_PLAYERS)
-    reasons.push(`Only ${pool.length} players are usable, 11 are needed.${hidden(pool.length, everyone.length)}`);
+  if (pool.length < need)
+    reasons.push(`Only ${pool.length} players are usable, ${need} are needed.${hidden(pool.length, everyone.length)}`);
 
   const groupOf = (p: Player, key: number) =>
     key === Key.NATION_COUNT || key === Key.SAME_NATION_COUNT ? p.nation
@@ -275,14 +321,14 @@ export function diagnose(players: Player[], reqs: Requirement[], meta: Meta, opt
     if (key === Key.TEAM_RATING || key === Key.TEAM_STAR_RATING) {
       const best = (list: Player[]) => {
         const seen = new Set<number>();
-        const top = [...list].sort((a, b) => b.rating - a.rating).filter((p) => !seen.has(p.assetId) && seen.add(p.assetId)).slice(0, FIELD_PLAYERS);
-        return top.length === FIELD_PLAYERS ? squadRating(top.map((p) => p.rating)) : 0;
+        const top = [...list].sort((a, b) => b.rating - a.rating).filter((p) => !seen.has(p.assetId) && seen.add(p.assetId)).slice(0, need);
+        return top.length === need ? squadRating(top.map((p) => p.rating)) : 0; // locked slots count as empty
       };
       const target = key === Key.TEAM_RATING ? v : STAR_RATING_THRESHOLDS[v - 1] + 1;
       const have = best(pool);
       if (have < target) {
         const all = best(everyone);
-        reasons.push(`${r.text}: your best 11 usable players only reach ${have}.${all > have ? ` Without your solver settings: ${all}.` : ''}`);
+        reasons.push(`${r.text}: your best ${need} usable players only reach ${have}.${all > have ? ` Without your solver settings: ${all}.` : ''}`);
       }
     }
   }
@@ -300,17 +346,18 @@ export async function solve(
   options: SolveOptions,
   squad: ActiveSquad | null,
   timeLimit = 10,
+  layout: ChallengeLayout | null = null,
 ): Promise<Solution | null> {
   const slotTypes = meta.formations[formation]?.map((s) => s.typeId);
   if (!slotTypes) throw new Error(`Unknown formation ${formation}`);
-  if (op === 'AND') return solveAnd(players, slotTypes, reqs, meta, options, squad, timeLimit);
+  if (op === 'AND') return solveAnd(players, slotTypes, reqs, meta, options, squad, timeLimit, layout);
 
   // OR: any single requirement is enough -> solve each alone, keep the cheapest.
   let best: Solution | null = null;
   for (const r of reqs) {
-    const s = await solveAnd(players, slotTypes, [r], meta, options, squad, timeLimit / reqs.length);
+    const s = await solveAnd(players, slotTypes, [r], meta, options, squad, timeLimit / reqs.length, layout);
     if (s && s.eval.allMet && (!best || s.cost < best.cost)) best = s;
   }
-  if (best) best.eval = evaluate(best.slots, slotTypes, reqs, 'OR', meta);
+  if (best) best.eval = evaluate(best.slots, slotTypes, reqs, 'OR', meta, layout?.bricks ?? []);
   return best;
 }

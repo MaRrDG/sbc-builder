@@ -53,6 +53,8 @@ export interface Challenge {
   formation: string;
   repeatable: boolean;
   timesCompleted: number;
+  /** OPEN_CHALLENGE, or BRICK_CHALLENGE / CUSTOM_BRICK_CHALLENGE when EA locks slots */
+  type?: string;
   elgReq: EligibilityReq[];
   elgOperation: 'AND' | 'OR';
   awards: unknown[];

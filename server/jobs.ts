@@ -7,12 +7,13 @@ import type { Account } from './accounts.js';
 import { readCache } from './store.js';
 import type { SetsData } from './sync.js';
 
-export type JobKind = 'club' | 'sbc' | 'challenges';
+export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad';
 
 export interface Job {
   id: string;
   kind: JobKind;
   setIds?: number[]; // challenges only
+  challengeId?: number; // challengeSquad only: GET /sbs/challenge/{id}/squad (never the POST that starts it)
   status: 'queued' | 'running' | 'done' | 'failed';
   createdAt: number;
   startedAt?: number;
@@ -23,9 +24,11 @@ export interface Job {
 
 const queues = new Map<number, Job[]>();
 const lastPoll = new Map<number, number>();
+const lastFinished = new Map<number, number>();
 const RUNNING_TIMEOUT = 3 * 60 * 1000; // a tab closed mid-job: give up and allow a new one
 const OPEN_WINDOW = 30 * 1000; // the extension polls every few seconds while a web app tab is open
 const MAX_SETS_PER_JOB = 40;
+const REST_BETWEEN_JOBS = 5 * 1000; // a breather for EA between one job and the next
 
 const progress = (s: SetsData['categories'][number]['sets'][number]) =>
   [s.challengesCompletedCount, s.challengesCount, s.timesCompleted, s.timesCompletedInInterval ?? ''].join(':');
@@ -48,14 +51,20 @@ function queueOf(acc: Account) {
 /** A web app tab with the extension asked for work in the last few seconds. */
 export const webAppOpen = (acc: Account) => Date.now() - (lastPoll.get(acc.id) ?? 0) < OPEN_WINDOW;
 
-export async function enqueue(acc: Account, kind: JobKind, setIds?: number[]): Promise<Job | null> {
+export async function enqueue(acc: Account, kind: JobKind, setIds?: number[], challengeId?: number): Promise<Job | null> {
   const q = queueOf(acc);
-  const pending = q.find((j) => j.kind === kind && (j.status === 'queued' || j.status === 'running') && kind !== 'challenges');
+  const pending = q.find(
+    (j) => j.kind === kind && (j.status === 'queued' || j.status === 'running') && kind !== 'challenges' && j.challengeId === challengeId,
+  );
   if (pending) return pending;
   const job: Job = { id: randomBytes(8).toString('hex'), kind, status: 'queued', createdAt: Date.now() };
   if (kind === 'challenges') {
     if (!setIds?.length) return null;
     job.setIds = setIds.slice(0, MAX_SETS_PER_JOB);
+  }
+  if (kind === 'challengeSquad') {
+    if (!Number.isInteger(challengeId)) return null;
+    job.challengeId = challengeId;
   }
   if (kind === 'sbc') {
     const sets = await readCache<SetsData>(acc.key('sets'));
@@ -70,6 +79,7 @@ export function nextJob(acc: Account): Job | null {
   lastPoll.set(acc.id, Date.now());
   const q = queueOf(acc);
   if (q.some((j) => j.status === 'running')) return null; // one at a time
+  if (Date.now() - (lastFinished.get(acc.id) ?? 0) < REST_BETWEEN_JOBS) return null;
   const job = q.find((j) => j.status === 'queued') ?? null;
   if (job) {
     job.status = 'running';
@@ -85,6 +95,7 @@ export function findJob(acc: Account, id: string) {
 /** The page finished a job. An SBC list refresh queues the challenges of sets that changed. */
 export async function finishJob(acc: Account, job: Job, ok: boolean, error?: string) {
   job.status = ok ? 'done' : 'failed';
+  lastFinished.set(acc.id, Date.now());
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';
   if (!ok || job.kind !== 'sbc') return;
   const sets = await readCache<SetsData>(acc.key('sets'));
@@ -105,7 +116,7 @@ export function jobStatus(acc: Account): { running: string | null; error: string
   const active = q.find((j) => j.status === 'running' || j.status === 'queued');
   const last = [...q].reverse().find((j) => j.status === 'done' || j.status === 'failed');
   return {
-    running: active ? (active.kind === 'club' ? 'club' : 'sbc') : null,
+    running: active ? (active.kind === 'club' ? 'club' : active.kind === 'challengeSquad' ? 'squad' : 'sbc') : null,
     error: !active && last?.status === 'failed' ? last.error ?? null : null,
   };
 }

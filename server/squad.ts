@@ -7,6 +7,7 @@ import {
   LEGENDS_CLUB_ID, LEGENDS_LEAGUE_ID, HERO_CLUB_ID, HALL_OF_FUT_CLUB_ID, STAR_RATING_THRESHOLDS,
 } from './meta.js';
 import { Key, Scope, type Requirement } from './sbc.js';
+import type { BrickSlot } from './layout.js';
 
 export const FIELD_PLAYERS = 11;
 const SLOT_MAX_CHEM = 3;
@@ -185,6 +186,26 @@ export function chemistry(slots: (Player | null)[], slotTypes: number[], meta: M
   return { total: perSlot.reduce((s, x) => s + x, 0), perSlot };
 }
 
+// ---- locked ("brick") slots --------------------------------------------------
+
+/**
+ * A custom brick as the chemistry calculator sees it: it contributes its club / league / nation
+ * (canContribute = isValid() || isCustomBrick()) and gets chemistry like a player in position,
+ * but has no rating (isValid() is false) and is skipped by requirement counters (getNonBrickSlots).
+ */
+export function brickPlayer(b: BrickSlot, slotType: number): Player {
+  const positions = b.positions?.map((p) => POSITION_IDS[p]).filter((p) => p !== undefined) ?? [slotType];
+  return {
+    id: -1 - b.index, assetId: -1 - b.index, resourceId: 0, name: 'Locked', rating: 0, rareflag: b.rareflag, tier: 1,
+    positions, preferredPosition: '', possiblePositions: b.positions ?? [], club: b.club, league: b.league, nation: b.nation,
+    untradeable: true, firstOwner: false, groups: [], state: 'brick', isLoan: false, minPrice: 0, fullName: '', rarityName: '',
+    attributes: [], skillMoves: 0, weakFoot: 0, foot: 'Right',
+  };
+}
+
+/** Field slots the user has to fill: 11 minus every locked slot (getNumOfRequiredPlayers). */
+export const requiredPlayers = (bricks: BrickSlot[]) => FIELD_PLAYERS - bricks.length;
+
 // ---- requirement evaluation -------------------------------------------------
 
 export function matchesKey(p: Player, key: number, values: number[]): boolean {
@@ -236,10 +257,19 @@ export function evaluate(
   reqs: Requirement[],
   op: 'AND' | 'OR',
   meta: Meta,
+  bricks: BrickSlot[] = [],
 ): SquadEval {
-  const players = slots.filter((p): p is Player => !!p);
+  const brickAt = new Map(bricks.map((b) => [b.index, b]));
+  // requirement counters and rating see only real players; brick slots stay empty for them
+  const own = slots.map((p, i) => (brickAt.has(i) ? null : p));
+  const players = own.filter((p): p is Player => !!p);
   const rating = squadRating(players.map((p) => p.rating));
-  const chem = chemistry(slots, slotTypes, meta);
+  // chemistry also sees custom bricks, which take part like players
+  const chemSlots = own.map((p, i) => {
+    const b = brickAt.get(i);
+    return b?.custom ? brickPlayer(b, slotTypes[i]) : p;
+  });
+  const chem = chemistry(chemSlots, slotTypes, meta);
   const countBy = (f: (p: Player) => number) => {
     const m = new Map<number, number>();
     for (const p of players) m.set(f(p), (m.get(f(p)) ?? 0) + 1);
@@ -268,8 +298,9 @@ export function evaluate(
           target = v;
           break;
         case Key.ALL_PLAYERS_CHEMISTRY_POINTS:
-          actual = chem.perSlot.filter((c, i) => slots[i] && compare(r.scope, c, v)).length;
-          target = FIELD_PLAYERS;
+          // web app: every slot but plain bricks must reach it, custom bricks included
+          actual = chem.perSlot.filter((c, i) => chemSlots[i] && compare(r.scope, c, v)).length;
+          target = FIELD_PLAYERS - bricks.filter((b) => !b.custom).length;
           return { text: r.text, met: actual === target, actual: `${actual}/${target}` };
         case Key.PLAYER_QUALITY: {
           const tiers = [...new Set(players.map((p) => p.tier))];
@@ -319,7 +350,7 @@ export function evaluate(
     return { text: r.text, met: compare(r.scope, actual, target), actual };
   });
 
-  const full = players.length === FIELD_PLAYERS;
+  const full = players.length === requiredPlayers(bricks);
   const allMet = full && (op === 'OR' ? results.some((x) => x.met) : results.every((x) => x.met));
   return { rating, chemistry: chem.total, perSlotChem: chem.perSlot, results, allMet };
 }

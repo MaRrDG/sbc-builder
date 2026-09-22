@@ -1421,6 +1421,65 @@ button.card:active {
   height: 58%;
 }
 
+.card-brick {
+  color: oklch(0.8 0.01 220);
+}
+
+.card-brick::before {
+  background: repeating-linear-gradient(135deg, oklch(0.27 0.012 220 / 0.95) 0 6px, oklch(0.31 0.012 220 / 0.95) 6px 12px);
+  border-style: dashed;
+}
+
+.brick-lock {
+  position: absolute !important;
+  top: 7%;
+  right: 12%;
+  width: 22% !important;
+  height: auto !important;
+  padding: 3%;
+  border-radius: 50%;
+  background: oklch(0.18 0.02 222);
+}
+
+.brick-badges {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: calc(var(--card-w) * 0.06);
+}
+
+.brick-badges img {
+  width: calc(var(--card-w) * 0.3);
+  height: calc(var(--card-w) * 0.3);
+  object-fit: contain;
+}
+
+.slot-fixed {
+  position: absolute;
+  top: -6px;
+  left: calc(50% - var(--card-w) / 2 - 4px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.notice-inline {
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  border: 1px solid oklch(0.6 0.1 70 / 0.35);
+  border-radius: var(--r-ctl);
+  background: oklch(0.3 0.06 60 / 0.3);
+  color: oklch(0.92 0.05 85);
+  font-size: 13px;
+}
+
 .card-empty.is-loading::before {
   animation: pulse 900ms var(--ease) infinite alternate;
 }

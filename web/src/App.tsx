@@ -72,8 +72,20 @@ export default function App() {
 
   const account = linked?.find((l) => l.key === activeKey)?.account ?? null;
   const challenge = challenges?.find((c) => c.challengeId === challengeId) ?? null;
+  const [readAsked, setReadAsked] = useState<Set<number>>(() => new Set());
   const result = challengeId ? results[challengeId] ?? null : null;
   const clubById = useMemo(() => new Map(club.map((p) => [p.id, p])), [club]);
+  // players already placed in this challenge in the web app, shown on the pitch before solving
+  const placedPlayers = useMemo(
+    () =>
+      new Map(
+        (challenge?.layout?.placed ?? []).flatMap((pl) => {
+          const p = clubById.get(pl.itemId);
+          return p ? [[pl.index, p] as const] : [];
+        }),
+      ),
+    [challenge, clubById],
+  );
   const setsById = useMemo(() => new Map(categories.flatMap((c) => c.sets).map((s) => [s.setId, s])), [categories]);
   const localSets = useMemo(() => new Set(Object.keys(localOptions).map(Number)), [localOptions]);
   const currentSet = (setId && setsById.get(setId)) || null;
@@ -172,6 +184,21 @@ export default function App() {
       })
       .catch((e) => setError(e.message));
   }, [setId]);
+
+  // A started challenge we have no squad for: read it once from the web app tab (one GET),
+  // so players already placed there show up without reopening it in the web app.
+  const readFromWebApp = useCallback(
+    (id: number) => {
+      setReadAsked((prev) => new Set(prev).add(id));
+      api.readChallenge(id).then(setStatus).catch((e) => setError((e as Error).message));
+    },
+    [],
+  );
+  useEffect(() => {
+    if (!challenge || challenge.status !== 'IN_PROGRESS' || challenge.layout || readAsked.has(challenge.challengeId)) return;
+    if (!account?.session) return;
+    readFromWebApp(challenge.challengeId);
+  }, [challenge, account?.session, readAsked, readFromWebApp]);
 
   // refresh windows of repeatable SBCs roll over while the page is open
   useEffect(() => {
@@ -452,6 +479,18 @@ export default function App() {
                       <ArrowsClockwise weight="bold" aria-hidden="true" /> {repeatLine(currentSet, now)}
                     </span>
                   )}
+                  {challenge?.status === 'IN_PROGRESS' && account?.session && (
+                    <button
+                      type="button"
+                      className="ghost icon-label"
+                      disabled={status?.running === 'squad'}
+                      onClick={() => readFromWebApp(challenge.challengeId)}
+                      title="Read the players you placed in this challenge in the web app"
+                    >
+                      <ArrowsClockwise weight="bold" className={status?.running === 'squad' ? 'spin' : ''} />{' '}
+                      <span>{status?.running === 'squad' ? 'Reading squad…' : 'Squad from web app'}</span>
+                    </button>
+                  )}
                   <button type="button" className={`ghost icon-label${local ? ' on' : ''}`} onClick={() => setShowOptions(true)}>
                     <SlidersHorizontal weight="bold" /> <span>{local ? 'Local settings' : 'Global settings'}</span>
                   </button>
@@ -488,6 +527,37 @@ export default function App() {
                 <div className="board">
                   <div className="board-main">
                     {error && <div className="banner" role="alert">{error}</div>}
+                    {challenge.needsLayout && (
+                      <div className="notice-inline" role="status">
+                        {challenge.status === 'IN_PROGRESS' && account?.session ? (
+                          <>
+                            EA locks some slots in this SBC.{' '}
+                            <button
+                              type="button"
+                              className="text"
+                              disabled={status?.running === 'squad'}
+                              onClick={() => api.readChallenge(challenge.challengeId).then(setStatus).catch((e) => setError(e.message))}
+                            >
+                              {status?.running === 'squad' ? 'Reading it from the web app…' : 'Read them from the web app'}
+                            </button>
+                          </>
+                        ) : (
+                          'EA locks some slots in this SBC. Open it once in the FC27 web app so FC Solver sees which, then solve.'
+                        )}
+                      </div>
+                    )}
+                    {result?.found && result.placed && result.placed.kept < result.placed.total && !solving && (
+                      <div className="notice-inline" role="status">
+                        Kept {result.placed.kept} of the {result.placed.total} players you placed in the web app (marked with a pin). The
+                        rest could not meet the requirements, so they were replaced.
+                      </div>
+                    )}
+                    {!!result?.missingPlaced?.length && !solving && (
+                      <div className="notice-inline" role="status">
+                        {result.missingPlaced.length} player{result.missingPlaced.length === 1 ? '' : 's'} you placed in the web app{' '}
+                        {result.missingPlaced.length === 1 ? 'is' : 'are'} no longer in your club, so {result.missingPlaced.length === 1 ? 'that slot was' : 'those slots were'} filled again.
+                      </div>
+                    )}
                     {result && !result.found && result.reasons && !solving && (
                       <div className="no-solution" role="alert">
                         <strong>No squad possible from your club</strong>
@@ -510,6 +580,7 @@ export default function App() {
                       onToggleOptions={() => setShowOptions((v) => !v)}
                       lock={lock}
                       localOptions={!!local}
+                      placed={placedPlayers}
                       selectedId={selectedId}
                       onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
                     />

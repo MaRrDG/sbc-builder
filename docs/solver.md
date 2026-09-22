@@ -53,6 +53,16 @@ The `max(0, …)` makes it non-linear. The trick: for a fixed `S` every bonus te
 
 **Search.** 8 to 16 parallel workers, 10 s limit (30 s for "Cheaper?"), 0.5 % relative gap. Hard problems usually have a good squad after a second or two; the rest of the time goes into proving optimality, so a time-limited answer is still a valid, cheap squad.
 
+## Locked slots and players already placed
+
+Some SBCs (`type` `BRICK_CHALLENGE` / `CUSTOM_BRICK_CHALLENGE`) lock slots. Which ones only comes with the challenge's squad, which the web app loads when you open the challenge (`POST /sbs/challenge/{id}` the first time, `GET …/squad` after). The extension relays that response and `server/layout.ts` reads `playerRequirements[].playerType`:
+
+- `BRICK`: the slot stays empty and counts for nothing.
+- `CUSTOM_BRICK`: a placeholder with a club / league / nation. Like the web app (`UTSquadChemCalculatorUtils.canContribute`) it takes part in chemistry as a player in position (gives links and gets chemistry), but has no rating (`isValid()` is false, rating still divides by 11) and requirement counters skip it (`getNonBrickSlots`). "Chemistry on each player" still has to hold for it.
+- The squad needs 11 minus locked slots players.
+
+Players you already placed in the web app (the load, or a later `PUT …/squad` save) are shown on the pitch until you solve. Solve ignores them by default and builds a fresh squad; with **Keep players already placed in the web app** on (off by default) they are a preference: the solver keeps as many as possible in their slots (a large bonus per kept player in the objective, so keeping always beats saving coins), even if your settings would keep them out, and replaces only those the requirements do not allow. The answer says how many were kept; players no longer in the club are reported and their slots refilled. In the model locked slots get no variables, custom bricks add constant contributions to their groups plus their own chemistry variable, and a kept player sits in his slot (out of position he blocks it). Without the squad of a brick challenge, solving is refused with a hint to open it in the web app; for challenges already started FC Solver can read it through the web app tab (`challengeSquad` job, `GET` only).
+
 ## 4. Re-check
 
 The squad is evaluated with `squad.ts` (ported `_calculateRating`, `UTSquadChemCalculatorUtils.calculate`, `isRequirementMet`). `found` in the API is the result of this check, not of the solver.
