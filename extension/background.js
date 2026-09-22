@@ -5,22 +5,55 @@
 const DEFAULT_SERVER = 'http://localhost:5178';
 const UTAS = 'https://utas.mob.v1.prd.futc-ext.gcp.ea.com/ut/game/fc27/';
 
+const VERSION = chrome.runtime.getManifest().version;
+
 const state = () =>
-  chrome.storage.local.get({ server: DEFAULT_SERVER, lastSid: null, contentGuid: null, accessKey: null, keys: [] });
+  chrome.storage.local.get({ server: DEFAULT_SERVER, lastSid: null, lastVersion: null, contentGuid: null, accessKey: null, keys: [] });
+
+/** -1 / 0 / 1 for dotted numeric versions. */
+function compareVersions(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+    const d = (pa[i] ?? 0) - (pb[i] ?? 0);
+    if (d) return Math.sign(d);
+  }
+  return 0;
+}
+
+/** Asks the server for the latest extension; flags the icon when this copy is older. */
+async function checkForUpdate(force = false) {
+  const { server, updateCheckedAt = 0 } = await chrome.storage.local.get(['server', 'updateCheckedAt']);
+  if (!force && Date.now() - updateCheckedAt < 30 * 60 * 1000) return;
+  try {
+    const res = await fetch(`${server ?? DEFAULT_SERVER}/api/extension/version`);
+    const latest = await res.json();
+    const update = latest.version && compareVersions(latest.version, VERSION) > 0 ? latest : null;
+    await chrome.storage.local.set({ update, updateCheckedAt: Date.now() });
+    await chrome.action.setBadgeText({ text: update ? 'NEW' : '' });
+    if (update) await chrome.action.setBadgeBackgroundColor({ color: '#2fd99a' });
+  } catch {
+    /* server unreachable: try again later */
+  }
+}
+
+chrome.runtime.onStartup.addListener(() => checkForUpdate(true));
+chrome.runtime.onInstalled.addListener(() => checkForUpdate(true));
 
 async function pushSession(sid) {
-  const { server, lastSid, contentGuid, keys, accessKey } = await state();
-  if (sid === lastSid && accessKey) return;
+  const { server, lastSid, lastVersion, contentGuid, keys, accessKey } = await state();
+  if (sid === lastSid && accessKey && lastVersion === VERSION) return;
   try {
     const res = await fetch(`${server}/api/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sid, contentGuid }),
+      body: JSON.stringify({ sid, contentGuid, extVersion: VERSION }),
     });
     const body = await res.json().catch(() => ({}));
     const who = body.account ? `${body.account.personaName} (${body.account.clubName})` : '';
     await chrome.storage.local.set({
       lastSid: res.ok ? sid : null,
+      lastVersion: VERSION,
       accessKey: body.accessKey ?? null,
       keys: body.accessKey ? [...new Set([body.accessKey, ...keys])] : keys,
       lastStatus: res.ok ? `Connected: ${who}` : `Server error: ${body.error ?? res.status}`,
@@ -99,7 +132,19 @@ chrome.webRequest.onCompleted.addListener(
 );
 
 // 3) Packs opened / items moved in the web app (relayed by hook.js + bridge.js).
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  // 4) The web app page asks whether to show the update notice.
+  if (msg?.type === 'update-status') {
+    checkForUpdate().then(async () => {
+      const { update, dismissedUpdate, server } = await chrome.storage.local.get(['update', 'dismissedUpdate', 'server']);
+      sendResponse(update && dismissedUpdate !== update.version ? { update, current: VERSION, server: server ?? DEFAULT_SERVER } : null);
+    });
+    return true; // async response
+  }
+  if (msg?.type === 'dismiss-update') {
+    chrome.storage.local.set({ dismissedUpdate: msg.version });
+    return;
+  }
   if (msg?.type !== 'webapp-event') return;
   (async () => {
     const { server, accessKey } = await state();

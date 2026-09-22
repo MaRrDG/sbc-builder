@@ -8,6 +8,7 @@ import { Pitch, ReqTick } from './components/Pitch';
 import { ExcludePicker } from './components/ExcludePicker';
 import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
+import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
 
 const DEFAULT_OPTIONS: SolveOptions = {
   excludeIds: [],
@@ -63,6 +64,10 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [squad, setSquad] = useState<{ starters: number[]; bench: number[] } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
+  const [latestExt, setLatestExt] = useState<ExtensionRelease | null>(null);
+  // arriving from the extension's "How to update" link opens the steps right away
+  const [updateAsked] = useState(() => new URLSearchParams(window.location.search).has('update'));
+  const [dismissedUpdate, setDismissedUpdate] = useState(() => readLocal<string | null>('sbc-dismissed-update', null));
 
   const account = linked?.find((l) => l.key === activeKey)?.account ?? null;
   const challenge = challenges?.find((c) => c.challengeId === challengeId) ?? null;
@@ -77,6 +82,8 @@ export default function App() {
     setSquad(c.squad);
     setCategories(s.categories);
     setStatus(st.sync);
+    setLatestExt(st.extension);
+    if (st.account) setLinked((prev) => prev?.map((l) => (l.account.personaId === st.account!.personaId ? { ...l, account: st.account! } : l)) ?? prev);
   }, []);
 
   const selectAccount = useCallback(
@@ -276,6 +283,18 @@ export default function App() {
             No extension yet?
           </button>
         </div>
+      )}
+
+      {latestExt && needsUpdate(account?.extVersion, latestExt) && (updateAsked || dismissedUpdate !== latestExt.version) && (
+        <UpdateBanner
+          installed={account?.extVersion}
+          latest={latestExt}
+          expanded={updateAsked}
+          onDismiss={() => {
+            setDismissedUpdate(latestExt.version);
+            writeLocal('sbc-dismissed-update', latestExt.version);
+          }}
+        />
       )}
 
       {!!status?.unassigned && (

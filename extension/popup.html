@@ -7,6 +7,7 @@
       h1 { font-size: 14px; margin: 0 0 8px; }
       label { display: block; font-size: 11px; opacity: .7; margin-top: 10px; }
       input { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px; border: 1px solid #2c4048; background: #16252b; color: inherit; }
+      #update { margin-top: 8px; padding: 8px; border-radius: 6px; background: #1ed69a22; color: #1ed69a; }
       #status { margin-top: 8px; padding: 8px; border-radius: 6px; background: #16252b; }
       button, a { margin-top: 10px; display: inline-block; padding: 6px 10px; border-radius: 6px; border: 0; background: #1ed69a; color: #062017; font-weight: 600; text-decoration: none; cursor: pointer; }
     </style>
@@ -14,6 +15,7 @@
   <body>
     <h1>FC27 SBC Builder</h1>
     <div id="status">Open the FC web app to connect.</div>
+    <div id="update" hidden></div>
     <label for="server">Builder server</label>
     <input id="server" />
     <button id="save">Save</button>

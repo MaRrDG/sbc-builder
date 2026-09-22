@@ -13,6 +13,7 @@ export interface AccountInfo {
   sid: string | null;
   sidUpdatedAt: number;
   accessKey: string; // secret the browser uses to read this account's data
+  extVersion?: string | null; // extension version that last reported a session
 }
 
 export class Account {
@@ -74,10 +75,18 @@ export async function loadAccounts() {
 }
 
 /** A fresh X-UT-SID arrived (from the extension or pasted): find out whose it is. */
-export async function registerSession(sid: string, contentGuid?: string): Promise<{ account: Account; isNew: boolean }> {
+export async function registerSession(
+  sid: string, contentGuid?: string, extVersion?: string,
+): Promise<{ account: Account; isNew: boolean }> {
   if (contentGuid) content.guid = contentGuid;
   const known = [...accounts.values()].find((a) => a.info.sid === sid && a.hasSession);
-  if (known) return { account: known, isNew: false };
+  if (known) {
+    if (extVersion && known.info.extVersion !== extVersion) {
+      known.info.extVersion = extVersion;
+      await known.save();
+    }
+    return { account: known, isNew: false };
+  }
   const { userInfo } = await new Utas(sid).userInfo();
   let account = accounts.get(userInfo.personaId);
   const isNew = !account || account.info.sid !== sid;
@@ -89,6 +98,7 @@ export async function registerSession(sid: string, contentGuid?: string): Promis
   account.info.clubName = userInfo.clubName;
   account.info.sid = sid;
   account.info.sidUpdatedAt = Date.now();
+  account.info.extVersion = extVersion ?? null;
   account.attach(sid);
   await account.save();
   return { account, isNew };

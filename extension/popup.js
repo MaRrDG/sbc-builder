@@ -5,10 +5,15 @@ function openUrl(server, keys) {
   return keys.length ? `${server}/#keys=${keys.join(',')}` : server;
 }
 
-chrome.storage.local.get({ server: 'http://localhost:5178', lastStatus: null, lastAt: null, keys: [] }).then((s) => {
+chrome.storage.local.get({ server: 'http://localhost:5178', lastStatus: null, lastAt: null, keys: [], update: null }).then((s) => {
   $('server').value = s.server;
   $('open').href = openUrl(s.server, s.keys);
   if (s.lastStatus) $('status').textContent = `${s.lastStatus} · ${new Date(s.lastAt).toLocaleTimeString()}`;
+  if (s.update) {
+    $('update').hidden = false;
+    $('update').textContent = `Update ${s.update.version} available. Open the builder to install it.`;
+    $('open').href = `${s.server}/?update=1${s.keys.length ? `#keys=${s.keys.join(',')}` : ''}`;
+  }
 });
 
 $('save').onclick = async () => {
