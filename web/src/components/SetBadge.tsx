@@ -1,25 +1,32 @@
 import { CheckCircle, Infinity as InfinityIcon, ArrowsClockwise } from '@phosphor-icons/react';
 import type { SbcSet } from '../api';
+import { useI18n } from '../i18n';
 import { repeatOf, untilText } from '../repeat';
+
+type T = (key: string, params?: Record<string, string | number>) => string;
+
+const perText = (set: SbcSet, t: T) => {
+  const hours = Math.round((set.repeatRefreshInterval ?? 86400) / 3600);
+  return hours === 24 ? t('repeat.perDay') : t('repeat.perHours', { h: hours });
+};
 
 /** Progress of a set as the web app shows it: x/y, ∞ ×n, or n/limit per refresh window. */
 export function SetBadge({ set, now }: { set: SbcSet; now: number }) {
+  const { t } = useI18n();
   const r = repeatOf(set, now);
   if (r.kind === 'unlimited')
     return (
-      <span className="set-progress" title={`Repeatable without limit. Done ${r.done} time${r.done === 1 ? '' : 's'}.`}>
-        <InfinityIcon weight="bold" aria-label="Unlimited" />
+      <span className="set-progress" title={t('repeat.unlimitedTitle', { count: r.done })}>
+        <InfinityIcon weight="bold" aria-label={t('repeat.unlimited')} />
         {r.done > 0 && <span>×{r.done}</span>}
       </span>
     );
   if (r.kind === 'limited') {
-    const hours = Math.round((set.repeatRefreshInterval ?? 86400) / 3600);
-    const per = hours === 24 ? 'a day' : `every ${hours}h`;
+    const title = r.available
+      ? t('repeat.limitedLeft', { limit: r.limit!, per: perText(set, t), left: r.limit! - r.done })
+      : t('repeat.limitedReset', { limit: r.limit!, per: perText(set, t), until: untilText(t, r.resetAt!, now) });
     return (
-      <span
-        className={`set-progress${r.available ? '' : ' spent'}`}
-        title={`Can be done ${r.limit} times ${per}. ${r.available ? `${r.limit! - r.done} left.` : `Resets in ${untilText(r.resetAt!, now)}.`}`}
-      >
+      <span className={`set-progress${r.available ? '' : ' spent'}`} title={title}>
         <ArrowsClockwise weight="bold" aria-hidden="true" />
         {r.done}/{r.limit}
       </span>
@@ -28,22 +35,22 @@ export function SetBadge({ set, now }: { set: SbcSet; now: number }) {
   if (!r.available)
     return (
       <span className="set-progress">
-        <CheckCircle weight="fill" aria-label="completed" />
+        <CheckCircle weight="fill" aria-label={t('repeat.completed')} />
       </span>
     );
   return <span className="set-progress">{r.done}/{r.limit}</span>;
 }
 
 /** One line under the set title explaining how often it can still be done. */
-export function repeatLine(set: SbcSet, now: number): string | null {
+export function repeatLine(set: SbcSet, now: number, t: T): string | null {
   const r = repeatOf(set, now);
-  if (r.kind === 'unlimited') return `Repeatable without limit · done ${r.done} time${r.done === 1 ? '' : 's'}`;
+  if (r.kind === 'unlimited') return t('repeat.lineUnlimited', { count: r.done });
   if (r.kind === 'limited') {
     const hours = Math.round((set.repeatRefreshInterval ?? 86400) / 3600);
-    const per = hours === 24 ? 'today' : `in this ${hours}h window`;
+    const when = hours === 24 ? t('repeat.today') : t('repeat.inWindow', { h: hours });
     return r.available
-      ? `Repeatable ${r.limit}× · ${r.done}/${r.limit} done ${per}`
-      : `Limit reached (${r.limit}/${r.limit} ${per}) · available again in ${untilText(r.resetAt!, now)}`;
+      ? t('repeat.lineLimited', { limit: r.limit!, done: r.done, when })
+      : t('repeat.lineSpent', { limit: r.limit!, when, until: untilText(t, r.resetAt!, now) });
   }
   return null;
 }

@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from 'react';
 import { MagnifyingGlass, X } from '@phosphor-icons/react';
 import type { Meta, Player } from '../api';
+import { useI18n } from '../i18n';
 
 export type FacetKind = 'nation' | 'league' | 'club';
 
@@ -16,7 +17,7 @@ const FIELD: Record<FacetKind, keyof Exclusions> = {
   club: 'excludeClubs',
 };
 
-const KIND_LABEL: Record<FacetKind, string> = { nation: 'Nation', league: 'League', club: 'Club' };
+const KIND_LABEL: Record<FacetKind, string> = { nation: 'exclude.nation', league: 'exclude.league', club: 'exclude.club' };
 
 interface Facet {
   kind: FacetKind;
@@ -39,6 +40,7 @@ interface Props {
 
 /** Search the nations, leagues and clubs that exist in the user's club and keep them out of SBCs. */
 export function ExcludePicker({ meta, club, value, onChange }: Props) {
+  const { t } = useI18n();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const listId = useId();
@@ -50,7 +52,7 @@ export function ExcludePicker({ meta, club, value, onChange }: Props) {
       const f = counts.get(key);
       if (f) f.count++;
       else {
-        const name = meta.names[kind][id] ?? `${KIND_LABEL[kind]} ${id}`;
+        const name = meta.names[kind][id] ?? `${t(KIND_LABEL[kind])} ${id}`;
         counts.set(key, { kind, id, name, count: 1 });
       }
     };
@@ -61,7 +63,7 @@ export function ExcludePicker({ meta, club, value, onChange }: Props) {
       bump('club', p.club);
     }
     return [...counts.values()].sort((a, b) => b.count - a.count);
-  }, [club, meta]);
+  }, [club, meta, t]);
 
   const isExcluded = (f: Facet) => value[FIELD[f.kind]].includes(f.id);
   const needle = q.trim().toLowerCase();
@@ -76,15 +78,15 @@ export function ExcludePicker({ meta, club, value, onChange }: Props) {
 
   return (
     <div className="exclude">
-      <h3>Never use players from</h3>
+      <h3>{t('exclude.title')}</h3>
       <div className="exclude-search">
         <MagnifyingGlass aria-hidden="true" />
         <input
           role="combobox"
           aria-expanded={open && matches.length > 0}
           aria-controls={listId}
-          aria-label="Search nations, leagues and clubs to exclude"
-          placeholder="Nation, league or club"
+          aria-label={t('exclude.search')}
+          placeholder={t('exclude.placeholder')}
           value={q}
           onChange={(e) => {
             setQ(e.target.value);
@@ -115,7 +117,7 @@ export function ExcludePicker({ meta, club, value, onChange }: Props) {
               >
                 <img src={logo(meta, f.kind, f.id)} alt="" loading="lazy" />
                 <span className="exclude-name">{f.name}</span>
-                <span className="exclude-kind">{KIND_LABEL[f.kind]}</span>
+                <span className="exclude-kind">{t(KIND_LABEL[f.kind])}</span>
                 <span className="exclude-count">{f.count}</span>
               </button>
             </li>
@@ -128,7 +130,7 @@ export function ExcludePicker({ meta, club, value, onChange }: Props) {
             <li key={`${f.kind}:${f.id}`}>
               <img src={logo(meta, f.kind, f.id)} alt="" />
               <span>{f.name}</span>
-              <button type="button" className="icon" aria-label={`Allow ${f.name} again`} onClick={() => toggle(f)}>
+              <button type="button" className="icon" aria-label={t('exclude.allow', { name: f.name })} onClick={() => toggle(f)}>
                 <X weight="bold" />
               </button>
             </li>

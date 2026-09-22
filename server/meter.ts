@@ -36,13 +36,15 @@ export class RequestMeter {
   async check() {
     if (Date.now() < this.pausedUntil) {
       const min = Math.ceil((this.pausedUntil - Date.now()) / 60000);
-      throw new SessionError(`EA asked us to slow down. FC Solver pauses its EA requests for ${min} more min.`, 429);
+      throw new SessionError(`EA asked us to slow down. FC Solver pauses its EA requests for ${min} more min.`, 429, 'paused', { min });
     }
     const d = await this.load();
     if (d.count >= DAILY_LIMIT)
       throw new SessionError(
         `Daily limit of ${DAILY_LIMIT} EA requests reached. FC Solver keeps working from cache; browsing the web app still updates it.`,
         429,
+        'budget',
+        { limit: DAILY_LIMIT },
       );
   }
 

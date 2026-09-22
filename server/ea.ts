@@ -83,8 +83,12 @@ export interface SbcSet {
   awards: unknown[];
 }
 
+/**
+ * An error the user should see. `msgCode` + `params` let the site show it in the user's language
+ * (web/src/locales, keys err.<msgCode>); `message` stays as the English fallback.
+ */
 export class SessionError extends Error {
-  constructor(msg: string, public status: number) {
+  constructor(msg: string, public status: number, public msgCode?: string, public params?: Record<string, string | number>) {
     super(msg);
   }
 }
@@ -157,11 +161,11 @@ export class Utas {
       await this.meter?.record(method, path, res.status);
       if (res.status === 401 || res.status === 403) {
         this.onExpired?.();
-        throw new SessionError('EA session expired. Reopen the web app to refresh it.', 401);
+        throw new SessionError('EA session expired. Reopen the web app to refresh it.', 401, 'sessionExpired');
       }
       if (THROTTLE_CODES.includes(res.status)) {
         this.meter?.pause();
-        throw new SessionError(`EA is rate limiting / blocking requests (HTTP ${res.status}). Try again later.`, 429);
+        throw new SessionError(`EA is rate limiting / blocking requests (HTTP ${res.status}). Try again later.`, 429, 'eaThrottled', { status: res.status });
       }
       if (!res.ok) throw new Error(`EA ${path} -> HTTP ${res.status}`);
       return (await res.json()) as T;

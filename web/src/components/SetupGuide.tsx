@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
+import { useI18n } from '../i18n';
 import { Check, Copy, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react';
 
 const EXTENSIONS_URL = 'chrome://extensions';
 const WEB_APP = 'https://www.ea.com/ea-sports-fc/ultimate-team/web-app/';
 
+/** Fills {name} slots of a translated sentence with elements (code, bold words). */
+export function fill(text: string, parts: Record<string, ReactNode>): ReactNode[] {
+  return text.split(/(\{\w+\})/).map((chunk, i) => {
+    const m = chunk.match(/^\{(\w+)\}$/);
+    return m && m[1] in parts ? <Fragment key={i}>{parts[m[1]]}</Fragment> : chunk;
+  });
+}
+
 function CopyUrl() {
+  const { t } = useI18n();
   const [done, setDone] = useState(false);
   return (
     <button
@@ -21,62 +31,59 @@ function CopyUrl() {
       }}
     >
       {done ? <Check weight="bold" /> : <Copy weight="bold" />}
-      {done ? 'Copied' : 'Copy address'}
+      {done ? t('setup.copied') : t('setup.copy')}
     </button>
   );
 }
 
+const FOLDER = <code>fc27-sbc-builder</code>;
+
 /** Step-by-step install of the session extension. Browsers block links to chrome:// pages, hence the copy button. */
 export function SetupGuide({ compact = false }: { compact?: boolean }) {
+  const { t } = useI18n();
   return (
     <ol className={`guide${compact ? ' compact' : ''}`}>
       <li>
         <div>
-          <h3>Download the extension</h3>
-          <p>It is already set up for this site. Nothing to configure.</p>
+          <h3>{t('setup.s1')}</h3>
+          <p>{t('setup.s1p')}</p>
         </div>
         <a className="step-action primary" href="/api/extension.zip" download>
-          <DownloadSimple weight="bold" /> Get extension
+          <DownloadSimple weight="bold" /> {t('setup.s1b')}
         </a>
       </li>
       <li>
         <div>
-          <h3>Unzip it</h3>
-          <p>
-            You get a folder named <code>fc27-sbc-builder</code>. Keep it somewhere it will stay, Chrome loads it from there.
-          </p>
+          <h3>{t('setup.s2')}</h3>
+          <p>{fill(t('setup.s2p'), { folder: FOLDER })}</p>
         </div>
       </li>
       <li>
         <div>
-          <h3>Open the extensions page</h3>
-          <p>
-            Paste <code>{EXTENSIONS_URL}</code> in the address bar, then switch on <b>Developer mode</b> in the top right corner.
-          </p>
+          <h3>{t('setup.s3')}</h3>
+          <p>{fill(t('setup.s3p'), { url: <code>{EXTENSIONS_URL}</code>, dev: <b>{t('setup.devMode')}</b> })}</p>
         </div>
         <CopyUrl />
       </li>
       <li>
         <div>
-          <h3>Load it</h3>
-          <p>
-            Click <b>Load unpacked</b> and pick the <code>fc27-sbc-builder</code> folder. Pin it from the puzzle icon so it is one click away.
-          </p>
+          <h3>{t('setup.s4')}</h3>
+          <p>{fill(t('setup.s4p'), { load: <b>{t('setup.loadUnpacked')}</b>, folder: FOLDER })}</p>
         </div>
       </li>
       <li>
         <div>
-          <h3>Log in to the FC27 web app</h3>
-          <p>The extension picks up your session on its own. Keep a web app tab open whenever you want fresh data.</p>
+          <h3>{t('setup.s5')}</h3>
+          <p>{t('setup.s5p')}</p>
         </div>
         <a className="step-action ghost-strong" href={WEB_APP} target="_blank" rel="noreferrer">
-          Open web app <ArrowSquareOut weight="bold" />
+          {t('setup.s5b')} <ArrowSquareOut weight="bold" />
         </a>
       </li>
       <li>
         <div>
-          <h3>Open FC Solver</h3>
-          <p>Click the extension icon, then <b>Open FC Solver</b>. Your club and SBCs load in about a minute.</p>
+          <h3>{t('setup.s6')}</h3>
+          <p>{fill(t('setup.s6p'), { open: <b>{t('setup.openSolver')}</b> })}</p>
         </div>
       </li>
     </ol>

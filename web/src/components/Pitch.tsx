@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Challenge, Meta, Player, SolveResult } from '../api';
 import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin } from '@phosphor-icons/react';
 import { BrickCard, Card, EmptyCard } from './Card';
+import { useI18n } from '../i18n';
 
 // Base x (%) per position uniqueId; left side of the screen = left positions.
 const BASE_X: Record<number, number> = {
@@ -50,8 +51,9 @@ const stars = (rating: number) => {
 };
 
 function Stars({ value }: { value: number }) {
+  const { t } = useI18n();
   return (
-    <span className="stars" aria-label={`${value} stars`}>
+    <span className="stars" aria-label={t('pitch.stars', { n: value })}>
       {[0, 1, 2, 3, 4].map((i) => (
         value >= i + 1 ? <Star key={i} weight="fill" className="on" />
         : value >= i + 0.5 ? <StarHalf key={i} weight="fill" className="on" />
@@ -62,13 +64,15 @@ function Stars({ value }: { value: number }) {
 }
 
 export function ReqTick({ met }: { met?: boolean }) {
+  const { t } = useI18n();
   if (met === undefined) return <Circle className="tick" weight="bold" aria-hidden="true" />;
-  return met ? <CheckCircle className="tick" weight="fill" aria-label="met" /> : <XCircle className="tick" weight="fill" aria-label="not met" />;
+  return met ? <CheckCircle className="tick" weight="fill" aria-label={t('pitch.met')} /> : <XCircle className="tick" weight="fill" aria-label={t('pitch.notMet')} />;
 }
 
 function ChemDots({ value }: { value: number }) {
+  const { t } = useI18n();
   return (
-    <span className="chem-dots" aria-label={`${value} chemistry`}>
+    <span className="chem-dots" aria-label={t('pitch.chem', { n: value })}>
       {[0, 1, 2].map((i) => (
         <i key={i} className={i < value ? 'on' : ''} />
       ))}
@@ -93,6 +97,7 @@ interface Props {
 }
 
 export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick }: Props) {
+  const { t } = useI18n();
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
   const { pos: coords, lines } = layout(positions.map((p) => p.uniqueId));
@@ -106,18 +111,18 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
     <div className="pitch-wrap">
       <div className="pitch-header">
         <button className="hdr-item" type="button" onClick={() => setShowReqs((v) => !v)} aria-expanded={showReqs}>
-          <span className="hdr-label">Requirements</span>
+          <span className="hdr-label">{t('pitch.requirements')}</span>
           <span className="hdr-value">
             <span className="req-bar"><span style={{ width: `${total ? (met / total) * 100 : 0}%` }} /></span>
             {met}/{total} <CaretDown weight="bold" className={`chev${showReqs ? ' open' : ''}`} />
           </span>
         </button>
         <div className="hdr-item">
-          <span className="hdr-label">Rating</span>
+          <span className="hdr-label">{t('pitch.rating')}</span>
           <span className="hdr-value"><Stars value={stars(rating)} /> {rating || 0}</span>
         </div>
         <div className="hdr-item">
-          <span className="hdr-label">Chemistry</span>
+          <span className="hdr-label">{t('pitch.chemistry')}</span>
           <span className="hdr-value">{chem}/33</span>
         </div>
         {showReqs && (
@@ -155,8 +160,8 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
           return (
             <div key={i} className="slot" style={{ left: `${x}%`, top: `${y}%`, ['--i' as string]: i }}>
               {kept && player && (
-                <span className="slot-fixed" title="Already placed in the web app, kept here">
-                  <PushPin weight="fill" aria-label="Kept from the web app" />
+                <span className="slot-fixed" title={t('pitch.keptTitle')}>
+                  <PushPin weight="fill" aria-label={t('pitch.kept')} />
                 </span>
               )}
               {brick ? (
@@ -179,7 +184,7 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
             </div>
           );
         })}
-        {solving && <div className="pitch-status" role="status">Searching your club</div>}
+        {solving && <div className="pitch-status" role="status">{t('pitch.searching')}</div>}
         {lock && (
           <div className="pitch-done">
             <SealCheck weight="fill" aria-hidden="true" />
@@ -190,8 +195,8 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
       </div>
 
       <button className="corner corner-left" type="button" onClick={onToggleOptions}>
-        <Wrench weight="fill" aria-hidden="true" /> Options
-        {localOptions && <em className="badge">Local</em>}
+        <Wrench weight="fill" aria-hidden="true" /> {t('pitch.options')}
+        {localOptions && <em className="badge">{t('pitch.local')}</em>}
       </button>
       <div className="corner corner-right">
         {lock ? (
@@ -200,12 +205,12 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
           </span>
         ) : (
           <button className="solve" type="button" disabled={solving} onClick={() => onSolve(false)}>
-            <Lightning weight="fill" aria-hidden="true" /> {result ? 'Re-solve' : 'Solve'}
+            <Lightning weight="fill" aria-hidden="true" /> {result ? t('pitch.resolve') : t('pitch.solve')}
           </button>
         )}
         {result && !locked && (
-          <button className="solve-deep" type="button" disabled={solving} onClick={() => onSolve(true)} title="Search 30s for a cheaper squad">
-            Cheaper?
+          <button className="solve-deep" type="button" disabled={solving} onClick={() => onSolve(true)} title={t('pitch.cheaperTitle')}>
+            {t('pitch.cheaper')}
           </button>
         )}
       </div>

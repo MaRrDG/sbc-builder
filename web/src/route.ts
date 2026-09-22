@@ -3,13 +3,15 @@
 //   /               SBC list          /sbc/16        a set (first open challenge)
 //   /sbc/16/39      a challenge       /club          club
 //   /settings       settings          /setup         extension setup guide
+//   /guide          how it works
 import { useCallback, useEffect, useState } from 'react';
 
 export type Route =
   | { view: 'sbcs'; setId: number | null; challengeId: number | null }
   | { view: 'club' }
   | { view: 'settings' }
-  | { view: 'setup' };
+  | { view: 'setup' }
+  | { view: 'guide' };
 
 const id = (s: string | undefined) => (s && /^\d+$/.test(s) ? Number(s) : null);
 
@@ -18,6 +20,7 @@ export function parseRoute(path: string): Route {
   if (a === 'club') return { view: 'club' };
   if (a === 'settings') return { view: 'settings' };
   if (a === 'setup') return { view: 'setup' };
+  if (a === 'guide') return { view: 'guide' };
   if (a === 'sbc' && id(b) !== null) return { view: 'sbcs', setId: id(b), challengeId: id(c) };
   return { view: 'sbcs', setId: null, challengeId: null };
 }

@@ -1,6 +1,7 @@
 import { X } from '@phosphor-icons/react';
 import type { Meta, Player, SolveOptions } from '../api';
 import { ExcludePicker } from './ExcludePicker';
+import { useI18n } from '../i18n';
 
 export const DEFAULT_OPTIONS: SolveOptions = {
   excludeIds: [],
@@ -28,29 +29,30 @@ interface Props {
 
 /** The solver switches, exclusions and kept-out players; used by Settings and by one SBC's local settings. */
 export function SolverOptions({ options, onChange, clubById, club, meta }: Props) {
+  const { t } = useI18n();
   const toggle = (k: 'excludeActiveSquad' | 'excludeSquadReserves' | 'excludeSpecial' | 'onlyUntradeable' | 'keepPlaced') =>
     onChange({ ...options, [k]: !options[k] });
   return (
     <>
       <label className="switch">
         <input type="checkbox" checked={options.excludeActiveSquad} onChange={() => toggle('excludeActiveSquad')} />
-        <span>Keep my active squad XI</span>
+        <span>{t('opt.keepXI')}</span>
       </label>
       <label className="switch">
         <input type="checkbox" checked={options.excludeSquadReserves} onChange={() => toggle('excludeSquadReserves')} />
-        <span>Keep my active squad subs</span>
+        <span>{t('opt.keepSubs')}</span>
       </label>
       <label className="switch">
         <input type="checkbox" checked={options.excludeSpecial} onChange={() => toggle('excludeSpecial')} />
-        <span>Keep special and promo cards</span>
+        <span>{t('opt.keepSpecial')}</span>
       </label>
       <label className="switch">
         <input type="checkbox" checked={options.onlyUntradeable} onChange={() => toggle('onlyUntradeable')} />
-        <span>Only use untradeables</span>
+        <span>{t('opt.onlyUntradeable')}</span>
       </label>
       <label className="switch">
         <input type="checkbox" checked={options.keepPlaced} onChange={() => toggle('keepPlaced')} />
-        <span>Keep players already placed in the web app</span>
+        <span>{t('opt.keepPlaced')}</span>
       </label>
       <ExcludePicker
         meta={meta}
@@ -60,13 +62,13 @@ export function SolverOptions({ options, onChange, clubById, club, meta }: Props
       />
       <label className="range">
         <span>
-          Highest OVR allowed <b>{options.maxRating}</b>
+          {t('opt.maxOvr')} <b>{options.maxRating}</b>
         </span>
         <input type="range" min={60} max={99} value={options.maxRating} onChange={(e) => onChange({ ...options, maxRating: Number(e.target.value) })} />
       </label>
       {options.excludeIds.length > 0 && (
         <div className="kept">
-          <h3>Kept out of SBCs</h3>
+          <h3>{t('opt.keptOut')}</h3>
           <ul>
             {options.excludeIds.map((id) => {
               const p = clubById.get(id);
@@ -76,7 +78,7 @@ export function SolverOptions({ options, onChange, clubById, club, meta }: Props
                   <button
                     type="button"
                     className="icon"
-                    aria-label={`Allow ${p?.name ?? 'player'} again`}
+                    aria-label={t('opt.allowPlayer', { name: p?.name ?? t('opt.player') })}
                     onClick={() => onChange({ ...options, excludeIds: options.excludeIds.filter((x) => x !== id) })}
                   >
                     <X weight="bold" />
@@ -86,7 +88,7 @@ export function SolverOptions({ options, onChange, clubById, club, meta }: Props
             })}
           </ul>
           <button type="button" className="text" onClick={() => onChange({ ...options, excludeIds: [] })}>
-            Allow all again
+            {t('opt.allowAll')}
           </button>
         </div>
       )}

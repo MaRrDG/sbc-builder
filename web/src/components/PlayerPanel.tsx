@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { ArrowCounterClockwise, Check, Copy, Prohibit, X } from '@phosphor-icons/react';
 import type { Meta, Player } from '../api';
 import { Card } from './Card';
+import { useI18n } from '../i18n';
 
 const OUTFIELD = ['PAC', 'SHO', 'PAS', 'DRI', 'DEF', 'PHY'];
 const KEEPER = ['DIV', 'HAN', 'KIC', 'REF', 'SPE', 'POS'];
 
 function CopyButton({ text, label }: { text: string; label: string }) {
+  const { t } = useI18n();
   const [done, setDone] = useState(false);
   return (
     <button
       type="button"
       className="copy"
-      aria-label={`Copy ${label}`}
+      aria-label={t('player.copyWhat', { what: label })}
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -24,14 +26,15 @@ function CopyButton({ text, label }: { text: string; label: string }) {
       }}
     >
       {done ? <Check weight="bold" /> : <Copy weight="bold" />}
-      {done ? 'Copied' : 'Copy'}
+      {done ? t('player.copied') : t('player.copy')}
     </button>
   );
 }
 
 function Pips({ value, max = 5 }: { value: number; max?: number }) {
+  const { t } = useI18n();
   return (
-    <span className="pips" aria-label={`${value} of ${max}`}>
+    <span className="pips" aria-label={t('player.pips', { value, max })}>
       {Array.from({ length: max }, (_, i) => (
         <i key={i} className={i < value ? 'on' : ''} />
       ))}
@@ -51,44 +54,45 @@ interface Props {
   excludeLabel?: string;
 }
 
-export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose, excluded, excludeLabel = 'Keep out of SBCs and re-solve' }: Props) {
+export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose, excluded, excludeLabel }: Props) {
+  const { t } = useI18n();
   const labels = p.preferredPosition === 'GK' ? KEEPER : OUTFIELD;
   const base = `${meta.contentBase}/items/images/mobile`;
   const facts: [string, string, string][] = [
-    ['Nation', meta.names.nation[p.nation] ?? `#${p.nation}`, `${base}/flags/dark/${p.nation}.png`],
-    ['League', meta.names.league[p.league] ?? `#${p.league}`, `${base}/leagues/dark/${p.league}.png`],
-    ['Club', meta.names.club[p.club] ?? `#${p.club}`, `${base}/clubs/dark/${p.club}.png`],
+    [t('player.nation'), meta.names.nation[p.nation] ?? `#${p.nation}`, `${base}/flags/dark/${p.nation}.png`],
+    [t('player.league'), meta.names.league[p.league] ?? `#${p.league}`, `${base}/leagues/dark/${p.league}.png`],
+    [t('player.club'), meta.names.club[p.club] ?? `#${p.club}`, `${base}/clubs/dark/${p.club}.png`],
   ];
 
   return (
-    <section className="player-panel" aria-label={`${p.name} details`}>
+    <section className="player-panel" aria-label={t('player.details', { name: p.name })}>
       <header>
         <Card player={p} meta={meta} size="sm" />
         <div className="player-title">
           <h2>{p.name}</h2>
           {p.fullName && p.fullName !== p.name && <p className="muted">{p.fullName}</p>}
           <p className="player-tags">
-            <span>{p.rarityName || (p.tier === 3 ? 'Gold' : p.tier === 2 ? 'Silver' : 'Bronze')}</span>
-            <span>{p.untradeable ? 'Untradeable' : 'Tradeable'}</span>
-            {inSquad && <span className="warn">Active squad {inSquad}</span>}
+            <span>{p.rarityName || (p.tier === 3 ? t('player.gold') : p.tier === 2 ? t('player.silver') : t('player.bronze'))}</span>
+            <span>{p.untradeable ? t('player.untradeable') : t('player.tradeable')}</span>
+            {inSquad && <span className="warn">{t('player.activeSquad', { role: inSquad === 'XI' ? t('player.roleXI') : t('player.roleSubs') })}</span>}
           </p>
         </div>
-        <button type="button" className="icon" onClick={onClose} aria-label="Close player details">
+        <button type="button" className="icon" onClick={onClose} aria-label={t('player.close')}>
           <X weight="bold" />
         </button>
       </header>
 
       <div className="names">
         <div>
-          <span className="muted">Search name</span>
+          <span className="muted">{t('player.searchName')}</span>
           <b>{p.name}</b>
-          <CopyButton text={p.name} label="search name" />
+          <CopyButton text={p.name} label={t('player.searchNameLc')} />
         </div>
         {p.fullName && p.fullName !== p.name && (
           <div>
-            <span className="muted">Full name</span>
+            <span className="muted">{t('player.fullName')}</span>
             <b>{p.fullName}</b>
-            <CopyButton text={p.fullName} label="full name" />
+            <CopyButton text={p.fullName} label={t('player.fullNameLc')} />
           </div>
         )}
       </div>
@@ -115,24 +119,24 @@ export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose
           </div>
         ))}
         <div>
-          <dt>Positions</dt>
+          <dt>{t('player.positions')}</dt>
           <dd>{p.possiblePositions.join(' · ')}</dd>
         </div>
         <div>
-          <dt>Skill moves</dt>
+          <dt>{t('player.skillMoves')}</dt>
           <dd><Pips value={p.skillMoves} /></dd>
         </div>
         <div>
-          <dt>Weak foot</dt>
+          <dt>{t('player.weakFoot')}</dt>
           <dd><Pips value={p.weakFoot} /></dd>
         </div>
         <div>
-          <dt>Foot</dt>
-          <dd>{p.foot}</dd>
+          <dt>{t('player.foot')}</dt>
+          <dd>{p.foot === 'Left' ? t('player.footLeft') : t('player.footRight')}</dd>
         </div>
         {chem !== undefined && (
           <div>
-            <dt>Chemistry here</dt>
+            <dt>{t('player.chemHere')}</dt>
             <dd>{chem} / 3</dd>
           </div>
         )}
@@ -140,11 +144,11 @@ export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose
 
       {excluded ? (
         <button type="button" className="ghost wide" onClick={onExclude}>
-          <ArrowCounterClockwise weight="bold" /> Allow in SBCs again
+          <ArrowCounterClockwise weight="bold" /> {t('player.allowAgain')}
         </button>
       ) : (
         <button type="button" className="ghost wide danger" onClick={onExclude}>
-          <Prohibit weight="bold" /> {excludeLabel}
+          <Prohibit weight="bold" /> {excludeLabel ?? t('player.keepOutResolve')}
         </button>
       )}
     </section>
