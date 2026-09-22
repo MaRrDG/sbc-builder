@@ -37,8 +37,30 @@ async function checkForUpdate(force = false) {
   }
 }
 
-chrome.runtime.onStartup.addListener(() => checkForUpdate(true));
-chrome.runtime.onInstalled.addListener(() => checkForUpdate(true));
+/** Tells the builder which version is installed, so its update banner clears right away. */
+async function reportVersion() {
+  const { server, keys = [] } = await chrome.storage.local.get(['server', 'keys']);
+  for (const key of keys) {
+    try {
+      await fetch(`${server ?? DEFAULT_SERVER}/api/extension/report`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Account-Key': key },
+        body: JSON.stringify({ version: VERSION }),
+      });
+    } catch {
+      /* server offline: the next session push reports it too */
+    }
+  }
+}
+
+chrome.runtime.onStartup.addListener(() => {
+  reportVersion();
+  checkForUpdate(true);
+});
+chrome.runtime.onInstalled.addListener(() => {
+  reportVersion();
+  checkForUpdate(true);
+});
 
 async function pushSession(sid) {
   const { server, lastSid, lastVersion, contentGuid, keys, accessKey } = await state();

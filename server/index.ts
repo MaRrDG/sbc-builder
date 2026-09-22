@@ -74,6 +74,18 @@ app.get('/api/status', async (req) => {
 /** Latest extension release; the extension polls this to show its own update notice. */
 app.get('/api/extension/version', () => latestExtension());
 
+/** The extension says which version it is right after install/update, no EA session needed. */
+app.post<{ Body: { version: string } }>('/api/extension/report', async (req, reply) => {
+  const acc = account(req);
+  const version = req.body?.version;
+  if (!version || !/^\d+(\.\d+){1,3}$/.test(version)) return reply.code(400).send({ error: 'invalid version' });
+  if (acc.info.extVersion !== version) {
+    acc.info.extVersion = version;
+    await acc.save();
+  }
+  return latestExtension();
+});
+
 app.post<{ Body: { what: 'club' | 'sbc' | 'all' } }>('/api/sync', async (req) => {
   const acc = account(req);
   const what = req.body?.what ?? 'all';

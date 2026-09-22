@@ -1,4 +1,5 @@
 const $ = (id) => document.getElementById(id);
+$('version').textContent = `v${chrome.runtime.getManifest().version}`;
 
 function openUrl(server, keys) {
   // Keys travel in the URL fragment, which browsers never send to the server.
