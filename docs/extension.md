@@ -25,7 +25,7 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 
 ## Connected or not
 
-The extension is **connected** when a web app tab polled FC Solver successfully in the last 30 s. It connects by itself when you open the web app (identity → `/api/hello` → first poll). The toolbar badge shows a green dot when connected and a red dot when not (**NEW** wins while an update is waiting); an `alarms` tick every 30 s turns it red soon after the tab closes. The popup shows the same state in green or red, with the linked account.
+The extension is **connected** when a web app tab polled FC Solver successfully in the last 30 s. It connects by itself when you open the web app (identity → `/api/hello` → first poll). The toolbar badge shows a green dot when connected and a red dot when not (**NEW** wins while an update is waiting); an `alarms` tick every 30 s turns it red soon after the tab closes. The popup shows the same state in green or red, with the linked account. Without a key (first run, server address changed, failed hello) the next poll asks the tab to introduce itself again, so no web app reload is needed; proving an account with the SID happens at most once a minute. When not connected the popup also shows the last error.
 
 ## Access keys and "Open FC Solver"
 
