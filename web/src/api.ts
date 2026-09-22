@@ -44,6 +44,7 @@ export interface EaRequests {
 
 export interface SyncStatus {
   ea: EaRequests;
+  clubSyncs: { used: number; limit: number };
   running: string | null;
   error: string | null;
   clubAt: number | null;
@@ -199,7 +200,7 @@ export const api = {
   accounts: (keys: string[]) => req<{ accounts: { key: string; account: Account }[] }>('/api/accounts', { method: 'POST', body: { keys } }),
   status: () =>
     req<{ account: Account | null; sync: SyncStatus | null; extension: { version: string; notes: string[] } | null }>('/api/status'),
-  sync: (what: 'club' | 'sbc' | 'all') => req<SyncStatus>('/api/sync', { method: 'POST', body: { what } }),
+  sync: (what: 'club') => req<SyncStatus>('/api/sync', { method: 'POST', body: { what } }),
   meta: () => req<Meta>('/api/meta'),
   club: () => req<{ fetchedAt: number | null; players: Player[]; squad: { starters: number[]; bench: number[] } | null }>('/api/club'),
   sets: () => req<{ fetchedAt: number | null; categories: { categoryId: number; name: string; sets: SbcSet[] }[] }>('/api/sets'),

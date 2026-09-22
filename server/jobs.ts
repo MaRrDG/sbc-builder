@@ -48,6 +48,10 @@ function queueOf(acc: Account) {
   return q;
 }
 
+/** A job of this kind is already waiting or running. */
+export const hasPending = (acc: Account, kind: JobKind) =>
+  queueOf(acc).some((j) => j.kind === kind && (j.status === 'queued' || j.status === 'running'));
+
 /** A web app tab with the extension asked for work in the last few seconds. */
 export const webAppOpen = (acc: Account) => Date.now() - (lastPoll.get(acc.id) ?? 0) < OPEN_WINDOW;
 

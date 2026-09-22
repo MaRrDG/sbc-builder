@@ -22,7 +22,7 @@ Browser ──HTTPS──► Cloudflare (SSL: Flexible) ──HTTP :80──► 
 - `restart: unless-stopped` and a health check on `/api/meta`;
 - `SBC_DROP_TIME` (default `20:01`) and `SBC_DROP_TZ` (default `Europe/Bucharest`) control the daily SBC refresh.
 
-Other environment variables: `PORT` (5178), `HOST` (0.0.0.0 in the image, 127.0.0.1 by default elsewhere), `SOLVER_PYTHON` (path to the Python with OR-Tools), `SOLVER_DUMP` (write each solver problem to a file, for debugging).
+Other environment variables: `CLUB_SYNCS_PER_DAY` (3), `EA_DAILY_LIMIT` (150), `PORT` (5178), `HOST` (0.0.0.0 in the image, 127.0.0.1 by default elsewhere), `SOLVER_PYTHON` (path to the Python with OR-Tools), `SOLVER_DUMP` (write each solver problem to a file, for debugging).
 
 ## Apache
 

@@ -253,7 +253,7 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     const meta = await metaFor(acc);
     const { setId, challengeId } = req.body;
     const ch = (await getChallenges(acc, setId))?.data.find((c) => c.challengeId === challengeId);
-    if (!ch) return reply.code(404).send({ error: 'challenge not found (sync SBCs first)' });
+    if (!ch) return reply.code(404).send({ error: 'challenge not found (open it in the web app first)' });
     const { players } = await clubPlayers(acc);
     if (players.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)' });
     const reqs = parseRequirements(ch.elgReq, meta);

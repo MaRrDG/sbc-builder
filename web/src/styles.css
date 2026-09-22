@@ -148,6 +148,15 @@ h3 {
   transform: translateY(1px);
 }
 
+.sync-info {
+  cursor: default;
+}
+
+.sync-info:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
 .ghost small {
   color: var(--ink-3);
   font-size: 12px;
