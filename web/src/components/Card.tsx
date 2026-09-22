@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Coins, UserCircle } from '@phosphor-icons/react';
 import type { Meta, Player } from '../api';
 
@@ -28,7 +28,7 @@ interface Props {
   onClick?: () => void;
 }
 
-export function Card({ player, meta, position, size = 'md', selected, onClick }: Props) {
+export const Card = memo(function Card({ player, meta, position, size = 'md', selected, onClick }: Props) {
   const art = cardArt(player, meta);
   const [bgOk, setBgOk] = useState(true);
   const offPos = position !== undefined && !player.possiblePositions.includes(position);
@@ -40,10 +40,10 @@ export function Card({ player, meta, position, size = 'md', selected, onClick }:
       style={{ color: art.text }}
       title={`${player.name} · ${player.possiblePositions.join(', ')}${player.untradeable ? ' · untradeable' : ' · tradeable'}`}
     >
-      {art.bg && bgOk && <img className="card-bg" src={art.bg} alt="" onError={() => setBgOk(false)} />}
+      {art.bg && bgOk && <img className="card-bg" src={art.bg} alt="" decoding="async" onError={() => setBgOk(false)} />}
       <div className="card-rating">{player.rating}</div>
       <div className={`card-pos${offPos ? ' off' : ''}`}>{player.preferredPosition}</div>
-      <img className="card-face" src={art.portrait} alt="" loading="lazy" />
+      <img className="card-face" src={art.portrait} alt="" loading="lazy" decoding="async" />
       <div className="card-name">{player.name}</div>
       <div className="card-badges">
         <img src={art.flag} alt={meta.names.nation[player.nation] ?? ''} loading="lazy" />
@@ -53,7 +53,7 @@ export function Card({ player, meta, position, size = 'md', selected, onClick }:
       {!player.untradeable && <Coins className="card-tradeable" weight="fill" aria-label="Tradeable" />}
     </Tag>
   );
-}
+});
 
 export function EmptyCard({ size = 'md', loading = false }: { size?: 'md' | 'sm'; loading?: boolean }) {
   return (

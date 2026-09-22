@@ -83,16 +83,18 @@ interface Props {
   solving: boolean;
   onSolve: (deep?: boolean) => void;
   onToggleOptions: () => void;
+  /** Why this challenge cannot be solved right now (done once, daily limit reached). */
+  lock: { title: string; text: string } | null;
+  localOptions: boolean;
   selectedId: number | null;
   onPlayerClick: (playerId: number) => void;
 }
 
-export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, selectedId, onPlayerClick }: Props) {
+export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, selectedId, onPlayerClick }: Props) {
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
   const { pos: coords, lines } = layout(positions.map((p) => p.uniqueId));
-  // one-off challenges cannot be done twice; repeatables stay solvable
-  const locked = challenge.status === 'COMPLETED' && !challenge.repeatable;
+  const locked = !!lock;
   const rating = result?.eval.rating ?? 0;
   const chem = result?.eval.chemistry ?? 0;
   const met = result?.eval.results.filter((r) => r.met).length ?? 0;
@@ -166,22 +168,23 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
           );
         })}
         {solving && <div className="pitch-status" role="status">Searching your club</div>}
-        {locked && (
+        {lock && (
           <div className="pitch-done">
             <SealCheck weight="fill" aria-hidden="true" />
-            <strong>Already completed</strong>
-            <span>This challenge can only be done once.</span>
+            <strong>{lock.title}</strong>
+            <span>{lock.text}</span>
           </div>
         )}
       </div>
 
       <button className="corner corner-left" type="button" onClick={onToggleOptions}>
         <Wrench weight="fill" aria-hidden="true" /> Options
+        {localOptions && <em className="badge">Local</em>}
       </button>
       <div className="corner corner-right">
-        {locked ? (
+        {lock ? (
           <span className="solve done">
-            <SealCheck weight="fill" aria-hidden="true" /> Completed
+            <SealCheck weight="fill" aria-hidden="true" /> {lock.title}
           </span>
         ) : (
           <button className="solve" type="button" disabled={solving} onClick={() => onSolve(false)}>

@@ -1,7 +1,7 @@
 // Static game metadata: names, formations, chemistry rules, card rarity art.
 // Comes from the public content CDN, cached on disk (refreshed with the 24h sync).
 import { content, type ChemProfilesResponse } from './ea.js';
-import { readCache, writeCache, isStale, DAY_MS } from './store.js';
+import { readCache, writeCache, isStale, DAY_MS, type Cached } from './store.js';
 import teamLinks from './data/teamLinks.json' with { type: 'json' };
 
 export const LEGENDS_CLUB_ID = 112658;
@@ -56,8 +56,9 @@ export interface Meta {
   contentBase: string;
 }
 
-let meta: Meta | null = null;
-let metaChemKey: string | undefined;
+// Parsed once: the static file is ~2 MB. Built metas are kept per account (chemistry profiles differ).
+let staticData: Cached<Awaited<ReturnType<typeof fetchStatic>>> | null = null;
+const metas = new Map<string, Meta>();
 
 interface SquadData {
   chemistry: {
@@ -175,22 +176,27 @@ function build(raw: Awaited<ReturnType<typeof fetchStatic>>, chem: ChemProfilesR
 
 /** Meta for one account (chemistry promo profiles come from that account's sync). */
 export async function loadMeta(chemKey?: string, force = false): Promise<Meta> {
-  if (meta && !force && metaChemKey === chemKey) return meta;
-  let cachedStatic = await readCache<Awaited<ReturnType<typeof fetchStatic>>>('static');
-  if (force || isStale(cachedStatic, 7 * DAY_MS)) {
+  const id = chemKey ?? '';
+  const hit = metas.get(id);
+  if (hit && !force && !isStale(staticData, 7 * DAY_MS)) return hit;
+  staticData ??= await readCache<Awaited<ReturnType<typeof fetchStatic>>>('static');
+  if (force || isStale(staticData, 7 * DAY_MS)) {
     try {
-      cachedStatic = await writeCache('static', await fetchStatic());
+      staticData = await writeCache('static', await fetchStatic());
+      metas.clear();
     } catch (e) {
-      if (!cachedStatic) throw e;
+      if (!staticData) throw e;
       console.warn('static content refresh failed, using cache:', (e as Error).message);
     }
   }
   const chem = chemKey ? await readCache<ChemProfilesResponse>(chemKey) : null;
-  meta = build(cachedStatic!.data, chem?.data ?? null);
-  metaChemKey = chemKey;
-  return meta;
+  const built = build(staticData!.data, chem?.data ?? null);
+  metas.set(id, built);
+  return built;
 }
 
-export function invalidateMeta() {
-  meta = null;
+/** Drop a built meta, e.g. after that account's chemistry profiles were re-synced. */
+export function invalidateMeta(chemKey?: string) {
+  if (chemKey === undefined) metas.clear();
+  else metas.delete(chemKey);
 }

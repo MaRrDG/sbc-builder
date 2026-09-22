@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, Copy, Prohibit, X } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, Check, Copy, Prohibit, X } from '@phosphor-icons/react';
 import type { Meta, Player } from '../api';
 import { Card } from './Card';
 
@@ -46,9 +46,12 @@ interface Props {
   inSquad: 'XI' | 'Subs' | null;
   onExclude: () => void;
   onClose: () => void;
+  /** Club view: already kept out, so the button lets it back in instead. */
+  excluded?: boolean;
+  excludeLabel?: string;
 }
 
-export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose }: Props) {
+export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose, excluded, excludeLabel = 'Keep out of SBCs and re-solve' }: Props) {
   const labels = p.preferredPosition === 'GK' ? KEEPER : OUTFIELD;
   const base = `${meta.contentBase}/items/images/mobile`;
   const facts: [string, string, string][] = [
@@ -135,9 +138,15 @@ export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose
         )}
       </dl>
 
-      <button type="button" className="ghost wide danger" onClick={onExclude}>
-        <Prohibit weight="bold" /> Keep out of SBCs and re-solve
-      </button>
+      {excluded ? (
+        <button type="button" className="ghost wide" onClick={onExclude}>
+          <ArrowCounterClockwise weight="bold" /> Allow in SBCs again
+        </button>
+      ) : (
+        <button type="button" className="ghost wide danger" onClick={onExclude}>
+          <Prohibit weight="bold" /> {excludeLabel}
+        </button>
+      )}
     </section>
   );
 }

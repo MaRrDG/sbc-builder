@@ -58,7 +58,13 @@ export interface SbcSet {
   challengesCount: number;
   challengesCompletedCount: number;
   repeatable: boolean;
+  repeatabilityMode?: 'NON_REPEATABLE' | 'UNLIMITED' | 'REFRESH';
+  repeats?: number;
+  repeatRefreshInterval?: number; // seconds
   timesCompleted: number;
+  timesCompletedInInterval?: number;
+  lastCompletedTime?: number; // unix seconds
+  releaseTime?: number; // unix seconds
   endTime: number;
 }
 
