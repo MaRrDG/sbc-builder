@@ -1,5 +1,16 @@
 {
-  "0.4.0": ["Update notices in the web app and on the site"],
-  "0.3.0": ["Players from opened packs appear in the builder once you send them to your club", "Quick sold and transfer-listed players leave the builder automatically"],
-  "0.2.0": ["Players used in a submitted SBC leave the builder automatically"]
+  "0.4.1": [
+    "Version shown in the extension popup",
+    "The builder notices an update right after you reload the extension"
+  ],
+  "0.4.0": [
+    "Update notices in the web app and on the site"
+  ],
+  "0.3.0": [
+    "Players from opened packs appear in the builder once you send them to your club",
+    "Quick sold and transfer-listed players leave the builder automatically"
+  ],
+  "0.2.0": [
+    "Players used in a submitted SBC leave the builder automatically"
+  ]
 }

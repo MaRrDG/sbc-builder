@@ -5,6 +5,7 @@
     <style>
       body { font: 13px system-ui, sans-serif; width: 280px; margin: 12px; background: #0f1a1f; color: #e8f1f2; }
       h1 { font-size: 14px; margin: 0 0 8px; }
+      #version { font-weight: 500; font-size: 12px; opacity: .6; margin-left: 4px; }
       label { display: block; font-size: 11px; opacity: .7; margin-top: 10px; }
       input { width: 100%; box-sizing: border-box; padding: 6px; border-radius: 6px; border: 1px solid #2c4048; background: #16252b; color: inherit; }
       #update { margin-top: 8px; padding: 8px; border-radius: 6px; background: #1ed69a22; color: #1ed69a; }
@@ -13,7 +14,7 @@
     </style>
   </head>
   <body>
-    <h1>FC27 SBC Builder</h1>
+    <h1>FC27 SBC Builder <span id="version"></span></h1>
     <div id="status">Open the FC web app to connect.</div>
     <div id="update" hidden></div>
     <label for="server">Builder server</label>

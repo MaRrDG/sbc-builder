@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FC27 SBC Builder \u2013 Session Bridge",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Sends your FC27 web app session to your SBC Builder so it can read your club and SBCs.",
   "permissions": [
     "webRequest",
