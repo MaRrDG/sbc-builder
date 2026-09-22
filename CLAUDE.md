@@ -5,7 +5,7 @@ Finds the cheapest squad from the user's own EA FC 27 club that completes an SBC
 ## Layout
 - `server/` Fastify 5 API (Node 24, TS via `tsx`). `ea.ts` EA client + DTO types, `sync.ts` caching/sync + extension-driven cache edits, `sbc.ts` requirement parsing, `solver.ts` problem builder + `diagnose()`, `squad.ts` ported game formulas (rating, chemistry, `isRequirementMet`), `store.ts` JSON cache.
 - `solver/cpsat.py` OR-Tools CP-SAT model, JSON in on stdin, JSON out on stdout.
-- `web/src/` React 19 + Vite 8, plain CSS with OKLCH tokens (`styles.css`), Phosphor icons. `App.tsx` holds most state and the three views (SBC list/set screen, Club, Settings); `api.ts` typed fetch helpers; `repeat.ts` repeatability rules. Global solver settings and per-set local overrides are in `localStorage`; a set with local settings ignores the global ones.
+- `web/src/` React 19 + Vite 8, plain CSS with OKLCH tokens (`styles.css`), Phosphor icons. `App.tsx` holds most state and the three views (SBC list/set screen, Club, Settings); `api.ts` typed fetch helpers; `repeat.ts` repeatability rules, `route.ts` URL routing (screen state lives in the URL; use `navigate`, not local state, for screens). Global solver settings and per-set local overrides are in `localStorage`; a set with local settings ignores the global ones.
 - `extension/` Chrome MV3 bridge (session SID, SBC submits, packs, item moves).
 - `data/` runtime cache per EA account (`data/accounts/<personaId>/`), git-ignored, contains sessions and keys: never commit or print keys/SIDs.
 

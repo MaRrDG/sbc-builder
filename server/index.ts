@@ -312,6 +312,16 @@ if (existsSync(dist))
       res.header('Cache-Control', path.includes(`${join('dist', 'assets')}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
   });
 
+// Screens have their own URLs (/sbc/16/39, /club, ...): any other GET outside /api gets the app,
+// which reads the path itself. Unknown /api paths still answer 404.
+app.setNotFoundHandler((req, reply) => {
+  const path = req.url.split('?')[0];
+  // files (with an extension) that do not exist stay 404, so a stale page never gets HTML as JS
+  if (req.method === 'GET' && !path.startsWith('/api/') && !/\.[a-z0-9]+$/i.test(path) && existsSync(dist))
+    return reply.header('Cache-Control', 'no-cache').type('text/html').sendFile('index.html');
+  return reply.code(404).send({ error: 'not found' });
+});
+
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
 console.log(`FC Solver API on http://localhost:${PORT}`);
 

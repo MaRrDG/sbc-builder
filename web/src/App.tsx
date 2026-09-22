@@ -12,6 +12,7 @@ import { ClubView } from './components/ClubView';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
+import { canGoBack, useRoute, type Route } from './route';
 import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
@@ -36,7 +37,7 @@ function writeLocal(key: string, value: unknown) {
 }
 
 type Linked = { key: string; account: Account };
-type View = 'sbcs' | 'club' | 'settings';
+type View = Route['view'];
 type LocalMap = Record<number, SolveOptions>;
 
 const optionsKey = (key: string) => `sbc-options-${key.slice(0, 8)}`;
@@ -51,22 +52,24 @@ export default function App() {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [club, setClub] = useState<Player[]>([]);
   const [categories, setCategories] = useState<{ categoryId: number; name: string; sets: SbcSet[] }[]>([]);
-  const [setId, setSetId] = useState<number | null>(null);
+  // which screen is open lives in the URL (see route.ts), so browser Back works
+  const [route, navigate] = useRoute();
+  const view: View = route.view;
+  const setId = route.view === 'sbcs' ? route.setId : null;
+  const challengeId = route.view === 'sbcs' ? route.challengeId : null;
+  const showGuide = view === 'setup';
   const [challenges, setChallenges] = useState<Challenge[] | null>(null);
-  const [challengeId, setChallengeId] = useState<number | null>(null);
   const [results, setResults] = useState<Record<number, SolveResult>>({});
   const [solving, setSolving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [options, setOptions] = useState<SolveOptions>(DEFAULT_OPTIONS);
   const [localOptions, setLocalOptions] = useState<LocalMap>({});
   const [showOptions, setShowOptions] = useState(false);
-  const [view, setView] = useState<View>('sbcs');
   const [filter, setFilter] = useState('');
   const [syncing, setSyncing] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [squad, setSquad] = useState<{ starters: number[]; bench: number[] } | null>(null);
-  const [showGuide, setShowGuide] = useState(false);
   const [latestExt, setLatestExt] = useState<ExtensionRelease | null>(null);
   // arriving from the extension's "How to update" link opens the steps right away
   const [updateAsked] = useState(() => new URLSearchParams(window.location.search).has('update'));
@@ -120,7 +123,6 @@ export default function App() {
       writeLocal(ACTIVE, key);
       setOptions({ ...DEFAULT_OPTIONS, ...readLocal(optionsKey(key), {}) });
       setLocalOptions(readLocal<LocalMap>(localKey(key), {}));
-      setSetId(null);
       setChallenges(null);
       // solved squads survive reloads and tab switches; they are only replaced by solving again
       setResults(readLocal<Record<number, SolveResult>>(resultsKey(key), {}));
@@ -176,16 +178,30 @@ export default function App() {
   }, [activeKey, setId, loadAccountData]);
 
   useEffect(() => {
-    if (!setId) return;
+    // a link straight to /sbc/... loads before the account is picked: wait for its key
+    if (!setId || !activeKey) return;
     setChallenges(null);
     api
       .challenges(setId)
-      .then((r) => {
-        setChallenges(r.challenges);
-        setChallengeId(r.challenges.find((c) => c.status !== 'COMPLETED')?.challengeId ?? r.challenges[0]?.challengeId ?? null);
-      })
+      .then((r) => setChallenges(r.challenges))
       .catch((e) => setError(e.message));
-  }, [setId]);
+  }, [setId, activeKey]);
+
+  // /sbc/16 without a challenge (or one that is not in the set): open the first unfinished one
+  useEffect(() => {
+    if (route.view !== 'sbcs' || !route.setId || !challenges?.length || challenges[0].setId !== route.setId) return;
+    if (challenges.some((c) => c.challengeId === route.challengeId)) return;
+    const first = challenges.find((c) => c.status !== 'COMPLETED') ?? challenges[0];
+    navigate({ view: 'sbcs', setId: route.setId, challengeId: first.challengeId }, true);
+  }, [route, challenges, navigate]);
+
+  // the tab title follows the screen
+  useEffect(() => {
+    const name =
+      view === 'club' ? 'Club' : view === 'settings' ? 'Settings' : view === 'setup' ? 'Setup'
+      : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
+    document.title = name ? `${name} · FC Solver` : 'FC Solver';
+  }, [view, setId, categories]);
 
   // A started challenge we have no squad for: read it once from the web app tab (one GET),
   // so players already placed there show up without reopening it in the web app.
@@ -288,21 +304,20 @@ export default function App() {
   };
 
   const pickSet = (id: number) => {
-    setShowGuide(false);
-    setView('sbcs');
-    setSetId(id);
+    navigate({ view: 'sbcs', setId: id, challengeId: null });
     setShowOptions(false);
     setError(null);
   };
 
   const go = (v: View) => {
-    setShowGuide(false);
     setShowOptions(false);
-    setView(v);
     // pressing SBCs again goes back to the list
-    if (v === 'sbcs') setSetId(null);
+    navigate(v === 'sbcs' ? { view: 'sbcs', setId: null, challengeId: null } : { view: v });
     setError(null);
   };
+
+  // leave the setup guide the way you came in, or to the SBC list when opened directly
+  const closeGuide = () => (canGoBack() ? history.back() : go('sbcs'));
 
   if (linked === null) return <div className="boot" aria-busy="true" />;
   if (linked.length === 0) return <Onboarding error={error} />;
@@ -352,7 +367,7 @@ export default function App() {
         <button
           type="button"
           className={`ghost icon-label${showGuide ? ' on' : ''}`}
-          onClick={() => setShowGuide((v) => !v)}
+          onClick={() => (showGuide ? closeGuide() : go('setup'))}
           aria-pressed={showGuide}
         >
           <Question weight="bold" /> <span>Setup</span>
@@ -360,7 +375,14 @@ export default function App() {
 
         <label className="account">
           <span className={`session ${account?.session ? 'on' : ''}`}>{account?.session ? 'Live' : 'Offline'}</span>
-          <select value={activeKey ?? ''} onChange={(e) => selectAccount(e.target.value)} aria-label="EA account">
+          <select
+            value={activeKey ?? ''}
+            onChange={(e) => {
+              navigate({ view: 'sbcs', setId: null, challengeId: null });
+              void selectAccount(e.target.value);
+            }}
+            aria-label="EA account"
+          >
             {linked.map((l) => (
               <option key={l.key} value={l.key}>
                 {l.account.personaName} · {l.account.clubName}
@@ -373,7 +395,7 @@ export default function App() {
       {!account?.session && (
         <div className="notice">
           FC27 web app not open. FC Solver syncs only from your web app tab, so open it in this browser to sync. Cached data still works.{' '}
-          <button type="button" className="text" onClick={() => setShowGuide(true)}>
+          <button type="button" className="text" onClick={() => go('setup')}>
             No extension yet?
           </button>
         </div>
@@ -423,7 +445,7 @@ export default function App() {
             <section className="guide-panel">
               <header>
                 <h1>Set up the extension</h1>
-                <button type="button" className="icon" onClick={() => setShowGuide(false)} aria-label="Close setup guide">
+                <button type="button" className="icon" onClick={closeGuide} aria-label="Close setup guide">
                   <X weight="bold" />
                 </button>
               </header>
@@ -533,7 +555,8 @@ export default function App() {
                     aria-current={c.challengeId === challengeId}
                     className={c.status === 'COMPLETED' ? 'done' : ''}
                     onClick={() => {
-                      setChallengeId(c.challengeId);
+                      // switching challenges inside a set replaces the entry: Back leaves the set
+                      navigate({ view: 'sbcs', setId: c.setId, challengeId: c.challengeId }, true);
                       setSelectedId(null);
                       setError(null);
                     }}
