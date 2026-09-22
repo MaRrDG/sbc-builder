@@ -2,14 +2,15 @@ import Fastify, { type FastifyRequest } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { SessionError, type ClubItem } from './ea.js';
+import { SessionError, THROTTLE_CODES, type ClubItem } from './ea.js';
 import { loadMeta } from './meta.js';
 import { parseRequirements, serializeRequirement } from './sbc.js';
 import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
 import { readCache, ROOT } from './store.js';
-import { applySubmittedSbc, autoSyncAll, getChallenges, getStatus, syncClub, syncSbcs, type SetsData } from './sync.js';
-import { loadAccounts, registerSession, accountByKey, type Account } from './accounts.js';
+import { applySubmittedSbc, autoSyncAll, getChallenges, getStatus, markEdited, requestSync, type SetsData } from './sync.js';
+import { findJob, finishJob, nextJob } from './jobs.js';
+import { loadAccounts, registerSession, accountByKey, hello, type Account } from './accounts.js';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 
@@ -88,10 +89,60 @@ app.post<{ Body: { version: string } }>('/api/extension/report', async (req, rep
 
 app.post<{ Body: { what: 'club' | 'sbc' | 'all' } }>('/api/sync', async (req) => {
   const acc = account(req);
-  const what = req.body?.what ?? 'all';
-  if (what === 'club' || what === 'all') await syncClub(acc);
-  if (what === 'sbc' || what === 'all') await syncSbcs(acc);
+  await requestSync(acc, req.body?.what ?? 'all');
   return getStatus(acc);
+});
+
+// ---- extension 0.7+: identity and sync jobs run in the web app tab ------------------
+/** The web app says who is logged in. A held key is enough; otherwise the SID proves it once (not stored). */
+app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVersion?: string } }>('/api/hello', async (req, reply) => {
+  const { personaId, sid, contentGuid, extVersion } = req.body ?? {};
+  if (sid !== undefined && !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
+  const r = await hello({
+    key: keyOf(req),
+    personaId: Number.isInteger(personaId) ? personaId : undefined,
+    sid,
+    contentGuid: contentGuid && /^[0-9A-F-]{36}$/i.test(contentGuid) ? contentGuid : undefined,
+    extVersion: extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined,
+  });
+  if ('needSid' in r) return reply.code(401).send({ error: 'unknown account', needSid: true });
+  return { ok: true, account: r.account, accessKey: r.account.info.accessKey };
+});
+
+/** Next sync job for the web app tab (null when idle). Polling also marks the tab as open. */
+app.get('/api/jobs/next', async (req) => {
+  const acc = account(req);
+  if (!acc.clientMode) return { job: null };
+  try {
+    await acc.meter.check();
+  } catch {
+    return { job: null }; // over budget or paused: the queue waits
+  }
+  const job = nextJob(acc);
+  return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds } };
+});
+
+/** One EA request the tab made for a job, for the daily count. Throttling codes pause the account. */
+app.post<{ Params: { id: string }; Body: { method: string; path: string; status: number | null } }>(
+  '/api/jobs/:id/call',
+  async (req, reply) => {
+    const acc = account(req);
+    const { method, path, status } = req.body ?? ({} as never);
+    if (!findJob(acc, req.params.id) || typeof method !== 'string' || typeof path !== 'string' || !path.startsWith('/'))
+      return reply.code(400).send({ error: 'invalid call' });
+    await acc.meter.record(method.toUpperCase().slice(0, 8), path.slice(0, 200), Number.isInteger(status) ? status : null);
+    if (THROTTLE_CODES.includes(status ?? 0)) acc.meter.pause();
+    return { ok: true };
+  },
+);
+
+app.post<{ Params: { id: string }; Body: { ok: boolean; error?: string } }>('/api/jobs/:id/done', async (req, reply) => {
+  const acc = account(req);
+  const job = findJob(acc, req.params.id);
+  if (!job) return reply.code(404).send({ error: 'unknown job' });
+  await finishJob(acc, job, !!req.body?.ok, typeof req.body?.error === 'string' ? req.body.error.slice(0, 300) : undefined);
+  markEdited(acc);
+  return { ok: true };
 });
 
 /** Sent by the extension after the web app successfully submits an SBC. */

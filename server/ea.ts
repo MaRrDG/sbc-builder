@@ -6,6 +6,8 @@ const UTAS = 'https://utas.mob.v1.prd.futc-ext.gcp.ea.com/ut/game/fc27';
 const WEB_APP = 'https://www.ea.com/ea-sports-fc/ultimate-team/web-app';
 const DEFAULT_CONTENT_GUID = '27A3C9F1-6B2E-4D7A-8C1F-2E9B5A4D6C7E';
 const MIN_GAP_MS = 1500;
+/** EA answers that mean "slow down". 495's meaning is unconfirmed; it showed up on rapid squad saves. */
+export const THROTTLE_CODES = [429, 458, 495, 512, 521];
 const UA =
   'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36';
 
@@ -155,8 +157,7 @@ export class Utas {
         this.onExpired?.();
         throw new SessionError('EA session expired. Reopen the web app to refresh it.', 401);
       }
-      // 495's meaning is unconfirmed; the web app got it on rapid squad saves, so treat it as throttling too
-      if ([429, 458, 495, 512, 521].includes(res.status)) {
+      if (THROTTLE_CODES.includes(res.status)) {
         this.meter?.pause();
         throw new SessionError(`EA is rate limiting / blocking requests (HTTP ${res.status}). Try again later.`, 429);
       }

@@ -33,7 +33,16 @@ Three constraints shaped everything else:
 
 ## Getting the session
 
-The web app sends an `X-UT-SID` header on every call to `utas.mob.v1.prd.futc-ext.gcp.ea.com`. The extension observes that header (it never reads cookies or passwords) and posts it to the server. The server asks EA `GET /usermassinfo` once to learn the persona id and club name, then:
+**Extension 0.7+ (client mode): every request to EA leaves from the web app tab.** The server keeps no SID and never calls EA for these accounts, except once to prove a new account.
+
+- `hook.js` (inside the web app page) learns the headers and UTAS base the web app itself uses, and who is logged in from the web app's own `/usermassinfo` (it asks once if the web app did not).
+- The extension sends that identity to `POST /api/hello`. If it already holds the key for that persona, that is enough. Otherwise (new account, new browser) it sends the SID once; the server proves it with a single `/usermassinfo` call, returns the account's **access key** and throws the SID away.
+- Syncs become **jobs** (`server/jobs.ts`). Pressing Club / SBCs, or the schedule, queues one; the extension polls `/api/jobs/next` every few seconds while a web app tab is open (that polling is also what "Live" means); the page runs a fixed, read-only recipe for the job kind (`club`: club pages, active squad, chemistry profiles; `sbc`: set list; `challenges`: given set ids), 1.5 s apart, and the responses flow back through `/api/webapp-event` like any web app load. After an SBC list job the server queues challenges for the sets that changed. The server only ever names a recipe, never a URL, so it cannot make the page do anything else.
+- Every request is reported to `/api/jobs/:id/call` for the daily count; throttling codes pause the account for 15 minutes. The extension keeps its own daily limit too.
+
+**Older extensions (legacy mode)** still post the SID to `POST /api/session`; the server asks EA `GET /usermassinfo` once, keeps the SID and syncs from the server. This stays until every account runs 0.7, then goes away. A client-mode account never goes back to storing a SID.
+
+Either way the server then:
 
 - creates or updates `data/accounts/<personaId>/account.json`,
 - returns a random **access key** for that account to the extension.

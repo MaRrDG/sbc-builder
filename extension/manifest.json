@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "FC Solver \u2013 Session Bridge",
-  "version": "0.6.0",
-  "description": "Sends your FC27 web app session to FC Solver so it can read your club and SBCs.",
+  "version": "0.7.0",
+  "description": "Connects the FC27 web app to FC Solver. Every request to EA is made from your web app tab.",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",

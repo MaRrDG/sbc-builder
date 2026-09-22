@@ -15,11 +15,13 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 
 ## What it watches
 
-1. **Session.** `webRequest.onSendHeaders` on `utas…/ut/game/fc27/*` reads the `X-UT-SID` header and posts it to `POST /api/session` together with the CDN content GUID and its own version. It re-posts only when the SID or the extension version changes, or when it has no access key yet. The returned access key is stored and used for every later call.
+1. **Identity.** `webRequest.onSendHeaders` keeps the `X-UT-SID` in `chrome.storage.session` (memory only). `hook.js` reports who is logged in (from the web app's `/usermassinfo`); the worker calls `POST /api/hello` with the key it holds for that persona, and only for an unknown persona sends the SID once as proof. Keys are stored per persona (`personaKeys`).
 
-2. **SBC submits.** The web app first saves the squad (`PUT /sbs/challenge/{id}/squad`, body `{players:[{index, itemData:{id, dream}}]}`), then submits it (`PUT /sbs/challenge/{id}?skipUserSquadValidation=…`). The worker keeps the item ids from the save (concept players excluded) and, when the submit completes with HTTP 200, posts them to `/api/sbc-submitted`.
+2. **Sync jobs.** `bridge.js` polls the worker, which asks `GET /api/jobs/next`, every 5 s (15 s in a hidden tab). A job goes to `hook.js`, which runs its fixed read-only recipe with the web app's own headers from the page (origin `www.ea.com`), 1.5 s between requests, and reports each request (`/api/jobs/:id/call`), each response (`/api/webapp-event`) and the end (`/api/jobs/:id/done`). The worker stops handing out jobs after 200 requests a day, independent of the server.
 
-3. **Packs, item moves and loaded data.** Extensions cannot read response bodies through `webRequest`, and a pack's contents only exist in the response. `hook.js` wraps `XMLHttpRequest` and `fetch` inside the page and, for successful calls to exactly `/purchased/items`, `/item`, `/item/{id}`, `/club`, `/squad/list|active|{id}`, `/sbs/sets`, `/sbs/setId/{id}/challenges` and `/chemistry/profiles`, posts `{method, path, query, request, response}` to `bridge.js`, which forwards it to the worker, which sends it to `/api/webapp-event`. Every other endpoint is ignored, and errors in the hook are swallowed so the web app can never break because of it.
+3. **SBC submits. The web app first saves the squad (`PUT /sbs/challenge/{id}/squad`, body `{players:[{index, itemData:{id, dream}}]}`), then submits it (`PUT /sbs/challenge/{id}?skipUserSquadValidation=…`). The worker keeps the item ids from the save (concept players excluded) and, when the submit completes with HTTP 200, posts them to `/api/sbc-submitted`.
+
+4. **Packs, item moves and loaded data.** Extensions cannot read response bodies through `webRequest`, and a pack's contents only exist in the response. `hook.js` wraps `XMLHttpRequest` and `fetch` inside the page and, for successful calls to exactly `/purchased/items`, `/item`, `/item/{id}`, `/club`, `/squad/list|active|{id}`, `/sbs/sets`, `/sbs/setId/{id}/challenges` and `/chemistry/profiles`, posts `{method, path, query, request, response}` to `bridge.js`, which forwards it to the worker, which sends it to `/api/webapp-event`. Every other endpoint is ignored, and errors in the hook are swallowed so the web app can never break because of it.
 
 ## Access keys and "Open FC Solver"
 

@@ -5,6 +5,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { join } from 'node:path';
 import { Utas, content } from './ea.js';
 import { RequestMeter } from './meter.js';
+import { webAppOpen } from './jobs.js';
 import { DATA_DIR, readCache, writeCache } from './store.js';
 
 export interface AccountInfo {
@@ -15,6 +16,8 @@ export interface AccountInfo {
   sidUpdatedAt: number;
   accessKey: string; // secret the browser uses to read this account's data
   extVersion?: string | null; // extension version that last reported a session
+  /** 'client': extension 0.7+ makes every EA request from the web app tab; the server keeps no SID. */
+  mode?: 'client';
 }
 
 export class Account {
@@ -34,8 +37,22 @@ export class Account {
     return `accounts/${this.id}/${name}`;
   }
 
+  get clientMode() {
+    return this.info.mode === 'client';
+  }
+
+  /** Live: the server can sync now (legacy: holds a SID; client mode: a web app tab is polling). */
   get hasSession() {
-    return !!this.utas;
+    return this.clientMode ? webAppOpen(this) : !!this.utas;
+  }
+
+  /** From now on this account syncs through the web app tab; drop any stored SID. */
+  useClientMode(extVersion?: string) {
+    this.info.mode = 'client';
+    this.info.sid = null;
+    this.utas = null;
+    this.info.sidUpdatedAt = Date.now(); // start of this web app session (sync grace period)
+    if (extVersion) this.info.extVersion = extVersion;
   }
 
   attach(sid: string) {
@@ -92,6 +109,13 @@ export async function registerSession(
   }
   const { userInfo } = await new Utas(sid).userInfo();
   let account = accounts.get(userInfo.personaId);
+  if (account?.clientMode) {
+    // an old extension in another browser: prove the session, but never keep the SID again
+    account.info.extVersion = extVersion ?? account.info.extVersion;
+    await account.meter.record('GET', '/usermassinfo', 200);
+    await account.save();
+    return { account, isNew: false };
+  }
   const isNew = !account || account.info.sid !== sid;
   if (!account) {
     account = new Account({ ...userInfo, sid: null, sidUpdatedAt: 0, accessKey: newKey() });
@@ -107,6 +131,43 @@ export async function registerSession(
   await account.meter.record('GET', '/usermassinfo', 200);
   await account.save();
   return { account, isNew };
+}
+
+let verifyWindow = { start: 0, count: 0 };
+
+/**
+ * Extension 0.7+: the web app told the extension who is logged in.
+ * With a key already held for that persona nothing reaches EA. Otherwise (new account or new
+ * browser) the SID is sent once and proven with one /usermassinfo call, then thrown away.
+ */
+export async function hello(opts: {
+  key?: string | null; personaId?: number; sid?: string; contentGuid?: string; extVersion?: string;
+}): Promise<{ account: Account } | { needSid: true }> {
+  if (opts.contentGuid) content.guid = opts.contentGuid;
+  const byKey = accountByKey(opts.key);
+  if (byKey && opts.personaId === byKey.id) {
+    byKey.useClientMode(opts.extVersion);
+    await byKey.save();
+    return { account: byKey };
+  }
+  if (!opts.sid) return { needSid: true };
+  // proving sessions calls EA: a handful per minute is plenty for a friends' server
+  if (Date.now() - verifyWindow.start > 60_000) verifyWindow = { start: Date.now(), count: 0 };
+  if (++verifyWindow.count > 10) throw Object.assign(new Error('Too many new sessions, try again in a minute.'), { statusCode: 429 });
+  const { userInfo } = await new Utas(opts.sid).userInfo();
+  if (opts.personaId && opts.personaId !== userInfo.personaId)
+    throw Object.assign(new Error('Session does not belong to that account.'), { statusCode: 403 });
+  let account = accounts.get(userInfo.personaId);
+  if (!account) {
+    account = new Account({ ...userInfo, sid: null, sidUpdatedAt: 0, accessKey: newKey() });
+    accounts.set(account.id, account);
+  }
+  account.info.personaName = userInfo.personaName;
+  account.info.clubName = userInfo.clubName;
+  account.useClientMode(opts.extVersion);
+  await account.meter.record('GET', '/usermassinfo', 200);
+  await account.save();
+  return { account };
 }
 
 export function listAccounts() {

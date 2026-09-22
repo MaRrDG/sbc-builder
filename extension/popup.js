@@ -19,7 +19,8 @@ chrome.storage.local.get({ server: 'http://localhost:5178', lastStatus: null, la
 
 $('save').onclick = async () => {
   const server = $('server').value.replace(/\/$/, '');
-  await chrome.storage.local.set({ server, lastSid: null, keys: [], accessKey: null });
+  await chrome.storage.local.set({ server, keys: [], accessKey: null, personaKeys: {} });
+  await chrome.storage.session.remove('helloFor');
   $('open').href = server;
   $('status').textContent = 'Saved. Reload the FC web app to reconnect.';
 };
