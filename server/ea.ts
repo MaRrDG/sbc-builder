@@ -65,7 +65,14 @@ export interface SbcSet {
   challengesCompletedCount: number;
   hidden: boolean;
   repeatable: boolean;
+  /** NON_REPEATABLE, UNLIMITED, or REFRESH (`repeats` times per `repeatRefreshInterval` seconds). */
+  repeatabilityMode?: 'NON_REPEATABLE' | 'UNLIMITED' | 'REFRESH';
+  repeats?: number;
+  repeatRefreshInterval?: number;
   timesCompleted: number;
+  timesCompletedInInterval?: number;
+  lastCompletedTime?: number; // unix seconds
+  releaseTime?: number; // unix seconds; REFRESH windows start from here
   endTime: number;
   setImageId: string;
   awards: unknown[];

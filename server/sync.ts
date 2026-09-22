@@ -3,7 +3,7 @@
 import type { ClubItem, Challenge, SbcSet, ChemProfilesResponse } from './ea.js';
 import { SessionError } from './ea.js';
 import { readCache, writeCache, isStale, type Cached } from './store.js';
-import { loadMeta } from './meta.js';
+import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
 
 export interface SetsData {
@@ -71,7 +71,10 @@ export function syncClub(acc: Account): Promise<Cached<ClubItem[]>> {
     const squad = await utas.activeSquad().catch(() => null);
     if (squad) await writeCache(acc.key('squad'), squad);
     const prof = await utas.chemistryProfiles().catch(() => null);
-    if (prof) await writeCache<ChemProfilesResponse>(acc.key('chemProfiles'), prof);
+    if (prof) {
+      await writeCache<ChemProfilesResponse>(acc.key('chemProfiles'), prof);
+      invalidateMeta(acc.key('chemProfiles'));
+    }
     return writeCache(acc.key('club'), items);
   });
 }
@@ -89,6 +92,7 @@ export function syncSbcs(acc: Account): Promise<Cached<SetsData>> {
         !old ||
         old.challengesCompletedCount !== set.challengesCompletedCount ||
         old.timesCompleted !== set.timesCompleted ||
+        old.timesCompletedInInterval !== set.timesCompletedInInterval ||
         old.challengesCount !== set.challengesCount;
       const cached = await readCache(acc.key(`challenges/${set.setId}`));
       if (cached && !changed) continue;
@@ -108,6 +112,13 @@ export async function getChallenges(acc: Account, setId: number, refresh = false
   if (!acc.utas) return cached;
   const ch = await acc.utas.challenges(setId);
   return writeCache(key, ch.challenges);
+}
+
+/** Start (unix s) of the current refresh window of a REFRESH set; windows tick from its release. */
+function refreshWindowStart(set: SbcSet, now: number): number {
+  const interval = set.repeatRefreshInterval ?? 86400;
+  const anchor = set.releaseTime ?? 0;
+  return anchor + Math.floor((now - anchor) / interval) * interval;
 }
 
 /**
@@ -138,12 +149,20 @@ export async function applySubmittedSbc(acc: Account, challengeId: number, itemI
     const ch = chs?.data.find((c) => c.challengeId === challengeId);
     if (!chs || !ch) continue;
     const firstTime = ch.status !== 'COMPLETED';
-    if (!ch.repeatable) ch.status = 'COMPLETED';
+    ch.status = 'COMPLETED';
     ch.timesCompleted = (ch.timesCompleted ?? 0) + 1;
     await writeCache(chKey, chs.data, chs.fetchedAt);
-    if (firstTime && !ch.repeatable) {
-      set.challengesCompletedCount = Math.min(set.challengesCount, set.challengesCompletedCount + 1);
-      if (set.challengesCompletedCount >= set.challengesCount) set.timesCompleted += 1;
+    if (firstTime) set.challengesCompletedCount = Math.min(set.challengesCount, set.challengesCompletedCount + 1);
+    // the set counts as done once more when every challenge has been done that many times
+    const rounds = Math.min(...chs.data.map((c) => c.timesCompleted ?? 0));
+    if (rounds > set.timesCompleted) {
+      const now = Math.floor(Date.now() / 1000);
+      if (set.repeatabilityMode === 'REFRESH') {
+        const sameWindow = set.lastCompletedTime !== undefined && set.lastCompletedTime >= refreshWindowStart(set, now);
+        set.timesCompletedInInterval = sameWindow ? (set.timesCompletedInInterval ?? 0) + 1 : 1;
+      }
+      set.timesCompleted = rounds;
+      set.lastCompletedTime = now;
     }
     await writeCache(acc.key('sets'), sets!.data, sets!.fetchedAt);
     break;

@@ -213,7 +213,13 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
 
 // ---- web ------------------------------------------------------------------------
 const dist = join(ROOT, 'dist');
-if (existsSync(dist)) await app.register(fastifyStatic, { root: dist });
+if (existsSync(dist))
+  await app.register(fastifyStatic, {
+    root: dist,
+    // Vite hashes asset names, so they can be cached forever; index.html must always be revalidated
+    setHeaders: (res, path) =>
+      res.header('Cache-Control', path.includes(`${join('dist', 'assets')}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+  });
 
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
 console.log(`FC27 SBC builder API on http://localhost:${PORT}`);

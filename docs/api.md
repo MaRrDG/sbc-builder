@@ -86,6 +86,16 @@ Static data for rendering: names of nations / leagues / clubs / rarities, format
 
 The cached SBC categories and sets exactly as EA returns them (`setId`, `name`, `challengesCount`, `challengesCompletedCount`, `repeatable`, `timesCompleted`, ...).
 
+How often a set can be done comes from `repeatabilityMode`:
+
+| `repeatabilityMode` | Meaning | Progress fields |
+|---|---|---|
+| `NON_REPEATABLE` | once | `challengesCompletedCount` / `challengesCount` |
+| `UNLIMITED` | any number of times | `timesCompleted` |
+| `REFRESH` | `repeats` times per `repeatRefreshInterval` seconds (86400 = daily) | `timesCompletedInInterval`, `lastCompletedTime` (unix s) |
+
+Refresh windows tick from `releaseTime` (the daily drop). A `REFRESH` set whose `lastCompletedTime` is before the current window start has 0 completions in this window. `/api/sbc-submitted` updates these fields in the cache.
+
 ### `GET /api/sets/:id/challenges?refresh=1` (key)
 
 Challenges of one set, each with its parsed requirements. Loaded from cache; `refresh=1` (or a missing cache) asks EA.
@@ -153,7 +163,7 @@ Sent after the web app successfully submits an SBC.
 { "challengeId": 35, "itemIds": [945052590995, 944099662109] }
 ```
 
-Removes those items from the cached club and squad, marks the challenge completed and bumps the set progress. Returns `{ "ok": true, "removed": 11 }`.
+Removes those items from the cached club and squad, marks the challenge completed and bumps the set progress (`challengesCompletedCount`, and for repeatable sets `timesCompleted`, `timesCompletedInInterval`, `lastCompletedTime`). Returns `{ "ok": true, "removed": 11 }`.
 
 ### `POST /api/webapp-event` (key)
 

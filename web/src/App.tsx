@@ -1,26 +1,19 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowsClockwise, MagnifyingGlass, SlidersHorizontal, X, CheckCircle, Question } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Cards, CheckCircle, GearSix, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ago, absorbKeysFromUrl, setAccountKey, storeKeys,
   type Account, type Challenge, type Meta, type Player, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
 } from './api';
 import { Pitch, ReqTick } from './components/Pitch';
-import { ExcludePicker } from './components/ExcludePicker';
+import { SolverOptions, DEFAULT_OPTIONS, exclusionCount } from './components/SolverOptions';
+import { LocalOptions } from './components/LocalOptions';
+import { SetList } from './components/SetList';
+import { ClubView } from './components/ClubView';
+import { repeatLine } from './components/SetBadge';
+import { repeatOf, untilText } from './repeat';
 import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
-
-const DEFAULT_OPTIONS: SolveOptions = {
-  excludeIds: [],
-  excludeActiveSquad: true,
-  excludeSquadReserves: false,
-  excludeNations: [],
-  excludeLeagues: [],
-  excludeClubs: [],
-  onlyUntradeable: false,
-  maxRating: 99,
-  excludeSpecial: true,
-};
 
 const ACTIVE = 'sbc-active-key';
 
@@ -42,6 +35,11 @@ function writeLocal(key: string, value: unknown) {
 }
 
 type Linked = { key: string; account: Account };
+type View = 'sbcs' | 'club' | 'settings';
+type LocalMap = Record<number, SolveOptions>;
+
+const optionsKey = (key: string) => `sbc-options-${key.slice(0, 8)}`;
+const localKey = (key: string) => `sbc-local-options-${key.slice(0, 8)}`;
 
 export default function App() {
   const [linked, setLinked] = useState<Linked[] | null>(null);
@@ -57,10 +55,12 @@ export default function App() {
   const [solving, setSolving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [options, setOptions] = useState<SolveOptions>(DEFAULT_OPTIONS);
+  const [localOptions, setLocalOptions] = useState<LocalMap>({});
   const [showOptions, setShowOptions] = useState(false);
+  const [view, setView] = useState<View>('sbcs');
   const [filter, setFilter] = useState('');
   const [syncing, setSyncing] = useState<string | null>(null);
-  const [navOpen, setNavOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [squad, setSquad] = useState<{ starters: number[]; bench: number[] } | null>(null);
   const [showGuide, setShowGuide] = useState(false);
@@ -73,7 +73,19 @@ export default function App() {
   const challenge = challenges?.find((c) => c.challengeId === challengeId) ?? null;
   const result = challengeId ? results[challengeId] ?? null : null;
   const clubById = useMemo(() => new Map(club.map((p) => [p.id, p])), [club]);
-  const currentSet = categories.flatMap((c) => c.sets).find((s) => s.setId === setId) ?? null;
+  const setsById = useMemo(() => new Map(categories.flatMap((c) => c.sets).map((s) => [s.setId, s])), [categories]);
+  const localSets = useMemo(() => new Set(Object.keys(localOptions).map(Number)), [localOptions]);
+  const currentSet = (setId && setsById.get(setId)) || null;
+  const local = setId ? localOptions[setId] ?? null : null;
+  // an SBC with its own settings ignores the global ones entirely
+  const effective = local ?? options;
+  const setRepeat = currentSet ? repeatOf(currentSet, now) : null;
+  const lock =
+    !challenge ? null
+    : challenge.status === 'COMPLETED' && !challenge.repeatable ? { title: 'Completed', text: 'This challenge can only be done once.' }
+    : setRepeat?.kind === 'limited' && !setRepeat.available
+      ? { title: 'Limit reached', text: `Done ${setRepeat.limit}/${setRepeat.limit} times. Available again in ${untilText(setRepeat.resetAt!, now)}.` }
+      : null;
 
   const loadAccountData = useCallback(async () => {
     const [m, c, s, st] = await Promise.all([api.meta(), api.club(), api.sets(), api.status()]);
@@ -91,7 +103,8 @@ export default function App() {
       setAccountKey(key);
       setActiveKey(key);
       writeLocal(ACTIVE, key);
-      setOptions({ ...DEFAULT_OPTIONS, ...readLocal(`sbc-options-${key.slice(0, 8)}`, {}) });
+      setOptions({ ...DEFAULT_OPTIONS, ...readLocal(optionsKey(key), {}) });
+      setLocalOptions(readLocal<LocalMap>(localKey(key), {}));
       setSetId(null);
       setChallenges(null);
       setResults({});
@@ -125,6 +138,7 @@ export default function App() {
   useEffect(() => {
     if (!activeKey) return;
     const t = setInterval(async () => {
+      if (document.hidden) return; // background tabs don't poll; the next visible tick catches up
       try {
         const st = await api.status();
         setLinked((prev) => prev?.map((l) => (l.key === activeKey && st.account ? { ...l, account: st.account } : l)) ?? prev);
@@ -158,6 +172,17 @@ export default function App() {
       .catch((e) => setError(e.message));
   }, [setId]);
 
+  // refresh windows of repeatable SBCs roll over while the page is open
+  useEffect(() => {
+    const tick = () => !document.hidden && setNow(Date.now());
+    const t = setInterval(tick, 30_000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, []);
+
   useEffect(() => {
     if (!showOptions) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setShowOptions(false);
@@ -167,11 +192,21 @@ export default function App() {
 
   const updateOptions = (o: SolveOptions) => {
     setOptions(o);
-    if (activeKey) writeLocal(`sbc-options-${activeKey.slice(0, 8)}`, o);
+    if (activeKey) writeLocal(optionsKey(activeKey), o);
   };
 
-  const runSolve = async (deep = false, opts = options) => {
-    if (!challenge || (challenge.status === 'COMPLETED' && !challenge.repeatable)) return;
+  const updateLocal = (id: number, o: SolveOptions | null) => {
+    setLocalOptions((prev) => {
+      const next = { ...prev };
+      if (o) next[id] = o;
+      else delete next[id];
+      if (activeKey) writeLocal(localKey(activeKey), next);
+      return next;
+    });
+  };
+
+  const runSolve = async (deep = false, opts = effective) => {
+    if (!challenge || lock) return;
     setSelectedId(null);
     setSolving(true);
     setError(null);
@@ -191,9 +226,15 @@ export default function App() {
   const squadRole = (id: number) => (squad?.starters.includes(id) ? 'XI' : squad?.bench.includes(id) ? 'Subs' : null);
 
   const excludeAndResolve = (playerId: number) => {
-    const next = { ...options, excludeIds: [...new Set([...options.excludeIds, playerId])] };
-    updateOptions(next);
+    const next = { ...effective, excludeIds: [...new Set([...effective.excludeIds, playerId])] };
+    if (local && setId) updateLocal(setId, next);
+    else updateOptions(next);
     void runSolve(false, next);
+  };
+
+  const toggleGlobalExclude = (playerId: number) => {
+    const ids = options.excludeIds.includes(playerId) ? options.excludeIds.filter((x) => x !== playerId) : [...options.excludeIds, playerId];
+    updateOptions({ ...options, excludeIds: ids });
   };
 
   const doSync = async (what: 'club' | 'sbc') => {
@@ -213,15 +254,24 @@ export default function App() {
 
   const pickSet = (id: number) => {
     setShowGuide(false);
+    setView('sbcs');
     setSetId(id);
-    setNavOpen(false);
+    setShowOptions(false);
+    setError(null);
+  };
+
+  const go = (v: View) => {
+    setShowGuide(false);
+    setShowOptions(false);
+    setView(v);
+    // pressing SBCs again goes back to the list
+    if (v === 'sbcs') setSetId(null);
     setError(null);
   };
 
   if (linked === null) return <div className="boot" aria-busy="true" />;
   if (linked.length === 0) return <Onboarding error={error} />;
 
-  const q = filter.trim().toLowerCase();
   const busy = !!syncing || !!status?.running;
 
   return (
@@ -244,16 +294,6 @@ export default function App() {
             <small>{ago(status?.sbcAt ?? null)}</small>
           </button>
         </div>
-
-        <button
-          type="button"
-          className={`ghost icon-label${showOptions ? ' on' : ''}`}
-          onClick={() => setShowOptions((v) => !v)}
-          aria-pressed={showOptions}
-        >
-          <SlidersHorizontal weight="bold" /> <span>Solver</span>
-          {exclusionCount(options) > 0 && <em className="badge">{exclusionCount(options)}</em>}
-        </button>
 
         <button
           type="button"
@@ -305,43 +345,23 @@ export default function App() {
       )}
 
       <div className="layout">
-        <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
-          <button type="button" className="nav-toggle" onClick={() => setNavOpen((v) => !v)} aria-expanded={navOpen}>
-            {currentSet ? currentSet.name : 'Choose an SBC'}
+        <nav className="sidebar" aria-label="Sections">
+          <button type="button" className="nav-item" aria-current={view === 'sbcs' && !showGuide ? 'page' : undefined} onClick={() => go('sbcs')}>
+            <Cards weight="bold" aria-hidden="true" />
+            <span>SBC</span>
+            <small>{setsById.size}</small>
           </button>
-          <div className="nav-body">
-            <label className="search">
-              <MagnifyingGlass aria-hidden="true" />
-              <input placeholder="Search SBCs" value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Search SBCs" />
-            </label>
-            {categories.length === 0 && <p className="muted pad">No SBCs cached yet. Sync SBCs to load them.</p>}
-            {categories.map((cat) => {
-              const sets = cat.sets.filter((s) => !q || s.name.toLowerCase().includes(q));
-              if (sets.length === 0) return null;
-              return (
-                <section key={cat.categoryId} className="set-group">
-                  <h3>{cat.name}</h3>
-                  {sets.map((s) => {
-                    const done = !s.repeatable && s.challengesCompletedCount >= s.challengesCount;
-                    return (
-                      <button
-                        key={s.setId}
-                        type="button"
-                        className={`set ${s.setId === setId ? 'active' : ''} ${done ? 'done' : ''}`}
-                        onClick={() => pickSet(s.setId)}
-                      >
-                        <span className="set-name">{s.name}</span>
-                        <span className="set-progress">
-                          {done ? <CheckCircle weight="fill" aria-label="completed" /> : `${s.challengesCompletedCount}/${s.challengesCount}`}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </section>
-              );
-            })}
-          </div>
-        </aside>
+          <button type="button" className="nav-item" aria-current={view === 'club' && !showGuide ? 'page' : undefined} onClick={() => go('club')}>
+            <UsersThree weight="bold" aria-hidden="true" />
+            <span>Club</span>
+            <small>{club.length}</small>
+          </button>
+          <button type="button" className="nav-item" aria-current={view === 'settings' && !showGuide ? 'page' : undefined} onClick={() => go('settings')}>
+            <GearSix weight="bold" aria-hidden="true" />
+            <span>Settings</span>
+            {exclusionCount(options) > 0 && <em className="badge">{exclusionCount(options)}</em>}
+          </button>
+        </nav>
 
         <main className="main">
           <div className="main-inner">
@@ -357,24 +377,86 @@ export default function App() {
               <SetupGuide />
             </section>
           )}
-          {!showGuide && !setId && (
-            <div className="intro">
-              <h1>Pick an SBC</h1>
-              <p>
-                {club.length} players in {account?.clubName ?? 'your club'}. Choose a set, press Solve, then rebuild the squad in the web app.
-                Nothing is ever submitted for you.
-              </p>
-            </div>
+
+          {!showGuide && view === 'sbcs' && !setId && (
+            <SetList
+              categories={categories}
+              filter={filter}
+              onFilter={setFilter}
+              onPick={pickSet}
+              localSets={localSets}
+              now={now}
+            />
           )}
 
-          {!showGuide && setId && (
+          {!showGuide && view === 'club' && meta && (
+            <ClubView club={club} meta={meta} squad={squad} excludeIds={options.excludeIds} onToggleExclude={toggleGlobalExclude} />
+          )}
+
+          {!showGuide && view === 'settings' && meta && (
+            <section className="settings-page">
+              <header className="page-head">
+                <div>
+                  <h1>Settings</h1>
+                  <p className="muted">Used by every SBC on this account, unless the SBC has its own settings.</p>
+                </div>
+              </header>
+              <div className="settings-grid">
+                <div className="settings-card options">
+                  <SolverOptions options={options} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
+                </div>
+                <aside className="settings-card">
+                  <h2>SBCs with their own settings</h2>
+                  {Object.keys(localOptions).length === 0 ? (
+                    <p className="muted">None. Open an SBC and press Options to give it its own settings.</p>
+                  ) : (
+                    <ul className="local-list">
+                      {[...localSets].map((id) => {
+                        const set = setsById.get(id);
+                        return (
+                          <li key={id}>
+                            <button type="button" className="text" onClick={() => pickSet(id)} disabled={!set}>
+                              {set?.name ?? `SBC #${id} (no longer available)`}
+                            </button>
+                            <button type="button" className="ghost" onClick={() => updateLocal(id, null)}>
+                              Use global
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </aside>
+              </div>
+            </section>
+          )}
+
+          {!showGuide && view === 'sbcs' && setId && (
             <>
+              <button type="button" className="back" onClick={() => go('sbcs')}>
+                <ArrowLeft weight="bold" aria-hidden="true" /> All SBCs
+              </button>
               <div className="set-head">
                 <h1>{currentSet?.name}</h1>
                 {currentSet?.description && <p className="muted">{currentSet.description}</p>}
+                <div className="set-meta">
+                  {currentSet && repeatLine(currentSet, now) && (
+                    <span className={`repeat-pill${setRepeat?.available ? '' : ' spent'}`}>
+                      <ArrowsClockwise weight="bold" aria-hidden="true" /> {repeatLine(currentSet, now)}
+                    </span>
+                  )}
+                  <button type="button" className={`ghost icon-label${local ? ' on' : ''}`} onClick={() => setShowOptions(true)}>
+                    <SlidersHorizontal weight="bold" /> <span>{local ? 'Local settings' : 'Global settings'}</span>
+                  </button>
+                </div>
               </div>
               <nav className="challenge-tabs" aria-label="Challenges">
                 {challenges === null && [0, 1, 2].map((i) => <span key={i} className="tab-skeleton" />)}
+                {challenges?.length === 0 && (
+                  <p className="muted">
+                    This SBC is not loaded yet. {account?.session ? 'Sync SBCs to load it.' : 'Open the FC27 web app so the extension reconnects, then sync SBCs.'}
+                  </p>
+                )}
                 {challenges?.map((c) => (
                   <button
                     key={c.challengeId}
@@ -407,7 +489,7 @@ export default function App() {
                           ))}
                         </ul>
                         <button type="button" className="text" onClick={() => setShowOptions(true)}>
-                          Review solver settings
+                          Review settings for this SBC
                         </button>
                       </div>
                     )}
@@ -418,6 +500,8 @@ export default function App() {
                       solving={solving}
                       onSolve={runSolve}
                       onToggleOptions={() => setShowOptions((v) => !v)}
+                      lock={lock}
+                      localOptions={!!local}
                       selectedId={selectedId}
                       onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
                     />
@@ -466,13 +550,19 @@ export default function App() {
         </main>
       </div>
 
-      {showOptions && meta && (
+      {showOptions && meta && setId && (
         <>
           <div className="scrim" onClick={() => setShowOptions(false)} aria-hidden="true" />
-          <aside className="drawer" aria-label="Solver settings">
-            <OptionsPanel
-              options={options}
-              onChange={updateOptions}
+          <aside className="drawer" aria-label="Settings for this SBC">
+            <LocalOptions
+              key={setId}
+              setName={currentSet?.name ?? ''}
+              global={options}
+              local={local}
+              onSetLocal={(o) => {
+                updateLocal(setId, o);
+                setResults({});
+              }}
               clubById={clubById}
               club={club}
               meta={meta}
@@ -482,90 +572,6 @@ export default function App() {
         </>
       )}
     </div>
-  );
-}
-
-const exclusionCount = (o: SolveOptions) =>
-  o.excludeIds.length + o.excludeNations.length + o.excludeLeagues.length + o.excludeClubs.length;
-
-function OptionsPanel({
-  options, onChange, clubById, club, meta, onClose,
-}: {
-  options: SolveOptions;
-  onChange: (o: SolveOptions) => void;
-  clubById: Map<number, Player>;
-  club: Player[];
-  meta: Meta;
-  onClose: () => void;
-}) {
-  const toggle = (k: 'excludeActiveSquad' | 'excludeSquadReserves' | 'excludeSpecial' | 'onlyUntradeable') =>
-    onChange({ ...options, [k]: !options[k] });
-  return (
-    <section className="options">
-      <header>
-        <div>
-          <h2>Solver settings</h2>
-          <p className="muted">Apply to every SBC on this account.</p>
-        </div>
-        <button type="button" className="icon" onClick={onClose} aria-label="Close solver settings">
-          <X weight="bold" />
-        </button>
-      </header>
-      <label className="switch">
-        <input type="checkbox" checked={options.excludeActiveSquad} onChange={() => toggle('excludeActiveSquad')} />
-        <span>Keep my active squad XI</span>
-      </label>
-      <label className="switch">
-        <input type="checkbox" checked={options.excludeSquadReserves} onChange={() => toggle('excludeSquadReserves')} />
-        <span>Keep my active squad subs</span>
-      </label>
-      <label className="switch">
-        <input type="checkbox" checked={options.excludeSpecial} onChange={() => toggle('excludeSpecial')} />
-        <span>Keep special and promo cards</span>
-      </label>
-      <label className="switch">
-        <input type="checkbox" checked={options.onlyUntradeable} onChange={() => toggle('onlyUntradeable')} />
-        <span>Only use untradeables</span>
-      </label>
-      <ExcludePicker
-        meta={meta}
-        club={club}
-        value={{ excludeNations: options.excludeNations, excludeLeagues: options.excludeLeagues, excludeClubs: options.excludeClubs }}
-        onChange={(ex) => onChange({ ...options, ...ex })}
-      />
-      <label className="range">
-        <span>
-          Highest OVR allowed <b>{options.maxRating}</b>
-        </span>
-        <input type="range" min={60} max={99} value={options.maxRating} onChange={(e) => onChange({ ...options, maxRating: Number(e.target.value) })} />
-      </label>
-      {options.excludeIds.length > 0 && (
-        <div className="kept">
-          <h3>Kept out of SBCs</h3>
-          <ul>
-            {options.excludeIds.map((id) => {
-              const p = clubById.get(id);
-              return (
-                <li key={id}>
-                  <b>{p?.rating ?? '?'}</b> {p?.name ?? `#${id}`}
-                  <button
-                    type="button"
-                    className="icon"
-                    aria-label={`Allow ${p?.name ?? 'player'} again`}
-                    onClick={() => onChange({ ...options, excludeIds: options.excludeIds.filter((x) => x !== id) })}
-                  >
-                    <X weight="bold" />
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-          <button type="button" className="text" onClick={() => onChange({ ...options, excludeIds: [] })}>
-            Allow all again
-          </button>
-        </div>
-      )}
-    </section>
   );
 }
 
