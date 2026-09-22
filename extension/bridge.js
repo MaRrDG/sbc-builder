@@ -13,8 +13,9 @@ window.addEventListener('message', (event) => {
 function poll() {
   try {
     chrome.runtime.sendMessage({ type: 'poll' }, (res) => {
-      if (chrome.runtime.lastError || !res?.job) return;
-      window.postMessage({ source: 'fcs-bridge', kind: 'job', job: res.job }, window.location.origin);
+      if (chrome.runtime.lastError || !res) return;
+      if (res.needIdentity) window.postMessage({ source: 'fcs-bridge', kind: 'identify' }, window.location.origin);
+      else if (res.job) window.postMessage({ source: 'fcs-bridge', kind: 'job', job: res.job }, window.location.origin);
     });
   } catch {
     return; // the extension was reloaded or removed: this old copy stops until the page reloads

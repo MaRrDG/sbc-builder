@@ -1,4 +1,7 @@
 {
+  "0.7.2": [
+    "Reconnects without reloading the web app, and the popup shows why when it cannot"
+  ],
   "0.7.1": [
     "Connects on its own when you open the web app; the icon shows a green dot when connected, red when not"
   ],

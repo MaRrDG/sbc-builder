@@ -168,9 +168,19 @@
     },
   };
 
+  let lastIdentifyAt = 0;
+  function reidentify() {
+    if (Date.now() - lastIdentifyAt < 20000) return; // polls come every few seconds; once is enough
+    lastIdentifyAt = Date.now();
+    if (identity) post({ kind: 'identity', identity });
+    else if (headers) call(null, 'GET', '/usermassinfo').then((r) => setIdentity(r?.userInfo), () => {});
+  }
+
   let busy = false;
   window.addEventListener('message', async (event) => {
-    if (event.source !== window || event.data?.source !== 'fcs-bridge' || event.data.kind !== 'job') return;
+    if (event.source !== window || event.data?.source !== 'fcs-bridge') return;
+    if (event.data.kind === 'identify') return reidentify();
+    if (event.data.kind !== 'job') return;
     const job = event.data.job;
     const recipe = job && typeof job.id === 'string' && Object.hasOwn(RECIPES, job.kind) ? RECIPES[job.kind] : null;
     if (!recipe) return;

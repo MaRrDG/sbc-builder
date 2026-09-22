@@ -101,7 +101,8 @@ async function hello(identity) {
   const { server, contentGuid, keys, personaKeys = {} } = { ...(await state()), ...(await chrome.storage.local.get('personaKeys')) };
   const { sid, helloFor } = await chrome.storage.session.get(['sid', 'helloFor']);
   const marker = `${identity.personaId}:${sid ?? ''}`;
-  if (helloFor === marker) return; // already introduced this session
+  const { accessKey } = await state();
+  if (helloFor === marker && accessKey) return; // already introduced this session
   const send = (extra, key) =>
     fetch(`${server}/api/hello`, {
       method: 'POST',
@@ -110,7 +111,13 @@ async function hello(identity) {
     });
   try {
     let res = await send({}, personaKeys[identity.personaId]);
-    if (res.status === 401 && sid) res = await send({ sid }); // new account or new browser: prove it once
+    if (res.status === 401 && sid) {
+      // new account or new browser: prove it once. Never more than once a minute, since it costs an EA call
+      const { lastProofAt = 0 } = await chrome.storage.session.get('lastProofAt');
+      if (Date.now() - lastProofAt < 60 * 1000) return;
+      await chrome.storage.session.set({ lastProofAt: Date.now() });
+      res = await send({ sid });
+    }
     const body = await res.json().catch(() => ({}));
     if (!res.ok || !body.accessKey) {
       await chrome.storage.local.set({ lastStatus: `Server error: ${body.error ?? res.status}`, lastAt: Date.now() });
@@ -238,6 +245,11 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     (async () => {
       const { count } = await callsToday();
       if (count >= LOCAL_DAILY_LIMIT) return sendResponse(null);
+      // no key yet (first run, server changed, a failed hello): ask the tab to introduce itself again
+      if (!(await state()).accessKey) {
+        await refreshBadge();
+        return sendResponse({ needIdentity: true });
+      }
       sendResponse(await pollJobs());
     })();
     return true; // async response
