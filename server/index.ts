@@ -14,6 +14,7 @@ import { enqueue, findJob, finishJob, nextJob, webAppOpen } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, hello, type Account } from './accounts.js';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
+import { initDb } from './db/index.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
 const app = Fastify({ logger: { level: 'warn' }, trustProxy: true });
@@ -327,6 +328,12 @@ app.setNotFoundHandler((req, reply) => {
   return reply.code(404).send({ error: 'not found' });
 });
 
+try {
+  await initDb();
+} catch (e) {
+  console.error(`[db] cannot start: ${(e as Error).message}`);
+  process.exit(1);
+}
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
 console.log(`FC Solver API on http://localhost:${PORT}`);
 
