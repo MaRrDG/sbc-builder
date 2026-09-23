@@ -11,13 +11,18 @@
     "start": "NODE_ENV=production tsx server/index.ts",
     "typecheck": "tsc --noEmit",
     "i18n:check": "tsx scripts/i18n-check.ts",
-    "test": "node --import tsx --test 'server/**/*.test.ts'"
+    "test": "node --import tsx --test 'server/**/*.test.ts'",
+    "db:generate": "drizzle-kit generate",
+    "db:import": "tsx scripts/db-import.ts",
+    "db:trust": "tsx scripts/db-trust.ts"
   },
   "dependencies": {
     "@fastify/static": "^10.1.4",
     "@phosphor-icons/react": "^2.1.10",
+    "drizzle-orm": "^0.45.3",
     "fastify": "^5.12.5",
     "fflate": "^0.8.3",
+    "postgres": "^3.4.9",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "tsx": "^4.23.15"
@@ -28,6 +33,7 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
     "concurrently": "^10.0.5",
+    "drizzle-kit": "^0.31.11",
     "typescript": "^7.0.2",
     "vite": "^8.3.0"
   }
