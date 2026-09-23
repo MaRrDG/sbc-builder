@@ -2,14 +2,17 @@
 
 Base URL: the server itself (`http://localhost:5178` locally, `https://sbc-builder.mario-theodor.ro` in production). In development Vite on `:5173` proxies `/api` to the API.
 
-All bodies are JSON. Errors look like `{ "error": "message" }` with a meaningful status (`400` bad input, `401` unknown account or expired EA session, `404` not found, `409` nothing cached yet, `429` EA rate limiting).
+All bodies are JSON. Errors look like `{ "error": "message" }` with a meaningful status (`400` bad input, `401` not signed in, unknown account or expired EA session, `403` EA account not yours, `404` not found, `409` nothing cached yet, `429` EA rate limiting).
 
 ## Authentication
 
 | Header | Used by | Meaning |
 |---|---|---|
-| none | `/api/session`, `/api/accounts`, `/api/meta`, `/api/extension*` | public or self-authenticating |
-| `X-Account-Key: <key>` | everything else | secret key of one EA account, handed out by `/api/session` |
+| none | `/api/session`, `/api/hello`, `/api/meta`, `/api/extension/version`, `/api/extension.zip` | public or self-authenticating |
+| `Authorization: Bearer <Clerk session token>` + `X-Persona: <personaId>` | **(site)** endpoints | the signed-in FC Solver user and which of their EA accounts the call is about (`/api/me*`, `/api/link-token`, `DELETE /api/personas/:id` need only the token) |
+| `X-Account-Key: <key>` | **(extension)** endpoints | secret key of one EA account, handed out by `/api/hello` / `/api/session`; it stays inside the extension and never reaches the site |
+
+Site auth errors carry a `code`: `signIn` (401, missing or invalid Clerk token), `noPersona` (400, no `X-Persona`), `personaNotYours` (403), `personaTakenOver` (403, the persona was yours and another user has since proved it with EA).
 
 The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extension; the API never returns it.
 
@@ -17,32 +20,34 @@ The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extens
 
 ## Accounts and session
 
-### `POST /api/hello`
+### `POST /api/hello` (extension)
 
 Extension 0.7+. Says who is logged in to the web app, without handing over the session.
 
 ```json
-{ "personaId": 1005016552645, "contentGuid": "27A3C9F1-…", "extVersion": "0.7.0" }
+{ "personaId": 1005016552645, "contentGuid": "27A3C9F1-…", "extVersion": "0.8.0", "linkToken": "Qm9…" }
 ```
 
 - With `X-Account-Key` for that same persona: accepted, nothing reaches EA.
 - Otherwise `401 { "needSid": true }`; the extension repeats the call with `"sid"` once, the server proves it with one `/usermassinfo` call and does not store it (at most 10 such proofs a minute).
 
-Returns `{ ok, account, accessKey }` and switches the account to client mode (its stored SID, if any, is deleted).
+- `linkToken` (optional, 0.8+): a token from `POST /api/link-token` that the signed-in site handed the extension. A valid unused token links this persona to that user (and is used up). If the persona already belongs to another user, the answer is `401 { "needSid": true }` until the request carries a `sid` (the token stays usable for that resend). Unknown, expired or used tokens never fail the call.
 
-### `GET /api/jobs/next` (key)
+Returns `{ ok, account, accessKey, linked, linkRejected }` and switches the account to client mode (its stored SID, if any, is deleted). `linked`: the persona id when this call linked it (or it already was this user's), else `null`; `linkRejected`: a token was sent but was not valid.
+
+### `GET /api/jobs/next` (extension)
 
 The web app tab asks for work: `{ "job": { "id": "9f…", "kind": "club" | "sbc" | "challenges", "setIds": [16] } }` or `{ "job": null }`. One job runs at a time; nothing is handed out when today's budget is used or the account is paused. Calling this marks the web app as open (`session: true` for 30 s).
 
-### `POST /api/jobs/:id/call` (key)
+### `POST /api/jobs/:id/call` (extension)
 
 One EA request made for a job: `{ "method": "POST", "path": "/club", "status": 200 }`. Counted in `sync.ea`; 429/458/495/512/521 pause the account for 15 min.
 
-### `POST /api/jobs/:id/done` (key)
+### `POST /api/jobs/:id/done` (extension)
 
 `{ "ok": true }` or `{ "ok": false, "error": "EA asked to slow down (495)." }`. A finished `sbc` job queues a `challenges` job for sets that are new or changed.
 
-### `POST /api/session`
+### `POST /api/session` (extension)
 
 Legacy (extension up to 0.6). Called whenever the web app uses a new session id.
 
@@ -60,18 +65,35 @@ If the SID is new the server calls EA `/usermassinfo` once to identify the perso
 { "ok": true, "account": { "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true, "extVersion": "0.4.0", "sidUpdatedAt": 1790064170490 }, "accessKey": "97uq…" }
 ```
 
-### `POST /api/accounts`
+## Users (site)
 
-Which of the keys stored in this browser are valid.
+Signed in with Clerk; only the `Authorization` header is needed.
+
+### `GET /api/me`
 
 ```json
-{ "keys": ["97uq…", "Zx81…"] }
-```
-```json
-{ "accounts": [{ "key": "97uq…", "account": { "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true } }] }
+{ "user": { "id": "user_2Rf…", "email": "you@example.com" }, "personas": [{ "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true }] }
 ```
 
-### `GET /api/status` (key)
+The EA accounts this user owns (same shape as `account` in `/api/status`).
+
+### `POST /api/me/legacy-keys`
+
+One-time migration of solver settings the browser stored under old access keys: `{ "keys": ["97uq…"] }` → `{ "map": { "97uqAbCd": 1005016552645 } }` (first 8 characters of each key → persona id, only for personas this user owns; links nothing, at most 20 keys).
+
+### `POST /api/link-token`
+
+`{ "token": "Qm9…", "expiresIn": 600 }`. A random single-use token (only its SHA-256 is stored) that the site hands the extension (`site.js`), so the next `/api/hello` links the persona to this user.
+
+### `DELETE /api/personas/:id`
+
+Removes the link to one of the user's own personas: `{ "ok": true }`, or `404` when it is not linked to this user. Anyone who proves the persona can link it again.
+
+### `POST /api/accounts` (removed)
+
+Browsers no longer hold access keys; use `GET /api/me`.
+
+### `GET /api/status` (site)
 
 ```json
 {
@@ -84,7 +106,7 @@ Which of the keys stored in this browser are valid.
 
 `ea` counts today's requests to EA for this account (paths grouped, ids replaced by `:id`); `pausedUntil` is set after EA signalled throttling. `editedAt` changes whenever the cache was edited from web app activity; the UI polls this every 5 s and reloads when it moves. `unassigned` counts pack players not yet sent to the club.
 
-### `POST /api/sync` (key)
+### `POST /api/sync` (site)
 
 Manual sync, club only: `what: "club"` (players, active squad, chemistry profiles), at most `CLUB_SYNCS_PER_DAY` (3) a day per account including scheduled ones (`429` after that; `sync.clubSyncs` shows `{ used, limit }`). `"sbc"` is refused with `403`: the SBC list only refreshes on the schedule after the daily drop. Returns the new `sync` status. Client mode: queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused. Legacy: syncs from the server, `409`/`401` without a live EA session.
 
@@ -92,11 +114,11 @@ Manual sync, club only: `what: "club"` (players, active squad, chemistry profile
 
 ## Game data
 
-### `GET /api/meta`
+### `GET /api/meta` (public)
 
-Static data for rendering: names of nations / leagues / clubs / rarities, formations with position ids, card rarity art (`guid`, `levels`, text colours) and `contentBase` (EA CDN root for images). With a key it also applies that account's chemistry profiles.
+Static data for rendering: names of nations / leagues / clubs / rarities, formations with position ids, card rarity art (`guid`, `levels`, text colours) and `contentBase` (EA CDN root for images). Signed in with `X-Persona` it also applies that account's chemistry profiles.
 
-### `GET /api/club` (key)
+### `GET /api/club` (site)
 
 ```json
 {
@@ -108,7 +130,7 @@ Static data for rendering: names of nations / leagues / clubs / rarities, format
 }
 ```
 
-### `GET /api/sets` (key)
+### `GET /api/sets` (site)
 
 The cached SBC categories and sets exactly as EA returns them (`setId`, `name`, `challengesCount`, `challengesCompletedCount`, `repeatable`, `timesCompleted`, ...).
 
@@ -122,7 +144,7 @@ How often a set can be done comes from `repeatabilityMode`:
 
 Refresh windows tick from `releaseTime` (the daily drop). A `REFRESH` set whose `lastCompletedTime` is before the current window start has 0 completions in this window. `/api/sbc-submitted` updates these fields in the cache.
 
-### `GET /api/sets/:id/challenges?refresh=1` (key)
+### `GET /api/sets/:id/challenges?refresh=1` (site)
 
 Challenges of one set, each with its parsed requirements. Always from cache (empty list if the set was never loaded); only `refresh=1` asks EA.
 
@@ -135,7 +157,7 @@ Challenges of one set, each with its parsed requirements. Always from cache (emp
 
 Each challenge also has `layout` (`{ bricks: [{ index, custom, nation, league, club }], placed: [{ index, itemId }], capturedAt }`, or `null` until opened in the web app) and `needsLayout` (EA locks slots here but FC Solver has not seen which).
 
-### `POST /api/challenges/:id/read` (key)
+### `POST /api/challenges/:id/read` (site)
 
 Client mode: queues a `challengeSquad` job that reads a challenge you already started (`GET /sbs/challenge/{id}/squad`) through the web app tab. `409` without an open web app tab.
 
@@ -143,7 +165,7 @@ Client mode: queues a `challengeSquad` job that reads a challenge you already st
 
 ## Solving
 
-### `POST /api/solve` (key)
+### `POST /api/solve` (site)
 
 ```json
 {
@@ -187,7 +209,7 @@ Not possible:
 
 ## Extension events
 
-### `POST /api/sbc-submitted` (key)
+### `POST /api/sbc-submitted` (extension)
 
 Sent after the web app successfully submits an SBC.
 
@@ -197,7 +219,7 @@ Sent after the web app successfully submits an SBC.
 
 Removes those items from the cached club and squad, marks the challenge completed and bumps the set progress (`challengesCompletedCount`, and for repeatable sets `timesCompleted`, `timesCompletedInInterval`, `lastCompletedTime`). Returns `{ "ok": true, "removed": 11 }`.
 
-### `POST /api/webapp-event` (key)
+### `POST /api/webapp-event` (extension)
 
 A copy of one web app call, relayed by the extension's page hook. Only these paths are accepted:
 
