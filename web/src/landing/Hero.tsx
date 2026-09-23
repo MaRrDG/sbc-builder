@@ -6,6 +6,7 @@ import { Card } from '../components/Card';
 import { useI18n } from '../i18n';
 import { DEMO_META, DEMO_SQUAD } from './demo';
 import { useTilt } from './motion';
+import { Backdrop } from './Backdrop';
 
 // where each DEMO_SQUAD card stands, in % of the pitch (attack at the top, as in the web app)
 const SPOTS: [number, number][] = [[50, 13], [83, 25], [17, 25], [33, 47], [67, 47], [50, 68], [50, 88]];
@@ -27,6 +28,7 @@ export function Hero({ cta }: { cta: ReactNode }) {
   useTilt(stage);
   return (
     <section className="lp-hero" aria-labelledby="lp-hero-title">
+      <Backdrop zone="hero" />
       <div className="lp-hero-copy">
         <p className="lp-kicker">{t('landing.hero.kicker')}</p>
         <h1 id="lp-hero-title">{t('landing.hero.title')}</h1>
