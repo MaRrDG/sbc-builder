@@ -43,13 +43,12 @@ export async function siteUser(req: FastifyRequest): Promise<string> {
   const h = req.headers.authorization;
   const token = typeof h === 'string' && h.startsWith('Bearer ') ? h.slice(7) : '';
   if (!token) throw signIn();
-  // a malformed token throws instead of returning errors
-  const { data, errors } = await verifyToken(token, { secretKey, authorizedParties: PARTIES }).catch(() => {
+  // the exported verifyToken is the legacy wrapper: it returns the payload and throws on a bad token
+  const payload: unknown = await verifyToken(token, { secretKey, authorizedParties: PARTIES }).catch(() => {
     throw signIn();
   });
-  // Clerk's JwtPayload collapses to `never` under TS 7 (index signature & `org_id?: never` union), so read sub loosely
-  const sub = (data as { sub?: unknown } | undefined)?.sub;
-  if (errors || typeof sub !== 'string' || !sub) throw signIn();
+  const sub = (payload as { sub?: unknown } | null)?.sub;
+  if (typeof sub !== 'string' || !sub) throw signIn();
   await remember(sub);
   return sub;
 }
