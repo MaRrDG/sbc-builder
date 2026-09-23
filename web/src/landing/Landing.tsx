@@ -20,7 +20,12 @@ export default function Landing({ signedIn, navigate }: Props) {
   const { t, lang, setLang } = useI18n();
   // the page is lazy-loaded, so the browser's own jump to /#why happened before the section existed
   useEffect(() => {
-    const id = decodeURIComponent(window.location.hash.slice(1));
+    let id = window.location.hash.slice(1);
+    try {
+      id = decodeURIComponent(id);
+    } catch {
+      // malformed escape (/#%): keep the raw hash, which matches no section
+    }
     if (id) document.getElementById(id)?.scrollIntoView();
   }, []);
   /** A real link (open in new tab works) that navigates in place on a plain click. */
@@ -49,19 +54,21 @@ export default function Landing({ signedIn, navigate }: Props) {
         {t('landing.skip')}
       </a>
       <header className="lp-top">
-        <a className="lp-logo" href="/" aria-label={t('top.home')}>
-          <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="140" height="36" />
-        </a>
-        <nav className="lp-nav" aria-label={t('landing.nav.label')}>
-          <a href="#why">{t('landing.nav.why')}</a>
-          <a href="#how">{t('landing.nav.how')}</a>
-          <a href="#pricing">{t('landing.nav.pricing')}</a>
-          <a href="#faq">{t('landing.nav.faq')}</a>
-        </nav>
-        <div className="lp-top-end">
-          <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
-          {!signedIn && link(signin, 'lp-signin', t('landing.signIn'))}
-          {cta('lp-btn lp-btn-sm')}
+        <div className="lp-top-in">
+          <a className="lp-logo" href="/" aria-label={t('top.home')}>
+            <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="140" height="36" />
+          </a>
+          <nav className="lp-nav" aria-label={t('landing.nav.label')}>
+            <a href="#why">{t('landing.nav.why')}</a>
+            <a href="#how">{t('landing.nav.how')}</a>
+            <a href="#pricing">{t('landing.nav.pricing')}</a>
+            <a href="#faq">{t('landing.nav.faq')}</a>
+          </nav>
+          <div className="lp-top-end">
+            <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
+            {!signedIn && link(signin, 'lp-signin', t('landing.signIn'))}
+            {cta('lp-btn lp-btn-sm')}
+          </div>
         </div>
       </header>
 

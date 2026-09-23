@@ -1,8 +1,31 @@
 /* Landing page (/). Uses the tokens from styles.css; motion only on transform, translate,
    opacity and registered properties; prefers-reduced-motion shows every final state. */
+/* ---------- layout: one container, one 12-column grid, one vertical rhythm ----------
+   Every band (top bar content, hero, each section, footer) is the same container, so all left and
+   right edges line up at every width. Inside it, content sits on a 12-column grid:
+   - hero and How: copy on columns 1-5, the visual on 7-12 (column 6 is air)
+   - Why: the statement on 1-7, its text (and the cost figures) on 8-12, proofs across 1-12
+   - reading width (pricing plans, FAQ): columns 1-8
+   Under 860px everything spans the full row. */
 .landing {
+  --lp-max: 1200px; /* content width, gutters excluded */
   --gutter: clamp(16px, 4vw, 40px);
+  --col-gap: clamp(16px, 2.2vw, 32px);
+  --lp-cols: repeat(12, minmax(0, 1fr));
+  --lp-bar: 64px;
+  --lp-section-y: clamp(80px, 11vw, 144px); /* space above and below every section */
+  --lp-head-gap: clamp(36px, 4.4vw, 56px); /* section heading -> its content */
+  --lp-block-gap: clamp(56px, 8vw, 104px); /* between blocks inside a section */
   overflow-x: clip;
+}
+.lp-top-in,
+.lp-hero,
+.lp-section,
+.lp-footer {
+  width: 100%;
+  max-width: calc(var(--lp-max) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
 }
 
 .lp-skip {
@@ -20,21 +43,19 @@
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  height: 64px;
-  padding: 0 var(--gutter);
+  height: var(--lp-bar);
   background: oklch(0.17 0.025 222 / 0.9);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(8px); /* sticky bar only, same as the app top bar */
 }
-.lp-logo { display: flex; border-radius: var(--r-ctl); }
+.lp-top-in { display: flex; align-items: center; gap: 8px; height: 100%; }
+.lp-logo { display: flex; flex: none; border-radius: var(--r-ctl); }
 .lp-logo img { display: block; height: 32px; width: auto; }
-.lp-nav { display: flex; gap: 4px; margin-right: auto; }
+.lp-nav { display: flex; gap: 2px; margin-left: clamp(16px, 2.4vw, 32px); }
 .lp-nav a,
 .lp-signin {
   padding: 8px 12px;
+  white-space: nowrap;
   border-radius: var(--r-ctl);
   color: var(--ink-2);
   text-decoration: none;
@@ -43,6 +64,7 @@
 .lp-nav a:hover,
 .lp-signin:hover { color: var(--ink); background: var(--surface-2); }
 .lp-top-end { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.lp-top-end .lp-btn { margin-left: 4px; }
 
 .lp-btn {
   display: inline-flex;
@@ -58,6 +80,7 @@
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-decoration: none;
+  white-space: nowrap;
   transition: transform 160ms var(--ease), filter 160ms var(--ease);
 }
 .lp-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
@@ -74,11 +97,11 @@
 .lp-link:hover { text-decoration-color: var(--ink); }
 
 .lp-section {
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: clamp(72px, 12vw, 144px) var(--gutter);
-  scroll-margin-top: 64px;
+  padding-block: var(--lp-section-y);
+  scroll-margin-top: var(--lp-bar);
 }
+.lp-section + .lp-section { padding-top: 0; } /* one section gap between neighbours, not two */
+.landing .lp-h2 + * { margin-top: var(--lp-head-gap); } /* beats each block's own margin */
 /* the app's card-in (a solve result arriving) is not replayed here; the hero lands its own cards */
 .landing .card { animation: none; }
 .lp-kicker {
@@ -105,24 +128,39 @@
 
 .lp-footer {
   display: grid;
-  gap: 16px;
-  max-width: 1180px;
-  margin: 0 auto;
-  padding: 48px var(--gutter) 64px;
-  border-top: 1px solid var(--line);
+  grid-template-columns: var(--lp-cols);
+  column-gap: var(--col-gap);
+  row-gap: 16px;
+  align-items: center;
+  padding-block: 48px 64px;
   color: var(--ink-3);
   font-size: 13px;
 }
-.lp-footer nav { display: flex; flex-wrap: wrap; gap: 20px; }
-.lp-footer p { max-width: 70ch; margin: 0; }
+/* the rule spans the content width, not the gutters */
+.lp-footer::before { content: ''; grid-column: 1 / -1; margin-bottom: 32px; border-top: 1px solid var(--line); }
+.lp-footer img { grid-column: 1 / 6; }
+.lp-footer nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 20px; grid-column: 7 / -1; }
+.lp-footer p { grid-column: 1 / 9; max-width: 70ch; margin: 0; }
 
+/* 861-1180px: anchors stay, so the language button shows its flag only and "Sign in" goes
+   (the CTA leads to sign-in anyway); the bar then fits in Romanian too */
+@media (max-width: 1180px) {
+  .lp-top .lang-name,
+  .lp-signin { display: none; }
+  .lp-nav { margin-left: 12px; }
+  .lp-nav a { padding-inline: 8px; }
+}
 @media (max-width: 860px) {
   .lp-nav { display: none; }
-  .lp-top { gap: 12px; }
+  .lp-signin { display: inline; } /* room again once the anchors are gone */
+  .lp-footer img,
+  .lp-footer nav,
+  .lp-footer p { grid-column: 1 / -1; justify-content: flex-start; }
 }
 @media (max-width: 480px) {
   .lp-signin { display: none; }
   .lp-logo img { height: 28px; }
+  .lp-btn-sm { padding: 0 10px; font-size: 14px; } /* "Deschide dashboard" on one line at 360px */
 }
 
 /* ---------- hero ---------- */
@@ -131,14 +169,15 @@
 
 .lp-hero {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  grid-template-columns: var(--lp-cols);
   align-items: center;
-  gap: clamp(24px, 5vw, 72px);
-  max-width: 1180px;
-  min-height: calc(100dvh - 64px);
-  margin: 0 auto;
-  padding: clamp(32px, 6vw, 72px) var(--gutter);
+  column-gap: var(--col-gap);
+  row-gap: 40px;
+  min-height: calc(100dvh - var(--lp-bar));
+  padding-block: clamp(32px, 5vw, 64px);
 }
+.lp-hero-copy { grid-column: 1 / 6; }
+.lp-stage { grid-column: 7 / -1; }
 .lp-hero h1 {
   margin: 0;
   font: 700 clamp(46px, 6.4vw, 86px)/0.93 var(--font-num);
@@ -261,7 +300,9 @@
 }
 
 @media (max-width: 860px) {
-  .lp-hero { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+  .lp-hero { min-height: 0; }
+  .lp-hero-copy,
+  .lp-stage { grid-column: 1 / -1; }
   .lp-stage { --card-w: clamp(44px, 13vw, 72px); width: 100%; max-width: 460px; margin: 0 auto; }
 }
 
@@ -271,22 +312,22 @@
 .lp-why .lp-h2 { max-width: 22ch; }
 .lp-adv {
   display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  grid-template-columns: var(--lp-cols);
   align-items: end;
-  column-gap: clamp(24px, 5vw, 72px);
+  column-gap: var(--col-gap);
   row-gap: 18px;
-  margin-top: clamp(56px, 8vw, 104px);
+  margin-top: var(--lp-block-gap);
   padding-top: clamp(28px, 4vw, 44px);
   border-top: 1px solid var(--line);
 }
 .lp-say {
+  grid-column: 1 / 8;
   margin: 0;
   font: 700 clamp(44px, 7.2vw, 100px)/0.88 var(--font-num);
   text-transform: uppercase;
   text-wrap: balance;
 }
-.lp-adv-body { max-width: 48ch; margin: 0; color: var(--ink-2); font-size: 16px; line-height: 1.65; text-wrap: pretty; }
-.lp-why .lp-h2 + .lp-adv { margin-top: clamp(40px, 6vw, 72px); }
+.lp-adv-body { grid-column: 8 / -1; max-width: 48ch; margin: 0; color: var(--ink-2); font-size: 16px; line-height: 1.65; text-wrap: pretty; }
 .lp-proof { grid-column: 1 / -1; margin-top: clamp(28px, 5vw, 56px); }
 .lp-note { margin: 18px 0 0; color: var(--ink-3); font-size: 13px; }
 .lp-ok { flex: none; color: var(--go); }
@@ -295,8 +336,8 @@
 .lp-owned-row {
   --card-w: clamp(76px, 9.4vw, 120px);
   display: flex;
-  flex-wrap: wrap;
-  gap: 20px clamp(16px, 3.4vw, 48px);
+  justify-content: space-between; /* first card on the left edge, last on the right */
+  gap: 20px 12px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -323,11 +364,13 @@
 /* optimal: requirement rows as in the app, then the saving as type */
 .lp-optimal {
   display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  grid-template-columns: var(--lp-cols);
   align-items: center;
-  gap: clamp(32px, 6vw, 88px);
+  column-gap: var(--col-gap);
+  row-gap: 40px;
 }
-.lp-req-rows { margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--line); }
+.lp-cost { grid-column: 8 / -1; } /* same column as the advantage text above */
+.lp-req-rows { grid-column: 1 / 7; margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--line); }
 .lp-req-rows li { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); font-size: 15px; }
 .lp-req-rows .lp-ok { width: 18px; height: 18px; }
 .lp-proof.is-in .lp-req-rows .lp-ok { animation: lp-pop 320ms var(--ease) both; animation-delay: calc(150ms + var(--i) * 110ms); }
@@ -355,13 +398,14 @@
 @keyframes lp-arrive { from { opacity: 0; translate: -0.3em 0; } }
 
 /* safe: one line, one direction */
-.lp-path { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
+/* three nodes on columns 1, 5 and 9 */
+.lp-path { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: var(--col-gap); margin: 0; padding: 0; list-style: none; }
 .lp-path li { position: relative; container-type: inline-size; display: grid; align-content: start; gap: 6px; padding: 30px 16px 0 0; }
 .lp-path li:not(:last-child)::before {
   content: '';
   position: absolute;
   left: 6px;
-  right: -6px;
+  right: calc(-6px - var(--col-gap));
   top: 6px;
   height: 1px;
   background: var(--ink-3);
@@ -387,7 +431,7 @@
   0% { translate: 0 0; opacity: 0; }
   15% { opacity: 1; }
   70% { opacity: 1; }
-  100% { translate: calc(100cqw + 24px) 0; opacity: 0; } /* the li is the container */
+  100% { translate: calc(100cqw + var(--col-gap) + 24px) 0; opacity: 0; } /* the li is the container */
 }
 
 .lp-never { display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px 28px; margin-top: clamp(36px, 5vw, 56px); }
@@ -397,9 +441,11 @@
 .lp-never svg { flex: none; color: var(--ink-3); }
 
 @media (max-width: 860px) {
-  .lp-adv,
-  .lp-optimal { grid-template-columns: minmax(0, 1fr); }
-  .lp-path { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+  .lp-say,
+  .lp-adv-body,
+  .lp-req-rows,
+  .lp-cost { grid-column: 1 / -1; }
+  .lp-path { grid-template-columns: minmax(0, 1fr); row-gap: 22px; }
   .lp-path li { padding: 0 0 0 30px; }
   .lp-path li:not(:last-child)::before { left: 6px; right: auto; top: 6px; bottom: -28px; width: 1px; height: auto; }
   .lp-path-dir { left: -1px; top: auto; bottom: -22px; rotate: 90deg; }
@@ -411,13 +457,8 @@
 }
 
 /* ---------- how: plain steps + one browser window that follows them ---------- */
-.lp-how-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-  gap: clamp(32px, 6vw, 96px);
-  margin-top: clamp(36px, 5vw, 56px);
-}
-.lp-steps { margin: 0; padding: 0; list-style: none; }
+.lp-how-grid { display: grid; grid-template-columns: var(--lp-cols); column-gap: var(--col-gap); }
+.lp-steps { grid-column: 1 / 6; margin: 0; padding: 0; list-style: none; }
 .lp-steps li { min-height: 64vh; padding: 0 0 0 24px; border-left: 2px solid var(--line); color: var(--ink-3); }
 .lp-steps li:last-child { min-height: calc(100dvh - 88px); } /* room to keep the whole window in view on the last step */
 .lp-steps li.is-on { border-left-color: var(--ink); color: var(--ink); }
@@ -426,7 +467,7 @@
 .lp-steps p { max-width: 42ch; margin: 14px 0 16px; font-size: 16px; line-height: 1.65; }
 .lp-steps li.is-on p { color: var(--ink-2); }
 .lp-steps li .lp-link { justify-self: start; color: inherit; }
-.lp-demo-sticky { position: sticky; top: 88px; align-self: start; } /* 64px top bar + 24px */
+.lp-demo-sticky { grid-column: 7 / -1; position: sticky; top: 88px; align-self: start; } /* 64px top bar + 24px */
 /* the window's height is about 200px + 0.66 x its width; cap the width so it fits under the top bar
    with 24px to spare, even on short viewports */
 .lp-demo-sticky .lp-win { width: min(100%, (100dvh - 330px) * 1.5); min-width: min(100%, 340px); margin-left: auto; }
@@ -565,10 +606,9 @@
 @keyframes lp-drop { from { opacity: 0; translate: -50% calc(-50% - 14px); } }
 
 @media (max-width: 860px) {
-  .lp-how-grid { grid-template-columns: minmax(0, 1fr); }
+  .lp-steps { grid-column: 1 / -1; display: grid; gap: 48px; }
   .lp-demo-sticky { display: none; }
   .lp-demo-inline { display: block; margin-top: 20px; }
-  .lp-steps { display: grid; gap: 48px; }
   .lp-steps li,
   .lp-steps li:last-child { min-height: 0; padding-left: 0; border-left: 0; color: var(--ink); }
   .lp-steps p,
@@ -576,14 +616,15 @@
 }
 
 /* ---------- pricing ---------- */
-.lp-toggle { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 36px 0 0; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-ctl); }
+.lp-toggle { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 0; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-ctl); }
 .lp-toggle label { position: relative; padding: 8px 16px; border-radius: 6px; color: var(--ink-2); cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
 .lp-toggle label.on { background: var(--go); color: var(--go-ink); font-weight: 600; }
 .lp-toggle input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .lp-toggle label:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
 .lp-save { padding: 0 12px; color: var(--ink-3); font-size: 13px; }
-.lp-plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(16px, 3vw, 28px); max-width: 860px; margin-top: 28px; }
-.lp-plan { display: flex; flex-direction: column; gap: 6px; padding: 28px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
+/* two plans on columns 1-4 and 5-8: the same reading width as the FAQ */
+.lp-plans { display: grid; grid-template-columns: var(--lp-cols); gap: var(--col-gap); margin-top: 28px; }
+.lp-plan { grid-column: span 4; display: flex; flex-direction: column; gap: 6px; padding: 28px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
 .lp-plan-pro { border-color: var(--ink-3); }
 .lp-plan h3 { margin: 0; font: 700 22px/1 var(--font-num); text-transform: uppercase; }
 .lp-amount { margin: 12px 0 0; font: 700 52px/1 var(--font-num); }
@@ -594,8 +635,12 @@
 .lp-feats svg { flex: none; margin-top: 3px; color: var(--go); }
 .lp-plan .lp-btn { margin-top: auto; }
 
+@media (max-width: 1100px) {
+  .lp-plan { grid-column: span 6; } /* 4 columns get too narrow for the plan text */
+}
+
 /* ---------- faq ---------- */
-.lp-faq-list { max-width: 760px; margin-top: 32px; border-top: 1px solid var(--line); }
+.lp-faq-list { width: calc((100% + var(--col-gap)) * 8 / 12 - var(--col-gap)); border-top: 1px solid var(--line); } /* columns 1-8 */
 .lp-faq details { border-bottom: 1px solid var(--line); }
 .lp-faq summary { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 20px 0; font-size: 17px; font-weight: 600; cursor: pointer; list-style: none; }
 .lp-faq summary::-webkit-details-marker { display: none; }
@@ -604,7 +649,8 @@
 .lp-faq details p { max-width: 64ch; margin: 0 0 20px; color: var(--ink-2); line-height: 1.65; }
 
 @media (max-width: 860px) {
-  .lp-plans { grid-template-columns: minmax(0, 1fr); }
+  .lp-plan { grid-column: 1 / -1; }
+  .lp-faq-list { width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -612,17 +658,16 @@
   .landing *::before,
   .landing *::after { animation: none !important; transition: none !important; }
   /* How: no window that changes on scroll; each step shows its own, beside it on wide screens */
-  .lp-how-grid { grid-template-columns: minmax(0, 1fr); }
+  .lp-steps { grid-column: 1 / -1; display: grid; gap: 56px; }
   .lp-demo-sticky { display: none; }
   .lp-demo-inline { display: block; margin-top: 20px; }
-  .lp-steps { display: grid; gap: 56px; }
   .lp-steps li,
   .lp-steps li:last-child { min-height: 0; padding-left: 0; border-left: 0; color: var(--ink); }
   .lp-steps p,
   .lp-steps li.is-on p { color: var(--ink-2); }
 }
 @media (prefers-reduced-motion: reduce) and (min-width: 861px) {
-  .lp-steps li { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: clamp(32px, 6vw, 96px); align-items: start; }
-  .lp-steps li > :not(.lp-demo-inline) { grid-column: 1; }
-  .lp-demo-inline { grid-column: 2; grid-row: 1 / span 4; margin-top: 0; }
+  .lp-steps li { display: grid; grid-template-columns: var(--lp-cols); column-gap: var(--col-gap); align-items: start; }
+  .lp-steps li > :not(.lp-demo-inline) { grid-column: 1 / 6; }
+  .lp-demo-inline { grid-column: 7 / -1; grid-row: 1 / span 4; margin-top: 0; }
 }
