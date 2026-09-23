@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Check } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
 import { formatEur, proPrice, yearlySaving, type Billing } from './pricing';
+import { Backdrop } from './Backdrop';
 
 export function Pricing({ cta }: { cta: ReactNode }) {
   const { t, lang } = useI18n();
@@ -20,6 +21,7 @@ export function Pricing({ cta }: { cta: ReactNode }) {
   );
   return (
     <section id="pricing" className="lp-section" aria-labelledby="lp-price-title">
+      <Backdrop zone="pricing" />
       <h2 id="lp-price-title" className="lp-h2">{t('landing.price.title')}</h2>
 
       <fieldset className="lp-toggle">

@@ -8,6 +8,7 @@ import { useI18n } from '../i18n';
 import type { Route } from '../route';
 import { DEMO_META, DEMO_SETS, DEMO_SQUAD } from './demo';
 import { useActiveIndex, useInView } from './motion';
+import { Backdrop } from './Backdrop';
 
 interface Props {
   link: (r: Route, className: string, children: ReactNode) => ReactNode;
@@ -149,6 +150,7 @@ export function Steps({ link }: Props) {
   const seen = useInView(stage);
   return (
     <section id="how" className="lp-section lp-how" aria-labelledby="lp-how-title">
+      <Backdrop zone="how" />
       <h2 id="lp-how-title" className="lp-h2">{t('landing.how.title')}</h2>
       <div className="lp-how-grid">
         <ol className="lp-steps">

@@ -5,16 +5,18 @@ import { useRef, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight, CaretRight, Check, Coins, X } from '@phosphor-icons/react';
 import { Card } from '../components/Card';
 import { useI18n } from '../i18n';
+import { Backdrop, type Zone } from './Backdrop';
 import { DEMO_META, DEMO_SQUAD } from './demo';
 import { useInView } from './motion';
 
 const i = (n: number) => ({ '--i': n }) as CSSProperties;
 
-function Advantage({ id, title, body, children }: { id: string; title: string; body: string; children: ReactNode }) {
+function Advantage({ id, title, body, bg, children }: { id: string; title: string; body: string; bg?: Zone; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useInView(ref);
   return (
     <article className={`lp-adv lp-adv-${id}`} aria-labelledby={`lp-adv-${id}`}>
+      {bg && <Backdrop zone={bg} />}
       <h3 id={`lp-adv-${id}`} className="lp-say">{title}</h3>
       <p className="lp-adv-body">{body}</p>
       <div ref={ref} className={`lp-proof${seen ? ' is-in' : ''}`}>
@@ -122,8 +124,8 @@ export function Pillars() {
   return (
     <section id="why" className="lp-section lp-why" aria-labelledby="lp-why-title">
       <h2 id="lp-why-title" className="lp-h2">{t('landing.why.title')}</h2>
-      <Advantage id="club" title={t('landing.club.title')} body={t('landing.club.body')}><ClubProof /></Advantage>
-      <Advantage id="optimal" title={t('landing.optimal.title')} body={t('landing.optimal.body')}><OptimalProof /></Advantage>
+      <Advantage id="club" title={t('landing.club.title')} body={t('landing.club.body')} bg="club"><ClubProof /></Advantage>
+      <Advantage id="optimal" title={t('landing.optimal.title')} body={t('landing.optimal.body')} bg="optimal"><OptimalProof /></Advantage>
       <Advantage id="safe" title={t('landing.safe.title')} body={t('landing.safe.body')}><SafeProof /></Advantage>
     </section>
   );
