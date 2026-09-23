@@ -43,6 +43,20 @@ Writes ride on what already happens, never an extra EA call: the web-app relay (
 
 `challengeLayout()` (`layout.ts`) takes the bricks from the shared layout and the placed players from the account's own capture, so a brick SBC anyone opened once in the web app is solvable for everyone. The shared layout: newest report from a trusted account, else the layout most distinct accounts reported, ties to the earliest. It is cached in memory for 10 minutes and dropped when a new report arrives.
 
+## Users and EA accounts
+
+The site signs in with Clerk (our own screens on `@clerk/react` v6 hooks: Google or an emailed code) and sends `Authorization: Bearer <session token>` plus `X-Persona: <personaId>`. `server/auth.ts` verifies the token locally and checks that the persona belongs to the user. The extension never goes through Clerk: it keeps its per-persona access key (`X-Account-Key`), which never reaches the browser.
+
+Postgres holds who owns what:
+
+- `users`: Clerk user id, email, `created_at`, `last_seen_at` (sub-project 3 hangs the subscription here);
+- `personas`: one owner per EA persona, `previous_user_id` after a takeover;
+- `link_tokens`: SHA-256 of short-lived (10 min), single-use tokens.
+
+Linking: the signed-in site asks `POST /api/link-token` and hands the token to the extension's `site.js` (`window.postMessage`); the worker sends it with the next `/api/hello`. A persona nobody owns (or already this user's) is linked on the key the extension holds; one owned by someone else answers `needSid`, and only a fresh EA session proof (`/usermassinfo`) moves it. The previous owner then gets `personaTakenOver` and a one-time notice. Once linked, the persona shows up on every device the user signs in on, phone included; the cached club and SBCs are per persona on the server, so they are the same everywhere.
+
+Browsers from before sign-in held access keys (`#keys=`, `localStorage`); the site sends them once to `POST /api/me/legacy-keys` only to move saved solver settings to `…-p<personaId>`, then forgets them.
+
 ## Getting the session
 
 **Extension 0.7+ (client mode): every request to EA leaves from the web app tab.** The server keeps no SID and never calls EA for these accounts, except once to prove a new account.
