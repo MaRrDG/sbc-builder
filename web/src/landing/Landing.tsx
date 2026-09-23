@@ -13,10 +13,11 @@ import './landing.css';
 
 interface Props {
   signedIn: boolean;
+  authReady: boolean;
   navigate: (r: Route, replace?: boolean) => void;
 }
 
-export default function Landing({ signedIn, navigate }: Props) {
+export default function Landing({ signedIn, authReady, navigate }: Props) {
   const { t, lang, setLang } = useI18n();
   // the page is lazy-loaded, so the browser's own jump to /#why happened before the section existed
   useEffect(() => {
@@ -45,8 +46,17 @@ export default function Landing({ signedIn, navigate }: Props) {
   );
   const app: Route = { view: 'sbcs', setId: null, challengeId: null };
   const signin: Route = { view: 'signin', next: '/dashboard' };
+  // Clerk hasn't said yet whether we're signed in: reserve the space with an invisible
+  // placeholder instead of guessing (a guess flashes "Start free"/"Sign in" at signed-in users).
+  const placeholder = (className: string, text: string) => (
+    <span className={className} aria-hidden="true" style={{ visibility: 'hidden' }}>
+      {text}
+    </span>
+  );
   const cta = (className = 'lp-btn') =>
-    signedIn ? link(app, className, t('landing.open')) : link(signin, className, t('landing.start'));
+    !authReady ? placeholder(className, t('landing.start'))
+    : signedIn ? link(app, className, t('landing.open'))
+    : link(signin, className, t('landing.start'));
 
   return (
     <div className="landing">
@@ -66,7 +76,8 @@ export default function Landing({ signedIn, navigate }: Props) {
           </nav>
           <div className="lp-top-end">
             <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
-            {!signedIn && link(signin, 'lp-signin', t('landing.signIn'))}
+            {!authReady ? placeholder('lp-signin', t('landing.signIn'))
+            : !signedIn && link(signin, 'lp-signin', t('landing.signIn'))}
             {cta('lp-btn lp-btn-sm')}
           </div>
         </div>
@@ -82,7 +93,7 @@ export default function Landing({ signedIn, navigate }: Props) {
 
       <footer className="lp-footer">
         <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="124" height="32" />
-        <nav aria-label={t('landing.nav.label')}>
+        <nav aria-label={t('landing.footer.nav')}>
           {link({ view: 'setup' }, 'lp-link', t('landing.footer.setup'))}
           {link({ view: 'guide' }, 'lp-link', t('landing.footer.guide'))}
         </nav>

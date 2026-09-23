@@ -464,6 +464,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.safe.n4': 'nu îți cere parola EA',
   'landing.met': 'îndeplinită',
   'landing.footer.legal': 'FC Solver nu este afiliat cu Electronic Arts și nu este susținut de EA. EA SPORTS FC, Ultimate Team și arta cardurilor aparțin EA.',
+  'landing.footer.nav': 'Subsol',
   'landing.footer.setup': 'Ghid de instalare',
   'landing.footer.guide': 'Cum funcționează',
   'landing.how.title': 'Gata de folosit în trei pași',

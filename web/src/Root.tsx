@@ -45,7 +45,7 @@ export default function Root() {
   if (route.view === 'landing')
     return (
       <Suspense fallback={<div className="boot" aria-busy="true" />}>
-        <Landing signedIn={!!isSignedIn} navigate={navigate} />
+        <Landing signedIn={!!isSignedIn} authReady={isLoaded} navigate={navigate} />
       </Suspense>
     );
 
@@ -78,7 +78,14 @@ export default function Root() {
         </div>
         {route.view !== 'signin' && (
           <p>
-            <button type="button" className="text" onClick={() => navigate({ view: 'landing' })}>
+            <button
+              type="button"
+              className="text"
+              onClick={() => {
+                navigate({ view: 'landing' });
+                window.scrollTo(0, 0);
+              }}
+            >
               {t('auth.publicHome')}
             </button>
           </p>
