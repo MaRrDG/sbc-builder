@@ -4,6 +4,7 @@ import type { MouseEvent, ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { routePath, type Route } from '../route';
+import { Hero } from './Hero';
 import './landing.css';
 
 interface Props {
@@ -56,6 +57,7 @@ export default function Landing({ signedIn, navigate }: Props) {
       </header>
 
       <main id="main">
+        <Hero cta={cta()} />
         <section id="why" className="lp-section" />
         <section id="how" className="lp-section" />
         <section id="pricing" className="lp-section" />
