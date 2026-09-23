@@ -8,7 +8,6 @@ export function Faq() {
   const { t } = useI18n();
   return (
     <section id="faq" className="lp-section lp-faq" aria-labelledby="lp-faq-title">
-      <p className="lp-kicker">{t('landing.faq.kicker')}</p>
       <h2 id="lp-faq-title" className="lp-h2">{t('landing.faq.title')}</h2>
       <div className="lp-faq-list">
         {ITEMS.map((k) => (

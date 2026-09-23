@@ -20,7 +20,6 @@ export function Pricing({ cta }: { cta: ReactNode }) {
   );
   return (
     <section id="pricing" className="lp-section" aria-labelledby="lp-price-title">
-      <p className="lp-kicker">{t('landing.price.kicker')}</p>
       <h2 id="lp-price-title" className="lp-h2">{t('landing.price.title')}</h2>
 
       <fieldset className="lp-toggle">
