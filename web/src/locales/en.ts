@@ -470,6 +470,7 @@ export const en = {
   'landing.safe.n4': 'asks for your EA password',
   'landing.met': 'met',
   'landing.footer.legal': 'FC Solver is not affiliated with or endorsed by Electronic Arts. EA SPORTS FC, Ultimate Team and the card art belong to EA.',
+  'landing.footer.nav': 'Footer',
   'landing.footer.setup': 'Setup guide',
   'landing.footer.guide': 'How it works',
   'landing.how.title': 'Up and running in three steps',
