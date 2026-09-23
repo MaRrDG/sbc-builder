@@ -205,7 +205,7 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
 }
 
 export const api = {
-  me: () => req<{ user: { id: string; email: string }; personas: Account[] }>('/api/me'),
+  me: () => req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean }>('/api/me'),
   legacyKeys: (keys: string[]) => req<{ map: Record<string, number> }>('/api/me/legacy-keys', { method: 'POST', body: { keys } }),
   linkToken: () => req<{ token: string; expiresIn: number }>('/api/link-token', { method: 'POST' }),
   unlinkPersona: (personaId: number) => req<{ ok: true }>(`/api/personas/${personaId}`, { method: 'DELETE' }),
@@ -220,4 +220,49 @@ export const api = {
   readChallenge: (challengeId: number) => req<SyncStatus>(`/api/challenges/${challengeId}/read`, { method: 'POST' }),
   solve: (setId: number, challengeId: number, options: SolveOptions, deep = false) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep } }),
+  adminStats: () => req<AdminStats>('/api/admin/stats'),
+  adminSync: (what: 'club' | 'sbc' | 'all', personaIds?: number[]) =>
+    req<{ results: AdminSyncResult[] }>('/api/admin/sync', { method: 'POST', body: { what, personaIds } }),
 };
+
+export interface AdminAccount {
+  personaId: number;
+  personaName: string;
+  clubName: string;
+  mode: 'client' | 'legacy';
+  extVersion: string | null;
+  online: boolean;
+  clubAt: number | null;
+  sbcAt: number | null;
+  clubStale: boolean;
+  sbcStale: boolean;
+  players: number;
+  unassigned: number;
+  running: string | null;
+  error: string | null;
+  ea: { today: number; limit: number; pausedUntil: number | null };
+  clubSyncs: { used: number; limit: number };
+  /** an admin sync waiting for the account's next web app visit */
+  forced: { club: boolean; sbc: boolean } | null;
+}
+
+export interface AdminStats {
+  at: number;
+  lastDrop: number;
+  latestExtension: string;
+  users: { total: number; active24h: number; active7d: number; new7d: number; withPersona: number };
+  accounts: {
+    total: number; linked: number; client: number; legacy: number; online: number;
+    clubStale: number; sbcStale: number; failing: number; paused: number; atLimit: number;
+    versions: Record<string, number>;
+  };
+  ea: { today: number };
+  db: { sets: number; challenges: number; brickReports: number; trusted: number };
+  userList: { id: string; email: string; createdAt: number; lastSeenAt: number; personas: AdminAccount[] }[];
+  unlinked: AdminAccount[];
+}
+
+export type AdminSyncResult =
+  | { personaId: number; outcome: 'queued'; clubSkipped: boolean }
+  | { personaId: number; outcome: 'deferred' }
+  | { personaId: number; outcome: 'skipped'; code: string; params?: Record<string, string | number> };

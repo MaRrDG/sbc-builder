@@ -9,9 +9,10 @@ import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
-import { applySubmittedSbc, autoSyncAll, autoSyncSoon, getChallenges, getStatus, markEdited, requestSync, type SetsData } from './sync.js';
+import { adminSync, applySubmittedSbc, autoSyncAll, autoSyncSoon, getChallenges, getStatus, markEdited, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, nextJob, webAppOpen } from './jobs.js';
-import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
+import { loadAccounts, registerSession, accountByKey, accountById, hello, listAccounts, type Account } from './accounts.js';
+import { adminStats, isAdmin, requireAdmin } from './admin.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteUser } from './auth.js';
 import { linkDecision } from './auth-rules.js';
 import { consumeLinkToken, createLinkToken, linkTokenUser, personaRow, personasOf, setOwner, unlinkPersona } from './db/users.js';
@@ -79,7 +80,7 @@ app.get('/api/me', async (req) => {
     const a = accountById(id);
     return a ? [a.toJSON()] : [];
   });
-  return { user: { id: userId, email: row?.email ?? '' }, personas };
+  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId) };
 });
 
 /** One-time migration of solver settings saved under old browser keys: key prefix -> persona, own personas only. */
@@ -143,6 +144,25 @@ app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, rep
   await acc.meter.check();
   await enqueue(acc, 'challengeSquad', undefined, id);
   return getStatus(acc);
+});
+
+// ---- admin (site, ADMIN_EMAILS) ---------------------------------------------------
+app.get('/api/admin/stats', async (req) => {
+  await requireAdmin(req);
+  return adminStats();
+});
+
+/** Sync every account (or the listed ones) with the usual limits; offline ones sync on their next visit. */
+app.post<{ Body: { what?: 'club' | 'sbc' | 'all'; personaIds?: number[] } }>('/api/admin/sync', async (req, reply) => {
+  await requireAdmin(req);
+  const what = req.body?.what ?? 'all';
+  if (!['club', 'sbc', 'all'].includes(what)) return reply.code(400).send({ error: 'invalid what' });
+  const ids = req.body?.personaIds;
+  if (ids !== undefined && (!Array.isArray(ids) || !ids.every(Number.isInteger))) return reply.code(400).send({ error: 'invalid personaIds' });
+  const targets = ids ? ids.flatMap((id) => accountById(id) ?? []) : listAccounts();
+  const results = [];
+  for (const acc of targets) results.push(await adminSync(acc, what));
+  return { results };
 });
 
 // ---- extension 0.7+: identity and sync jobs run in the web app tab ------------------

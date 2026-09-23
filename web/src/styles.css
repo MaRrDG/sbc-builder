@@ -2882,3 +2882,173 @@ button.card:active {
 @media (prefers-reduced-motion: reduce) { .account-pop { animation: none; } }
 .onboarding > .signin-row { margin-top: 14px; }
 .signin-row .ghost.wide { flex: 1 1 160px; width: auto; }
+
+/* ---------- admin ---------- */
+.admin-page h1 {
+  font-family: var(--font-num);
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.admin-refresh.ghost.wide {
+  width: auto;
+}
+
+.admin-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.admin-kpi {
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  background: var(--surface);
+}
+
+.admin-kpi span {
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.admin-kpi b {
+  font-family: var(--font-num);
+  font-size: 34px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.admin-kpi small {
+  color: var(--ink-3);
+  font-size: 12px;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 20px;
+  align-items: start;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.admin-actions .solve-sm {
+  height: 36px;
+}
+
+.admin-actions .ghost.wide {
+  width: auto;
+}
+
+.admin-results {
+  margin-top: 14px;
+  color: var(--ink-2);
+  font-size: 14px;
+}
+
+.admin-results p {
+  margin: 0;
+}
+
+.admin-results small {
+  color: var(--ink-3);
+  text-align: right;
+}
+
+.admin-sub {
+  margin-top: 18px;
+}
+
+.admin-heading {
+  margin: 28px 0 10px;
+  font-family: var(--font-num);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.admin-users,
+.admin-accounts {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-user-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+
+.admin-account {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 16px;
+  padding-top: 10px;
+  border-top: 1px solid oklch(0.42 0.03 210 / 0.3);
+}
+
+.admin-account-id {
+  display: grid;
+  min-width: 0;
+}
+
+.admin-account-id small {
+  font-size: 12px;
+}
+
+.admin-account-state {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.admin-account-state > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.admin-online.on svg,
+.admin-fresh svg {
+  color: var(--go);
+}
+
+.admin-fresh.stale svg,
+.admin-bad {
+  color: var(--bad);
+}
+
+.admin-row-sync.ghost.wide {
+  width: auto;
+  height: 32px;
+  font-size: 13px;
+}
+
+@media (max-width: 860px) {
+  .admin-account {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .admin-account-state {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

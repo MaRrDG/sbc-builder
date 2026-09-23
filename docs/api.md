@@ -75,7 +75,7 @@ Signed in with Clerk; only the `Authorization` header is needed.
 { "user": { "id": "user_2Rf…", "email": "you@example.com" }, "personas": [{ "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true }] }
 ```
 
-The EA accounts this user owns (same shape as `account` in `/api/status`).
+The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen.
 
 ### `POST /api/me/legacy-keys`
 
@@ -109,6 +109,43 @@ Browsers no longer hold access keys; use `GET /api/me`.
 ### `POST /api/sync` (site)
 
 Manual sync, club only: `what: "club"` (players, active squad, chemistry profiles), at most `CLUB_SYNCS_PER_DAY` (3) a day per account including scheduled ones (`429` after that; `sync.clubSyncs` shows `{ used, limit }`). `"sbc"` is refused with `403`: the SBC list only refreshes on the schedule after the daily drop. Returns the new `sync` status. Client mode: queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused. Legacy: syncs from the server, `409`/`401` without a live EA session.
+
+---
+
+## Admin (site)
+
+Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated, default `dragutmariotheodor1@gmail.com`); anyone else gets `403` `adminOnly`.
+
+### `GET /api/admin/stats`
+
+```json
+{
+  "at": 1790064472801, "lastDrop": 1790013660000, "latestExtension": "0.8.0",
+  "users": { "total": 2, "active24h": 2, "active7d": 2, "new7d": 2, "withPersona": 1 },
+  "accounts": { "total": 1, "linked": 1, "client": 1, "legacy": 0, "online": 0, "clubStale": 0, "sbcStale": 0,
+                "failing": 0, "paused": 0, "atLimit": 0, "versions": { "0.8.0": 1 } },
+  "ea": { "today": 11 },
+  "db": { "sets": 9, "challenges": 12, "brickReports": 0, "trusted": 0 },
+  "userList": [{ "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000, "personas": ["<account>"] }],
+  "unlinked": ["<account>"]
+}
+```
+
+`<account>`: `{ personaId, personaName, clubName, mode: "client"|"legacy", extVersion, online, clubAt, sbcAt, clubStale, sbcStale, players, unassigned, running, error, ea: { today, limit, pausedUntil }, clubSyncs: { used, limit }, forced }`. `*Stale`: fetched before the last SBC drop. `unlinked`: accounts no site user owns (extensions older than 0.8). `forced`: an admin sync waiting for the next web app visit. Reads only the cache and the DB, never EA.
+
+### `POST /api/admin/sync`
+
+`{ "what": "club" | "sbc" | "all", "personaIds"?: [1005016552645] }` (default `all`, every account). Same limits as everyone: EA budget, throttle pause, `CLUB_SYNCS_PER_DAY`. Per account:
+
+```json
+{ "results": [
+  { "personaId": 1, "outcome": "queued", "clubSkipped": false },
+  { "personaId": 2, "outcome": "deferred" },
+  { "personaId": 3, "outcome": "skipped", "code": "budget", "params": { "limit": 150 } }
+] }
+```
+
+`queued`: the web app tab is open (or a legacy SID is live), the sync started. `deferred`: offline; the next web app visit runs it (kept in memory, lost on a server restart). `skipped`: `code` is an `err.*` message code (`clubLimit`, `budget`, `paused`, `syncRunning`).
 
 ---
 
