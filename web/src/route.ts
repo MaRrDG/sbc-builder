@@ -4,6 +4,7 @@
 //   /sbc/16/39      a challenge       /club          club
 //   /settings       settings          /setup         extension setup guide
 //   /guide          how it works
+//   /signin         sign in (?next=)  /signin/callback  Google redirect
 import { useCallback, useEffect, useState } from 'react';
 
 export type Route =
@@ -11,12 +12,15 @@ export type Route =
   | { view: 'club' }
   | { view: 'settings' }
   | { view: 'setup' }
-  | { view: 'guide' };
+  | { view: 'guide' }
+  | { view: 'signin'; next: string }
+  | { view: 'ssoCallback' };
 
 const id = (s: string | undefined) => (s && /^\d+$/.test(s) ? Number(s) : null);
 
-export function parseRoute(path: string): Route {
+export function parseRoute(path: string, search = ''): Route {
   const [a, b, c] = path.split('/').filter(Boolean);
+  if (a === 'signin') return b === 'callback' ? { view: 'ssoCallback' } : { view: 'signin', next: new URLSearchParams(search).get('next') ?? '/' };
   if (a === 'club') return { view: 'club' };
   if (a === 'settings') return { view: 'settings' };
   if (a === 'setup') return { view: 'setup' };
@@ -26,6 +30,8 @@ export function parseRoute(path: string): Route {
 }
 
 export function routePath(r: Route): string {
+  if (r.view === 'signin') return r.next && r.next !== '/' ? `/signin?next=${encodeURIComponent(r.next)}` : '/signin';
+  if (r.view === 'ssoCallback') return '/signin/callback';
   if (r.view !== 'sbcs') return `/${r.view}`;
   if (r.setId === null) return '/';
   return r.challengeId === null ? `/sbc/${r.setId}` : `/sbc/${r.setId}/${r.challengeId}`;
@@ -33,17 +39,17 @@ export function routePath(r: Route): string {
 
 /** Current route plus navigate(route, replace?). Back / Forward update it through popstate. */
 export function useRoute(): [Route, (r: Route, replace?: boolean) => void] {
-  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.pathname));
+  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.pathname, window.location.search));
 
   useEffect(() => {
-    const onPop = () => setRoute(parseRoute(window.location.pathname));
+    const onPop = () => setRoute(parseRoute(window.location.pathname, window.location.search));
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, []);
 
   const navigate = useCallback((r: Route, replace = false) => {
     const path = routePath(r);
-    if (path !== window.location.pathname) {
+    if (path !== window.location.pathname + window.location.search) {
       // query strings like ?update=1 only matter on arrival
       // entries we push are marked, so "close" can go back only when the previous page is ours
       if (replace) history.replaceState(history.state, '', path);

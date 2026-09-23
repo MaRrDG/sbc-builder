@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, CheckCircle, GearSix, List, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
-  api, absorbKeysFromUrl, setAccountKey, storeKeys,
+  api, ApiError, setPersona,
   type Account, type Challenge, type Meta, type Player, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
 } from './api';
 import { Pitch, ReqTick } from './components/Pitch';
@@ -12,7 +12,7 @@ import { ClubView } from './components/ClubView';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
-import { canGoBack, useRoute, type Route } from './route';
+import { canGoBack, type Route } from './route';
 import { useAgo, useI18n, type Lang } from './i18n';
 import { LangMenu } from './components/LangMenu';
 import { Guide } from './components/Guide';
@@ -20,8 +20,12 @@ import { errorText, reasonText } from './messages';
 import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
+import { AccountMenu } from './components/AccountMenu';
+import { useClerk } from '@clerk/react';
+import { migrateLegacyKeys } from './legacy';
+import { unlinkExtension, useExtensionLink } from './link';
 
-const ACTIVE = 'sbc-active-key';
+const ACTIVE = 'sbc-active-persona';
 
 function readLocal<T>(key: string, fallback: T): T {
   try {
@@ -40,18 +44,20 @@ function writeLocal(key: string, value: unknown) {
   }
 }
 
-type Linked = { key: string; account: Account };
 type View = Route['view'];
 type LocalMap = Record<number, SolveOptions>;
 
-const optionsKey = (key: string) => `sbc-options-${key.slice(0, 8)}`;
-const localKey = (key: string) => `sbc-local-options-${key.slice(0, 8)}`;
-const resultsKey = (key: string) => `sbc-results-${key.slice(0, 8)}`;
+const optionsKey = (id: number) => `sbc-options-p${id}`;
+const localKey = (id: number) => `sbc-local-options-p${id}`;
+const resultsKey = (id: number) => `sbc-results-p${id}`;
 const KEEP_RESULTS = 20; // solved squads kept per account, newest last
 
-export default function App() {
-  const [linked, setLinked] = useState<Linked[] | null>(null);
-  const [activeKey, setActiveKey] = useState<string | null>(null);
+export default function App({ route, navigate }: { route: Route; navigate: (r: Route, replace?: boolean) => void }) {
+  const [linked, setLinked] = useState<Account[] | null>(null);
+  const [activeId, setActiveId] = useState<number | null>(null);
+  const [me, setMe] = useState<{ id: string; email: string } | null>(null);
+  const [takenOver, setTakenOver] = useState(false);
+  const { signOut } = useClerk();
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [club, setClub] = useState<Player[]>([]);
@@ -59,7 +65,6 @@ export default function App() {
   const { t, lang, setLang } = useI18n();
   const ago = useAgo();
   // which screen is open lives in the URL (see route.ts), so browser Back works
-  const [route, navigate] = useRoute();
   const view: View = route.view;
   const setId = route.view === 'sbcs' ? route.setId : null;
   const challengeId = route.view === 'sbcs' ? route.challengeId : null;
@@ -82,7 +87,7 @@ export default function App() {
   const [updateAsked] = useState(() => new URLSearchParams(window.location.search).has('update'));
   const [dismissedUpdate, setDismissedUpdate] = useState(() => readLocal<string | null>('sbc-dismissed-update', null));
 
-  const account = linked?.find((l) => l.key === activeKey)?.account ?? null;
+  const account = linked?.find((a) => a.personaId === activeId) ?? null;
   const challenge = challenges?.find((c) => c.challengeId === challengeId) ?? null;
   const [readAsked, setReadAsked] = useState<Set<number>>(() => new Set());
   const result = challengeId ? results[challengeId] ?? null : null;
@@ -120,53 +125,76 @@ export default function App() {
     setCategories(s.categories);
     setStatus(st.sync);
     setLatestExt(st.extension);
-    if (st.account) setLinked((prev) => prev?.map((l) => (l.account.personaId === st.account!.personaId ? { ...l, account: st.account! } : l)) ?? prev);
+    if (st.account) setLinked((prev) => prev?.map((a) => (a.personaId === st.account!.personaId ? st.account! : a)) ?? prev);
   }, []);
 
   const selectAccount = useCallback(
-    async (key: string) => {
-      setAccountKey(key);
-      setActiveKey(key);
-      writeLocal(ACTIVE, key);
-      setOptions({ ...DEFAULT_OPTIONS, ...readLocal(optionsKey(key), {}) });
-      setLocalOptions(readLocal<LocalMap>(localKey(key), {}));
+    async (id: number) => {
+      setPersona(id);
+      setActiveId(id);
+      writeLocal(ACTIVE, id);
+      setOptions({ ...DEFAULT_OPTIONS, ...readLocal(optionsKey(id), {}) });
+      setLocalOptions(readLocal<LocalMap>(localKey(id), {}));
       setChallenges(null);
       // solved squads survive reloads and tab switches; they are only replaced by solving again
-      setResults(readLocal<Record<number, SolveResult>>(resultsKey(key), {}));
+      setResults(readLocal<Record<number, SolveResult>>(resultsKey(id), {}));
       await loadAccountData();
     },
     [loadAccountData],
   );
 
-  // Boot: validate the keys this browser holds, then open the last used account.
+  const activeIdRef = useRef<number | null>(null);
+  activeIdRef.current = activeId;
+
+  // Boot (and after the extension links a new EA account): who am I, which personas are mine.
+  const loadMe = useCallback(async () => {
+    const { user, personas } = await api.me();
+    setMe(user);
+    setLinked(personas);
+    const last = readLocal<number | null>(ACTIVE, null);
+    const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
+    if (!pick) {
+      setPersona(null);
+      setActiveId(null);
+      setMeta(await api.meta());
+    } else if (pick.personaId !== activeIdRef.current) await selectAccount(pick.personaId);
+    return personas;
+  }, [selectAccount]);
+
   useEffect(() => {
     let cancelled = false; // StrictMode runs this twice; only the live run may select
-    const keys = absorbKeysFromUrl();
-    api
-      .accounts(keys)
-      .then(async ({ accounts }) => {
-        if (cancelled) return;
-        storeKeys(accounts.map((a) => a.key)); // forget revoked keys
-        setLinked(accounts);
-        const last = readLocal<string | null>(ACTIVE, null);
-        const pick = accounts.find((a) => a.key === last) ?? accounts[0];
-        if (pick) await selectAccount(pick.key);
-        else setMeta(await api.meta());
+    migrateLegacyKeys()
+      .then(async () => {
+        if (!cancelled) await loadMe();
       })
       .catch((e) => !cancelled && setError(e.message));
     return () => {
       cancelled = true;
     };
-  }, [selectAccount]);
+  }, [loadMe]);
+
+  const onLinked = useCallback(() => void migrateLegacyKeys().then(loadMe), [loadMe]);
+  useExtensionLink(true, onLinked);
+
+  // the persona was disconnected or taken over elsewhere: reload who we are
+  const onApiError = useCallback(
+    (e: unknown) => {
+      const code = e instanceof ApiError ? e.code : null;
+      if (code === 'personaTakenOver') setTakenOver(true);
+      if (code === 'personaNotYours' || code === 'personaTakenOver') void loadMe();
+      else setError(errorText(e, t));
+    },
+    [loadMe, t],
+  );
 
   // Poll sync state so auto-syncs and new sessions show up without a reload.
   useEffect(() => {
-    if (!activeKey) return;
+    if (!activeId) return;
     const t = setInterval(async () => {
       if (document.hidden) return; // background tabs don't poll; the next visible tick catches up
       try {
         const st = await api.status();
-        setLinked((prev) => prev?.map((l) => (l.key === activeKey && st.account ? { ...l, account: st.account } : l)) ?? prev);
+        setLinked((prev) => prev?.map((a) => (a.personaId === activeId && st.account ? st.account : a)) ?? prev);
         setStatus((prev) => {
           const syncDone = prev?.running && !st.sync?.running;
           // an SBC submitted in the web app changed the cached club: refresh quietly
@@ -182,17 +210,17 @@ export default function App() {
       }
     }, 5000);
     return () => clearInterval(t);
-  }, [activeKey, setId, loadAccountData]);
+  }, [activeId, setId, loadAccountData]);
 
   useEffect(() => {
     // a link straight to /sbc/... loads before the account is picked: wait for its key
-    if (!setId || !activeKey) return;
+    if (!setId || !activeId) return;
     setChallenges(null);
     api
       .challenges(setId)
       .then((r) => setChallenges(r.challenges))
-      .catch((e) => setError(e.message));
-  }, [setId, activeKey]);
+      .catch(onApiError);
+  }, [setId, activeId, onApiError]);
 
   // /sbc/16 without a challenge (or one that is not in the set): open the first unfinished one
   useEffect(() => {
@@ -215,9 +243,9 @@ export default function App() {
   const readFromWebApp = useCallback(
     (id: number) => {
       setReadAsked((prev) => new Set(prev).add(id));
-      api.readChallenge(id).then(setStatus).catch((e) => setError((e as Error).message));
+      api.readChallenge(id).then(setStatus).catch(onApiError);
     },
-    [],
+    [onApiError],
   );
   useEffect(() => {
     if (!challenge || challenge.status !== 'IN_PROGRESS' || challenge.layout || readAsked.has(challenge.challengeId)) return;
@@ -252,7 +280,7 @@ export default function App() {
 
   const updateOptions = (o: SolveOptions) => {
     setOptions(o);
-    if (activeKey) writeLocal(optionsKey(activeKey), o);
+    if (activeId) writeLocal(optionsKey(activeId), o);
   };
 
   const updateLocal = (id: number, o: SolveOptions | null) => {
@@ -260,7 +288,7 @@ export default function App() {
       const next = { ...prev };
       if (o) next[id] = o;
       else delete next[id];
-      if (activeKey) writeLocal(localKey(activeKey), next);
+      if (activeId) writeLocal(localKey(activeId), next);
       return next;
     });
   };
@@ -277,12 +305,12 @@ export default function App() {
         const next = { ...rest, [challenge.challengeId]: r };
         const ids = Object.keys(next);
         for (const id of ids.slice(0, Math.max(0, ids.length - KEEP_RESULTS))) delete next[Number(id)];
-        if (activeKey) writeLocal(resultsKey(activeKey), next);
+        if (activeId) writeLocal(resultsKey(activeId), next);
         return next;
       });
       if (!r.found && r.slots.some((s) => s.player)) setError(t('set.closest'));
     } catch (e) {
-      setError(errorText(e, t));
+      onApiError(e);
     } finally {
       setSolving(false);
     }
@@ -311,7 +339,7 @@ export default function App() {
       setStatus(await api.sync(what));
       await loadAccountData();
     } catch (e) {
-      setError(errorText(e, t));
+      onApiError(e);
     } finally {
       setSyncing(null);
     }
@@ -324,7 +352,7 @@ export default function App() {
     setError(null);
   };
 
-  const go = (v: View) => {
+  const go = (v: Exclude<View, 'signin' | 'ssoCallback'>) => {
     setShowOptions(false);
     setMenuOpen(false);
     // pressing SBCs again goes back to the list
@@ -335,8 +363,19 @@ export default function App() {
   // leave the setup guide the way you came in, or to the SBC list when opened directly
   const closeGuide = () => (canGoBack() ? history.back() : go('sbcs'));
 
+  const doSignOut = async () => {
+    unlinkExtension();
+    setPersona(null);
+    await signOut({ redirectUrl: '/signin' });
+  };
+
+  const unlink = async (id: number) => {
+    await api.unlinkPersona(id).catch(onApiError);
+    await loadMe();
+  };
+
   if (linked === null) return <div className="boot" aria-busy="true" />;
-  if (linked.length === 0) return <Onboarding error={error} lang={lang} setLang={setLang} />;
+  if (linked.length === 0) return <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} />;
 
   const busy = !!syncing || !!status?.running;
   const clubLeft = status?.clubSyncs ? Math.max(0, status.clubSyncs.limit - status.clubSyncs.used) : null;
@@ -381,25 +420,28 @@ export default function App() {
           </button>
 
           <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
+    </>
+  );
 
+  // phones: the full picker in the menu; the top bar shows the account badge instead
+  const accountPicker = (
           <label className="account">
             <span className={`session ${account?.session ? 'on' : ''}`}>{account?.session ? t('top.live') : t('top.offline')}</span>
             <select
-              value={activeKey ?? ''}
+              value={activeId ?? ''}
               onChange={(e) => {
                 navigate({ view: 'sbcs', setId: null, challengeId: null });
-                void selectAccount(e.target.value);
+                void selectAccount(Number(e.target.value));
               }}
               aria-label={t('top.account')}
             >
-              {linked.map((l) => (
-                <option key={l.key} value={l.key}>
-                  {l.account.personaName} · {l.account.clubName}
+              {linked.map((a) => (
+                <option key={a.personaId} value={a.personaId}>
+                  {a.personaName} · {a.clubName}
                 </option>
               ))}
             </select>
           </label>
-    </>
   );
 
   return (
@@ -413,7 +455,20 @@ export default function App() {
           </picture>
         </a>
 
-        <div className="top-controls">{controls}</div>
+        <div className="top-controls">
+          {controls}
+          <AccountMenu
+            email={me?.email ?? ''}
+            personas={linked}
+            active={account}
+            onSelect={(id) => {
+              navigate({ view: 'sbcs', setId: null, challengeId: null });
+              void selectAccount(id);
+            }}
+            onSettings={() => go('settings')}
+            onSignOut={doSignOut}
+          />
+        </div>
 
         <span className={`session mobile-only ${account?.session ? 'on' : ''}`}>{account?.session ? t('top.live') : t('top.offline')}</span>
         <button
@@ -458,6 +513,15 @@ export default function App() {
         </div>
       )}
 
+      {takenOver && (
+        <div className="notice" role="status">
+          {t('notice.takenOver')}{' '}
+          <button type="button" className="text" onClick={() => setTakenOver(false)}>
+            {t('account.cancel')}
+          </button>
+        </div>
+      )}
+
       <div className="layout">
         {menuOpen && <div className="menu-scrim mobile-only" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
         <nav id="mobile-menu" className={`sidebar${menuOpen ? ' open' : ''}`} aria-label={t('nav.sections')}>
@@ -481,7 +545,11 @@ export default function App() {
             <span>{t('nav.guide')}</span>
           </button>
           {/* on phones the top bar only has the logo; its controls live in this menu */}
-          <div className="menu-controls mobile-only">{controls}</div>
+          <div className="menu-controls mobile-only">
+            {controls}
+            {accountPicker}
+          </div>
+          <button type="button" className="nav-item mobile-only" onClick={doSignOut}>{t('auth.signOut')}</button>
         </nav>
 
         <main className="main">
@@ -534,6 +602,7 @@ export default function App() {
                   <SolverOptions options={options} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
                 </div>
                 <div className="settings-side">
+                <AccountCard email={me?.email ?? ''} personas={linked} onUnlink={unlink} onSignOut={doSignOut} />
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
                 <aside className="settings-card">
                   <h2>{t('settings.ownTitle')}</h2>
@@ -636,7 +705,7 @@ export default function App() {
                               type="button"
                               className="text"
                               disabled={status?.running === 'squad'}
-                              onClick={() => api.readChallenge(challenge.challengeId).then(setStatus).catch((e) => setError(errorText(e, t)))}
+                              onClick={() => api.readChallenge(challenge.challengeId).then(setStatus).catch(onApiError)}
                             >
                               {status?.running === 'squad' ? t('set.bricksReading') : t('set.bricksReadButton')}
                             </button>
@@ -742,7 +811,7 @@ export default function App() {
                 setResults((prev) => {
                   const next = { ...prev };
                   for (const c of challenges ?? []) delete next[c.challengeId];
-                  if (activeKey) writeLocal(resultsKey(activeKey), next);
+                  if (activeId) writeLocal(resultsKey(activeId), next);
                   return next;
                 });
               }}
@@ -758,7 +827,7 @@ export default function App() {
   );
 }
 
-function Onboarding({ error, lang, setLang }: { error: string | null; lang: Lang; setLang: (l: Lang) => void }) {
+function Onboarding({ error, lang, setLang, email, onSignOut }: { error: string | null; lang: Lang; setLang: (l: Lang) => void; email: string; onSignOut: () => void }) {
   const { t } = useI18n();
   return (
     <div className="onboarding">
@@ -766,10 +835,49 @@ function Onboarding({ error, lang, setLang }: { error: string | null; lang: Lang
         <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="186" height="48" />
         <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
       </div>
+      <p className="muted">
+        {email && t('account.signedInAs', { email })}{' '}
+        <button type="button" className="text" onClick={onSignOut}>{t('auth.signOut')}</button>
+      </p>
       <h1>{t('onb.title')}</h1>
       <p className="lede">{t('onb.lede')}</p>
       <SetupGuide />
       {error && <p className="banner">{error}</p>}
     </div>
+  );
+}
+
+function AccountCard({ email, personas, onUnlink, onSignOut }: {
+  email: string; personas: Account[]; onUnlink: (id: number) => void; onSignOut: () => void;
+}) {
+  const { t } = useI18n();
+  const [asking, setAsking] = useState<number | null>(null);
+  return (
+    <aside className="settings-card account-card">
+      <h2>{t('account.title')}</h2>
+      {email && <p className="muted">{t('account.signedInAs', { email })}</p>}
+      <h3>{t('account.personas')}</h3>
+      {personas.length === 0 ? (
+        <p className="muted">{t('account.none')}</p>
+      ) : (
+        <ul className="local-list">
+          {personas.map((a) => (
+            <li key={a.personaId}>
+              <span>{a.personaName} · {a.clubName}</span>
+              {asking === a.personaId ? (
+                <span className="account-ask" role="group" aria-label={t('account.disconnectAsk', { name: a.personaName })}>
+                  <span>{t('account.disconnectAsk', { name: a.personaName })}</span>
+                  <button type="button" className="ghost" onClick={() => { setAsking(null); onUnlink(a.personaId); }}>{t('account.disconnectYes')}</button>
+                  <button type="button" className="ghost" onClick={() => setAsking(null)}>{t('account.cancel')}</button>
+                </span>
+              ) : (
+                <button type="button" className="ghost" onClick={() => setAsking(a.personaId)}>{t('account.disconnect')}</button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      <button type="button" className="ghost wide" onClick={onSignOut}>{t('auth.signOut')}</button>
+    </aside>
   );
 }

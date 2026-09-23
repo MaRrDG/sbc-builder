@@ -167,57 +167,48 @@ export interface Reason {
   all?: number; // rating without the settings
 }
 
-// Access keys come from the extension (URL fragment #keys=...) and live in this browser only.
-const KEYS = 'sbc-account-keys';
+// The Clerk session identifies the user; X-Persona says which of their EA accounts the call is about.
+let tokenFn: ((fresh: boolean) => Promise<string | null>) | null = null;
+let signedOut: () => void = () => {};
+let persona: number | null = null;
 
-export function storedKeys(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem(KEYS) ?? '[]');
-  } catch {
-    return [];
-  }
+/** Root calls this on every render with Clerk's getToken (null while signed out). */
+export function configureAuth(getToken: typeof tokenFn, onSignedOut: () => void) {
+  tokenFn = getToken;
+  signedOut = onSignedOut;
 }
+export const setPersona = (id: number | null) => (persona = id);
 
-export function storeKeys(keys: string[]) {
-  try {
-    localStorage.setItem(KEYS, JSON.stringify([...new Set(keys)]));
-  } catch {
-    /* private mode: keys stay in memory for this tab */
-  }
-}
-
-/** Pull keys handed over by the extension and scrub them from the address bar. */
-export function absorbKeysFromUrl(): string[] {
-  const m = window.location.hash.match(/keys=([\w,-]+)/);
-  if (!m) return storedKeys();
-  const keys = [...new Set([...m[1].split(',').filter(Boolean), ...storedKeys()])];
-  storeKeys(keys);
-  history.replaceState(null, '', window.location.pathname + window.location.search);
-  return keys;
-}
-
-let accountKey: string | null = null;
-export const setAccountKey = (key: string | null) => (accountKey = key);
-
-async function req<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
-  const res = await fetch(path, {
+async function send(path: string, init: { method?: string; body?: unknown }, fresh: boolean) {
+  const token = tokenFn ? await tokenFn(fresh) : null;
+  return fetch(path, {
     method: init.method ?? 'GET',
     headers: {
       ...(init.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      ...(accountKey ? { 'X-Account-Key': accountKey } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(persona ? { 'X-Persona': String(persona) } : {}),
     },
     body: init.body === undefined ? undefined : JSON.stringify(init.body),
   });
+}
+
+async function req<T>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
+  let res = await send(path, init, false);
+  if (res.status === 401 && tokenFn) res = await send(path, init, true); // token just expired: once more with a fresh one
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const d = data as { error?: string; code?: string; params?: Record<string, string | number> };
+    if (d.code === 'signIn') signedOut();
     throw new ApiError(d.error ?? `HTTP ${res.status}`, d.code ?? null, d.params ?? {});
   }
   return data as T;
 }
 
 export const api = {
-  accounts: (keys: string[]) => req<{ accounts: { key: string; account: Account }[] }>('/api/accounts', { method: 'POST', body: { keys } }),
+  me: () => req<{ user: { id: string; email: string }; personas: Account[] }>('/api/me'),
+  legacyKeys: (keys: string[]) => req<{ map: Record<string, number> }>('/api/me/legacy-keys', { method: 'POST', body: { keys } }),
+  linkToken: () => req<{ token: string; expiresIn: number }>('/api/link-token', { method: 'POST' }),
+  unlinkPersona: (personaId: number) => req<{ ok: true }>(`/api/personas/${personaId}`, { method: 'DELETE' }),
   status: () =>
     req<{ account: Account | null; sync: SyncStatus | null; extension: { version: string; notes: string[] } | null }>('/api/status'),
   sync: (what: 'club') => req<SyncStatus>('/api/sync', { method: 'POST', body: { what } }),
