@@ -246,7 +246,7 @@
   translate: 0 -50%;
   transform: translateZ(calc((1 - var(--land)) * (70px + var(--i) * 14px))) rotateX(calc(-1 * var(--pitch-tilt)));
 }
-.lp-float { animation: lp-bob 4.8s ease-in-out infinite; animation-delay: calc(var(--i) * -0.7s); }
+.lp-float { animation: lp-bob 4.8s ease-in-out 3; animation-delay: calc(var(--i) * -0.7s); }
 @keyframes lp-bob { 50% { translate: 0 -5px; } }
 
 .lp-reqs {
@@ -425,7 +425,7 @@
   background: linear-gradient(90deg, transparent, var(--ink));
   opacity: 0;
 }
-.lp-proof.is-in .lp-path li:not(:last-child)::after { animation: lp-run 2.6s var(--ease) infinite; }
+.lp-proof.is-in .lp-path li:not(:last-child)::after { animation: lp-run 2.6s var(--ease) 3; }
 .lp-proof.is-in .lp-path li:nth-child(2)::after { animation-delay: 1.3s; }
 @keyframes lp-run {
   0% { translate: 0 0; opacity: 0; }
