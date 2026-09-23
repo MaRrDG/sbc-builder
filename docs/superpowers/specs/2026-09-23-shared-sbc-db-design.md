@@ -47,16 +47,17 @@ For a challenge, among its `brick_reports`:
 1. If any report comes from a `trusted_accounts` persona, the newest trusted report wins.
 2. Otherwise the `layout_hash` reported by the most distinct personas wins; ties go to the earliest `captured_at`.
 
-The result is cached in memory per challenge and invalidated when a report for that challenge is inserted or `db:trust` changes (single server process, so an in-process cache is enough).
+The result is cached in memory per challenge; the entry is dropped when a report for that challenge is inserted and expires after 10 minutes (`db:trust` runs in a separate process and cannot clear the server's cache).
 
 ## Consistency checks (before inserting a report)
 
 A report is rejected (logged, not stored) when:
 - the challenge is unknown in the DB, or its `type` has no `BRICK`;
-- there are no bricks, or a brick `index` is outside 0..10, or indexes repeat;
-- `CUSTOM_BRICK_CHALLENGE` but no brick is custom, or a plain `BRICK_CHALLENGE` with a custom brick;
-- there are more than 10 bricks (at least one slot must stay free);
-- a custom brick's club / league / nation is nonzero and not among the values allowed by the challenge's `elg_req` for that key when the challenge restricts that key (compared the same way `parseLayout` reads `elgReq`).
+- there are no bricks, or more than 10 (at least one slot must stay free);
+- a brick `index` is outside 0..10 or repeats;
+- a nation / league / club / rareflag is not a non-negative integer, or `positions` is neither null nor a list of strings.
+
+Only structural checks: no real brick capture exists yet to confirm how custom bricks relate to the challenge type or its requirements, so rules about that would risk rejecting real layouts. Forged-but-plausible layouts are handled by the majority vote and trusted accounts.
 
 ## Data flow
 
@@ -92,9 +93,9 @@ Reads:
 
 ## Verification
 
-No automated test suite; verify with:
-1. `npm run typecheck`, `npm run build`, `npm run i18n:check`.
+The pure brick logic (hash, checks, layout choice) gets `node:test` unit tests (`npm test`); the rest is verified by hand:
+1. `npm test`, `npm run typecheck`, `npm run build`, `npm run i18n:check`.
 2. Migrations apply on local `fcsolver`; `db:import` fills tables from `data/`; row counts and imported bricks checked with `psql`.
 3. Shared layout: remove one account's own `challengeSquads/<id>.json` for a brick challenge that has a report → `/api/sets` shows no `needsLayout`, solve uses the shared bricks, `found` still comes from the `squad.ts` re-check.
-4. A forged report (index 12, custom brick with a club outside the requirements) is rejected.
+4. A forged report (index 12, repeated index, negative club) is rejected.
 5. `docker compose config` valid; the `app` container starts against `db` and applies migrations.
