@@ -205,12 +205,14 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
           }
           return st.sync;
         });
-      } catch {
-        /* server restarting; next tick retries */
+      } catch (e) {
+        // the account moved to another user or was disconnected elsewhere: show it now, not on the next click
+        if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onApiError(e);
+        /* otherwise the server is restarting; next tick retries */
       }
     }, 5000);
     return () => clearInterval(t);
-  }, [activeId, setId, loadAccountData]);
+  }, [activeId, setId, loadAccountData, onApiError]);
 
   useEffect(() => {
     // a link straight to /sbc/... loads before the account is picked: wait for its key
@@ -375,7 +377,7 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
   };
 
   if (linked === null) return <div className="boot" aria-busy="true" />;
-  if (linked.length === 0) return <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} />;
+  if (linked.length === 0) return <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} />;
 
   const busy = !!syncing || !!status?.running;
   const clubLeft = status?.clubSyncs ? Math.max(0, status.clubSyncs.limit - status.clubSyncs.used) : null;
@@ -827,7 +829,9 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
   );
 }
 
-function Onboarding({ error, lang, setLang, email, onSignOut }: { error: string | null; lang: Lang; setLang: (l: Lang) => void; email: string; onSignOut: () => void }) {
+function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
+  error: string | null; lang: Lang; setLang: (l: Lang) => void; email: string; onSignOut: () => void; takenOver: boolean;
+}) {
   const { t } = useI18n();
   return (
     <div className="onboarding">
@@ -839,6 +843,8 @@ function Onboarding({ error, lang, setLang, email, onSignOut }: { error: string 
         {email && t('account.signedInAs', { email })}{' '}
         <button type="button" className="text" onClick={onSignOut}>{t('auth.signOut')}</button>
       </p>
+      {/* the account taken over may have been the only one: say why it is gone */}
+      {takenOver && <p className="banner" role="status">{t('notice.takenOver')}</p>}
       <h1>{t('onb.title')}</h1>
       <p className="lede">{t('onb.lede')}</p>
       <SetupGuide />

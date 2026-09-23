@@ -2841,7 +2841,7 @@ button.card:active {
 .account-card h3 { margin: 14px 0 6px; font-size: 0.95rem; color: var(--ink-2); }
 .account-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 /* sign-out lives in the account menu on desktop, in the hamburger menu on phones */
-.nav-item.mobile-only { display: none; }
+@media (min-width: 861px) { .nav-item.mobile-only { display: none; } }
 .account-menu { position: relative; }
 .avatar {
   position: relative; display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0;
@@ -2880,3 +2880,5 @@ button.card:active {
 }
 .account-pop > button:hover { background: var(--surface-2); }
 @media (prefers-reduced-motion: reduce) { .account-pop { animation: none; } }
+.onboarding > .signin-row { margin-top: 14px; }
+.signin-row .ghost.wide { flex: 1 1 160px; width: auto; }

@@ -354,6 +354,8 @@ export const en = {
   'auth.emailInvalid': 'Enter a valid email address.',
   'auth.failed': 'Sign-in did not work. Try again.',
   'auth.publicHome': 'Back to sign in',
+  'auth.refused': 'FC Solver could not confirm your sign-in. Try again in a moment, or sign out and sign in again.',
+  'auth.retry': 'Try again',
   // account
   'account.title': 'Account',
   'account.menu': 'Your account',
