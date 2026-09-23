@@ -45,7 +45,7 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
       style={{ color: art.text }}
       title={`${player.name} · ${player.possiblePositions.join(', ')} · ${player.untradeable ? t('card.untradeable') : t('card.tradeable')}`}
     >
-      {art.bg && bgOk && <img className="card-bg" src={art.bg} alt="" decoding="async" onError={() => setBgOk(false)} />}
+      {art.bg && bgOk && <img className="card-bg" src={art.bg} alt="" loading={loading} decoding="async" onError={() => setBgOk(false)} />}
       <div className="card-rating">{player.rating}</div>
       <div className={`card-pos${offPos ? ' off' : ''}`}>{player.preferredPosition}</div>
       <img className="card-face" src={art.portrait} alt="" loading={loading} decoding="async" />
