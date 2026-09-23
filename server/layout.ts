@@ -9,6 +9,7 @@
 import type { Account } from './accounts.js';
 import { readCache } from './store.js';
 import { Key } from './sbc.js';
+import { sharedBricks } from './db/sbcs.js';
 
 export interface BrickSlot {
   index: number;
@@ -74,22 +75,33 @@ export function parseLayout(response: unknown, capturedAt: number): ChallengeLay
   return { bricks: bricks.sort((a, b) => a.index - b.index), placed, capturedAt };
 }
 
-/** Latest layout the web app loaded for this challenge (null if never opened there). */
+/**
+ * Locked slots come from the layout shared by all accounts (DB), falling back to this account's
+ * own capture; players already placed always come from this account's own capture.
+ * Null when neither exists (nobody has opened the challenge in the web app yet).
+ */
 export async function challengeLayout(acc: Account, challengeId: number): Promise<ChallengeLayout | null> {
   const caps = (await readCache<Capture[]>(acc.key(`challengeSquads/${challengeId}`)))?.data ?? [];
   // newest first; a save (PUT) answers without the requirements, so the layout comes from a load
   let layout: ChallengeLayout | null = null;
   for (const c of caps) if (c.method !== 'PUT' && (layout = parseLayout(c.response, c.at))) break;
-  if (!layout) return null;
+  let shared: BrickSlot[] | null = null;
+  try {
+    shared = await sharedBricks(challengeId);
+  } catch (e) {
+    console.error(`[db] shared bricks for challenge ${challengeId} failed: ${(e as Error).message}`);
+  }
+  if (!layout) return shared ? { bricks: shared, placed: [], capturedAt: 0 } : null;
+  if (shared) layout.bricks = shared;
   // ...but players saved after that load are the current ones: PUT body {players:[{index,itemData:{id,dream}}]}
   const save = caps.find((c) => c.method === 'PUT' && c.path.endsWith('/squad') && c.at > layout!.capturedAt);
   const saved = (save?.request as { players?: { index?: number; itemData?: { id?: number; dream?: boolean } }[] } | null)?.players;
-  if (Array.isArray(saved)) {
-    const locked = new Set(layout.bricks.map((b) => b.index));
+  const locked = new Set(layout.bricks.map((b) => b.index));
+  if (Array.isArray(saved))
     layout.placed = saved
       .filter((p) => num(p.index) < 11 && !locked.has(num(p.index)) && num(p.itemData?.id) > 0 && !p.itemData?.dream)
       .map((p) => ({ index: num(p.index), itemId: num(p.itemData!.id) }));
-  }
+  else layout.placed = layout.placed.filter((p) => !locked.has(p.index)); // never a player on a shared locked slot
   return layout;
 }
 
