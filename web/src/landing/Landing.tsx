@@ -6,6 +6,9 @@ import { LangMenu } from '../components/LangMenu';
 import { routePath, type Route } from '../route';
 import { Hero } from './Hero';
 import { Pillars } from './Pillars';
+import { Steps } from './Steps';
+import { Pricing } from './Pricing';
+import { Faq } from './Faq';
 import './landing.css';
 
 interface Props {
@@ -60,9 +63,9 @@ export default function Landing({ signedIn, navigate }: Props) {
       <main id="main">
         <Hero cta={cta()} />
         <Pillars />
-        <section id="how" className="lp-section" />
-        <section id="pricing" className="lp-section" />
-        <section id="faq" className="lp-section" />
+        <Steps link={link} />
+        <Pricing cta={cta()} />
+        <Faq />
       </main>
 
       <footer className="lp-footer">
