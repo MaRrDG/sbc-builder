@@ -1,6 +1,6 @@
 # Landing page + app under /dashboard
 
-Date: 2026-09-23. Status: approved in chat, awaiting spec review.
+Date: 2026-09-23. Status: approved. Plan: `docs/superpowers/plans/2026-09-23-landing-page.md`.
 
 ## Goal
 A public landing page at `/` that explains what FC Solver does and why it beats the alternatives, with 3D parallax and scroll animation that stays readable, fast and on-brand (no "AI slop": no purple gradients, glass cards, hero-metric tiles, emoji). The signed-in app moves under `/dashboard`.
@@ -45,7 +45,7 @@ Copy is written plainly and specifically (real numbers from the product, no fill
 - `prefers-reduced-motion: reduce` → static final state everywhere (flat pitch, cards in slots, ticks shown).
 
 ## Visual rules
-DESIGN.md tokens only (`--bg-0`, `--surface`, `--pitch`, `--ink*`, `--go` for primary CTA + met ticks, `--pos` for position pills). Barlow Condensed for display, Geist for text. Controls 8px radius, containers 14px. Cards reuse the existing `Card` component with a static demo squad (fixed player data, art from the same EA CDN URLs the app uses). WCAG AA contrast; keyboard reachable; phone width 390px checked; under 860px the top bar collapses anchors into the existing hamburger pattern.
+DESIGN.md tokens only (`--bg-0`, `--surface`, `--pitch`, `--ink*`, `--go` for primary CTA + met ticks, `--pos` for position pills). Barlow Condensed for display, Geist for text. Controls 8px radius, containers 14px. Cards reuse the existing `Card` component with a static demo squad; its art is self-hosted under `web/public/landing/` (no EA hotlinking from a public page). WCAG AA contrast; keyboard reachable; phone width 390px checked; under 860px the landing top bar hides the section anchors (logo, language, CTA stay).
 
 ## Performance
 Landing chunk lazy-loaded; `App` not loaded on `/` for signed-out users. Demo card images `loading="lazy"` except the hero. No layout shift from the hero (fixed aspect box).
