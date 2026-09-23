@@ -355,7 +355,7 @@ export const en = {
   'auth.tooMany': 'Too many attempts. Wait a minute and try again.',
   'auth.emailInvalid': 'Enter a valid email address.',
   'auth.failed': 'Sign-in did not work. Try again.',
-  'auth.publicHome': 'Back to sign in',
+  'auth.publicHome': 'Back to home',
   'auth.refused': 'FC Solver could not confirm your sign-in. Try again in a moment, or sign out and sign in again.',
   'auth.retry': 'Try again',
   // account
