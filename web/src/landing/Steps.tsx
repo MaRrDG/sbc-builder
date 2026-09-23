@@ -155,7 +155,7 @@ export function Steps({ link }: Props) {
           {STEPS.map((k, n) => (
             <li key={k} ref={(el) => { items.current[n] = el; }} className={active === n ? 'is-on' : undefined}>
               <h3>
-                <span className="lp-step-n">{n + 1}</span>
+                <span className="lp-step-n" aria-hidden="true">{n + 1}</span>
                 {t(`landing.how.${k}.title`)}
               </h3>
               <p>{t(`landing.how.${k}.body`)}</p>
