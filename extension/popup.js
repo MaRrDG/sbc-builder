@@ -28,6 +28,7 @@ async function renderStatus() {
 }
 renderStatus();
 setInterval(renderStatus, 2000);
+chrome.runtime.sendMessage({ type: 'refresh-badge' }).catch(() => {}); // the dot matches what the popup says
 chrome.storage.onChanged.addListener(renderStatus);
 
 chrome.storage.local.get({ server: 'http://localhost:5178', keys: [], update: null }).then((s) => {
