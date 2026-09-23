@@ -6,6 +6,8 @@ import { readCache, writeCache, isStale, type Cached } from './store.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
 import { enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
+import { softly } from './db/index.js';
+import { saveChallenges, saveSets } from './db/sbcs.js';
 
 export interface SetsData {
   categories: { categoryId: number; name: string; sets: SbcSet[] }[];
@@ -157,7 +159,9 @@ export function syncSbcs(acc: Account): Promise<Cached<SetsData>> {
       if (!cached && set.challengesCompletedCount >= set.challengesCount && !set.repeatable) continue;
       const ch = await utas.challenges(set.setId);
       await writeCache(acc.key(`challenges/${set.setId}`), ch.challenges);
+      await softly('save challenges', () => saveChallenges(set.setId, ch.challenges));
     }
+    await softly('save sets', () => saveSets(next.categories.flatMap((c) => c.sets)));
     return writeCache(acc.key('sets'), next);
   });
 }
@@ -172,6 +176,7 @@ export async function getChallenges(acc: Account, setId: number, refresh = false
   const cached = await readCache<Challenge[]>(key);
   if (!refresh || !acc.utas) return cached;
   const ch = await acc.utas.challenges(setId);
+  await softly('save challenges', () => saveChallenges(setId, ch.challenges));
   return writeCache(key, ch.challenges);
 }
 

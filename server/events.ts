@@ -13,6 +13,9 @@ import type { Account } from './accounts.js';
 import { readCache, writeCache } from './store.js';
 import { markEdited, type SetsData } from './sync.js';
 import { invalidateMeta } from './meta.js';
+import { parseLayout } from './layout.js';
+import { softly } from './db/index.js';
+import { reportBricks, saveChallenges, saveSets } from './db/sbcs.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const WATCHED_PATH =
@@ -117,12 +120,14 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
   if (method === 'GET' && ev.path === '/sbs/sets') {
     if (!Array.isArray(res.categories)) return null;
     await writeCache<SetsData>(acc.key('sets'), { categories: res.categories as SetsData['categories'] });
+    await softly('save sets', () => saveSets((res.categories as SetsData['categories']).flatMap((c) => c.sets ?? [])));
     return 'SBC list updated from the web app';
   }
   const setId = ev.path.match(/^\/sbs\/setId\/(\d+)\/challenges$/)?.[1];
   if (method === 'GET' && setId) {
     if (!Array.isArray(res.challenges)) return null;
     await writeCache<Challenge[]>(acc.key(`challenges/${setId}`), res.challenges as Challenge[]);
+    await softly('save challenges', () => saveChallenges(Number(setId), res.challenges as Challenge[]));
     return 'SBC challenges updated from the web app';
   }
   if (method === 'POST' && ev.path === '/club') {
@@ -142,6 +147,12 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
     const key = acc.key(`challengeSquads/${sbcSquad[1]}`);
     const prev = (await readCache<{ method: string; path: string; request: unknown; response: unknown; at: number }[]>(key))?.data ?? [];
     await writeCache(key, [{ method, path: ev.path, request: ev.request ?? null, response: ev.response ?? null, at: Date.now() }, ...prev].slice(0, 6));
+    const layout = method === 'PUT' ? null : parseLayout(ev.response, Date.now());
+    if (layout?.bricks.length)
+      await softly('report bricks', async () => {
+        const why = await reportBricks(Number(sbcSquad[1]), acc.id, layout.bricks, layout.capturedAt);
+        if (why) console.warn(`[db] brick report for challenge ${sbcSquad[1]} refused: ${why}`);
+      });
     return 'SBC squad updated from the web app'; // non-null: the UI reloads and shows it
   }
   if (method === 'GET' && ev.path === '/chemistry/profiles') {
