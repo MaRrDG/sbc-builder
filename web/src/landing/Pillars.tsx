@@ -59,7 +59,7 @@ function OptimalProof() {
   return (
     <div className="lp-optimal">
       <ul className="lp-req-rows">
-        {(['r1', 'r2', 'r3', 'r4'] as const).map((k, n) => (
+        {(['r2', 'r3', 'r4'] as const).map((k, n) => (
           <li key={k} style={i(n)}>
             <Check className="lp-ok" weight="bold" aria-hidden="true" />
             <span>{t(`landing.optimal.${k}`)}</span>

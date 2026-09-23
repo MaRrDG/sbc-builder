@@ -79,6 +79,8 @@
   padding: clamp(72px, 12vw, 144px) var(--gutter);
   scroll-margin-top: 64px;
 }
+/* the app's card-in (a solve result arriving) is not replayed here; the hero lands its own cards */
+.landing .card { animation: none; }
 .lp-kicker {
   margin: 0 0 14px;
   color: var(--ink-3);
@@ -514,7 +516,6 @@
 .lp-ea-sets li { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface); font: 600 clamp(14px, 3.4cqi, 17px)/1.15 var(--font-num); }
 .lp-ea-sets + .lp-ea-head { margin-top: 18px; }
 .lp-ea-club { --card-w: clamp(38px, 11cqi, 66px); display: flex; gap: 10px; margin: 0; padding: 0; list-style: none; }
-.lp-ea-club .card { animation: none; }
 .is-live .lp-pane-ea.on .lp-ea-club li { animation: lp-row-in 420ms var(--ease) both; animation-delay: calc(700ms + var(--i) * 90ms); }
 .is-live .lp-pane-ea.on .lp-ea-sets li { animation: lp-row-in 420ms var(--ease) both; animation-delay: calc(200ms + var(--i) * 160ms); }
 @keyframes lp-row-in { from { opacity: 0; translate: 0 8px; } }
