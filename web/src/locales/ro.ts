@@ -346,6 +346,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'auth.emailInvalid': 'Scrie o adresă de email validă.',
   'auth.failed': 'Autentificarea n-a mers. Încearcă din nou.',
   'auth.publicHome': 'Înapoi la autentificare',
+  'auth.refused': 'FC Solver nu ți-a putut confirma autentificarea. Încearcă din nou peste puțin timp sau ieși din cont și intră din nou.',
+  'auth.retry': 'Încearcă din nou',
   // cont
   'account.title': 'Cont',
   'account.menu': 'Contul tău',
