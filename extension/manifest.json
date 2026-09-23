@@ -12,7 +12,8 @@
   "permissions": [
     "webRequest",
     "storage",
-    "alarms"
+    "alarms",
+    "scripting"
   ],
   "host_permissions": [
     "https://utas.mob.v1.prd.futc-ext.gcp.ea.com/*",

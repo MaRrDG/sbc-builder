@@ -95,7 +95,17 @@ chrome.runtime.onInstalled.addListener(() => {
   checkForUpdate(true);
   startAlarm();
   refreshBadge();
+  injectSiteScript();
 });
+
+/** Content scripts only reach pages loaded after install: give FC Solver tabs already open site.js now, so they link without a reload. */
+async function injectSiteScript() {
+  const entry = chrome.runtime.getManifest().content_scripts?.find((c) => c.js?.includes('site.js'));
+  if (!entry) return;
+  for (const tab of await chrome.tabs.query({ url: entry.matches })) {
+    chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['site.js'] }).catch(() => {});
+  }
+}
 
 // ---- identity -----------------------------------------------------------------------------
 // The SID stays in this browser: kept in session storage (memory only) and sent to FC Solver
