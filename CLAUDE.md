@@ -3,7 +3,7 @@
 Finds the cheapest squad from the user's own EA FC 27 club that completes an SBC and shows it on a web-app-lookalike pitch. Read-only toward EA: never buy, sell or submit anything (EA bans for it). Product intent: `PRODUCT.md`, visual rules: `DESIGN.md`.
 
 ## Layout
-- `server/` Fastify 5 API (Node 24, TS via `tsx`). `ea.ts` EA client + DTO types, `sync.ts` caching/sync + extension-driven cache edits, `sbc.ts` requirement parsing, `solver.ts` problem builder + `diagnose()`, `squad.ts` ported game formulas (rating, chemistry, `isRequirementMet`), `store.ts` JSON cache.
+- `server/` Fastify 5 API (Node 24, TS via `tsx`). `ea.ts` EA client + DTO types, `sync.ts` caching/sync + extension-driven cache edits, `sbc.ts` requirement parsing, `solver.ts` problem builder + `diagnose()`, `squad.ts` ported game formulas (rating, chemistry, `isRequirementMet`), `store.ts` JSON cache, `db/` Postgres via Drizzle (`schema.ts`, `sbcs.ts` SBC history + shared brick layouts, migrations in `db/migrations/`), `bricks.ts` pure brick rules.
 - `solver/cpsat.py` OR-Tools CP-SAT model, JSON in on stdin, JSON out on stdout.
 - `web/src/` React 19 + Vite 8, plain CSS with OKLCH tokens (`styles.css`), Phosphor icons. `App.tsx` holds most state and the three views (SBC list/set screen, Club, Settings); `api.ts` typed fetch helpers; `repeat.ts` repeatability rules, `route.ts` URL routing (screen state lives in the URL; use `navigate`, not local state, for screens). Global solver settings and per-set local overrides are in `localStorage`; a set with local settings ignores the global ones.
 - `extension/` Chrome MV3 bridge (session SID, SBC submits, packs, item moves).
@@ -15,8 +15,13 @@ npm run dev        # API :5178 (watch) + Vite :5173; keep it running, don't kill
 npm run typecheck  # tsc over server + web
 npm run build      # web -> dist/
 SOLVER_DUMP=/tmp/p.json npm run dev:api && solver/.venv/bin/python solver/cpsat.py < /tmp/p.json
+npm test           # node:test unit tests (server/**/*.test.ts)
+npm run db:generate  # new migration after editing server/db/schema.ts
+npm run db:import    # backfill Postgres from data/accounts
+npm run db:trust     # list / add / --remove trusted accounts
 ```
-No automated test suite. Verify with typecheck + build, and against real cached EA data in `data/` or in the browser.
+`DATABASE_URL` in `.env` (git-ignored, see `.env.example`); local DB `fcsolver` in the `postgresql` container.
+Unit tests only for pure logic (`npm test`). Verify with typecheck + build, and against real cached EA data in `data/` or in the browser.
 
 ## Rules that matter
 - Be gentle with EA: only syncs may call EA (never a page load, set open or solve); everything is cached with `fetchedAt`; sync only when stale (club 24 h, SBCs after the 20:01 Europe/Bucharest drop). The extension relays what the web app loads (`server/events.ts`), which fills the cache for free. Every call is metered per account (`server/meter.ts`, daily cap `EA_DAILY_LIMIT`, 15 min pause on throttling codes).

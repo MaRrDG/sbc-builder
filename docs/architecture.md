@@ -31,6 +31,18 @@ Three constraints shaped everything else:
                                                                                        ─► pitch + requirements
 ```
 
+## Shared data (Postgres)
+
+Most data is per account and stays in `data/accounts/<personaId>/*.json`: club, squad, SBC progress, the request meter and the raw challenge-squad captures. What is the same for everyone lives in Postgres (`server/db/`, Drizzle, migrations applied on start):
+
+- `sbc_sets`, `challenges`: every SBC set / challenge ever seen, latest definition plus `first_seen` / `last_seen`. Rows are never deleted, so expired SBCs stay. Per-account fields in `raw` (`timesCompleted`, ...) are never read from here.
+- `brick_reports`: the locked slots ("bricks") of a brick challenge as one account saw them, one row per account and distinct layout. Only the bricks, never the reporter's placed players.
+- `trusted_accounts`: accounts whose report wins outright (`npm run db:trust`).
+
+Writes ride on what already happens, never an extra EA call: the web-app relay (`events.ts`) and the syncs (`sync.ts`) upsert sets and challenges next to the JSON cache, and a relayed challenge squad with bricks becomes a report. A DB failure there is logged and does not break the sync. A report first passes structural checks (`bricks.ts`: brick challenge, 1 to 10 bricks, indexes 0..10 without repeats, non-negative ids, positions a string list).
+
+`challengeLayout()` (`layout.ts`) takes the bricks from the shared layout and the placed players from the account's own capture, so a brick SBC anyone opened once in the web app is solvable for everyone. The shared layout: newest report from a trusted account, else the layout most distinct accounts reported, ties to the earliest. It is cached in memory for 10 minutes and dropped when a new report arrives.
+
 ## Getting the session
 
 **Extension 0.7+ (client mode): every request to EA leaves from the web app tab.** The server keeps no SID and never calls EA for these accounts, except once to prove a new account.
