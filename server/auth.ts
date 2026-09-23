@@ -23,12 +23,22 @@ export function initAuth(): void {
 }
 
 const signIn = () => new SessionError('Sign in first.', 401, 'signIn');
-const seenAt = new Map<string, number>();
+const seenAt = new Map<string, { at: number; done: Promise<void> }>();
 
 /** Keep users.last_seen_at roughly fresh without a write per request; fetch the email once. */
-async function remember(id: string) {
-  if (Date.now() - (seenAt.get(id) ?? 0) < 5 * 60 * 1000) return;
-  seenAt.set(id, Date.now());
+function remember(id: string): Promise<void> {
+  const seen = seenAt.get(id);
+  // parallel requests wait for the same first write, so /api/me never reads an email not fetched yet
+  if (seen && Date.now() - seen.at < 5 * 60 * 1000) return seen.done;
+  const done = touchAndFetchEmail(id).catch((e) => {
+    seenAt.delete(id); // the next request tries again
+    throw e;
+  });
+  seenAt.set(id, { at: Date.now(), done });
+  return done;
+}
+
+async function touchAndFetchEmail(id: string) {
   const { email } = await touchUser(id);
   if (email || !clerk) return;
   try {
