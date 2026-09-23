@@ -4,3 +4,4 @@ data
 solver/.venv
 .git
 *.log
+.env

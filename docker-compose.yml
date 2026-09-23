@@ -1,6 +1,9 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      args:
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:?set VITE_CLERK_PUBLISHABLE_KEY in .env}
     container_name: sbc-builder
     restart: unless-stopped
     # only Apache on the host talks to it
@@ -12,6 +15,7 @@ services:
       SBC_DROP_TIME: "20:01"
       SBC_DROP_TZ: Europe/Bucharest
       DATABASE_URL: postgres://fcsolver:${DB_PASSWORD:?set DB_PASSWORD in .env}@db:5432/fcsolver
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:?set CLERK_SECRET_KEY in .env}
     depends_on:
       db:
         condition: service_healthy

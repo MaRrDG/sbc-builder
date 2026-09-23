@@ -1,6 +1,8 @@
 # ---- build the web UI ----
 FROM node:24-bookworm-slim AS web
 WORKDIR /app
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY tsconfig.json vite.config.ts ./
