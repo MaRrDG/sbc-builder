@@ -5,6 +5,7 @@ import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { routePath, type Route } from '../route';
 import { Hero } from './Hero';
+import { Pillars } from './Pillars';
 import './landing.css';
 
 interface Props {
@@ -58,7 +59,7 @@ export default function Landing({ signedIn, navigate }: Props) {
 
       <main id="main">
         <Hero cta={cta()} />
-        <section id="why" className="lp-section" />
+        <Pillars />
         <section id="how" className="lp-section" />
         <section id="pricing" className="lp-section" />
         <section id="faq" className="lp-section" />
