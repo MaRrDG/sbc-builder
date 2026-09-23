@@ -17,7 +17,7 @@ const bases = new Set([...enKeys].map(base));
 // keys used in code: t('x'), t(`x${i}y`) (template: checked by prefix), plus string keys stored in tables
 const used = new Set<string>();
 for (const m of src.matchAll(/\bt\(\s*'([\w.]+)'/g)) used.add(m[1]);
-for (const m of src.matchAll(/'((?:club|exclude|err|guide|set|opt|player)\.[\w.]+)'/g)) used.add(m[1]);
+for (const m of src.matchAll(/'((?:auth|club|exclude|err|guide|set|opt|player)\.[\w.]+)'/g)) used.add(m[1]);
 const templated = [...src.matchAll(/\bt\(\s*`([\w.]+)\$\{/g)].map((m) => m[1]);
 for (const k of used) if (!bases.has(k)) problems.push(`used but missing in en: ${k}`);
 for (const k of bases)

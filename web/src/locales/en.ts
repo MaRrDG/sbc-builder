@@ -30,6 +30,7 @@ export const en = {
   'notice.howItWorks': 'How does it work?',
   'notice.unassigned_one': '{count} new player from packs is waiting in Unassigned. Send it to your club in the web app and it shows up here automatically.',
   'notice.unassigned_other': '{count} new players from packs are waiting in Unassigned. Send them to your club in the web app and they show up here automatically.',
+  'notice.takenOver': 'An EA account you used here is now linked to another FC Solver user, who proved they are logged in to it with EA.',
 
   // sidebar
   'nav.sections': 'Sections',
@@ -286,6 +287,10 @@ export const en = {
   'err.unknownAccount': 'Unknown account. Connect through the extension first.',
   'err.syncRunning': 'A sync is already running.',
   'err.network': 'FC Solver server not reachable.',
+  'err.signIn': 'Sign in to continue.',
+  'err.noPersona': 'Pick an EA account first.',
+  'err.personaNotYours': 'This EA account is not linked to you.',
+  'err.personaTakenOver': 'This EA account is now linked to another FC Solver user.',
 
   // how it works
   'guide.title': 'How FC Solver works',
@@ -327,4 +332,37 @@ export const en = {
   'guide.faq3a': 'Open that SBC in the web app so FC Solver sees which slots are locked.',
   'guide.faq4q': 'Updating the extension',
   'guide.faq4a': 'Use the banner at the top when a new version is out: unzip over the old folder, reload it in chrome://extensions, refresh the web app.',
+
+  // sign in
+  'auth.title': 'Sign in to FC Solver',
+  'auth.lede': 'One account for all your devices. Your EA account links itself when you open the web app with the extension.',
+  'auth.google': 'Continue with Google',
+  'auth.or': 'or',
+  'auth.email': 'Email',
+  'auth.sendCode': 'Send code',
+  'auth.codeSent': 'We sent a 6-digit code to {email}.',
+  'auth.code': 'Code',
+  'auth.verify': 'Continue',
+  'auth.resend': 'Resend code',
+  'auth.resendIn': 'Resend in {s}s',
+  'auth.changeEmail': 'Change email',
+  'auth.finishing': 'Signing you in…',
+  'auth.signOut': 'Sign out',
+  'auth.codeWrong': 'That code is not right. Check the email and try again.',
+  'auth.codeExpired': 'That code expired. Send a new one.',
+  'auth.tooMany': 'Too many attempts. Wait a minute and try again.',
+  'auth.emailInvalid': 'Enter a valid email address.',
+  'auth.failed': 'Sign-in did not work. Try again.',
+  'auth.publicHome': 'Back to sign in',
+  // account
+  'account.title': 'Account',
+  'account.menu': 'Your account',
+  'account.settings': 'Account settings',
+  'account.signedInAs': 'Signed in as {email}',
+  'account.personas': 'EA accounts',
+  'account.none': 'No EA account linked yet. Open the FC27 web app in this browser with the extension.',
+  'account.disconnect': 'Disconnect',
+  'account.disconnectAsk': 'Disconnect {name}? It links again when you open the web app with the extension.',
+  'account.disconnectYes': 'Yes, disconnect',
+  'account.cancel': 'Cancel',
 } as const;
