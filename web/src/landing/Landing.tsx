@@ -9,6 +9,7 @@ import { Pillars } from './Pillars';
 import { Steps } from './Steps';
 import { Pricing } from './Pricing';
 import { Faq } from './Faq';
+import { ToTop } from './ToTop';
 import './landing.css';
 
 interface Props {
@@ -99,6 +100,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         </nav>
         <p>{t('landing.footer.legal')}</p>
       </footer>
+      <ToTop ctaKey={`${authReady}-${signedIn}`} />
     </div>
   );
 }

@@ -742,6 +742,34 @@
   .lp-near { --par: 56px; }
 }
 
+/* ---------- back to top (ToTop.tsx) ----------
+   Fixed bottom right: in the side margin just outside the content edge where there is room, else in
+   the 16px gutter. Shown once the hero is out of view; fades and slides in. */
+.lp-totop {
+  position: fixed;
+  right: max(16px, calc((100% - var(--lp-max)) / 2 - 60px));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 15; /* under the sticky top bar */
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 20px;
+  cursor: pointer;
+  opacity: 0;
+  translate: 0 12px;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease), translate 200ms var(--ease);
+}
+.lp-totop.on { opacity: 1; translate: 0 0; pointer-events: auto; }
+.lp-totop:hover { background: var(--surface-3); }
+.lp-totop:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
 @media (prefers-reduced-motion: reduce) {
   .landing *,
   .landing *::before,

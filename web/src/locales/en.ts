@@ -424,6 +424,7 @@ export const en = {
 
   // landing page (/)
   'landing.skip': 'Skip to content',
+  'landing.toTop': 'Back to top',
   'landing.nav.label': 'Sections',
   'landing.nav.why': 'Why FC Solver',
   'landing.nav.how': 'How it works',

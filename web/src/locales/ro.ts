@@ -418,6 +418,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
 
   // landing page (/)
   'landing.skip': 'Sari la conținut',
+  'landing.toTop': 'Înapoi sus',
   'landing.nav.label': 'Secțiuni',
   'landing.nav.why': 'De ce FC Solver',
   'landing.nav.how': 'Cum funcționează',
