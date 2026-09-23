@@ -421,4 +421,18 @@ export const en = {
   'admin.acc.forced': 'sync waiting for the next visit',
   'admin.acc.paused': 'paused by EA throttling',
   'admin.acc.sync': 'Sync',
+
+  // landing page (/)
+  'landing.skip': 'Skip to content',
+  'landing.nav.label': 'Sections',
+  'landing.nav.why': 'Why FC Solver',
+  'landing.nav.how': 'How it works',
+  'landing.nav.pricing': 'Pricing',
+  'landing.nav.faq': 'FAQ',
+  'landing.signIn': 'Sign in',
+  'landing.start': 'Start free',
+  'landing.open': 'Open dashboard',
+  'landing.footer.legal': 'FC Solver is not affiliated with or endorsed by Electronic Arts. EA SPORTS FC, Ultimate Team and the card art belong to EA.',
+  'landing.footer.setup': 'Setup guide',
+  'landing.footer.guide': 'How it works',
 } as const;

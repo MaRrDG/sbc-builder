@@ -53,7 +53,13 @@ const localKey = (id: number) => `sbc-local-options-p${id}`;
 const resultsKey = (id: number) => `sbc-results-p${id}`;
 const KEEP_RESULTS = 20; // solved squads kept per account, newest last
 
-export default function App({ route, navigate }: { route: Route; navigate: (r: Route, replace?: boolean) => void }) {
+export default function App({
+  route,
+  navigate,
+}: {
+  route: Exclude<Route, { view: 'landing' }>;
+  navigate: (r: Route, replace?: boolean) => void;
+}) {
   const [linked, setLinked] = useState<Account[] | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [me, setMe] = useState<{ id: string; email: string } | null>(null);
@@ -452,7 +458,7 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
   return (
     <div className="app">
       <header className="topbar">
-        <a className="brand" href="/" aria-label={t('top.home')}>
+        <a className="brand" href="/dashboard" aria-label={t('top.home')}>
           {/* the wordmark needs ~120px; narrow phones get the square icon */}
           <picture>
             <source media="(max-width: 480px)" srcSet="/brand/icon-green.svg" />

@@ -415,4 +415,18 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'admin.acc.forced': 'sincronizare la următoarea vizită',
   'admin.acc.paused': 'pe pauză din cauza throttling-ului EA',
   'admin.acc.sync': 'Sincronizează',
+
+  // landing page (/)
+  'landing.skip': 'Sari la conținut',
+  'landing.nav.label': 'Secțiuni',
+  'landing.nav.why': 'De ce FC Solver',
+  'landing.nav.how': 'Cum funcționează',
+  'landing.nav.pricing': 'Prețuri',
+  'landing.nav.faq': 'Întrebări',
+  'landing.signIn': 'Intră în cont',
+  'landing.start': 'Începe gratuit',
+  'landing.open': 'Deschide dashboard',
+  'landing.footer.legal': 'FC Solver nu este afiliat cu Electronic Arts și nu este susținut de EA. EA SPORTS FC, Ultimate Team și arta cardurilor aparțin EA.',
+  'landing.footer.setup': 'Ghid de instalare',
+  'landing.footer.guide': 'Cum funcționează',
 };

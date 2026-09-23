@@ -9,5 +9,5 @@ test('safeNext keeps internal paths', () => {
 
 test('safeNext refuses anything else', () => {
   for (const bad of [null, undefined, '', 'club', '//evil.com', '/\\evil.com', 'https://evil.com', '/signin', '/signin/callback', ' /club'])
-    assert.equal(safeNext(bad), '/', String(bad));
+    assert.equal(safeNext(bad), '/dashboard', String(bad));
 });

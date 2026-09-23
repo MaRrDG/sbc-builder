@@ -14,6 +14,7 @@ import { SetupGuide } from './components/SetupGuide';
 
 // the signed-in app loads after the sign-in screen, which stays small
 const App = lazy(() => import('./App'));
+const Landing = lazy(() => import('./landing/Landing'));
 
 const here = () => window.location.pathname + window.location.search;
 
@@ -33,12 +34,20 @@ export default function Root() {
     isSignedIn ? () => setRefused(true) : () => navigate(toSignIn(), true),
   );
 
-  const publicView = route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup';
+  const publicView = route.view === 'landing' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup';
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn && !publicView) navigate(toSignIn(), true);
     if (isSignedIn && route.view === 'signin') window.location.replace(safeNext(route.next));
   }, [isLoaded, isSignedIn, publicView, route]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // the landing page is for everyone and does not wait for Clerk
+  if (route.view === 'landing')
+    return (
+      <Suspense fallback={<div className="boot" aria-busy="true" />}>
+        <Landing signedIn={!!isSignedIn} navigate={navigate} />
+      </Suspense>
+    );
 
   if (!isLoaded) return <div className="boot" aria-busy="true" />;
 
@@ -48,10 +57,10 @@ export default function Root() {
         <span className="sr-only">{t('auth.finishing')}</span>
         <HandleSSOCallback
           navigateToApp={({ decorateUrl }) => {
-            window.location.replace(decorateUrl('/'));
+            window.location.replace(decorateUrl('/dashboard'));
           }}
-          navigateToSignIn={() => navigate(toSignIn('/'), true)}
-          navigateToSignUp={() => navigate(toSignIn('/'), true)}
+          navigateToSignIn={() => navigate(toSignIn('/dashboard'), true)}
+          navigateToSignUp={() => navigate(toSignIn('/dashboard'), true)}
         />
       </div>
     );
@@ -60,7 +69,7 @@ export default function Root() {
     const body =
       route.view === 'guide' ? <Guide clubSyncs={3} eaLimit={150} />
       : route.view === 'setup' ? <SetupGuide />
-      : <SignIn next={route.view === 'signin' ? safeNext(route.next) : '/'} onDone={(p) => window.location.replace(p)} />;
+      : <SignIn next={route.view === 'signin' ? safeNext(route.next) : '/dashboard'} onDone={(p) => window.location.replace(p)} />;
     return (
       <div className="onboarding">
         <div className="brand onboarding-top">
@@ -69,7 +78,7 @@ export default function Root() {
         </div>
         {route.view !== 'signin' && (
           <p>
-            <button type="button" className="text" onClick={() => navigate(toSignIn('/'))}>
+            <button type="button" className="text" onClick={() => navigate({ view: 'landing' })}>
               {t('auth.publicHome')}
             </button>
           </p>

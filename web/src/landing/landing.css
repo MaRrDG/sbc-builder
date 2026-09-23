@@ -1,0 +1,135 @@
+/* Landing page (/). Uses the tokens from styles.css; motion only on transform, translate,
+   opacity and registered properties; prefers-reduced-motion shows every final state. */
+.landing {
+  --gutter: clamp(16px, 4vw, 40px);
+  overflow-x: clip;
+}
+
+.lp-skip {
+  position: absolute;
+  left: 8px;
+  top: -48px;
+  z-index: 30;
+  padding: 8px 12px;
+  border-radius: var(--r-ctl);
+  background: var(--surface-2);
+}
+.lp-skip:focus-visible { top: 8px; }
+
+.lp-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 64px;
+  padding: 0 var(--gutter);
+  background: oklch(0.17 0.025 222 / 0.9);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(8px); /* sticky bar only, same as the app top bar */
+}
+.lp-logo { display: flex; border-radius: var(--r-ctl); }
+.lp-logo img { display: block; height: 32px; width: auto; }
+.lp-nav { display: flex; gap: 4px; margin-right: auto; }
+.lp-nav a,
+.lp-signin {
+  padding: 8px 12px;
+  border-radius: var(--r-ctl);
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: color 160ms var(--ease), background 160ms var(--ease);
+}
+.lp-nav a:hover,
+.lp-signin:hover { color: var(--ink); background: var(--surface-2); }
+.lp-top-end { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+.lp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 22px;
+  border-radius: var(--r-ctl);
+  background: var(--go);
+  color: var(--go-ink);
+  font: 700 17px/1 var(--font-num);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: transform 160ms var(--ease), filter 160ms var(--ease);
+}
+.lp-btn:hover { filter: brightness(1.06); transform: translateY(-1px); }
+.lp-btn:active { transform: translateY(1px); }
+.lp-btn-sm { height: 38px; padding: 0 14px; font-size: 15px; }
+.lp-btn:disabled { background: var(--surface-3); color: var(--ink-3); cursor: not-allowed; transform: none; filter: none; }
+
+.lp-link {
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--ink-3);
+  text-underline-offset: 4px;
+}
+.lp-link:hover { text-decoration-color: var(--ink); }
+
+.lp-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(72px, 12vw, 144px) var(--gutter);
+  scroll-margin-top: 64px;
+}
+.lp-kicker {
+  margin: 0 0 14px;
+  color: var(--ink-3);
+  font: 600 13px/1 var(--font-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lp-h2 {
+  margin: 0;
+  font: 700 clamp(34px, 4.6vw, 56px)/0.98 var(--font-num);
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+.lp-lede {
+  max-width: 52ch;
+  margin: 18px 0 0;
+  color: var(--ink-2);
+  font-size: 17px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* section reveal: .is-in comes from useInView */
+.lp-reveal { opacity: 0; translate: 0 24px; transition: opacity 600ms var(--ease), translate 600ms var(--ease); }
+.lp-reveal.is-in { opacity: 1; translate: 0 0; }
+
+.lp-footer {
+  display: grid;
+  gap: 16px;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 48px var(--gutter) 64px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: 13px;
+}
+.lp-footer nav { display: flex; flex-wrap: wrap; gap: 20px; }
+.lp-footer p { max-width: 70ch; margin: 0; }
+
+@media (max-width: 860px) {
+  .lp-nav { display: none; }
+  .lp-top { gap: 12px; }
+}
+@media (max-width: 480px) {
+  .lp-signin { display: none; }
+  .lp-logo img { height: 28px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing *,
+  .landing *::before,
+  .landing *::after { animation: none !important; transition: none !important; }
+  .lp-reveal { opacity: 1; translate: 0 0; }
+}
