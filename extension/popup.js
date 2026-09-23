@@ -1,10 +1,8 @@
 const $ = (id) => document.getElementById(id);
 $('version').textContent = `v${chrome.runtime.getManifest().version}`;
 
-function openUrl(server, keys) {
-  // Keys travel in the URL fragment, which browsers never send to the server.
-  return keys.length ? `${server}/#keys=${keys.join(',')}` : server;
-}
+/** FC Solver's own sign-in now identifies you; access keys stay inside the extension. */
+const openUrl = (server) => server;
 
 const LIVE_MS = 30 * 1000;
 
@@ -34,11 +32,11 @@ chrome.storage.onChanged.addListener(renderStatus);
 
 chrome.storage.local.get({ server: 'http://localhost:5178', keys: [], update: null }).then((s) => {
   $('server').value = s.server;
-  $('open').href = openUrl(s.server, s.keys);
+  $('open').href = openUrl(s.server);
   if (s.update) {
     $('update').hidden = false;
     $('update').textContent = `Update ${s.update.version} available. Open FC Solver to install it.`;
-    $('open').href = `${s.server}/?update=1${s.keys.length ? `#keys=${s.keys.join(',')}` : ''}`;
+    $('open').href = `${s.server}/?update=1`;
   }
 });
 
