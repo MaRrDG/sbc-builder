@@ -80,9 +80,21 @@ async function refreshBadge() {
 
 const JOB_LABEL = { club: 'Syncing club', sbc: 'Syncing SBC list', challenges: 'Syncing SBC challenges', challengeSquad: 'Reading SBC squad' };
 
-// the service worker sleeps; an alarm turns the dot red soon after the web app tab closes
-chrome.alarms.onAlarm.addListener((a) => a.name === 'badge' && refreshBadge());
+// the service worker sleeps; alarms turn the dot red when polls stop (a crashed tab, a lost message)
+chrome.alarms.onAlarm.addListener((a) => (a.name === 'badge' || a.name === 'badge-expire') && refreshBadge());
 const startAlarm = () => chrome.alarms.create('badge', { periodInMinutes: 0.5 });
+
+// Web app tabs that are polling. When the last one closes or leaves the web app the dot turns
+// red right away, instead of when the 30 s live window and the next alarm have both run out.
+async function webAppGone(tabId) {
+  const { webAppTabs = [] } = await chrome.storage.session.get('webAppTabs');
+  const left = webAppTabs.filter((id) => id !== tabId);
+  if (left.length === webAppTabs.length) return;
+  await chrome.storage.session.set({ webAppTabs: left });
+  if (!left.length) await chrome.storage.session.remove('lastPollOkAt');
+  await refreshBadge();
+}
+chrome.tabs.onRemoved.addListener((tabId) => void webAppGone(tabId));
 
 chrome.runtime.onStartup.addListener(() => {
   reportVersion();
@@ -190,9 +202,17 @@ async function api(path, init = {}) {
 }
 
 /** A web app tab asked for work and FC Solver answered: we are connected. */
-async function pollJobs() {
+async function pollJobs(tabId) {
   const res = await api('/api/jobs/next').catch(() => null);
-  if (res) await chrome.storage.session.set({ lastPollOkAt: Date.now() });
+  if (res) {
+    await chrome.storage.session.set({ lastPollOkAt: Date.now() });
+    // red exactly when the live window runs out if no poll follows
+    chrome.alarms.create('badge-expire', { when: Date.now() + LIVE_MS + 1000 });
+    if (Number.isInteger(tabId)) {
+      const { webAppTabs = [] } = await chrome.storage.session.get('webAppTabs');
+      if (!webAppTabs.includes(tabId)) await chrome.storage.session.set({ webAppTabs: [...webAppTabs, tabId] });
+    }
+  }
   if (res?.job) await setBusy({ label: JOB_LABEL[res.job.kind] ?? 'Syncing', jobId: res.job.id });
   else await refreshBadge();
   return res;
@@ -283,6 +303,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     chrome.storage.session.remove(['linkToken', 'linkTab']);
     return;
   }
+  if (msg?.type === 'webapp-closed') {
+    if (Number.isInteger(_sender.tab?.id)) webAppGone(_sender.tab.id);
+    return;
+  }
+  if (msg?.type === 'refresh-badge') {
+    refreshBadge();
+    return;
+  }
   if (msg?.type === 'identity' && Number.isInteger(msg.identity?.personaId)) {
     hello(msg.identity);
     return;
@@ -296,7 +324,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         await refreshBadge();
         return sendResponse({ needIdentity: true });
       }
-      sendResponse(await pollJobs());
+      sendResponse(await pollJobs(_sender.tab?.id));
     })();
     return true; // async response
   }

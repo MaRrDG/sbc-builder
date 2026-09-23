@@ -1,4 +1,7 @@
 {
+  "0.8.1": [
+    "The icon turns red as soon as you close the web app, no more green dot while not connected"
+  ],
   "0.8.0": [
     "Links your EA account to your FC Solver sign-in, so you see it on any device, phone included",
     "Access keys no longer travel in the FC Solver link"

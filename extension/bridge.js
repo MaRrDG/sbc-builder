@@ -24,6 +24,15 @@ function poll() {
 }
 setTimeout(poll, 3000);
 
+// closed, reloaded or navigated away: the toolbar dot turns red now, not up to a minute later
+window.addEventListener('pagehide', () => {
+  try {
+    chrome.runtime.sendMessage({ type: 'webapp-closed' }).catch(() => {});
+  } catch {
+    /* the extension was reloaded or removed */
+  }
+});
+
 // Update notice inside the web app. Shadow DOM keeps EA's styles and ours apart.
 function showUpdateNotice({ update, current, server }) {
   if (document.getElementById('sbc-builder-update')) return;
