@@ -136,19 +136,19 @@ export async function registerSession(
 let verifyWindow = { start: 0, count: 0 };
 
 /**
- * Extension 0.7+: the web app told the extension who is logged in.
+ * Extension 0.7+: the web app told the extension who is logged in. `proved`: this call checked a SID with EA.
  * With a key already held for that persona nothing reaches EA. Otherwise (new account or new
  * browser) the SID is sent once and proven with one /usermassinfo call, then thrown away.
  */
 export async function hello(opts: {
   key?: string | null; personaId?: number; sid?: string; contentGuid?: string; extVersion?: string;
-}): Promise<{ account: Account } | { needSid: true }> {
+}): Promise<{ account: Account; proved: boolean } | { needSid: true }> {
   if (opts.contentGuid) content.guid = opts.contentGuid;
   const byKey = accountByKey(opts.key);
   if (byKey && opts.personaId === byKey.id) {
     byKey.useClientMode(opts.extVersion);
     await byKey.save();
-    return { account: byKey };
+    return { account: byKey, proved: false };
   }
   if (!opts.sid) return { needSid: true };
   // proving sessions calls EA: a handful per minute is plenty for a friends' server
@@ -167,11 +167,15 @@ export async function hello(opts: {
   account.useClientMode(opts.extVersion);
   await account.meter.record('GET', '/usermassinfo', 200);
   await account.save();
-  return { account };
+  return { account, proved: true };
 }
 
 export function listAccounts() {
   return [...accounts.values()];
+}
+
+export function accountById(id: number): Account | null {
+  return accounts.get(id) ?? null;
 }
 
 function keyMatches(a: string, b: string) {

@@ -11,10 +11,15 @@ import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
 import { applySubmittedSbc, autoSyncAll, getChallenges, getStatus, markEdited, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, nextJob, webAppOpen } from './jobs.js';
-import { loadAccounts, registerSession, accountByKey, hello, type Account } from './accounts.js';
+import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
+import { initAuth, optionalSiteAccount, siteAccount, siteUser } from './auth.js';
+import { linkDecision } from './auth-rules.js';
+import { consumeLinkToken, createLinkToken, linkTokenUser, personaRow, personasOf, setOwner, unlinkPersona } from './db/users.js';
+import { eq } from 'drizzle-orm';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
-import { initDb } from './db/index.js';
+import { db, initDb } from './db/index.js';
+import { users } from './db/schema.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
 const app = Fastify({ logger: { level: 'warn' }, trustProxy: true });
@@ -24,8 +29,8 @@ app.addHook('onRequest', async (req, reply) => {
   const origin = req.headers.origin;
   if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('http://localhost'))) {
     reply.header('Access-Control-Allow-Origin', origin);
-    reply.header('Access-Control-Allow-Headers', 'Content-Type, X-Account-Key');
-    reply.header('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    reply.header('Access-Control-Allow-Headers', 'Content-Type, X-Account-Key, Authorization, X-Persona');
+    reply.header('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   }
   if (req.method === 'OPTIONS') return reply.code(204).send();
 });
@@ -44,7 +49,7 @@ const keyOf = (req: FastifyRequest) => {
   return Array.isArray(k) ? k[0] : k;
 };
 
-/** Account for this request, identified by its secret access key. */
+/** Extension requests: the account behind its secret access key. */
 function account(req: FastifyRequest): Account {
   const acc = accountByKey(keyOf(req));
   if (!acc) throw new SessionError('Unknown account. Connect through the extension first.', 401, 'unknownAccount');
@@ -65,14 +70,45 @@ app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('
   return { ok: true, account: acc, accessKey: acc.info.accessKey };
 });
 
-/** Which of the browser's stored keys are valid, and whose accounts they are. */
-app.post<{ Body: { keys: string[] } }>('/api/accounts', async (req) => {
-  const keys = (req.body?.keys ?? []).slice(0, 20);
-  return { accounts: keys.flatMap((key) => { const a = accountByKey(key); return a ? [{ key, account: a }] : []; }) };
+// ---- users (site, Clerk session) --------------------------------------------------
+/** Who is signed in and which EA personas they own. */
+app.get('/api/me', async (req) => {
+  const userId = await siteUser(req);
+  const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+  const personas = (await personasOf(userId)).flatMap((id) => {
+    const a = accountById(id);
+    return a ? [a.toJSON()] : [];
+  });
+  return { user: { id: userId, email: row?.email ?? '' }, personas };
+});
+
+/** One-time migration of solver settings saved under old browser keys: key prefix -> persona, own personas only. */
+app.post<{ Body: { keys?: string[] } }>('/api/me/legacy-keys', async (req) => {
+  const userId = await siteUser(req);
+  const mine = new Set(await personasOf(userId));
+  const map: Record<string, number> = {};
+  for (const key of (req.body?.keys ?? []).slice(0, 20)) {
+    const a = typeof key === 'string' ? accountByKey(key) : null;
+    if (a && mine.has(a.id)) map[key.slice(0, 8)] = a.id;
+  }
+  return { map };
+});
+
+/** A short-lived token the site hands the extension, so its next hello links the persona to this user. */
+app.post('/api/link-token', async (req) => {
+  const userId = await siteUser(req);
+  return { token: await createLinkToken(userId), expiresIn: 600 };
+});
+
+app.delete<{ Params: { id: string } }>('/api/personas/:id', async (req, reply) => {
+  const userId = await siteUser(req);
+  const ok = await unlinkPersona(Number(req.params.id), userId);
+  if (!ok) return reply.code(404).send({ error: 'not linked to you' });
+  return { ok: true };
 });
 
 app.get('/api/status', async (req) => {
-  const acc = account(req);
+  const acc = await siteAccount(req);
   return { account: acc, sync: await getStatus(acc), extension: await latestExtension() };
 });
 
@@ -92,14 +128,14 @@ app.post<{ Body: { version: string } }>('/api/extension/report', async (req, rep
 });
 
 app.post<{ Body: { what: 'club' | 'sbc' | 'all' } }>('/api/sync', async (req) => {
-  const acc = account(req);
+  const acc = await siteAccount(req);
   await requestSync(acc, req.body?.what ?? 'all');
   return getStatus(acc);
 });
 
 /** Read a started challenge's squad (locked slots, placed players) through the web app tab. */
 app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, reply) => {
-  const acc = account(req);
+  const acc = await siteAccount(req);
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return reply.code(400).send({ error: 'invalid challenge' });
   if (!acc.clientMode || !webAppOpen(acc))
@@ -111,8 +147,8 @@ app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, rep
 
 // ---- extension 0.7+: identity and sync jobs run in the web app tab ------------------
 /** The web app says who is logged in. A held key is enough; otherwise the SID proves it once (not stored). */
-app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVersion?: string } }>('/api/hello', async (req, reply) => {
-  const { personaId, sid, contentGuid, extVersion } = req.body ?? {};
+app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVersion?: string; linkToken?: string } }>('/api/hello', async (req, reply) => {
+  const { personaId, sid, contentGuid, extVersion, linkToken } = req.body ?? {};
   if (sid !== undefined && !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
   const r = await hello({
     key: keyOf(req),
@@ -122,7 +158,19 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     extVersion: extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined,
   });
   if ('needSid' in r) return reply.code(401).send({ error: 'unknown account', needSid: true });
-  return { ok: true, account: r.account, accessKey: r.account.info.accessKey };
+  // a signed-in site handed the extension a link token: attach this persona to that user
+  const token = typeof linkToken === 'string' && /^[\w-]{20,100}$/.test(linkToken) ? linkToken : null;
+  const userId = token ? await linkTokenUser(token) : null;
+  let linked: number | null = null;
+  if (userId) {
+    const decision = linkDecision((await personaRow(r.account.id))?.userId ?? null, userId, r.proved);
+    // owned by someone else: only a fresh EA proof moves it; the token stays usable for the resend
+    if (decision === 'needSid') return reply.code(401).send({ error: 'EA account linked to another user', needSid: true });
+    if (decision !== 'already') await setOwner(r.account.id, userId);
+    await consumeLinkToken(token!);
+    linked = r.account.id;
+  }
+  return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked, linkRejected: !!token && !userId };
 });
 
 /** Next sync job for the web app tab (null when idle). Polling also marks the tab as open. */
@@ -192,7 +240,7 @@ app.get('/api/extension.zip', async (req, reply) => {
 
 // ---- data -------------------------------------------------------------------
 app.get('/api/meta', async (req) => {
-  const acc = accountByKey(keyOf(req));
+  const acc = await optionalSiteAccount(req);
   const m = acc ? await metaFor(acc) : await loadMeta();
   return {
     names: { nation: m.names.nation, league: m.names.league, club: m.names.club, rarity: m.names.rarity },
@@ -209,15 +257,15 @@ async function clubPlayers(acc: Account) {
   return { fetchedAt: club?.fetchedAt ?? null, players: (club?.data ?? []).map((i) => toPlayer(i, meta)), squad };
 }
 
-app.get('/api/club', (req) => clubPlayers(account(req)));
+app.get('/api/club', async (req) => clubPlayers(await siteAccount(req)));
 
 app.get('/api/sets', async (req) => {
-  const sets = await readCache<SetsData>(account(req).key('sets'));
+  const sets = await readCache<SetsData>((await siteAccount(req)).key('sets'));
   return { fetchedAt: sets?.fetchedAt ?? null, categories: sets?.data.categories ?? [] };
 });
 
 app.get<{ Params: { id: string }; Querystring: { refresh?: string } }>('/api/sets/:id/challenges', async (req) => {
-  const acc = account(req);
+  const acc = await siteAccount(req);
   const meta = await metaFor(acc);
   const ch = await getChallenges(acc, Number(req.params.id), req.query.refresh === '1');
   return {
@@ -253,7 +301,7 @@ const DEFAULT_OPTIONS: SolveOptions = {
 app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOptions>; deep?: boolean } }>(
   '/api/solve',
   async (req, reply) => {
-    const acc = account(req);
+    const acc = await siteAccount(req);
     const meta = await metaFor(acc);
     const { setId, challengeId } = req.body;
     const ch = (await getChallenges(acc, setId))?.data.find((c) => c.challengeId === challengeId);
@@ -330,8 +378,9 @@ app.setNotFoundHandler((req, reply) => {
 
 try {
   await initDb();
+  initAuth();
 } catch (e) {
-  console.error(`[db] cannot start: ${(e as Error).message}`);
+  console.error(`[startup] cannot start: ${(e as Error).message}`);
   process.exit(1);
 }
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
