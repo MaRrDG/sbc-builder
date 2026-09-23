@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FC Solver \u2013 Session Bridge",
-  "version": "0.7.5",
+  "version": "0.8.0",
   "description": "Connects the FC27 web app to FC Solver. Every request to EA is made from your web app tab.",
   "icons": {
     "16": "icons/icon-16.png",
@@ -17,6 +17,7 @@
   "host_permissions": [
     "https://utas.mob.v1.prd.futc-ext.gcp.ea.com/*",
     "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/*",
+    "https://sbc-builder.mario-theodor.ro/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
   ],
@@ -50,6 +51,19 @@
         "bridge.js"
       ],
       "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "https://sbc-builder.mario-theodor.ro/*",
+        "http://localhost:5173/*",
+        "http://127.0.0.1:5173/*",
+        "http://localhost:5178/*",
+        "http://127.0.0.1:5178/*"
+      ],
+      "js": [
+        "site.js"
+      ],
+      "run_at": "document_idle"
     }
   ]
 }

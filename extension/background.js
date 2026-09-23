@@ -112,14 +112,16 @@ chrome.webRequest.onSendHeaders.addListener(
 async function hello(identity) {
   const { server, contentGuid, keys, personaKeys = {} } = { ...(await state()), ...(await chrome.storage.local.get('personaKeys')) };
   const { sid, helloFor } = await chrome.storage.session.get(['sid', 'helloFor']);
+  const { linkToken, linkTab } = await chrome.storage.session.get(['linkToken', 'linkTab']);
+  await chrome.storage.session.set({ lastIdentity: identity });
   const marker = `${identity.personaId}:${sid ?? ''}`;
   const { accessKey } = await state();
-  if (helloFor === marker && accessKey) return; // already introduced this session
+  if (helloFor === marker && accessKey && !linkToken) return; // already introduced this session
   const send = (extra, key) =>
     fetch(`${server}/api/hello`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Account-Key': key } : {}) },
-      body: JSON.stringify({ personaId: identity.personaId, contentGuid, extVersion: VERSION, ...extra }),
+      body: JSON.stringify({ personaId: identity.personaId, contentGuid, extVersion: VERSION, ...(linkToken ? { linkToken } : {}), ...extra }),
     });
   await setBusy({ label: 'Connecting' });
   try {
@@ -144,6 +146,10 @@ async function hello(identity) {
       connectedAs: `${body.account.personaName} · ${body.account.clubName}`,
       lastAt: Date.now(),
     });
+    if (body.linked || body.linkRejected) {
+      await chrome.storage.session.remove(['linkToken', 'linkTab']);
+      if (body.linked && linkTab) chrome.tabs.sendMessage(linkTab, { type: 'linked', personaId: body.linked }).catch(() => {});
+    }
     await chrome.storage.session.set({ helloFor: marker });
     await pollJobs(); // connected right away, without waiting for the tab's next poll
   } catch {
@@ -252,6 +258,19 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === 'dismiss-update') {
     chrome.storage.local.set({ dismissedUpdate: msg.version });
+    return;
+  }
+  if (msg?.type === 'link-token' && typeof msg.token === 'string') {
+    (async () => {
+      await chrome.storage.session.set({ linkToken: msg.token, linkTab: _sender.tab?.id ?? null });
+      await chrome.storage.session.remove('helloFor');
+      const { lastIdentity } = await chrome.storage.session.get('lastIdentity');
+      if (lastIdentity) await hello(lastIdentity); // web app already open: link now, not on its next load
+    })();
+    return;
+  }
+  if (msg?.type === 'unlink') {
+    chrome.storage.session.remove(['linkToken', 'linkTab']);
     return;
   }
   if (msg?.type === 'identity' && Number.isInteger(msg.identity?.personaId)) {

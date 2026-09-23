@@ -10,6 +10,7 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 | `background.js` | service worker | session bridge, SBC submit tracking, relaying page events, update check |
 | `hook.js` | the web app page (MAIN world) | reads the web app's own responses for packs and item moves |
 | `bridge.js` | the web app page (isolated world) | relays `hook.js` messages to the worker; shows the update notice |
+| `site.js` | FC Solver pages (isolated world) | hands the signed-in site's link token to the worker (0.8+) |
 | `popup.html` / `popup.js` | toolbar popup | status, server address, **Open FC Solver** |
 | `release.json` | server only | release notes per version (not shipped in the zip) |
 
@@ -29,7 +30,21 @@ The extension is **connected** when a web app tab polled FC Solver successfully 
 
 ## Access keys and "Open FC Solver"
 
-The popup opens `<server>/#keys=<key1>,<key2>`. The fragment is never sent to the server; the UI moves the keys to `localStorage` and cleans the address bar.
+Access keys stay inside the extension (`X-Account-Key` on its own requests). Since 0.8 the popup opens plain `<server>` (or `<server>/?update=1`); you sign in to FC Solver itself, and the site finds your EA accounts through `/api/me`. Older versions opened `<server>/#keys=…`; the site still reads such keys once, only to move saved solver settings to the persona.
+
+## Linking to a FC Solver user (0.8+)
+
+`site.js` runs on the FC Solver origins (`https://sbc-builder.mario-theodor.ro`, `localhost` / `127.0.0.1` on `:5173` and `:5178`). Messages go through `window.postMessage` on the page's own origin; both sides check `event.source`, `event.origin` and the `source` field.
+
+| From → to | Message |
+|---|---|
+| site → extension | `{ source: 'fcsolver-site', type: 'fcsolver:hello' }` (are you there?), `'fcsolver:link'` with `token`, `'fcsolver:unlink'` (signed out) |
+| extension → site | `{ source: 'fcsolver-ext', type: 'fcsolver:present' }`, `'fcsolver:linked'` with `personaId` |
+| `site.js` ↔ worker | runtime messages `link-token` (`token`), `unlink`, `linked` (`personaId`, sent to the tab that gave the token) |
+
+While signed in, the site asks `POST /api/link-token` when the extension is present and every 9 minutes after (tokens live 10). The worker keeps the token in `chrome.storage.session` (with the tab it came from) and sends it as `linkToken` with the next `/api/hello`; if the web app already told it who is logged in, it says hello again right away. The token is dropped once the answer has `linked` or `linkRejected`. A persona that belongs to another FC Solver user answers `needSid`: the worker resends once with the SID, EA confirms the persona (`/usermassinfo`), and it moves to the new user. Sign-out posts `fcsolver:unlink`, which forgets an unused token; existing links stay.
+
+A custom server address set in the popup does not auto-link: content script matches are fixed in the manifest.
 
 ## Server address
 

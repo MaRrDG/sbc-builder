@@ -1,4 +1,8 @@
 {
+  "0.8.0": [
+    "Links your EA account to your FC Solver sign-in, so you see it on any device, phone included",
+    "Access keys no longer travel in the FC Solver link"
+  ],
   "0.7.5": [
     "Requests to EA wait in one queue with a short pause between them and never overlap the web app's own",
     "Yellow status while connecting or syncing"
