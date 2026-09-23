@@ -36,3 +36,6 @@ export const DEMO_SQUAD: Player[] = [
   p(278046, 'Pau Cubarsí', 'Pau Cubarsí', 86, 'CB', ['CB'], 241, 53, 45),
   p(252154, 'Carnesecchi', 'Marco Carnesecchi', 86, 'GK', ['GK'], 115845, 31, 27),
 ];
+
+/** SBC names for the "How it works" demo; EA content, so shown as EA writes it (not translated). */
+export const DEMO_SETS = ['Marquee Matchups', 'Premier League Upgrade', 'Daily Bronze Upgrade', 'Hybrid Leagues', 'First XI'];

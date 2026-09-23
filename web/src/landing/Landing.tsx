@@ -1,6 +1,6 @@
 // Public landing page (/): what FC Solver does and why it beats market-price solvers.
 // Lazy-loaded by Root for everyone (signed in or not); the app itself lives under /dashboard.
-import type { MouseEvent, ReactNode } from 'react';
+import { useEffect, type MouseEvent, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { routePath, type Route } from '../route';
@@ -18,6 +18,11 @@ interface Props {
 
 export default function Landing({ signedIn, navigate }: Props) {
   const { t, lang, setLang } = useI18n();
+  // the page is lazy-loaded, so the browser's own jump to /#why happened before the section existed
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (id) document.getElementById(id)?.scrollIntoView();
+  }, []);
   /** A real link (open in new tab works) that navigates in place on a plain click. */
   const link = (r: Route, className: string, children: ReactNode) => (
     <a

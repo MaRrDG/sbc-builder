@@ -1,10 +1,11 @@
-// Landing motion helpers. Both do nothing under prefers-reduced-motion (the CSS then shows the final state).
+// Landing motion helpers. useInView and useTilt do nothing under prefers-reduced-motion (the CSS then shows the final state).
 import { useEffect, useState, type RefObject } from 'react';
 
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp = (n: number) => Math.max(-0.5, Math.min(0.5, n));
 
-/** True once the element has been on screen; stays true. Reduced motion or no IntersectionObserver: true at once. */
+/** True once the element has been on screen in a visible tab (lets its motion play once); stays true.
+ *  Reduced motion or no IntersectionObserver: true at once (the CSS then shows the final state). */
 export function useInView(ref: RefObject<Element | null>): boolean {
   const [seen, setSeen] = useState(false);
   useEffect(() => {
@@ -14,14 +15,17 @@ export function useInView(ref: RefObject<Element | null>): boolean {
       setSeen(true);
       return;
     }
+    // "Seen" also when the element is already above the viewport (an anchor jump past it, a reload
+    // mid-page): otherwise content scrolled past without intersecting would never show its final state.
     const io = new IntersectionObserver(
       ([e]) => {
-        if (e.isIntersecting) {
-          setSeen(true);
+        if (e.isIntersecting || e.boundingClientRect.bottom < 0) {
+          // a hidden tab would hold the motion on its first frame; there the final state just stays
+          if (document.visibilityState === 'visible') setSeen(true);
           io.disconnect();
         }
       },
-      { rootMargin: '0px 0px -15% 0px' },
+      { rootMargin: '0px 0px -10% 0px' },
     );
     io.observe(el);
     return () => io.disconnect();
@@ -55,4 +59,22 @@ export function useTilt(ref: RefObject<HTMLElement | null>, max = 7) {
       document.documentElement.removeEventListener('pointerleave', onLeave);
     };
   }, [ref, max]);
+}
+
+/** Index of the element crossing the middle band of the viewport (the step "in focus"). Starts at 0. */
+export function useActiveIndex(refs: RefObject<(Element | null)[]>): number {
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    const els = (refs.current ?? []).filter((e): e is Element => !!e);
+    if (!els.length || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) if (e.isIntersecting) setActive(els.indexOf(e.target));
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    );
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [refs]);
+  return active;
 }
