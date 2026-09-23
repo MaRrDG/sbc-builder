@@ -9,7 +9,7 @@ import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
-import { applySubmittedSbc, autoSyncAll, getChallenges, getStatus, markEdited, requestSync, type SetsData } from './sync.js';
+import { applySubmittedSbc, autoSyncAll, autoSyncSoon, getChallenges, getStatus, markEdited, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, nextJob, webAppOpen } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteUser } from './auth.js';
@@ -64,7 +64,7 @@ app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('
   if (!sid || !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
   const guid = contentGuid && /^[0-9A-F-]{36}$/i.test(contentGuid) ? contentGuid : undefined;
   const version = extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined;
-  // no sync here: the minute ticker runs it once the session is a few minutes old (see autoSync)
+  // no sync here: the minute ticker runs it once the session is a few seconds old (see autoSync)
   const { account: acc } = await registerSession(sid, guid, version);
   // The key goes back only to the extension that proved it holds a live session.
   return { ok: true, account: acc, accessKey: acc.info.accessKey };
@@ -158,6 +158,7 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     extVersion: extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined,
   });
   if ('needSid' in r) return reply.code(401).send({ error: 'unknown account', needSid: true });
+  autoSyncSoon(r.account); // a day's club / SBC sync missed while offline runs right away
   // a signed-in site handed the extension a link token: attach this persona to that user
   const token = typeof linkToken === 'string' && /^[\w-]{20,100}$/.test(linkToken) ? linkToken : null;
   const userId = token ? await linkTokenUser(token) : null;

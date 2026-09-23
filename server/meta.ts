@@ -1,5 +1,5 @@
 // Static game metadata: names, formations, chemistry rules, card rarity art.
-// Comes from the public content CDN, cached on disk (refreshed with the 24h sync).
+// Comes from the public content CDN, cached on disk (refreshed with the daily club sync).
 import { content, type ChemProfilesResponse } from './ea.js';
 import { readCache, writeCache, isStale, DAY_MS, type Cached } from './store.js';
 import teamLinks from './data/teamLinks.json' with { type: 'json' };
