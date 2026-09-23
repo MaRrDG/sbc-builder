@@ -30,7 +30,7 @@ The extension is **connected** when a web app tab polled FC Solver successfully 
 
 ## Access keys and "Open FC Solver"
 
-Access keys stay inside the extension (`X-Account-Key` on its own requests). Since 0.8 the popup opens plain `<server>` (or `<server>/?update=1`); you sign in to FC Solver itself, and the site finds your EA accounts through `/api/me`. Older versions opened `<server>/#keys=…`; the site still reads such keys once, only to move saved solver settings to the persona.
+Access keys stay inside the extension (`X-Account-Key` on its own requests). Since 0.8 the popup opens `<server>/dashboard` (or `<server>/dashboard?update=1`); you sign in to FC Solver itself, and the site finds your EA accounts through `/api/me`. Older versions opened `<server>/#keys=…`; `/` with that hash (or an `?update=1` query) still routes straight to the app instead of the landing page, and the site reads the keys once, only to move saved solver settings to the persona.
 
 ## Linking to a FC Solver user (0.8+)
 

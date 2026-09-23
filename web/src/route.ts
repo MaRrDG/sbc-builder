@@ -22,10 +22,15 @@ export type Route =
 
 const id = (s: string | undefined) => (s && /^\d+$/.test(s) ? Number(s) : null);
 
-export function parseRoute(path: string, search = ''): Route {
+export function parseRoute(path: string, search = '', hash = ''): Route {
   const parts = path.split('/').filter(Boolean);
   const [a, b] = parts;
-  if (a === undefined) return { view: 'landing' };
+  if (a === undefined) {
+    // extension links land on `/`: `?update=1` (0.8+, see extension/bridge.js) or a `#keys=…` hash
+    // (pre-0.8, see web/src/legacy.ts) both mean "open the app", not the landing page
+    if (new URLSearchParams(search).has('update') || /keys=/.test(hash)) return { view: 'sbcs', setId: null, challengeId: null };
+    return { view: 'landing' };
+  }
   if (a === 'signin') return b === 'callback' ? { view: 'ssoCallback' } : { view: 'signin', next: new URLSearchParams(search).get('next') ?? '/dashboard' };
   if (a === 'setup') return { view: 'setup' };
   if (a === 'guide') return { view: 'guide' };
@@ -66,15 +71,16 @@ export function canonicalPath(r: Route, pathname: string): string | null {
 }
 
 const here = (): Route => {
-  const r = parseRoute(window.location.pathname, window.location.search);
+  const r = parseRoute(window.location.pathname, window.location.search, window.location.hash);
   const fixed = canonicalPath(r, window.location.pathname);
-  if (fixed) history.replaceState(history.state, '', fixed + window.location.search);
+  // keep the hash (e.g. #keys=… for legacy.ts, or a section anchor) when rewriting the address bar
+  if (fixed) history.replaceState(history.state, '', fixed + window.location.search + window.location.hash);
   return r;
 };
 
 /** Current route plus navigate(route, replace?). Back / Forward update it through popstate. */
 export function useRoute(): [Route, (r: Route, replace?: boolean) => void] {
-  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.pathname, window.location.search));
+  const [route, setRoute] = useState<Route>(() => parseRoute(window.location.pathname, window.location.search, window.location.hash));
 
   useEffect(() => {
     here(); // old bookmark (/club, /sbc/16) → /dashboard/...

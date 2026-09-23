@@ -36,3 +36,14 @@ test('canonicalPath rewrites old app URLs only', () => {
   assert.equal(canonicalPath(parseRoute('/'), '/'), null);
   assert.equal(canonicalPath(parseRoute('/signin', '?next=%2Fclub'), '/signin'), null);
 });
+
+test('extension links on / open the app, not the landing page', () => {
+  // 0.8+ extension: popup.js and bridge.js open `<server>/?update=1`
+  assert.deepEqual(parseRoute('/', '?update=1'), { view: 'sbcs', setId: null, challengeId: null });
+  assert.equal(canonicalPath(parseRoute('/', '?update=1'), '/'), '/dashboard');
+  // pre-0.8 extension: web app opened `<server>/#keys=…` (see legacy.ts)
+  assert.deepEqual(parseRoute('/', '', '#keys=abc123'), { view: 'sbcs', setId: null, challengeId: null });
+  // plain `/` is still the landing page
+  assert.deepEqual(parseRoute('/'), { view: 'landing' });
+  assert.deepEqual(parseRoute('/', '?foo=1'), { view: 'landing' });
+});
