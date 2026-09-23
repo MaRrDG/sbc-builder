@@ -8,6 +8,13 @@
       "when": 1790148486094,
       "tag": "0000_elite_pride",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790150721823,
+      "tag": "0001_fair_dragon_lord",
+      "breakpoints": true
     }
   ]
 }
