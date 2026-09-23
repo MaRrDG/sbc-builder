@@ -93,5 +93,4 @@ export async function challengeLayout(acc: Account, challengeId: number): Promis
   return layout;
 }
 
-/** Brick challenges have locked slots we must know before solving. */
-export const isBrickChallenge = (type: string | undefined) => !!type && type.toUpperCase().includes('BRICK');
+export { isBrickChallenge } from './bricks.js';

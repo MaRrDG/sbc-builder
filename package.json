@@ -10,7 +10,8 @@
     "build": "vite build",
     "start": "NODE_ENV=production tsx server/index.ts",
     "typecheck": "tsc --noEmit",
-    "i18n:check": "tsx scripts/i18n-check.ts"
+    "i18n:check": "tsx scripts/i18n-check.ts",
+    "test": "node --import tsx --test 'server/**/*.test.ts'"
   },
   "dependencies": {
     "@fastify/static": "^10.1.4",
