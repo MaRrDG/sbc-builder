@@ -1,4 +1,7 @@
 {
+  "0.8.2": [
+    "\"Open FC Solver\" and the update links now go straight to the dashboard, since / is now the public landing page"
+  ],
   "0.8.1": [
     "The icon turns red as soon as you close the web app, no more green dot while not connected"
   ],

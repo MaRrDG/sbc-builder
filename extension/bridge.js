@@ -57,7 +57,7 @@ function showUpdateNotice({ update, current, server }) {
         <div><b>FC Solver ${update.version}</b> is out (you have ${current}).</div>
         ${update.notes?.length ? `<div class="notes">${update.notes.map((n) => n.replace(/[<>&]/g, '')).join(' · ')}</div>` : ''}
       </div>
-      <a href="${server}/?update=1" target="_blank" rel="noreferrer">How to update</a>
+      <a href="${server}/dashboard?update=1" target="_blank" rel="noreferrer">How to update</a>
       <button type="button" aria-label="Dismiss">Later</button>
     </div>`;
   root.querySelector('button').onclick = () => {

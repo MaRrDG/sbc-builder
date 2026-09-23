@@ -1,8 +1,9 @@
 const $ = (id) => document.getElementById(id);
 $('version').textContent = `v${chrome.runtime.getManifest().version}`;
 
-/** FC Solver's own sign-in now identifies you; access keys stay inside the extension. */
-const openUrl = (server) => server;
+/** FC Solver's own sign-in now identifies you; access keys stay inside the extension.
+ *  The app lives under /dashboard now (/ is the public landing page). */
+const openUrl = (server) => `${server}/dashboard`;
 
 const LIVE_MS = 30 * 1000;
 
@@ -37,7 +38,7 @@ chrome.storage.local.get({ server: 'http://localhost:5178', keys: [], update: nu
   if (s.update) {
     $('update').hidden = false;
     $('update').textContent = `Update ${s.update.version} available. Open FC Solver to install it.`;
-    $('open').href = `${s.server}/?update=1`;
+    $('open').href = `${s.server}/dashboard?update=1`;
   }
 });
 
@@ -45,7 +46,7 @@ $('save').onclick = async () => {
   const server = $('server').value.replace(/\/$/, '');
   await chrome.storage.local.set({ server, keys: [], accessKey: null, personaKeys: {}, connectedAs: null });
   await chrome.storage.session.remove('helloFor');
-  $('open').href = server;
+  $('open').href = openUrl(server);
   await chrome.storage.session.remove('lastPollOkAt');
   await chrome.storage.local.set({ lastStatus: 'Saved. Reload the FC web app to reconnect.', lastAt: Date.now() });
 };
