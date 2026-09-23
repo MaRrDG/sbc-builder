@@ -6,7 +6,7 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 
 | File | Runs in | Job |
 |---|---|---|
-| `manifest.json` | | MV3 manifest; `webRequest` + `storage` + `alarms`, host access to the web app, UTAS and the FC Solver server |
+| `manifest.json` | | MV3 manifest; `webRequest` + `storage` + `alarms` + `scripting`, host access to the web app, UTAS and the FC Solver server |
 | `background.js` | service worker | session bridge, SBC submit tracking, relaying page events, update check |
 | `hook.js` | the web app page (MAIN world) | reads the web app's own responses for packs and item moves |
 | `bridge.js` | the web app page (isolated world) | relays `hook.js` messages to the worker; shows the update notice |
@@ -43,6 +43,8 @@ Access keys stay inside the extension (`X-Account-Key` on its own requests). Sin
 | `site.js` ↔ worker | runtime messages `link-token` (`token`), `unlink`, `linked` (`personaId`, sent to the tab that gave the token) |
 
 While signed in, the site asks `POST /api/link-token` when the extension is present and every 9 minutes after (tokens live 10). The worker keeps the token in `chrome.storage.session` (with the tab it came from) and sends it as `linkToken` with the next `/api/hello`; if the web app already told it who is logged in, it says hello again right away. The token is dropped once the answer has `linked` or `linkRejected`. A persona that belongs to another FC Solver user answers `needSid`: the worker resends once with the SID, EA confirms the persona (`/usermassinfo`), and it moves to the new user. Sign-out posts `fcsolver:unlink`, which forgets an unused token; existing links stay.
+
+On install or update the worker also injects `site.js` into FC Solver tabs that were already open (`scripting` permission), so a tab opened before the extension links without a reload.
 
 A custom server address set in the popup does not auto-link: content script matches are fixed in the manifest.
 
