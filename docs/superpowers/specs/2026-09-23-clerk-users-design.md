@@ -30,21 +30,22 @@ Non-goals: subscriptions, Clerk webhooks, deleting a FC Solver account, admin ro
 | Table | Columns |
 |---|---|
 | `users` | `id` text PK (Clerk user id), `email` text, `created_at`, `last_seen_at` timestamptz |
-| `personas` | `persona_id` bigint PK, `user_id` text → `users`, `linked_at` timestamptz |
+| `personas` | `persona_id` bigint PK, `user_id` text → `users`, `previous_user_id` text nullable, `linked_at` timestamptz |
 | `link_tokens` | `token_hash` text PK (SHA-256), `user_id` → `users`, `expires_at` timestamptz, `used_at` timestamptz nullable |
 
-- `personas.persona_id` as PK enforces one owner. A takeover updates `user_id` and `linked_at`.
+- `personas.persona_id` as PK enforces one owner. A takeover sets `previous_user_id` to the old owner and updates `user_id` and `linked_at`; that is how the server tells `err.personaTakenOver` (you owned it) from `err.personaNotYours`.
+- Link tokens are checked and consumed atomically in SQL (`used_at is null and expires_at > now()`).
 - Per-persona data (club, squad, progress, meter, keys) stays in `data/accounts/<personaId>/`.
 - Sub-project 3 adds its own subscription columns to `users`; nothing subscription-related is added now.
 - Expired / used link tokens may be deleted by the server (they are not history).
 
 ## Linking the extension
 
-Extension 0.8.0 (bump `manifest.json` + `release.json`) adds a content script `site.js` on `https://sbc-builder.mario-theodor.ro/*`, `http://localhost:5173/*`, `http://127.0.0.1:5173/*`.
+Extension 0.8.0 (bump `manifest.json` + `release.json`) adds a content script `site.js` on `https://sbc-builder.mario-theodor.ro/*`, `http://localhost:5173/*`, `http://127.0.0.1:5173/*`, `http://localhost:5178/*`, `http://127.0.0.1:5178/*` (local production build).
 
 1. Signed in, the site calls `POST /api/link-token` (Clerk auth) and gets a random token; the server stores only its hash, valid 10 minutes, single use.
 2. The site posts `window.postMessage({ type: 'fcsolver:link', token }, location.origin)`; `site.js` checks the event origin and source and forwards it to `background.js`, which keeps it until used.
-3. On the next `/api/hello` (web app open), the extension adds `linkToken`. The server marks the token used and decides (pure function, `server/auth-rules.ts`):
+3. On the next `/api/hello` (web app open), the extension adds `linkToken`. The server looks the token up (valid and unused), decides, and consumes it only when the persona is linked (a `needSid` answer leaves it usable for the resend). The decision is (pure function, `server/auth-rules.ts`):
    - persona unowned or already this user's → link (holding the persona key is the proof);
    - persona owned by another user and no SID in this request → answer `needSid` (existing flow); the extension resends with the SID once, EA confirms the persona via `/usermassinfo` (metered), then `user_id` moves to the new user;
    - token unknown / expired / used → ignored for linking (hello still succeeds), extension drops it.
@@ -57,7 +58,7 @@ Extension 0.8.0 (bump `manifest.json` + `release.json`) adds a content script `s
 
 ## Web UI
 
-- Clerk React SDK only for `ClerkProvider` (`web/src/main.tsx`) and the hooks `useSignIn`, `useSignUp`, `useAuth`, `useUser`. Exact package and version are pinned in the plan from the current Clerk docs. `VITE_CLERK_PUBLISHABLE_KEY` from `.env`.
+- Clerk React SDK `@clerk/react` 6.x only for `ClerkProvider` (`web/src/main.tsx`), the hooks `useSignIn`, `useSignUp` (the v6 signal API: `signIn.emailCode.sendCode`, `signIn.sso`, `signIn.finalize`, `signUp.verifications.*`), `useAuth`, `useClerk`, and the headless `HandleSSOCallback` on `/signin/callback` (renders nothing of its own except a captcha when Clerk demands one). Server: `@clerk/backend` 3.x. `VITE_CLERK_PUBLISHABLE_KEY` from the repo-root `.env` (Vite `envDir: '..'`, since Vite's root is `web/`).
 - New route `/signin` (+ `/signin/callback` for the Google OAuth redirect) in `route.ts`, screen `web/src/components/SignIn.tsx`, EA look (dark teal, 14px containers, 8px controls):
   - step 1: "Continue with Google", divider, email field + "Send code" (`--go`, primary action);
   - step 2: 6-digit code field (`autocomplete="one-time-code"`), "Resend code" (30 s cooldown), "Change email";
@@ -67,7 +68,7 @@ Extension 0.8.0 (bump `manifest.json` + `release.json`) adds a content script `s
 - Signed in: avatar / initial in the top bar (inside the hamburger menu under 860px). Settings gets an "Account" section: email, "Sign out", linked personas each with "Disconnect persona" (inline confirmation, no `confirm()`).
 - The persona picker stays; its list comes from `GET /api/me` (`{ user: { id, email }, personas: [{ personaId, personaName, clubName, session, … }] }`) instead of stored keys. The chosen persona goes in `X-Persona`.
 - `api.ts`: requests get the token via `getToken()`; on 401 retry once with a fresh token, then go to `/signin?next=…`; on `err.personaNotYours` / `err.personaTakenOver` reload `/api/me` (takeover shows a one-time banner).
-- On first load the site deletes `localStorage['sbc-account-keys']` and ignores `#keys=` (scrubbing it from the URL). The extension popup no longer adds `#keys=` to "Open FC Solver".
+- Old browser keys (`localStorage['sbc-account-keys']`, `#keys=` scrubbed from the URL) are only used once more, to keep solver settings: the signed-in site sends them to `POST /api/me/legacy-keys`, which answers `{ map: { <first 8 chars of key>: personaId } }` for personas this user owns (it links nothing). The site renames `sbc-options-<8>`, `sbc-local-options-<8>`, `sbc-results-<8>` to `…-p<personaId>` and forgets the mapped keys; unmapped keys are kept until their persona is linked. The extension popup no longer adds `#keys=` to "Open FC Solver".
 - Every string through `t()` (en + ro, Romanian plurals), labels on fields, visible focus, errors in `aria-live` with icon + text, step transition respects `prefers-reduced-motion`, checked at 390px.
 
 ## Error handling
@@ -79,7 +80,7 @@ Extension 0.8.0 (bump `manifest.json` + `release.json`) adds a content script `s
 
 ## Testing
 
-- `node:test` unit tests for the pure rules in `server/auth-rules.ts`: link decision (unowned, mine, other without SID, other with SID), link token validity (expired, used, unknown), safe `next` path.
+- `node:test` unit tests for the pure rules: `server/auth-rules.ts` link decision (unowned, mine, other without SID, other with SID) and token generation / hashing; `web/src/next.ts` safe `next` path.
 - Manual, local, against a Clerk development instance: Google sign-in, email code sign-in and sign-up, automatic linking with extension 0.8 + web app, takeover from a second Chrome profile, phone width (390px) sign-in and persona visible without the extension, sign-out.
 - `npm test`, `npm run typecheck`, `npm run build`, `npm run i18n:check`.
 
