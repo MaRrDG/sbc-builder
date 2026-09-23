@@ -48,7 +48,7 @@ export function Hero({ cta }: { cta: ReactNode }) {
                 <span className="lp-shadow" />
                 <div className="lp-stand">
                   <div className="lp-float">
-                    <Card player={p} meta={DEMO_META} />
+                    <Card player={p} meta={DEMO_META} eager />
                   </div>
                 </div>
               </div>
@@ -58,7 +58,7 @@ export function Hero({ cta }: { cta: ReactNode }) {
         <ul className="lp-reqs">
           {REQS.map((k, i) => (
             <li key={k} style={{ '--i': i } as CSSProperties}>
-              <Check className="lp-tick" weight="bold" />
+              <Check className="lp-tick" weight="bold" aria-hidden="true" />
               {t(`landing.hero.${k}`)}
             </li>
           ))}

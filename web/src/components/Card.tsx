@@ -27,14 +27,17 @@ interface Props {
   size?: 'md' | 'sm';
   selected?: boolean;
   onClick?: () => void;
+  /** Above-the-fold usage (e.g. the landing hero): loads art eagerly instead of lazily. */
+  eager?: boolean;
 }
 
-export const Card = memo(function Card({ player, meta, position, size = 'md', selected, onClick }: Props) {
+export const Card = memo(function Card({ player, meta, position, size = 'md', selected, onClick, eager = false }: Props) {
   const { t } = useI18n();
   const art = cardArt(player, meta);
   const [bgOk, setBgOk] = useState(true);
   const offPos = position !== undefined && !player.possiblePositions.includes(position);
   const Tag = onClick ? 'button' : 'div';
+  const loading = eager ? 'eager' : 'lazy';
   return (
     <Tag
       {...(onClick ? { type: 'button' as const, onClick, 'aria-pressed': !!selected } : {})}
@@ -45,12 +48,12 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
       {art.bg && bgOk && <img className="card-bg" src={art.bg} alt="" decoding="async" onError={() => setBgOk(false)} />}
       <div className="card-rating">{player.rating}</div>
       <div className={`card-pos${offPos ? ' off' : ''}`}>{player.preferredPosition}</div>
-      <img className="card-face" src={art.portrait} alt="" loading="lazy" decoding="async" />
+      <img className="card-face" src={art.portrait} alt="" loading={loading} decoding="async" />
       <div className="card-name">{player.name}</div>
       <div className="card-badges">
-        <img src={art.flag} alt={meta.names.nation[player.nation] ?? ''} loading="lazy" />
-        <img src={art.league} alt={meta.names.league[player.league] ?? ''} loading="lazy" />
-        <img src={art.club} alt={meta.names.club[player.club] ?? ''} loading="lazy" />
+        <img src={art.flag} alt={meta.names.nation[player.nation] ?? ''} loading={loading} />
+        <img src={art.league} alt={meta.names.league[player.league] ?? ''} loading={loading} />
+        <img src={art.club} alt={meta.names.club[player.club] ?? ''} loading={loading} />
       </div>
       {!player.untradeable && <Coins className="card-tradeable" weight="fill" aria-label={t('card.tradeableIcon')} />}
     </Tag>
