@@ -329,7 +329,7 @@
 }
 .lp-adv-body { grid-column: 8 / -1; max-width: 48ch; margin: 0; color: var(--ink-2); font-size: 16px; line-height: 1.65; text-wrap: pretty; }
 .lp-proof { grid-column: 1 / -1; margin-top: clamp(28px, 5vw, 56px); }
-.lp-note { margin: 18px 0 0; color: var(--ink-3); font-size: 13px; }
+.lp-note { margin: 18px 0 0; color: var(--ink-2); font-size: 13px; } /* ink-3 fell under 4.5:1 on the bright bottom-right of the body gradient */
 .lp-ok { flex: none; color: var(--go); }
 
 /* club: the owned cards, market price struck */
@@ -344,7 +344,7 @@
 }
 .lp-owned-row li { display: grid; justify-items: start; gap: 6px; }
 .lp-owned-row .card { margin-bottom: 6px; }
-.lp-price { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-3); font: 600 18px/1 var(--font-num); }
+.lp-price { display: inline-flex; align-items: center; gap: 5px; color: var(--ink-2); font: 600 18px/1 var(--font-num); }
 .lp-price s { position: relative; text-decoration: none; }
 .lp-price s::after {
   content: '';
@@ -378,7 +378,7 @@
 
 .lp-cost dl { display: grid; justify-items: start; gap: clamp(18px, 2.4vw, 28px); margin: 0; }
 .lp-cost dl > div { display: flex; flex-direction: column-reverse; gap: 10px; }
-.lp-cost dt { color: var(--ink-3); font-size: 13px; }
+.lp-cost dt { color: var(--ink-2); font-size: 13px; }
 .lp-cost dd { margin: 0; font: 700 clamp(52px, 6.6vw, 100px)/0.82 var(--font-num); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .lp-cost-first dd { color: var(--ink-3); }
 .lp-cost-first s { position: relative; text-decoration: none; }
