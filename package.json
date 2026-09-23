@@ -11,7 +11,7 @@
     "start": "NODE_ENV=production tsx server/index.ts",
     "typecheck": "tsc --noEmit",
     "i18n:check": "tsx scripts/i18n-check.ts",
-    "test": "node --import tsx --test 'server/**/*.test.ts'",
+    "test": "node --import tsx --test 'server/**/*.test.ts' 'web/src/**/*.test.ts'",
     "db:generate": "drizzle-kit generate",
     "db:import": "tsx scripts/db-import.ts",
     "db:trust": "tsx scripts/db-trust.ts"
