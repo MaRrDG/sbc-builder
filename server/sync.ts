@@ -1,8 +1,8 @@
-// Keeps a local copy of each account's club + SBC data. EA is only hit when the cache
-// is older than 24h (automatic) or when the user presses Sync (manual).
+// Keeps a local copy of each account's club + SBC data. EA is only hit once a day after the
+// 20:01 drop (automatic) or when the user presses Sync (manual).
 import type { ClubItem, Challenge, SbcSet, ChemProfilesResponse } from './ea.js';
 import { SessionError } from './ea.js';
-import { readCache, writeCache, isStale, type Cached } from './store.js';
+import { readCache, writeCache, type Cached } from './store.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
 import { enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
@@ -262,22 +262,24 @@ export function lastSbcDrop(now = new Date()): number {
 }
 
 /**
- * Club: refreshed when older than 24h. SBCs: refreshed when fetched before the latest
- * daily drop. Runs on startup, when a session arrives, and every minute (cheap: it only
- * reads cache timestamps unless something is actually due).
+ * Club and SBCs: refreshed once a day, when last fetched before the latest daily drop. Nobody
+ * online at 20:01: it runs as soon as the web app opens. Runs on startup and every minute
+ * (cheap: it only reads cache timestamps unless something is actually due).
  */
-// A fresh session means the web app just opened: give it time to load club/SBCs itself
-// (the extension relays those responses), so the scheduled sync often has nothing to fetch.
-const SESSION_GRACE_MS = 3 * 60 * 1000;
+// A fresh session means the web app just opened: let its own start-up burst finish first
+// (the extension queue also waits for the web app to go quiet before each request).
+const SESSION_GRACE_MS = 20 * 1000;
 
 export async function autoSync(acc: Account): Promise<void> {
   if (!acc.hasSession || running.has(acc.id)) return;
   if (Date.now() - acc.info.sidUpdatedAt < SESSION_GRACE_MS) return;
   try {
     await loadMeta(acc.key('chemProfiles'));
-    const clubDue = isStale(await readCache(acc.key('club')));
+    const drop = lastSbcDrop();
+    const club = await readCache(acc.key('club'));
+    const clubDue = !club || club.fetchedAt < drop;
     const sets = await readCache(acc.key('sets'));
-    const sbcDue = !sets || sets.fetchedAt < lastSbcDrop();
+    const sbcDue = !sets || sets.fetchedAt < drop;
     if (acc.clientMode) {
       if (jobStatus(acc).running) return;
       if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
@@ -287,6 +289,11 @@ export async function autoSync(acc: Account): Promise<void> {
   } catch (e) {
     console.warn(`auto sync failed for ${acc.info.personaName}:`, (e as Error).message);
   }
+}
+
+/** The web app just said hello: check right after the grace period instead of on the next tick. */
+export function autoSyncSoon(acc: Account) {
+  setTimeout(() => void autoSync(acc), SESSION_GRACE_MS + 1000);
 }
 
 export async function autoSyncAll() {
