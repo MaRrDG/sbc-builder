@@ -20,6 +20,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY tsconfig.json ./
 COPY server ./server
+COPY scripts ./scripts
 COPY solver/cpsat.py solver/
 COPY extension ./extension
 COPY --from=web /app/dist ./dist
