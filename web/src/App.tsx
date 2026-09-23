@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, CheckCircle, GearSix, List, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, GearSix, List, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
   type Account, type Challenge, type Meta, type Player, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
@@ -9,6 +9,7 @@ import { SolverOptions, DEFAULT_OPTIONS, exclusionCount } from './components/Sol
 import { LocalOptions } from './components/LocalOptions';
 import { SetList } from './components/SetList';
 import { ClubView } from './components/ClubView';
+import { AdminView } from './components/AdminView';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
@@ -56,6 +57,7 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
   const [linked, setLinked] = useState<Account[] | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [me, setMe] = useState<{ id: string; email: string } | null>(null);
+  const [admin, setAdmin] = useState(false);
   const [takenOver, setTakenOver] = useState(false);
   const { signOut } = useClerk();
   const [status, setStatus] = useState<SyncStatus | null>(null);
@@ -148,8 +150,9 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
 
   // Boot (and after the extension links a new EA account): who am I, which personas are mine.
   const loadMe = useCallback(async () => {
-    const { user, personas } = await api.me();
+    const { user, personas, admin } = await api.me();
     setMe(user);
+    setAdmin(admin);
     setLinked(personas);
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
@@ -235,7 +238,7 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
   // the tab title follows the screen
   useEffect(() => {
     const name =
-      view === 'club' ? 'Club' : view === 'settings' ? 'Settings' : view === 'setup' ? 'Setup'
+      view === 'club' ? 'Club' : view === 'settings' ? 'Settings' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin'
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
@@ -546,6 +549,12 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
             <BookOpenText weight="bold" aria-hidden="true" />
             <span>{t('nav.guide')}</span>
           </button>
+          {admin && (
+            <button type="button" className="nav-item" aria-current={view === 'admin' ? 'page' : undefined} onClick={() => go('admin')}>
+              <ChartBar weight="bold" aria-hidden="true" />
+              <span>{t('nav.admin')}</span>
+            </button>
+          )}
           {/* on phones the top bar only has the logo; its controls live in this menu */}
           <div className="menu-controls mobile-only">
             {controls}
@@ -573,6 +582,8 @@ export default function App({ route, navigate }: { route: Route; navigate: (r: R
               <SetupGuide />
             </section>
           )}
+
+          {view === 'admin' && <AdminView />}
 
           {view === 'guide' && <Guide clubSyncs={status?.clubSyncs.limit ?? 3} eaLimit={status?.ea.limit ?? 150} />}
 

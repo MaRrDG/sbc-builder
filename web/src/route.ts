@@ -3,7 +3,7 @@
 //   /               SBC list          /sbc/16        a set (first open challenge)
 //   /sbc/16/39      a challenge       /club          club
 //   /settings       settings          /setup         extension setup guide
-//   /guide          how it works
+//   /guide          how it works     /admin         admin dashboard (admins only)
 //   /signin         sign in (?next=)  /signin/callback  Google redirect
 import { useCallback, useEffect, useState } from 'react';
 
@@ -13,6 +13,7 @@ export type Route =
   | { view: 'settings' }
   | { view: 'setup' }
   | { view: 'guide' }
+  | { view: 'admin' }
   | { view: 'signin'; next: string }
   | { view: 'ssoCallback' };
 
@@ -25,6 +26,7 @@ export function parseRoute(path: string, search = ''): Route {
   if (a === 'settings') return { view: 'settings' };
   if (a === 'setup') return { view: 'setup' };
   if (a === 'guide') return { view: 'guide' };
+  if (a === 'admin') return { view: 'admin' };
   if (a === 'sbc' && id(b) !== null) return { view: 'sbcs', setId: id(b), challengeId: id(c) };
   return { view: 'sbcs', setId: null, challengeId: null };
 }

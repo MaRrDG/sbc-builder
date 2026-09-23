@@ -25,6 +25,8 @@ export interface SyncStatus {
 }
 
 const running = new Map<number, string>();
+/** An admin asked for a sync while the account was offline: run it on its next web app visit. */
+const forced = new Map<number, { club: boolean; sbc: boolean }>();
 const errors = new Map<number, string | null>();
 const edited = new Map<number, number>();
 
@@ -273,20 +275,30 @@ const SESSION_GRACE_MS = 20 * 1000;
 export async function autoSync(acc: Account): Promise<void> {
   if (!acc.hasSession || running.has(acc.id)) return;
   if (Date.now() - acc.info.sidUpdatedAt < SESSION_GRACE_MS) return;
+  const f = forced.get(acc.id);
+  forced.delete(acc.id);
   try {
     await loadMeta(acc.key('chemProfiles'));
     const drop = lastSbcDrop();
     const club = await readCache(acc.key('club'));
-    const clubDue = !club || club.fetchedAt < drop;
+    let clubDue = !club || club.fetchedAt < drop;
     const sets = await readCache(acc.key('sets'));
-    const sbcDue = !sets || sets.fetchedAt < drop;
+    let sbcDue = !sets || sets.fetchedAt < drop;
+    if (f) {
+      clubDue ||= f.club;
+      sbcDue ||= f.sbc;
+    }
     if (acc.clientMode) {
-      if (jobStatus(acc).running) return;
+      if (jobStatus(acc).running) {
+        if (f) forced.set(acc.id, f); // try again on the next tick
+        return;
+      }
       if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
       return;
     }
     if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
   } catch (e) {
+    if (f) forced.set(acc.id, f); // e.g. over today's EA budget: keep it for later
     console.warn(`auto sync failed for ${acc.info.personaName}:`, (e as Error).message);
   }
 }
@@ -295,6 +307,43 @@ export async function autoSync(acc: Account): Promise<void> {
 export function autoSyncSoon(acc: Account) {
   setTimeout(() => void autoSync(acc), SESSION_GRACE_MS + 1000);
 }
+
+export type AdminSyncOutcome =
+  | { personaId: number; outcome: 'queued'; clubSkipped: boolean }
+  | { personaId: number; outcome: 'deferred' }
+  | { personaId: number; outcome: 'skipped'; code: string; params?: Record<string, string | number> };
+
+/**
+ * Admin sync for one account, with the same limits as everyone else (EA budget, throttle pause,
+ * club syncs per day). Offline accounts are remembered and sync on their next web app visit.
+ */
+export async function adminSync(acc: Account, what: 'club' | 'sbc' | 'all'): Promise<AdminSyncOutcome> {
+  const personaId = acc.id;
+  const wantClub = what !== 'sbc';
+  const wantSbc = what !== 'club';
+  const club = wantClub && (await clubSyncsToday(acc)) < CLUB_SYNCS_PER_DAY;
+  if (!club && !wantSbc) return { personaId, outcome: 'skipped', code: 'clubLimit', params: { limit: CLUB_SYNCS_PER_DAY } };
+  if (!acc.hasSession) {
+    const prev = forced.get(acc.id);
+    forced.set(acc.id, { club: club || !!prev?.club, sbc: wantSbc || !!prev?.sbc });
+    return { personaId, outcome: 'deferred' };
+  }
+  if (running.has(acc.id)) return { personaId, outcome: 'skipped', code: 'syncRunning' };
+  try {
+    await acc.meter.check();
+  } catch (e) {
+    const err = e as SessionError;
+    return { personaId, outcome: 'skipped', code: err.msgCode ?? 'budget', params: err.params };
+  }
+  const kind = club && wantSbc ? 'all' : club ? 'club' : 'sbc';
+  if (acc.clientMode) await requestSync(acc, kind, true);
+  // legacy accounts fetch from the server right here, which takes a while: don't hold the request
+  else void requestSync(acc, kind, true).catch((e) => console.warn(`admin sync failed for ${acc.info.personaName}:`, (e as Error).message));
+  return { personaId, outcome: 'queued', clubSkipped: wantClub && !club };
+}
+
+/** Accounts with an admin sync waiting for their next visit. */
+export const forcedSync = (acc: Account) => forced.get(acc.id) ?? null;
 
 export async function autoSyncAll() {
   for (const acc of listAccounts()) await autoSync(acc);
