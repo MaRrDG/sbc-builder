@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowCircleUp, Check, Copy, DownloadSimple, X } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
+import { extensionZipUrl } from '../api';
 import { fill } from './SetupGuide';
 
 export interface ExtensionRelease {
@@ -44,7 +45,7 @@ export function UpdateBanner({ installed, latest, expanded: startOpen, onDismiss
             {installed ? t('update.youHave', { v: installed }) : t('update.older')} {latest.notes.join(' · ')}
           </span>
         </div>
-        <a className="step-action primary" href="/api/extension.zip" download onClick={() => setOpen(true)}>
+        <a className="step-action primary" href={extensionZipUrl()} download onClick={() => setOpen(true)}>
           <DownloadSimple weight="bold" /> {t('update.get')}
         </a>
         <button type="button" className="icon" onClick={onDismiss} aria-label={t('update.hide')}>

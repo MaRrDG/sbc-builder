@@ -1,5 +1,6 @@
 import { Fragment, useState, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
+import { extensionZipUrl } from '../api';
 import { Check, Copy, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react';
 
 const EXTENSIONS_URL = 'chrome://extensions';
@@ -48,7 +49,7 @@ export function SetupGuide({ compact = false }: { compact?: boolean }) {
           <h3>{t('setup.s1')}</h3>
           <p>{t('setup.s1p')}</p>
         </div>
-        <a className="step-action primary" href="/api/extension.zip" download>
+        <a className="step-action primary" href={extensionZipUrl()} download>
           <DownloadSimple weight="bold" /> {t('setup.s1b')}
         </a>
       </li>
