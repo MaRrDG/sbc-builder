@@ -465,6 +465,11 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'admin.acc.trust': 'Marchează de încredere',
   'admin.acc.untrust': 'Scoate încrederea',
   'admin.acc.trustedHint': 'Sloturile blocate din SBC-uri văzute de acest cont au prioritate față de ce raportează celelalte conturi.',
+  'admin.plan.label': 'Plan',
+  'admin.plan.until': 'până la',
+  'admin.plan.quota': '{used}/{limit} rezolvări · reset în {reset}',
+  'admin.plan.unlimited': 'nelimitat',
+  'admin.plan.reset': 'Resetează quota',
 
   // landing page (/)
   'landing.skip': 'Sari la conținut',
