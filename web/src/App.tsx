@@ -633,7 +633,7 @@ export default function App({
           <button type="button" className="nav-item" aria-current={view === 'settings' && !showGuide ? 'page' : undefined} onClick={() => go('settings')}>
             <GearSix weight="bold" aria-hidden="true" />
             <span>{t('nav.settings')}</span>
-            {exclusionCount(options) > 0 && <em className="badge">{exclusionCount(options)}</em>}
+            {exclusionCount(globalOptions) > 0 && <em className="badge">{exclusionCount(globalOptions)}</em>}
           </button>
           <button type="button" className="nav-item" aria-current={view === 'guide' ? 'page' : undefined} onClick={() => go('guide')}>
             <BookOpenText weight="bold" aria-hidden="true" />
@@ -709,7 +709,7 @@ export default function App({
                     </p>
                   )}
                   <fieldset disabled={!premium} className="plain">
-                    <SolverOptions options={premium ? options : DEFAULT_OPTIONS} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
+                    <SolverOptions options={globalOptions} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
                   </fieldset>
                 </div>
                 <div className="settings-side">
