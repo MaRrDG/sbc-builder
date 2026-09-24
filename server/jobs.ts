@@ -119,7 +119,7 @@ const CLUB_PAGES_WAIT = 10 * 1000; // the last page is relayed separately and ma
  * The page finished a job. A club sync only counts once its pages replaced the whole club;
  * an SBC list refresh queues the challenges of sets that changed.
  */
-export async function finishJob(acc: Account, job: Job, ok: boolean, error?: string, pagesTagged = false): Promise<{ playedElsewhere: boolean }> {
+export async function finishJob(acc: Account, job: Job, ok: boolean, error?: string, pagesTagged = false): Promise<{ playedElsewhere: boolean; changedSets: number }> {
   // extensions before 0.8.3 don't tag their pages with the job: the passive scan in events.ts covers them
   if (ok && job.kind === 'club' && pagesTagged) {
     for (const until = Date.now() + CLUB_PAGES_WAIT; !job.clubReplaced && Date.now() < until; )
@@ -132,7 +132,7 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
   job.status = ok ? 'done' : 'failed';
   lastFinished.set(acc.id, Date.now());
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';
-  if (!ok || job.kind !== 'sbc') return { playedElsewhere: false };
+  if (!ok || job.kind !== 'sbc') return { playedElsewhere: false, changedSets: 0 };
   const sets = await readCache<SetsData>(acc.key('sets'));
   const changed: number[] = [];
   let playedElsewhere = false;
@@ -147,7 +147,7 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
     changed.push(set.setId);
   }
   if (changed.length) await enqueue(acc, 'challenges', changed);
-  return { playedElsewhere };
+  return { playedElsewhere, changedSets: changed.length };
 }
 
 /** What the UI shows as "running" and the last error, for accounts on jobs. */

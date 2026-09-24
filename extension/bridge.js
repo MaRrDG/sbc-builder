@@ -4,7 +4,11 @@ window.addEventListener('message', (event) => {
   const d = event.data;
   if (d.kind === 'identity') chrome.runtime.sendMessage({ type: 'identity', identity: d.identity });
   else if (d.kind === 'call') chrome.runtime.sendMessage({ type: 'job-call', jobId: d.jobId, method: d.method, path: d.path, status: d.status });
-  else if (d.kind === 'job-done') chrome.runtime.sendMessage({ type: 'job-done', jobId: d.jobId, ok: d.ok, error: d.error });
+  else if (d.kind === 'job-done')
+    chrome.runtime.sendMessage({ type: 'job-done', jobId: d.jobId, ok: d.ok, error: d.error }, (res) => {
+      if (chrome.runtime.lastError) return;
+      syncFinished(res ?? { kind: null, status: d.ok ? 'done' : 'failed', error: d.error ?? null });
+    });
   else if (d.kind === 'event') chrome.runtime.sendMessage({ type: 'webapp-event', event: d.event, jobId: d.jobId });
 });
 
@@ -15,7 +19,10 @@ function askForJob() {
   chrome.runtime.sendMessage({ type: 'poll', visible: !document.hidden }, (res) => {
     if (chrome.runtime.lastError || !res) return;
     if (res.needIdentity) window.postMessage({ source: 'fcs-bridge', kind: 'identify' }, window.location.origin);
-    else if (res.job) window.postMessage({ source: 'fcs-bridge', kind: 'job', job: res.job }, window.location.origin);
+    else if (res.job) {
+      window.postMessage({ source: 'fcs-bridge', kind: 'job', job: res.job }, window.location.origin);
+      syncStarted(res.job.kind);
+    }
   });
 }
 function poll() {
@@ -46,6 +53,73 @@ window.addEventListener('pagehide', () => {
     /* the extension was reloaded or removed */
   }
 });
+
+// Sync notices inside the web app: FC Solver started / finished a sync from this tab. Only club
+// and SBC list syncs are announced; the follow-up challenge reads stay quiet.
+const STARTED = { club: 'Syncing your club…', sbc: 'Checking your SBCs…' };
+let noticeKind = null; // the job the notice on screen is about
+
+function syncStarted(kind) {
+  if (!STARTED[kind]) return;
+  noticeKind = kind;
+  showSyncNotice(STARTED[kind], 'busy', 3 * 60 * 1000);
+}
+
+function syncFinished({ kind, status, error, players, changedSets, clubQueued }) {
+  kind ??= noticeKind;
+  if (!STARTED[kind]) return;
+  noticeKind = null;
+  if (status !== 'done') return showSyncNotice(`Sync failed: ${error ?? 'unknown error'}`, 'error', 12000);
+  const text =
+    kind === 'club'
+      ? `Club synced${Number.isInteger(players) ? ` · ${players} players` : ''}`
+      : `${changedSets ? `SBCs updated · ${changedSets} set${changedSets === 1 ? '' : 's'} changed` : 'SBCs up to date'}${
+          clubQueued ? ' · SBCs done outside the web app, syncing your club too' : ''
+        }`;
+  showSyncNotice(text, 'ok', 6000);
+}
+
+function showSyncNotice(text, state, ms) {
+  let host = document.getElementById('fc-solver-sync');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'fc-solver-sync';
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = `
+      <style>
+        .toast { position: fixed; right: 16px; bottom: 16px; z-index: 2147483647; display: flex; align-items: center;
+          gap: 10px; max-width: min(420px, calc(100vw - 32px)); padding: 10px 8px 10px 14px; border-radius: 12px;
+          background: #0d1411; color: #f3f1ea; border: 1px solid #2fd99a66; box-shadow: 0 12px 32px #0009;
+          font: 13px/1.4 system-ui, sans-serif; }
+        .toast.error { border-color: #ff6b6b99; }
+        .dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #2fd99a; }
+        .busy .dot { background: #f5c542; }
+        .error .dot { background: #ff6b6b; }
+        b { color: #c8f53c; margin-right: 4px; }
+        button { flex: none; font: inherit; font-weight: 600; padding: 4px 8px; border: 0; border-radius: 8px;
+          background: transparent; color: #a9bcc1; cursor: pointer; }
+        button:hover { color: #fff; }
+        @media (prefers-reduced-motion: no-preference) {
+          .toast { animation: in 180ms ease-out; }
+          .busy .dot { animation: pulse 1.2s ease-in-out infinite; }
+        }
+        @keyframes in { from { opacity: 0; transform: translateY(8px); } }
+        @keyframes pulse { 50% { opacity: 0.35; } }
+      </style>
+      <div class="toast" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <div><b>FC Solver</b><span class="text"></span></div>
+        <button type="button" aria-label="Dismiss">✕</button>
+      </div>`;
+    root.querySelector('button').onclick = () => host.remove();
+    document.documentElement.appendChild(host);
+  }
+  const root = host.shadowRoot;
+  root.querySelector('.toast').className = `toast ${state}`;
+  root.querySelector('.text').textContent = text; // text only: error messages come from outside
+  clearTimeout(host._timer);
+  host._timer = setTimeout(() => host.remove(), ms);
+}
 
 // Update notice inside the web app. Shadow DOM keeps EA's styles and ours apart.
 function showUpdateNotice({ update, current, server }) {

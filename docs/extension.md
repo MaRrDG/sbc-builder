@@ -9,7 +9,7 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 | `manifest.json` | | MV3 manifest; `webRequest` + `storage` + `alarms` + `scripting`, host access to the web app, UTAS and the FC Solver server |
 | `background.js` | service worker | session bridge, SBC submit tracking, relaying page events, update check |
 | `hook.js` | the web app page (MAIN world) | reads the web app's own responses for packs and item moves |
-| `bridge.js` | the web app page (isolated world) | relays `hook.js` messages to the worker; shows the update notice |
+| `bridge.js` | the web app page (isolated world) | relays `hook.js` messages to the worker; shows the update notice and the sync notices (a club / SBC list sync started, then how it went, from the `/api/jobs/:id/done` answer) |
 | `site.js` | FC Solver pages (isolated world) | hands the signed-in site's link token to the worker (0.8+) |
 | `popup.html` / `popup.js` | toolbar popup | status, server address, **Open FC Solver** |
 | `release.json` | server only | release notes per version (not shipped in the zip) |
