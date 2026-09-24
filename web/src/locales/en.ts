@@ -8,7 +8,7 @@ export const en = {
   'time.dAgo': '{n}d ago',
   'time.until.min': '{m}m',
   'time.until.hmin': '{h}h {m}m',
-  'time.until.dh': '{d} d {h} h',
+  'time.until.dh': '{d}d {h}h',
 
   // browser tab titles of the public pages
   'legal.nav': 'Legal',
