@@ -35,8 +35,9 @@ export function repeatOf(set: SbcSet, now = Date.now()): Repeat {
 
 type T = (key: string, params?: Record<string, string | number>) => string;
 
-/** "25m" / "3h 10m" until a moment, in the user's language. */
+/** "25m" / "3h 10m" / "3d 4h" until a moment, in the user's language. */
 export function untilText(t: T, ts: number, now = Date.now()) {
   const m = Math.max(1, Math.round((ts - now) / 60000));
+  if (m >= 24 * 60) return t('time.until.dh', { d: Math.floor(m / 1440), h: Math.floor((m % 1440) / 60) });
   return m < 60 ? t('time.until.min', { m }) : t('time.until.hmin', { h: Math.floor(m / 60), m: m % 60 });
 }

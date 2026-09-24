@@ -8,6 +8,7 @@ export const en = {
   'time.dAgo': '{n}d ago',
   'time.until.min': '{m}m',
   'time.until.hmin': '{h}h {m}m',
+  'time.until.dh': '{d} d {h} h',
 
   // browser tab titles of the public pages
   'legal.nav': 'Legal',
@@ -232,6 +233,14 @@ export const en = {
   'plan.until': 'until {date}',
   'plan.globalLocked': 'Global settings are part of Premium. On Free, each SBC can still have its own settings and excluded players.',
 
+  // quota meter (Solve button)
+  'quota.left_one': '{count} of {limit} solves left this week',
+  'quota.left_other': '{count} of {limit} solves left this week',
+  'quota.resets': 'resets in {until}',
+  'quota.what': 'How weekly solves work',
+  'quota.premium': 'Premium · unlimited solves',
+  'quota.out': 'No solves left this week. They come back in {until}.',
+
   'opt.keepXI': 'Keep my active squad XI',
   'opt.keepSubs': 'Keep my active squad subs',
   'opt.keepSpecial': 'Keep special and promo cards',
@@ -328,6 +337,7 @@ export const en = {
   'err.personaTakenOver': 'This EA account is now linked to another FC Solver user.',
   'err.adminOnly': 'Admins only.',
   'err.rateLimited': 'Too many requests. Wait a minute and try again.',
+  'err.quotaExhausted': 'You used all {limit} solves for this week.',
 
   // how it works
   'guide.title': 'How FC Solver works',

@@ -24,6 +24,7 @@ import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
+import { QuotaMeter } from './components/QuotaMeter';
 import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
 import { unlinkExtension, useExtensionLink } from './link';
@@ -213,6 +214,7 @@ export default function App({
     (e: unknown) => {
       const code = e instanceof ApiError ? e.code : null;
       if (code === 'personaTakenOver') setTakenOver(true);
+      if (code === 'quotaExhausted') void api.me().then((m) => setPlan(m.plan));
       if (code === 'personaNotYours' || code === 'personaTakenOver') void loadMe();
       else setError(errorText(e, t));
     },
@@ -363,7 +365,7 @@ export default function App({
 
   // "Cheaper?" keeps the SBC storage in if the current squad already uses it; a plain solve is club only
   const runSolve = async (deep = false, opts = solveOptions, useStorage = deep && !!result?.usedStorage) => {
-    if (!challenge || lock) return;
+    if (!challenge || lock || outOfSolves) return;
     setSelectedId(null);
     setSolving(true);
     setError(null);
@@ -371,6 +373,7 @@ export default function App({
     try {
       const r = await api.solve(challenge.setId, challenge.challengeId, opts, deep, useStorage);
       saveResult(challenge.challengeId, r);
+      noteQuota(r);
       if (!r.found && r.slots.some((s) => s.player)) setError(t('set.closest'));
     } catch (e) {
       onApiError(e);
@@ -381,7 +384,7 @@ export default function App({
 
   // Asked after a club-only squad: solve again with the SBC storage and keep it only if it is cheaper.
   const tryStorage = async () => {
-    if (!challenge || lock || !result?.found) return;
+    if (!challenge || lock || outOfSolves || !result?.found) return;
     const id = challenge.challengeId;
     const before = result;
     setSelectedId(null);
@@ -389,6 +392,7 @@ export default function App({
     setError(null);
     try {
       const r = await api.solve(challenge.setId, id, solveOptions, false, true);
+      noteQuota(r);
       const used = r.slots.filter((s) => s.player?.inStorage).length;
       // a cheaper squad replaces the club-only one (its notice says how many came from storage)
       if (r.found && used > 0 && (r.cost ?? Infinity) < (before.cost ?? Infinity)) saveResult(id, r);
@@ -409,7 +413,7 @@ export default function App({
     if (!setId) return;
     const ids = [...new Set([...setKept, playerId])];
     updateSetExcludes(setId, ids);
-    void runSolve(false, { ...solveOptions, excludeIds: [...new Set([...solveOptions.excludeIds, playerId])] });
+    if (!outOfSolves) void runSolve(false, { ...solveOptions, excludeIds: [...new Set([...solveOptions.excludeIds, playerId])] });
   };
 
   const toggleGlobalExclude = (playerId: number) => {
@@ -469,6 +473,8 @@ export default function App({
     result && club.length ? result.slots.filter((s) => s.player && !clubById.has(s.player.id) && !storageIds.has(s.player.id)).length : 0;
   const note = storageNote?.challengeId === challengeId ? storageNote.text : null;
   const askStorage = !!result?.found && !result.usedStorage && storage.length > 0 && !note;
+  const outOfSolves = !!plan?.quota && plan.quota.used >= plan.quota.limit;
+  const noteQuota = (r: SolveResult) => r.quota !== undefined && setPlan((p) => (p ? { ...p, quota: r.quota ?? null } : p));
 
   const controls = (
     <>
@@ -827,7 +833,7 @@ export default function App({
                         )}
                       </div>
                     )}
-                    {askStorage && !solving && (
+                    {askStorage && !solving && !outOfSolves && (
                       <div className="notice-inline" role="status">
                         {t('set.storageAsk', { count: storage.length })}{' '}
                         <button type="button" className="text" onClick={() => void tryStorage()}>
@@ -871,6 +877,12 @@ export default function App({
                         </button>
                       </div>
                     )}
+                    <QuotaMeter plan={plan} now={now} />
+                    {outOfSolves && plan?.quota?.resetsAt && (
+                      <div className="notice-inline" role="status">
+                        {t('quota.out', { until: untilText(t, plan.quota.resetsAt, now) })}
+                      </div>
+                    )}
                     <Pitch
                       meta={meta}
                       challenge={challenge}
@@ -883,6 +895,7 @@ export default function App({
                       placed={placedPlayers}
                       selectedId={selectedId}
                       onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
+                      outOfSolves={outOfSolves}
                     />
                     {result && !solving && (
                       <p className="hint">

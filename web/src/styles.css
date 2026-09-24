@@ -3195,3 +3195,8 @@ button.card:active {
   margin-top: 32px;
   font-size: 13px;
 }
+
+.quota-meter { margin: 0 0 8px; font-size: 13px; color: var(--ink-3); }
+.quota-meter p { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 0; }
+.quota-meter.empty { color: var(--ink); font-weight: 600; }
+.quota-help { margin: 6px 0 0; max-width: 60ch; }
