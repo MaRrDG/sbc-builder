@@ -470,6 +470,11 @@ export const en = {
   'admin.acc.trust': 'Trust',
   'admin.acc.untrust': 'Untrust',
   'admin.acc.trustedHint': 'Locked SBC slots this account sees win over what other accounts report.',
+  'admin.plan.label': 'Plan',
+  'admin.plan.until': 'until',
+  'admin.plan.quota': '{used}/{limit} solves · resets in {reset}',
+  'admin.plan.unlimited': 'unlimited',
+  'admin.plan.reset': 'Reset quota',
 
   // landing page (/)
   'landing.skip': 'Skip to content',

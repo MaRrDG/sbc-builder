@@ -5,6 +5,7 @@ import { ArrowsClockwise, CheckCircle, Circle, Clock, ShieldCheck, WarningCircle
 import { api, type AdminAccount, type AdminStats, type AdminSyncResult } from '../api';
 import { useAgo, useI18n } from '../i18n';
 import { errorText } from '../messages';
+import { untilText } from '../repeat';
 
 type What = 'club' | 'sbc' | 'all';
 
@@ -49,6 +50,30 @@ export function AdminView() {
     setBusy(`trust:${personaId}`);
     try {
       await api.adminTrust(personaId, trusted);
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const changePlan = async (userId: string, tier: 'free' | 'premium', until: string) => {
+    setBusy(`plan-${userId}`);
+    try {
+      await api.adminPlan(userId, tier, tier === 'premium' && until ? new Date(`${until}T23:59:59`).toISOString() : null);
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const resetQuota = async (userId: string) => {
+    setBusy(`quota-${userId}`);
+    try {
+      await api.adminQuotaReset(userId);
       await load();
     } catch (e) {
       setError(errorText(e, t));
@@ -166,6 +191,43 @@ export function AdminView() {
             <div className="admin-user-head">
               <b>{usr.email || usr.id}</b>
               <small className="muted">{t('admin.users.seen', { seen: ago(usr.lastSeenAt), joined: new Date(usr.createdAt).toLocaleDateString() })}</small>
+            </div>
+            <div className="admin-plan">
+              <label>
+                {t('admin.plan.label')}{' '}
+                <select
+                  value={usr.planSet}
+                  disabled={busy === `plan-${usr.id}`}
+                  onChange={(e) => void changePlan(usr.id, e.target.value as 'free' | 'premium', '')}
+                >
+                  <option value="free">Free</option>
+                  <option value="premium">Premium</option>
+                </select>
+              </label>
+              {usr.planSet === 'premium' && (
+                <label>
+                  {t('admin.plan.until')}{' '}
+                  <input
+                    type="date"
+                    defaultValue={usr.plan.premiumUntil ? new Date(usr.plan.premiumUntil).toISOString().slice(0, 10) : ''}
+                    onChange={(e) => void changePlan(usr.id, 'premium', e.target.value)}
+                  />
+                </label>
+              )}
+              <span className="muted">
+                {usr.plan.quota
+                  ? t('admin.plan.quota', {
+                      used: usr.plan.quota.used,
+                      limit: usr.plan.quota.limit,
+                      reset: usr.plan.quota.resetsAt ? untilText(t, usr.plan.quota.resetsAt) : '—',
+                    })
+                  : t('admin.plan.unlimited')}
+              </span>
+              {usr.plan.quota && usr.plan.quota.used > 0 && (
+                <button type="button" className="ghost" disabled={busy === `quota-${usr.id}`} onClick={() => void resetQuota(usr.id)}>
+                  {t('admin.plan.reset')}
+                </button>
+              )}
             </div>
             {usr.personas.length ? <ul className="admin-accounts">{usr.personas.map(row)}</ul> : <p className="muted">{t('admin.users.noAccount')}</p>}
           </li>

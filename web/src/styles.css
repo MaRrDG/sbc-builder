@@ -3021,6 +3021,9 @@ button.card:active {
   overflow-wrap: anywhere;
 }
 
+.admin-plan { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 8px 0; font-size: 13px; }
+.admin-plan select, .admin-plan input[type='date'] { border-radius: 8px; }
+
 .admin-account {
   display: grid;
   grid-template-columns: minmax(0, 220px) minmax(0, 1fr) auto;
