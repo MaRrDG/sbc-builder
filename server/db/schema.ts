@@ -56,12 +56,16 @@ export const trustedAccounts = pgTable('trusted_accounts', {
   addedAt: timestamp('added_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** FC Solver users, keyed by their Clerk user id. Sub-project 3 adds subscription columns here. */
+/** FC Solver users, keyed by their Clerk user id; `plan` + the weekly solve quota (server/plan.ts). */
 export const users = pgTable('users', {
   id: text('id').primaryKey(),
   email: text('email').notNull().default(''),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  plan: text('plan').notNull().default('free'), // 'free' | 'premium'
+  premiumUntil: timestamp('premium_until', { withTimezone: true }), // null: no end
+  quotaStart: timestamp('quota_start', { withTimezone: true }), // null: no open window
+  quotaUsed: integer('quota_used').notNull().default(0),
 });
 
 /** Which user owns an EA persona. One owner per persona; a takeover remembers the previous one. */
