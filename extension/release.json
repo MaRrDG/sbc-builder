@@ -1,4 +1,7 @@
 {
+  "0.8.3": [
+    "A club sync now replaces your whole cached club, so players you no longer own stop showing up in solutions"
+  ],
   "0.8.2": [
     "\"Open FC Solver\" and the update links now go straight to the dashboard, since / is now the public landing page"
   ],

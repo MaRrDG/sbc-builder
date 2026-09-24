@@ -5,7 +5,8 @@
 //  - DELETE /item/{id} or /item?itemIds=... (quick sell) -> gone everywhere.
 // It also fills the cache from what the web app itself loads, so FC Solver rarely has to ask EA:
 //  - GET /sbs/sets, GET /sbs/setId/{id}/challenges -> SBC list and challenges;
-//  - POST /club pages -> players upserted; a complete unfiltered scan replaces the club;
+//  - POST /club pages -> players upserted; a complete unfiltered scan replaces the club
+//    (pages of a club sync job carry its id and are put together per job, see club-pages.ts);
 //  - GET /squad/list + /squad/{id} (or /squad/active) -> active squad;
 //  - GET /chemistry/profiles -> promo chemistry profiles.
 import type { ClubItem, Challenge, ChemProfilesResponse } from './ea.js';
@@ -16,6 +17,8 @@ import { invalidateMeta } from './meta.js';
 import { parseLayout } from './layout.js';
 import { softly } from './db/index.js';
 import { reportBricks, saveChallenges, saveSets } from './db/sbcs.js';
+import { findJob } from './jobs.js';
+import { addClubPage, assembleClub } from './club-pages.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const WATCHED_PATH =
@@ -27,6 +30,8 @@ export interface WebAppEvent {
   query?: string;
   request?: unknown;
   response?: unknown;
+  /** set when the page loaded this for a sync job (extension 0.8.3+) */
+  jobId?: string;
 }
 
 const CLUB_PILE = 7;
@@ -48,6 +53,31 @@ const activeSquadIds = new Map<number, number>();
 const SCAN_TTL = 10 * 60 * 1000;
 // body keys of a plain "all my players" listing; any other key is a filter
 const PLAIN_CLUB_KEYS = new Set(['count', 'start', 'sort', 'sortBy', 'type', 'searchAltPositions']);
+
+/** The whole club, fresh from the web app: same as a club sync, without asking EA. */
+async function replaceClub(acc: Account, items: ClubItem[]) {
+  await writeCache(acc.key('club'), items);
+  const pending = await readCache<ClubItem[]>(acc.key('unassigned'));
+  if (pending) {
+    const inClub = new Set(items.map((i) => i.id));
+    await writeCache(acc.key('unassigned'), pending.data.filter((p) => !inClub.has(p.id)));
+  }
+  return `Club updated from the web app (${items.length} players)`;
+}
+
+/** A page a club sync job loaded. Once the job's pages add up to the whole club, it replaces the cached one. */
+async function onJobClubPage(acc: Account, jobId: string, req: Record<string, unknown>, items: ClubItem[], raw: number) {
+  const job = findJob(acc, jobId);
+  const start = Number(req.start);
+  const count = Number(req.count);
+  if (job?.kind !== 'club' || !job.clubPages || job.clubReplaced || !Number.isInteger(start) || !(count > 0)) return null;
+  addClubPage(job.clubPages, start, count, items, raw);
+  const club = assembleClub<ClubItem>(job.clubPages);
+  if (!club) return null;
+  job.clubReplaced = true;
+  job.clubPages.clear();
+  return replaceClub(acc, club);
+}
 
 async function onClubPage(acc: Account, req: Record<string, unknown>, items: ClubItem[]): Promise<string | null> {
   const club = await readCache<ClubItem[]>(acc.key('club'));
@@ -74,16 +104,7 @@ async function onClubPage(acc: Account, req: Record<string, unknown>, items: Clu
     } else scans.delete(acc.id);
   }
 
-  if (complete) {
-    // the whole club, fresh from the web app: same as a club sync, without asking EA
-    await writeCache(acc.key('club'), complete);
-    const pending = await readCache<ClubItem[]>(acc.key('unassigned'));
-    if (pending) {
-      const inClub = new Set(complete.map((i) => i.id));
-      await writeCache(acc.key('unassigned'), pending.data.filter((p) => !inClub.has(p.id)));
-    }
-    return `Club updated from the web app (${complete.length} players)`;
-  }
+  if (complete) return replaceClub(acc, complete);
   if (!club || items.length === 0) return null;
   // a partial or filtered page: refresh the players it shows, keep the club's sync timestamp
   const byId = new Map(items.map((i) => [i.id, i]));
@@ -131,8 +152,10 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
     return 'SBC challenges updated from the web app';
   }
   if (method === 'POST' && ev.path === '/club') {
-    const items = (Array.isArray(res.itemData) ? res.itemData : []).filter(isPlayer);
-    return onClubPage(acc, (ev.request ?? {}) as Record<string, unknown>, items);
+    const raw = Array.isArray(res.itemData) ? res.itemData : [];
+    const req = (ev.request ?? {}) as Record<string, unknown>;
+    if (typeof ev.jobId === 'string') return onJobClubPage(acc, ev.jobId, req, raw.filter(isPlayer), raw.length);
+    return onClubPage(acc, req, raw.filter(isPlayer));
   }
   if (method === 'GET' && ev.path === '/squad/list') {
     if (Number.isInteger(res.activeSquadId)) activeSquadIds.set(acc.id, res.activeSquadId as number);

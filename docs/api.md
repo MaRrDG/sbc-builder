@@ -45,7 +45,7 @@ One EA request made for a job: `{ "method": "POST", "path": "/club", "status": 2
 
 ### `POST /api/jobs/:id/done` (extension)
 
-`{ "ok": true }` or `{ "ok": false, "error": "EA asked to slow down (495)." }`. A finished `sbc` job queues a `challenges` job for sets that are new or changed.
+`{ "ok": true, "pagesTagged": true }` or `{ "ok": false, "error": "EA asked to slow down (495)." }`. A finished `sbc` job queues a `challenges` job for sets that are new or changed. `pagesTagged` (extension 0.8.3+) says the job's `/club` pages came with its `jobId`: a `club` job then only counts as done once those pages replaced the whole club (waits up to 10 s for the last page), otherwise it fails with an error and the cached club is left as it was.
 
 ### `POST /api/session` (extension)
 
@@ -268,7 +268,7 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 | `DELETE /item/:id` or `/item?itemIds=…` | quick sold: leaves club and Unassigned |
 | `GET /sbs/sets` | replaces the cached SBC list |
 | `GET /sbs/setId/:id/challenges` | replaces that set's cached challenges |
-| `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club |
+| `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club. With `jobId` (a club sync job's page): collected per job in any order, nothing upserted, and the club is replaced once page 0 through the short last page are all in |
 | `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (other saved squads are ignored) |
 | `GET /chemistry/profiles` | replaces the promo chemistry profiles |
 | `POST /sbs/challenge/:id`, `GET/PUT /sbs/challenge/:id/squad` | the challenge's squad: locked slots and players already placed (last 6 kept raw in `challengeSquads/{id}`) |
@@ -276,6 +276,8 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 ```json
 { "method": "PUT", "path": "/item", "query": "", "request": { "itemData": [{ "id": 945213335495, "pile": "club" }] }, "response": { "itemData": [{ "id": 945213335495, "success": true }] } }
 ```
+
+Optional `jobId`: set by extension 0.8.3+ on responses loaded for a sync job.
 
 Returns `{ "ok": true, "summary": "1 added to club" }`. Items the server has no data for (for example moved back from the transfer list) are picked up by the next club sync.
 

@@ -221,11 +221,12 @@ app.post<{ Params: { id: string }; Body: { method: string; path: string; status:
   },
 );
 
-app.post<{ Params: { id: string }; Body: { ok: boolean; error?: string } }>('/api/jobs/:id/done', async (req, reply) => {
+app.post<{ Params: { id: string }; Body: { ok: boolean; error?: string; pagesTagged?: boolean } }>('/api/jobs/:id/done', async (req, reply) => {
   const acc = account(req);
   const job = findJob(acc, req.params.id);
   if (!job) return reply.code(404).send({ error: 'unknown job' });
-  await finishJob(acc, job, !!req.body?.ok, typeof req.body?.error === 'string' ? req.body.error.slice(0, 300) : undefined);
+  const error = typeof req.body?.error === 'string' ? req.body.error.slice(0, 300) : undefined;
+  await finishJob(acc, job, !!req.body?.ok, error, req.body?.pagesTagged === true);
   markEdited(acc);
   return { ok: true };
 });
