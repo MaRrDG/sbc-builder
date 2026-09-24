@@ -272,6 +272,7 @@ app.post<{ Body: { personaId?: number; trusted?: boolean } }>('/api/admin/trust'
 app.post<{ Body: { userId?: string; tier?: string; premiumUntil?: string | null } }>('/api/admin/plan', async (req, reply) => {
   await requireAdmin(req);
   const { userId, tier, premiumUntil } = req.body ?? {};
+  if (premiumUntil != null && typeof premiumUntil !== 'string') return reply.code(400).send({ error: 'invalid payload' });
   const until = premiumUntil ? new Date(premiumUntil) : null;
   if (typeof userId !== 'string' || (tier !== 'free' && tier !== 'premium') || (until && Number.isNaN(until.getTime())))
     return reply.code(400).send({ error: 'invalid payload' });

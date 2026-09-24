@@ -152,11 +152,11 @@ Each `userList` entry also carries `planSet` (the stored value, `"free"` or `"pr
 
 ### `POST /api/admin/plan`
 
-`{ "userId": "user_2Rf…", "tier": "free" | "premium", "premiumUntil": "2026-12-31" | null }` (`premiumUntil` is an ISO date, ignored — stored as `null` — when `tier` is `"free"`). Sets the user's plan; the quota columns (`used`, the window) are left as they are. Returns `{ "ok": true }`; `400` on a bad payload, `404` for an unknown user.
+`{ "userId": "user_2Rf…", "tier": "free" | "premium", "premiumUntil": "2026-12-31T23:59:59.000Z" | null }` (`premiumUntil` is an ISO timestamp, ignored — stored as `null` — when `tier` is `"free"`; a date-only string like `"2026-12-31"` parses as UTC midnight, so the admin UI sends the end of that day in the admin's local time instead). Sets the user's plan; the quota columns (`used`, the window) are left as they are. Returns `{ "ok": true }`; `400` on a bad payload (including a non-string, non-null `premiumUntil`), `404` for an unknown user.
 
 ### `POST /api/admin/quota-reset`
 
-`{ "userId": "user_2Rf…" }`: gives a Free user their whole week back (clears `quotaStart` and `quotaUsed`). Returns `{ "ok": true }`; `404` for an unknown user.
+`{ "userId": "user_2Rf…" }`: gives a Free user their whole week back (clears `quotaStart` and `quotaUsed`). Returns `{ "ok": true }`; `400` when `userId` is missing or not a string, `404` for an unknown user.
 
 ### `POST /api/admin/sync`
 
