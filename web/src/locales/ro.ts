@@ -74,6 +74,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'repeat.lineLimited': 'Repetabil de {limit}× · {done}/{limit} făcute {when}',
   'repeat.lineSpent': 'Limită atinsă ({limit}/{limit} {when}) · disponibil din nou în {until}',
 
+  'set.keptOut': 'Scoși din acest SBC',
   'set.back': 'Toate SBC-urile',
   'set.squadFromWebApp': 'Squad din web app',
   'set.readingSquad': 'Citesc squad-ul…',
@@ -168,7 +169,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'player.chemHere': 'Chemistry aici',
   'player.pips': '{value} din {max}',
   'player.allowAgain': 'Permite din nou în SBC-uri',
-  'player.keepOutResolve': 'Scoate din SBC-uri și rezolvă din nou',
+  'player.keepOutResolve': 'Scoate din acest SBC și rezolvă din nou',
   'player.keepOut': 'Scoate din SBC-uri',
 
   'club.title': 'Club',
