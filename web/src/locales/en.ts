@@ -9,6 +9,12 @@ export const en = {
   'time.until.min': '{m}m',
   'time.until.hmin': '{h}h {m}m',
 
+  // browser tab titles of the public pages
+  'meta.landing': 'FC Solver · EA FC 27 SBC solver for your own club',
+  'meta.guide': 'How FC Solver works · EA FC 27 SBC solver',
+  'meta.setup': 'Install the FC Solver extension · EA FC 27',
+  'meta.signin': 'Sign in · FC Solver',
+
   // top bar
   'top.home': 'FC Solver home',
   'top.club': 'Club',

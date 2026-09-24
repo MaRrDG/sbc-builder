@@ -3,17 +3,67 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FC Solver</title>
-    <meta name="description" content="FC Solver finds the cheapest squad from your own FC27 club that completes an SBC." />
+    <!-- title, description, robots, canonical and the preview tags are filled per page by server/seo.ts -->
+    <title>FC Solver · EA FC 27 SBC solver for your own club</title>
+    <meta name="description" content="Solve EA FC 27 Squad Building Challenges with the players you already own. FC Solver finds the cheapest valid squad from your club and SBC storage, checks every requirement and chemistry, and never buys, sells or submits anything." />
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="canonical" href="/" vite-ignore />
     <meta name="theme-color" content="#0d1411" />
+    <meta name="application-name" content="FC Solver" />
+    <meta name="apple-mobile-web-app-title" content="FC Solver" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FC Solver" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="ro_RO" />
+    <meta property="og:title" content="FC Solver · EA FC 27 SBC solver for your own club" />
+    <meta property="og:description" content="Solve EA FC 27 Squad Building Challenges with the players you already own. FC Solver finds the cheapest valid squad from your club and SBC storage, checks every requirement and chemistry, and never buys, sells or submits anything." />
+    <meta property="og:url" content="/" />
+    <meta property="og:image" content="/og.png" vite-ignore />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="FC Solver: the cheapest SBC squad from your own EA FC 27 club" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="FC Solver · EA FC 27 SBC solver for your own club" />
+    <meta name="twitter:description" content="Solve EA FC 27 Squad Building Challenges with the players you already own. FC Solver finds the cheapest valid squad from your club and SBC storage, checks every requirement and chemistry, and never buys, sells or submits anything." />
+    <meta name="twitter:image" content="/og.png" vite-ignore />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "FC Solver",
+        "url": "__SITE__/",
+        "image": "__SITE__/og.png",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Web, Chrome",
+        "inLanguage": ["en", "ro"],
+        "description": "Finds the cheapest squad from your own EA FC 27 club that completes a Squad Building Challenge. Read-only toward EA: never buys, sells or submits anything.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" }
+      }
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
   </head>
-  <body>
-    <div id="root"></div>
+  <body style="margin: 0; background: #0d1411">
+    <!-- replaced by the app on load; what crawlers and link previews without JavaScript read -->
+    <div id="root">
+      <main style="max-width: 640px; margin: 64px auto; padding: 0 16px; color: #f3f1ea; font-family: system-ui, sans-serif">
+        <h1>FC Solver: the cheapest EA FC 27 SBC squad from your own club</h1>
+        <p>
+          Pick a Squad Building Challenge and press Solve. FC Solver builds it from the players you already own, including
+          your SBC storage, and spends your least valuable cards first. Every requirement, rating and chemistry is checked
+          the way the game does it. You rebuild the squad in the EA FC web app yourself: FC Solver never buys, sells or
+          submits anything.
+        </p>
+        <p><a href="/guide" style="color: #c8f53c">How it works</a> · <a href="/setup" style="color: #c8f53c">Install the extension</a></p>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

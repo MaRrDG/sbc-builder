@@ -41,6 +41,13 @@ export default function Root() {
     if (isSignedIn && route.view === 'signin') window.location.replace(safeNext(route.next));
   }, [isLoaded, isSignedIn, publicView, route]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // public pages name the tab themselves (the server fills <head> only on a full load, see server/seo.ts);
+  // the signed-in app sets its own titles
+  useEffect(() => {
+    const titled = route.view === 'landing' || route.view === 'guide' || route.view === 'setup' || route.view === 'signin';
+    if (titled && (route.view === 'landing' || !isSignedIn)) document.title = t(`meta.${route.view}`);
+  }, [route.view, isSignedIn, t]);
+
   // the landing page is for everyone and does not wait for Clerk
   if (route.view === 'landing')
     return (
