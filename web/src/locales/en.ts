@@ -311,6 +311,7 @@ export const en = {
   'err.personaNotYours': 'This EA account is not linked to you.',
   'err.personaTakenOver': 'This EA account is now linked to another FC Solver user.',
   'err.adminOnly': 'Admins only.',
+  'err.rateLimited': 'Too many requests. Wait a minute and try again.',
 
   // how it works
   'guide.title': 'How FC Solver works',

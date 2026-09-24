@@ -151,9 +151,9 @@ export async function hello(opts: {
     return { account: byKey, proved: false };
   }
   if (!opts.sid) return { needSid: true };
-  // proving sessions calls EA: a handful per minute is plenty for a friends' server
+  // proving sessions calls EA: capped for the whole server too (per IP: /api/hello in index.ts)
   if (Date.now() - verifyWindow.start > 60_000) verifyWindow = { start: Date.now(), count: 0 };
-  if (++verifyWindow.count > 10) throw Object.assign(new Error('Too many new sessions, try again in a minute.'), { statusCode: 429 });
+  if (++verifyWindow.count > 30) throw Object.assign(new Error('Too many new sessions, try again in a minute.'), { statusCode: 429 });
   const { userInfo } = await new Utas(opts.sid).userInfo();
   if (opts.personaId && opts.personaId !== userInfo.personaId)
     throw Object.assign(new Error('Session does not belong to that account.'), { statusCode: 403 });
