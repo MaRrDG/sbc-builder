@@ -912,7 +912,7 @@ h3 {
 }
 
 .settings-card.locked fieldset { opacity: 0.55; }
-fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; display: contents; }
+fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 .locked-note {
   display: flex;
   align-items: center;
