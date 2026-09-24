@@ -233,9 +233,9 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'plan.globalLocked': 'Setările globale fac parte din Premium. Pe Free, fiecare SBC poate avea în continuare setările lui și jucătorii excluși.',
 
   // quota meter (butonul Rezolvă)
-  'quota.left_one': '{count} din {limit} de rezolvări rămasă săptămâna asta',
-  'quota.left_few': '{count} din {limit} de rezolvări rămase săptămâna asta',
-  'quota.left_other': '{count} din {limit} de rezolvări rămase săptămâna asta',
+  'quota.left_one': 'Mai ai {count} rezolvare din {limit} săptămâna asta',
+  'quota.left_few': 'Mai ai {count} rezolvări din {limit} săptămâna asta',
+  'quota.left_other': 'Mai ai {count} de rezolvări din {limit} săptămâna asta',
   'quota.resets': 'se resetează în {until}',
   'quota.what': 'Cum funcționează rezolvările săptămânale',
   'quota.premium': 'Premium · rezolvări nelimitate',
