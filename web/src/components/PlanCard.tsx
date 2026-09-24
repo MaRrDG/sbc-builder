@@ -8,6 +8,7 @@ export function PlanCard({ plan, now }: { plan: PlanInfo | null; now: number }) 
   const { t } = useI18n();
   if (!plan) return null;
   const q = plan.quota;
+  const left = q ? Math.max(0, q.limit - q.used) : 0;
   return (
     <section className="settings-card plan-card">
       <h2>
@@ -16,10 +17,10 @@ export function PlanCard({ plan, now }: { plan: PlanInfo | null; now: number }) 
       {q ? (
         <>
           <p className="ea-count">
-            <b>{q.limit - q.used}</b> / {q.limit}
+            <b>{left}</b> / {q.limit}
           </p>
           <span className="req-bar ea-bar" aria-hidden="true">
-            <span style={{ width: `${Math.min(100, ((q.limit - q.used) / q.limit) * 100)}%` }} />
+            <span style={{ width: `${Math.min(100, (left / q.limit) * 100)}%` }} />
           </span>
           <p className="muted">
             {q.resetsAt ? t('plan.resetsIn', { until: untilText(t, q.resetsAt, now) }) : t('plan.windowIdle')}

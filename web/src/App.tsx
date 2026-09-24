@@ -214,7 +214,11 @@ export default function App({
     (e: unknown) => {
       const code = e instanceof ApiError ? e.code : null;
       if (code === 'personaTakenOver') setTakenOver(true);
-      if (code === 'quotaExhausted') void api.me().then((m) => setPlan(m.plan));
+      if (code === 'quotaExhausted')
+        void api
+          .me()
+          .then((m) => setPlan(m.plan))
+          .catch(() => {});
       if (code === 'personaNotYours' || code === 'personaTakenOver') void loadMe();
       else setError(errorText(e, t));
     },
@@ -473,8 +477,25 @@ export default function App({
     result && club.length ? result.slots.filter((s) => s.player && !clubById.has(s.player.id) && !storageIds.has(s.player.id)).length : 0;
   const note = storageNote?.challengeId === challengeId ? storageNote.text : null;
   const askStorage = !!result?.found && !result.usedStorage && storage.length > 0 && !note;
-  const outOfSolves = !!plan?.quota && plan.quota.used >= plan.quota.limit;
-  const noteQuota = (r: SolveResult) => r.quota !== undefined && setPlan((p) => (p ? { ...p, quota: r.quota ?? null } : p));
+  // the window may have expired while the tab sat open; apply the server's expiry rule here too
+  const effectiveQuota =
+    plan?.quota && plan.quota.resetsAt !== null && now >= plan.quota.resetsAt
+      ? { ...plan.quota, used: 0, resetsAt: null }
+      : (plan?.quota ?? null);
+  const effectivePlan = plan ? { ...plan, quota: effectiveQuota } : plan;
+  const outOfSolves = !!effectiveQuota && effectiveQuota.used >= effectiveQuota.limit;
+  const noteQuota = (r: SolveResult) => {
+    if (r.quota === undefined) return;
+    // the server said unlimited but our local plan still says Free: the admin changed it while the page was open
+    if (r.quota === null && plan?.tier !== 'premium') {
+      void api
+        .me()
+        .then((m) => setPlan(m.plan))
+        .catch(() => {});
+      return;
+    }
+    setPlan((p) => (p ? { ...p, quota: r.quota ?? null } : p));
+  };
 
   const controls = (
     <>
@@ -719,7 +740,7 @@ export default function App({
                   </fieldset>
                 </div>
                 <div className="settings-side">
-                <PlanCard plan={plan} now={now} />
+                <PlanCard plan={effectivePlan} now={now} />
                 <AccountCard email={me?.email ?? ''} personas={linked} onUnlink={unlink} onSignOut={doSignOut} />
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
                 <aside className="settings-card">
@@ -877,10 +898,10 @@ export default function App({
                         </button>
                       </div>
                     )}
-                    <QuotaMeter plan={plan} now={now} />
-                    {outOfSolves && plan?.quota?.resetsAt && (
+                    <QuotaMeter plan={effectivePlan} now={now} />
+                    {outOfSolves && effectiveQuota?.resetsAt && (
                       <div className="notice-inline" role="status">
-                        {t('quota.out', { until: untilText(t, plan.quota.resetsAt, now) })}
+                        {t('quota.out', { until: untilText(t, effectiveQuota.resetsAt, now) })}
                       </div>
                     )}
                     <Pitch
@@ -914,6 +935,7 @@ export default function App({
                         inSquad={squadRole(selected.id)}
                         onExclude={() => excludeAndResolve(selected.id)}
                         onClose={() => setSelectedId(null)}
+                        excludeLabel={outOfSolves ? t('player.keepOut') : undefined}
                       />
                     )}
                     <section className="reqs-panel">

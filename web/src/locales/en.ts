@@ -475,6 +475,7 @@ export const en = {
   'admin.plan.quota': '{used}/{limit} solves · resets in {reset}',
   'admin.plan.unlimited': 'unlimited',
   'admin.plan.reset': 'Reset quota',
+  'admin.plan.quotaIdle': '{used}/{limit} solves',
 
   // landing page (/)
   'landing.skip': 'Skip to content',
@@ -541,7 +542,7 @@ export const en = {
   'landing.how.scene.synced': 'Club and SBC list synced',
   'landing.how.setup': 'Setup guide',
   'landing.how.more': 'How it works in detail',
-  'landing.price.title': 'Start free, upgrade for every SBC',
+  'landing.price.title': 'Start free, go Premium for unlimited solves',
   'landing.price.period': 'Billing period',
   'landing.price.monthly': 'Monthly',
   'landing.price.yearly': 'Yearly',

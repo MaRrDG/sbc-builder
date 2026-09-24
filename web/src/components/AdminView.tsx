@@ -16,6 +16,7 @@ export function AdminView() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [results, setResults] = useState<AdminSyncResult[] | null>(null);
+  const [draftUntil, setDraftUntil] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     try {
@@ -204,23 +205,30 @@ export function AdminView() {
                   <option value="premium">Premium</option>
                 </select>
               </label>
-              {usr.planSet === 'premium' && (
-                <label>
-                  {t('admin.plan.until')}{' '}
-                  <input
-                    type="date"
-                    defaultValue={usr.plan.premiumUntil ? new Date(usr.plan.premiumUntil).toISOString().slice(0, 10) : ''}
-                    onChange={(e) => void changePlan(usr.id, 'premium', e.target.value)}
-                  />
-                </label>
-              )}
+              {usr.planSet === 'premium' &&
+                (() => {
+                  const saved = usr.plan.premiumUntil ? new Date(usr.plan.premiumUntil).toISOString().slice(0, 10) : '';
+                  const value = draftUntil[usr.id] ?? saved;
+                  return (
+                    <label>
+                      {t('admin.plan.until')}{' '}
+                      <input
+                        type="date"
+                        value={value}
+                        disabled={busy === `plan-${usr.id}`}
+                        onChange={(e) => setDraftUntil((prev) => ({ ...prev, [usr.id]: e.target.value }))}
+                        onBlur={(e) => {
+                          if (e.target.value && e.target.value !== saved) void changePlan(usr.id, 'premium', e.target.value);
+                        }}
+                      />
+                    </label>
+                  );
+                })()}
               <span className="muted">
                 {usr.plan.quota
-                  ? t('admin.plan.quota', {
-                      used: usr.plan.quota.used,
-                      limit: usr.plan.quota.limit,
-                      reset: usr.plan.quota.resetsAt ? untilText(t, usr.plan.quota.resetsAt) : '—',
-                    })
+                  ? usr.plan.quota.resetsAt
+                    ? t('admin.plan.quota', { used: usr.plan.quota.used, limit: usr.plan.quota.limit, reset: untilText(t, usr.plan.quota.resetsAt) })
+                    : t('admin.plan.quotaIdle', { used: usr.plan.quota.used, limit: usr.plan.quota.limit })
                   : t('admin.plan.unlimited')}
               </span>
               {usr.plan.quota && usr.plan.quota.used > 0 && (
