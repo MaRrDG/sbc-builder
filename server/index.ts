@@ -24,6 +24,7 @@ import { isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml }
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { db, initDb } from './db/index.js';
+import { setTrusted } from './db/sbcs.js';
 import { users } from './db/schema.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
@@ -239,6 +240,18 @@ app.post<{ Body: { what?: 'club' | 'sbc' | 'all'; personaIds?: number[] } }>('/a
   const results = [];
   for (const acc of targets) results.push(await adminSync(acc, what));
   return { results };
+});
+
+/** Trust or untrust an EA account: its locked-slot (brick) layouts then win over the vote. */
+app.post<{ Body: { personaId?: number; trusted?: boolean } }>('/api/admin/trust', async (req, reply) => {
+  const adminId = await requireAdmin(req);
+  const { personaId, trusted } = req.body ?? {};
+  if (!Number.isInteger(personaId) || typeof trusted !== 'boolean') return reply.code(400).send({ error: 'invalid payload' });
+  const acc = accountById(personaId!);
+  if (!acc) return reply.code(404).send({ error: 'unknown account' });
+  const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, adminId));
+  await setTrusted(acc.id, trusted, `admin ${row?.email ?? adminId}, ${new Date().toISOString().slice(0, 10)}`);
+  return { ok: true, personaId: acc.id, trusted };
 });
 
 // ---- extension 0.7+: identity and sync jobs run in the web app tab ------------------

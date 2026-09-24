@@ -440,6 +440,10 @@ export const en = {
   'admin.acc.forced': 'sync waiting for the next visit',
   'admin.acc.paused': 'paused by EA throttling',
   'admin.acc.sync': 'Sync',
+  'admin.acc.trusted': 'Trusted',
+  'admin.acc.trust': 'Trust',
+  'admin.acc.untrust': 'Untrust',
+  'admin.acc.trustedHint': 'Locked SBC slots this account sees win over what other accounts report.',
 
   // landing page (/)
   'landing.skip': 'Skip to content',

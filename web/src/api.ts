@@ -230,6 +230,8 @@ export const api = {
   adminStats: () => req<AdminStats>('/api/admin/stats'),
   adminSync: (what: 'club' | 'sbc' | 'all', personaIds?: number[]) =>
     req<{ results: AdminSyncResult[] }>('/api/admin/sync', { method: 'POST', body: { what, personaIds } }),
+  adminTrust: (personaId: number, trusted: boolean) =>
+    req<{ ok: true; personaId: number; trusted: boolean }>('/api/admin/trust', { method: 'POST', body: { personaId, trusted } }),
 };
 
 export interface AdminAccount {
@@ -251,6 +253,8 @@ export interface AdminAccount {
   clubSyncs: { used: number; limit: number };
   /** an admin sync waiting for the account's next web app visit */
   forced: { club: boolean; sbc: boolean } | null;
+  /** its locked-slot (brick) layouts win over the vote */
+  trusted: boolean;
 }
 
 export interface AdminStats {

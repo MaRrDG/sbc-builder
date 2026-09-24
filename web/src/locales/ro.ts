@@ -434,6 +434,10 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'admin.acc.forced': 'sincronizare la următoarea vizită',
   'admin.acc.paused': 'pe pauză din cauza throttling-ului EA',
   'admin.acc.sync': 'Sincronizează',
+  'admin.acc.trusted': 'De încredere',
+  'admin.acc.trust': 'Marchează de încredere',
+  'admin.acc.untrust': 'Scoate încrederea',
+  'admin.acc.trustedHint': 'Sloturile blocate din SBC-uri văzute de acest cont au prioritate față de ce raportează celelalte conturi.',
 
   // landing page (/)
   'landing.skip': 'Sari la conținut',

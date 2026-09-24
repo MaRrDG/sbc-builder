@@ -66,6 +66,19 @@ export async function saveChallenges(setId: number, list: Challenge[]): Promise<
 const CACHE_MS = 10 * 60 * 1000; // db:trust runs in another process, so entries also expire
 const chosen = new Map<number, { bricks: BrickSlot[] | null; at: number }>();
 
+/** Persona ids whose brick reports win over the vote. */
+export async function trustedIds(): Promise<Set<number>> {
+  return new Set((await db.select({ id: trustedAccounts.personaId }).from(trustedAccounts)).map((r) => r.id));
+}
+
+/** Trust or untrust an account (admin screen, or `npm run db:trust`); layouts are chosen again. */
+export async function setTrusted(personaId: number, trusted: boolean, note = ''): Promise<void> {
+  if (trusted)
+    await db.insert(trustedAccounts).values({ personaId, note }).onConflictDoUpdate({ target: trustedAccounts.personaId, set: { note } });
+  else await db.delete(trustedAccounts).where(eq(trustedAccounts.personaId, personaId));
+  chosen.clear();
+}
+
 /** Store one account's view of a challenge's locked slots. Null when stored, else why it was refused. */
 export async function reportBricks(
   challengeId: number, personaId: number, bricks: BrickSlot[], capturedAt: number,
@@ -88,9 +101,7 @@ export async function sharedBricks(challengeId: number): Promise<BrickSlot[] | n
   const hit = chosen.get(challengeId);
   if (hit && Date.now() - hit.at < CACHE_MS) return hit.bricks;
   const rows = await db.select().from(brickReports).where(eq(brickReports.challengeId, challengeId));
-  const trusted = rows.length
-    ? new Set((await db.select({ id: trustedAccounts.personaId }).from(trustedAccounts)).map((r) => r.id))
-    : new Set<number>();
+  const trusted = rows.length ? await trustedIds() : new Set<number>();
   const bricks = chooseLayout(
     rows.map((r) => ({ personaId: r.personaId, hash: r.layoutHash, bricks: r.layout, capturedAt: r.capturedAt.getTime() })),
     trusted,
