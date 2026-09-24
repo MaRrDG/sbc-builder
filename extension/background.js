@@ -202,8 +202,8 @@ async function api(path, init = {}) {
 }
 
 /** A web app tab asked for work and FC Solver answered: we are connected. */
-async function pollJobs(tabId) {
-  const res = await api('/api/jobs/next').catch(() => null);
+async function pollJobs(tabId, visible) {
+  const res = await api(`/api/jobs/next${typeof visible === 'boolean' ? `?visible=${visible ? 1 : 0}` : ''}`).catch(() => null);
   if (res) {
     await chrome.storage.session.set({ lastPollOkAt: Date.now() });
     // red exactly when the live window runs out if no poll follows
@@ -324,7 +324,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         await refreshBadge();
         return sendResponse({ needIdentity: true });
       }
-      sendResponse(await pollJobs(_sender.tab?.id));
+      sendResponse(await pollJobs(_sender.tab?.id, msg.visible));
     })();
     return true; // async response
   }

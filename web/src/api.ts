@@ -49,6 +49,7 @@ export interface SyncStatus {
   error: string | null;
   clubAt: number | null;
   sbcAt: number | null;
+  sbcNextAt: number | null; // a visit refreshes the SBC list from then on (null: legacy account)
   editedAt: number | null;
   unassigned: number;
 }
@@ -212,6 +213,7 @@ export const api = {
   status: () =>
     req<{ account: Account | null; sync: SyncStatus | null; extension: { version: string; notes: string[] } | null }>('/api/status'),
   sync: (what: 'club') => req<SyncStatus>('/api/sync', { method: 'POST', body: { what } }),
+  syncVisit: () => req<SyncStatus>('/api/sync/visit', { method: 'POST' }),
   meta: () => req<Meta>('/api/meta'),
   club: () => req<{ fetchedAt: number | null; players: Player[]; squad: { starters: number[]; bench: number[] } | null }>('/api/club'),
   sets: () => req<{ fetchedAt: number | null; categories: { categoryId: number; name: string; sets: SbcSet[] }[] }>('/api/sets'),

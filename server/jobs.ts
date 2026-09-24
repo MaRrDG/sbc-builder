@@ -28,6 +28,7 @@ export interface Job {
 
 const queues = new Map<number, Job[]>();
 const lastPoll = new Map<number, number>();
+const lastVisible = new Map<number, boolean>();
 const lastFinished = new Map<number, number>();
 const RUNNING_TIMEOUT = 3 * 60 * 1000; // a tab closed mid-job: give up and allow a new one
 const OPEN_WINDOW = 30 * 1000; // the extension polls every few seconds while a web app tab is open
@@ -83,6 +84,17 @@ export async function enqueue(acc: Account, kind: JobKind, setIds?: number[], ch
   return job;
 }
 
+/**
+ * The user just came (back) to the web app: the tab was closed, or hidden and now in front again
+ * (`visible` is sent by extension 0.8.4+). Call before nextJob, which records this poll.
+ */
+export function webAppReturned(acc: Account, visible: boolean | undefined): boolean {
+  const wasOpen = webAppOpen(acc);
+  const wasVisible = lastVisible.get(acc.id);
+  if (visible !== undefined) lastVisible.set(acc.id, visible);
+  return !wasOpen || (visible === true && wasVisible === false);
+}
+
 /** The extension asks for the next job; also marks the web app tab as open. */
 export function nextJob(acc: Account): Job | null {
   lastPoll.set(acc.id, Date.now());
@@ -107,7 +119,7 @@ const CLUB_PAGES_WAIT = 10 * 1000; // the last page is relayed separately and ma
  * The page finished a job. A club sync only counts once its pages replaced the whole club;
  * an SBC list refresh queues the challenges of sets that changed.
  */
-export async function finishJob(acc: Account, job: Job, ok: boolean, error?: string, pagesTagged = false) {
+export async function finishJob(acc: Account, job: Job, ok: boolean, error?: string, pagesTagged = false): Promise<{ playedElsewhere: boolean }> {
   // extensions before 0.8.3 don't tag their pages with the job: the passive scan in events.ts covers them
   if (ok && job.kind === 'club' && pagesTagged) {
     for (const until = Date.now() + CLUB_PAGES_WAIT; !job.clubReplaced && Date.now() < until; )
@@ -120,10 +132,14 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
   job.status = ok ? 'done' : 'failed';
   lastFinished.set(acc.id, Date.now());
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';
-  if (!ok || job.kind !== 'sbc') return;
+  if (!ok || job.kind !== 'sbc') return { playedElsewhere: false };
   const sets = await readCache<SetsData>(acc.key('sets'));
   const changed: number[] = [];
+  let playedElsewhere = false;
   for (const set of sets?.data.categories.flatMap((c) => c.sets) ?? []) {
+    // progress went up without us seeing the submit (console, companion app): the club lost players
+    const was = job.before?.[set.setId]?.split(':').map(Number);
+    if (was && (set.challengesCompletedCount > was[0] || set.timesCompleted > was[2])) playedElsewhere = true;
     const cached = await readCache(acc.key(`challenges/${set.setId}`));
     if (cached && job.before?.[set.setId] === progress(set)) continue;
     // finished one-off sets are only loaded when the user opens them in the web app
@@ -131,6 +147,7 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
     changed.push(set.setId);
   }
   if (changed.length) await enqueue(acc, 'challenges', changed);
+  return { playedElsewhere };
 }
 
 /** What the UI shows as "running" and the last error, for accounts on jobs. */
