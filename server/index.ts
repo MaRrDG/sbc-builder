@@ -10,7 +10,7 @@ import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.j
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
 import { adminSync, applySubmittedSbc, autoSyncAll, autoSyncSoon, getChallenges, getStatus, markEdited, refreshSbcsOnVisit, requestSync, type SetsData } from './sync.js';
-import { enqueue, findJob, finishJob, nextJob, webAppOpen, webAppReturned } from './jobs.js';
+import { enqueue, findJob, finishJob, hasPending, nextJob, webAppOpen, webAppReturned } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, listAccounts, type Account } from './accounts.js';
 import { adminStats, isAdmin, requireAdmin } from './admin.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteUser } from './auth.js';
@@ -237,11 +237,13 @@ app.post<{ Params: { id: string }; Body: { ok: boolean; error?: string; pagesTag
   const job = findJob(acc, req.params.id);
   if (!job) return reply.code(404).send({ error: 'unknown job' });
   const error = typeof req.body?.error === 'string' ? req.body.error.slice(0, 300) : undefined;
-  const { playedElsewhere } = await finishJob(acc, job, !!req.body?.ok, error, req.body?.pagesTagged === true);
+  const { playedElsewhere, changedSets } = await finishJob(acc, job, !!req.body?.ok, error, req.body?.pagesTagged === true);
   // SBCs done on a console or in the companion app used club players: refresh the club too (daily cap applies)
-  if (playedElsewhere) await requestSync(acc, 'club', true).catch(() => {});
+  const clubQueued = playedElsewhere && (await requestSync(acc, 'club', true).then(() => hasPending(acc, 'club'), () => false));
   markEdited(acc);
-  return { ok: true };
+  // what happened, for the notice the extension shows in the web app (0.8.5+)
+  const players = job.kind === 'club' && job.status === 'done' ? (await readCache<ClubItem[]>(acc.key('club')))?.data.length ?? null : null;
+  return { ok: true, kind: job.kind, status: job.status, error: job.error ?? null, players, changedSets, clubQueued };
 });
 
 /** Sent by the extension after the web app successfully submits an SBC. */

@@ -1,4 +1,7 @@
 {
+  "0.8.5": [
+    "A notice in the web app tells you when FC Solver syncs your club or SBCs, and how it went"
+  ],
   "0.8.4": [
     "Coming back to the web app refreshes your SBCs, so ones you finished on a console or in the companion app show up (at most every 30 minutes)"
   ],

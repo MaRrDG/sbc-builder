@@ -45,7 +45,7 @@ One EA request made for a job: `{ "method": "POST", "path": "/club", "status": 2
 
 ### `POST /api/jobs/:id/done` (extension)
 
-`{ "ok": true, "pagesTagged": true }` or `{ "ok": false, "error": "EA asked to slow down (495)." }`. A finished `sbc` job queues a `challenges` job for sets that are new or changed. `pagesTagged` (extension 0.8.3+) says the job's `/club` pages came with its `jobId`: a `club` job then only counts as done once those pages replaced the whole club (waits up to 10 s for the last page), otherwise it fails with an error and the cached club is left as it was.
+`{ "ok": true, "pagesTagged": true }` or `{ "ok": false, "error": "EA asked to slow down (495)." }`. A finished `sbc` job queues a `challenges` job for sets that are new or changed. `pagesTagged` (extension 0.8.3+) says the job's `/club` pages came with its `jobId`: a `club` job then only counts as done once those pages replaced the whole club (waits up to 10 s for the last page), otherwise it fails with an error and the cached club is left as it was. Returns `{ "ok": true, "kind": "club", "status": "done" | "failed", "error": null, "players": 311, "changedSets": 0, "clubQueued": false }` (`players`: club size after a club job; `changedSets`: sets an `sbc` job found changed; `clubQueued`: a club sync was queued because SBCs were done outside the web app). Extension 0.8.5+ shows it as a notice in the web app.
 
 ### `POST /api/session` (extension)
 

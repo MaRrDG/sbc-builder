@@ -342,10 +342,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === 'job-done') {
     setBusy(null);
+    // the server's verdict goes back to the tab, which shows it as a notice in the web app
     api(`/api/jobs/${encodeURIComponent(msg.jobId)}/done`, { method: 'POST', body: JSON.stringify({ ok: msg.ok, error: msg.error, pagesTagged: true }) })
-      .then(() => chrome.storage.local.set({ lastStatus: msg.ok ? 'Synced from the web app' : `Sync failed: ${msg.error}`, lastAt: Date.now() }))
-      .catch(() => {});
-    return;
+      .then(async (res) => {
+        const ok = res ? res.status === 'done' : msg.ok;
+        const error = res?.error ?? msg.error;
+        await chrome.storage.local.set({ lastStatus: ok ? 'Synced from the web app' : `Sync failed: ${error}`, lastAt: Date.now() });
+        sendResponse(res);
+      })
+      .catch(() => sendResponse(null));
+    return true; // async response
   }
   if (msg?.type !== 'webapp-event') return;
   (async () => {
