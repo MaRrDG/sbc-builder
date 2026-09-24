@@ -5,15 +5,10 @@ import { createClerkClient, verifyToken } from '@clerk/backend';
 import { SessionError } from './ea.js';
 import { accountById, type Account } from './accounts.js';
 import { personaRow, setUserEmail, touchUser } from './db/users.js';
+import { siteOrigins } from './origins.js';
 
 let secretKey = '';
 let clerk: ReturnType<typeof createClerkClient> | null = null;
-// tokens minted for another site must not work here
-const PARTIES = (process.env.SITE_ORIGINS ??
-  'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5178,http://127.0.0.1:5178,https://sbc-builder.mario-theodor.ro')
-  .split(',')
-  .map((s) => s.trim())
-  .filter(Boolean);
 
 /** Call after initDb() (which loads .env). */
 export function initAuth(): void {
@@ -54,7 +49,8 @@ export async function siteUser(req: FastifyRequest): Promise<string> {
   const token = typeof h === 'string' && h.startsWith('Bearer ') ? h.slice(7) : '';
   if (!token) throw signIn();
   // the exported verifyToken is the legacy wrapper: it returns the payload and throws on a bad token
-  const payload: unknown = await verifyToken(token, { secretKey, authorizedParties: PARTIES }).catch(() => {
+  // tokens minted for another site must not work here
+  const payload: unknown = await verifyToken(token, { secretKey, authorizedParties: siteOrigins() }).catch(() => {
     throw signIn();
   });
   const sub = (payload as { sub?: unknown } | null)?.sub;

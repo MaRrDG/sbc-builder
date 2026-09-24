@@ -21,16 +21,28 @@ import { eq } from 'drizzle-orm';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 import { isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml } from './seo.js';
+import { publicOrigin, siteOrigins } from './origins.js';
+import { createLimiter } from './limits.js';
 import { db, initDb } from './db/index.js';
 import { users } from './db/schema.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
-const app = Fastify({ logger: { level: 'warn' }, trustProxy: true });
+// Only Apache in front of us (on the host, or the Docker bridge) may set X-Forwarded-*: req.ip is
+// then the visitor, not a header anyone can write.
+const app = Fastify({ logger: { level: 'warn' }, trustProxy: ['loopback', 'uniquelocal'] });
+const DEV = process.env.NODE_ENV !== 'production';
 
-// The SID bridge extension posts from a chrome-extension:// origin.
+// Per-IP limits: plenty for the site and the extension polling, not for a script hammering us.
+const apiLimit = createLimiter({ windowMs: 60_000, max: 600 });
+const proofLimit = createLimiter({ windowMs: 60_000, max: 5 }); // new EA sessions to prove (each one calls EA)
+const reportLimit = createLimiter({ windowMs: 60_000, max: 20 });
+const tooMany = () => new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
+
+// The extension posts from a chrome-extension:// origin (unpacked, so its id differs per install).
 app.addHook('onRequest', async (req, reply) => {
+  if (req.url.startsWith('/api/') && !apiLimit(req.ip)) throw tooMany();
   const origin = req.headers.origin;
-  if (origin && (origin.startsWith('chrome-extension://') || origin.startsWith('http://localhost'))) {
+  if (origin && (origin.startsWith('chrome-extension://') || (DEV && origin.startsWith('http://localhost')))) {
     reply.header('Access-Control-Allow-Origin', origin);
     reply.header('Access-Control-Allow-Headers', 'Content-Type, X-Account-Key, Authorization, X-Persona');
     reply.header('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
@@ -38,11 +50,65 @@ app.addHook('onRequest', async (req, reply) => {
   if (req.method === 'OPTIONS') return reply.code(204).send();
 });
 
-app.setErrorHandler((err: Error & { statusCode?: number }, _req, reply) => {
+app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
   const status = err instanceof SessionError ? err.status : err.statusCode ?? 500;
   // `code` / `params` are ours (SessionError), for the site to translate; never Fastify's own codes
   const own = err instanceof SessionError && err.msgCode ? { code: err.msgCode, params: err.params ?? {} } : {};
+  // unexpected failures stay in the log: their messages can carry SQL, paths or EA answers
+  if (status >= 500 && !(err instanceof SessionError)) {
+    console.error(`[error] ${req.method} ${req.url.split('?')[0]}:`, err);
+    return reply.code(status).send({ error: 'Something went wrong on the FC Solver server.' });
+  }
   reply.code(status).send({ error: err.message, ...own });
+});
+
+// Security headers on every answer. The CSP is report-only for now: violations are logged
+// (/api/csp-report) until it is known not to break Clerk, the EA card art or the fonts.
+function csp(): string {
+  // Clerk's Frontend API lives on clerk.<our domain> in production, *.clerk.accounts.dev in development
+  const clerk = siteOrigins()
+    .filter((o) => o.startsWith('https://'))
+    .map((o) => `https://clerk.${new URL(o).host}`);
+  const clerkAll = [...clerk, 'https://*.clerk.accounts.dev', 'https://*.clerk.com'].join(' ');
+  return [
+    "default-src 'self'",
+    `script-src 'self' ${clerkAll} https://challenges.cloudflare.com`,
+    `connect-src 'self' ${clerkAll} https://clerk-telemetry.com`,
+    "img-src 'self' data: blob: https:",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com",
+    `frame-src https://challenges.cloudflare.com ${clerkAll}`,
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    'report-uri /api/csp-report',
+  ].join('; ');
+}
+app.addHook('onSend', async (req, reply) => {
+  reply.header('X-Content-Type-Options', 'nosniff');
+  reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+  reply.header('X-Frame-Options', 'DENY');
+  reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  if (req.headers['x-forwarded-proto'] === 'https') reply.header('Strict-Transport-Security', 'max-age=15552000');
+  if (String(reply.getHeader('content-type') ?? '').startsWith('text/html')) reply.header('Content-Security-Policy-Report-Only', csp());
+});
+
+// Browsers post CSP violations here (report-only phase); kept short and rate limited in the log.
+app.addContentTypeParser(['application/csp-report', 'application/reports+json'], { parseAs: 'string', bodyLimit: 16 * 1024 }, (_req, body, done) => {
+  try {
+    done(null, JSON.parse(body as string));
+  } catch {
+    done(null, null);
+  }
+});
+app.post('/api/csp-report', async (req, reply) => {
+  if (reportLimit(req.ip)) {
+    const r = (req.body as { 'csp-report'?: Record<string, unknown> } | null)?.['csp-report'] ?? req.body;
+    console.warn('[csp]', JSON.stringify(r).slice(0, 500));
+  }
+  return reply.code(204).send();
 });
 
 await loadAccounts();
@@ -65,6 +131,7 @@ const metaFor = (acc: Account) => loadMeta(acc.key('chemProfiles'));
 app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('/api/session', async (req, reply) => {
   const { sid, contentGuid, extVersion } = req.body ?? ({} as never);
   if (!sid || !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
+  if (!proofLimit(req.ip)) throw tooMany();
   const guid = contentGuid && /^[0-9A-F-]{36}$/i.test(contentGuid) ? contentGuid : undefined;
   const version = extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined;
   // no sync here: the minute ticker runs it once the session is a few seconds old (see autoSync)
@@ -179,6 +246,7 @@ app.post<{ Body: { what?: 'club' | 'sbc' | 'all'; personaIds?: number[] } }>('/a
 app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVersion?: string; linkToken?: string } }>('/api/hello', async (req, reply) => {
   const { personaId, sid, contentGuid, extVersion, linkToken } = req.body ?? {};
   if (sid !== undefined && !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
+  if (sid && !accountByKey(keyOf(req)) && !proofLimit(req.ip)) throw tooMany(); // proving a new session calls EA
   const r = await hello({
     key: keyOf(req),
     personaId: Number.isInteger(personaId) ? personaId : undefined,
@@ -268,9 +336,8 @@ app.post<{ Body: WebAppEvent }>('/api/webapp-event', { bodyLimit: 2 * 1024 * 102
 
 /** The Chrome extension, pre-pointed at this server. */
 app.get('/api/extension.zip', async (req, reply) => {
-  const origin = requestOrigin(req.headers, req.protocol);
-  if (!/^https?:\/\/[\w.-]+(:\d+)?$/.test(origin)) return reply.code(400).send({ error: 'bad host' });
-  const zip = await buildExtensionZip(origin);
+  // baked into the extension as its server: only ever one of our own origins
+  const zip = await buildExtensionZip(publicOrigin(requestOrigin(req.headers, req.protocol)));
   return reply
     .header('Content-Type', 'application/zip')
     .header('Content-Disposition', 'attachment; filename="fc-solver-extension.zip"')
@@ -414,17 +481,24 @@ const dist = join(ROOT, 'dist');
 let indexHtml: string | null = null; // read once; a new build restarts the server
 async function sendPage(req: FastifyRequest, reply: FastifyReply, path: string) {
   indexHtml ??= await readFile(join(dist, 'index.html'), 'utf8');
-  const origin = requestOrigin(req.headers, req.protocol);
-  const canonical = isCanonicalHost(origin);
+  // the host decides indexing; the URLs we print are always one of our own origins
+  const claimed = requestOrigin(req.headers, req.protocol);
+  const canonical = isCanonicalHost(claimed);
   if (!canonical || !pageMeta(path)) reply.header('X-Robots-Tag', 'noindex, nofollow');
-  return reply.header('Cache-Control', 'no-cache').type('text/html').send(renderHead(indexHtml, path, siteUrl(origin), canonical));
+  return reply.header('Cache-Control', 'no-cache').type('text/html').send(renderHead(indexHtml, path, siteUrl(publicOrigin(claimed)), canonical));
 }
 app.get('/robots.txt', (req, reply) => {
-  const origin = requestOrigin(req.headers, req.protocol);
-  return reply.type('text/plain').header('Cache-Control', 'public, max-age=3600').send(robotsTxt(siteUrl(origin), isCanonicalHost(origin)));
+  const claimed = requestOrigin(req.headers, req.protocol);
+  return reply
+    .type('text/plain')
+    .header('Cache-Control', 'public, max-age=3600')
+    .send(robotsTxt(siteUrl(publicOrigin(claimed)), isCanonicalHost(claimed)));
 });
 app.get('/sitemap.xml', (req, reply) =>
-  reply.type('application/xml').header('Cache-Control', 'public, max-age=3600').send(sitemapXml(siteUrl(requestOrigin(req.headers, req.protocol)))),
+  reply
+    .type('application/xml')
+    .header('Cache-Control', 'public, max-age=3600')
+    .send(sitemapXml(siteUrl(publicOrigin(requestOrigin(req.headers, req.protocol))))),
 );
 
 if (existsSync(dist))

@@ -49,10 +49,15 @@ export async function buildExtensionZip(origin: string): Promise<Uint8Array> {
   return zipSync(files, { level: 6 });
 }
 
-/** Origin as the browser saw it (works behind a reverse proxy that sets X-Forwarded-*). */
+/**
+ * Origin as the browser saw it. The host comes from Host (Apache keeps it with ProxyPreserveHost,
+ * Cloudflare routes by it), never from X-Forwarded-Host: proxies append to that one, so its first
+ * value is whatever the client wrote. The scheme is the last X-Forwarded-Proto (Apache sets it).
+ * Still client-influenced: callers only print one of our own origins (see origins.ts).
+ */
 export function requestOrigin(headers: Record<string, string | string[] | undefined>, fallbackProto = 'http'): string {
-  const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v)?.split(',')[0].trim();
-  const proto = first(headers['x-forwarded-proto']) ?? fallbackProto;
-  const host = first(headers['x-forwarded-host']) ?? first(headers.host) ?? 'localhost:5178';
+  const last = (v: string | string[] | undefined) => (Array.isArray(v) ? v[v.length - 1] : v)?.split(',').pop()?.trim() || undefined;
+  const proto = last(headers['x-forwarded-proto']) ?? fallbackProto;
+  const host = last(headers.host) ?? 'localhost:5178';
   return `${proto}://${host}`;
 }

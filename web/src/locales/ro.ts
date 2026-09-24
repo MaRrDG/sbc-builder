@@ -303,6 +303,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'err.noPersona': 'Alege întâi un cont EA.',
   'err.personaNotYours': 'Contul EA nu e legat de tine.',
   'err.personaTakenOver': 'Contul EA e acum legat de alt utilizator FC Solver.',
+  'err.rateLimited': 'Prea multe cereri. Așteaptă un minut și încearcă din nou.',
   'err.adminOnly': 'Doar pentru admini.',
 
   'guide.title': 'Cum funcționează FC Solver',
