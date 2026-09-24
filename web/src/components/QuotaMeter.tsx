@@ -14,8 +14,8 @@ export function QuotaMeter({ plan, now }: { plan: PlanInfo | null; now: number }
   const left = Math.max(0, q.limit - q.used);
   return (
     <div className={`quota-meter${left === 0 ? ' empty' : ''}`}>
-      <p role="status">
-        {t('quota.left', { count: left, limit: q.limit })}
+      <p>
+        <span role="status">{t('quota.left', { count: left, limit: q.limit })}</span>
         {q.resetsAt && <> · {t('quota.resets', { until: untilText(t, q.resetsAt, now) })}</>}
         <button type="button" className="icon" aria-expanded={open} aria-label={t('quota.what')} onClick={() => setOpen((v) => !v)}>
           <Info weight="bold" aria-hidden="true" />

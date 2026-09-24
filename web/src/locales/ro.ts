@@ -469,7 +469,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'admin.plan.until': 'până la',
   'admin.plan.quota': '{used}/{limit} rezolvări · reset în {reset}',
   'admin.plan.unlimited': 'nelimitat',
-  'admin.plan.reset': 'Resetează quota',
+  'admin.plan.reset': 'Resetează cota',
+  'admin.plan.quotaIdle': '{used}/{limit} rezolvări',
 
   // landing page (/)
   'landing.skip': 'Sari la conținut',
@@ -536,7 +537,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.how.scene.synced': 'Clubul și lista de SBC-uri sincronizate',
   'landing.how.setup': 'Ghid de instalare',
   'landing.how.more': 'Cum funcționează, pe larg',
-  'landing.price.title': 'Începi gratuit, treci la Premium pentru toate SBC-urile',
+  'landing.price.title': 'Începe gratuit, treci la Premium pentru rezolvări nelimitate',
   'landing.price.period': 'Perioada de facturare',
   'landing.price.monthly': 'Lunar',
   'landing.price.yearly': 'Anual',
