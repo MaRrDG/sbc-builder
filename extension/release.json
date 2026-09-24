@@ -1,4 +1,7 @@
 {
+  "0.8.6": [
+    "Reads your SBC Storage, so FC Solver can offer cheaper squads that use it"
+  ],
   "0.8.5": [
     "A notice in the web app tells you when FC Solver syncs your club or SBCs, and how it went"
   ],

@@ -8,7 +8,8 @@
 //  - POST /club pages -> players upserted; a complete unfiltered scan replaces the club
 //    (pages of a club sync job carry its id and are put together per job, see club-pages.ts);
 //  - GET /squad/list + /squad/{id} (or /squad/active) -> active squad;
-//  - GET /chemistry/profiles -> promo chemistry profiles.
+//  - GET /chemistry/profiles -> promo chemistry profiles;
+//  - GET /storagepile -> the SBC storage (players the solver may use on request).
 import type { ClubItem, Challenge, ChemProfilesResponse } from './ea.js';
 import type { Account } from './accounts.js';
 import { readCache, writeCache } from './store.js';
@@ -22,7 +23,7 @@ import { addClubPage, assembleClub } from './club-pages.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const WATCHED_PATH =
-  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles)$/;
+  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile)$/;
 
 export interface WebAppEvent {
   method: string;
@@ -42,7 +43,8 @@ const isPlayer = (i: unknown): i is ClubItem =>
 async function load(acc: Account) {
   const club = await readCache<ClubItem[]>(acc.key('club'));
   const pending = await readCache<ClubItem[]>(acc.key('unassigned'));
-  return { club, pending: pending?.data ?? [] };
+  const storage = await readCache<ClubItem[]>(acc.key('storage'));
+  return { club, pending: pending?.data ?? [], storage };
 }
 
 // ---- data the web app loaded ---------------------------------------------------------
@@ -178,6 +180,13 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
       });
     return 'SBC squad updated from the web app'; // non-null: the UI reloads and shows it
   }
+  if (method === 'GET' && ev.path === '/storagepile') {
+    const items = res.itemData ?? res.itemList;
+    if (!Array.isArray(items)) return null;
+    const players = items.filter(isPlayer);
+    await writeCache<ClubItem[]>(acc.key('storage'), players);
+    return `SBC storage updated from the web app (${players.length} players)`;
+  }
   if (method === 'GET' && ev.path === '/chemistry/profiles') {
     if (!Array.isArray(res.profiles)) return null;
     await writeCache<ChemProfilesResponse>(acc.key('chemProfiles'), res as unknown as ChemProfilesResponse);
@@ -194,11 +203,12 @@ export async function applyWebAppEvent(acc: Account, ev: WebAppEvent): Promise<s
     if (loaded) markEdited(acc); // the UI reloads its data when this moves
     return loaded;
   }
-  const { club, pending } = await load(acc);
+  const { club, pending, storage } = await load(acc);
   if (!club) return null; // nothing cached yet; the first sync will have it all
 
   let clubItems = club.data;
   let unassigned = pending;
+  let stored = storage?.data ?? [];
   let summary: string | null = null;
 
   if (ev.path === '/purchased/items') {
@@ -222,16 +232,18 @@ export async function applyWebAppEvent(acc: Account, ev: WebAppEvent): Promise<s
     for (const m of moves) {
       const pile = String(m.pile ?? '').toLowerCase();
       if (pile === 'club' || pile === String(CLUB_PILE)) {
-        const item = unassigned.find((p) => p.id === m.id);
+        const item = unassigned.find((p) => p.id === m.id) ?? stored.find((p) => p.id === m.id);
         if (item && !clubItems.some((c) => c.id === m.id)) {
           clubItems = [...clubItems, { ...item, pile: CLUB_PILE, itemState: 'free' }];
           toClub++;
         }
         unassigned = unassigned.filter((p) => p.id !== m.id);
+        stored = stored.filter((p) => p.id !== m.id);
       } else {
         const before = clubItems.length;
         clubItems = clubItems.filter((c) => c.id !== m.id);
         unassigned = unassigned.filter((p) => p.id !== m.id);
+        stored = stored.filter((p) => p.id !== m.id);
         out += before - clubItems.length;
       }
     }
@@ -243,12 +255,14 @@ export async function applyWebAppEvent(acc: Account, ev: WebAppEvent): Promise<s
     const before = clubItems.length;
     clubItems = clubItems.filter((c) => !ids.has(c.id));
     unassigned = unassigned.filter((p) => !ids.has(p.id));
+    stored = stored.filter((p) => !ids.has(p.id));
     if (before !== clubItems.length) summary = `${before - clubItems.length} quick sold from club`;
   } else {
     return null;
   }
 
   if (clubItems !== club.data) await writeCache(acc.key('club'), clubItems, club.fetchedAt);
+  if (storage && stored.length !== storage.data.length) await writeCache(acc.key('storage'), stored, storage.fetchedAt);
   await writeCache(acc.key('unassigned'), unassigned);
   markEdited(acc);
   return summary;

@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { Coins, LockSimple, UserCircle } from '@phosphor-icons/react';
+import { Archive, Coins, LockSimple, UserCircle } from '@phosphor-icons/react';
 import type { BrickInfo, Meta, Player } from '../api';
 import { useI18n } from '../i18n';
 
@@ -43,7 +43,9 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
       {...(onClick ? { type: 'button' as const, onClick, 'aria-pressed': !!selected } : {})}
       className={`card card-${size} tier-${player.tier}${bgOk ? '' : ' card-fallback'}${selected ? ' selected' : ''}`}
       style={{ color: art.text }}
-      title={`${player.name} · ${player.possiblePositions.join(', ')} · ${player.untradeable ? t('card.untradeable') : t('card.tradeable')}`}
+      title={`${player.name} · ${player.possiblePositions.join(', ')} · ${player.untradeable ? t('card.untradeable') : t('card.tradeable')}${
+        player.inStorage ? ` · ${t('card.inStorage')}` : ''
+      }`}
     >
       {art.bg && bgOk && <img className="card-bg" src={art.bg} alt="" loading={loading} decoding="async" onError={() => setBgOk(false)} />}
       <div className="card-rating">{player.rating}</div>
@@ -56,6 +58,7 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
         <img src={art.club} alt={meta.names.club[player.club] ?? ''} loading={loading} />
       </div>
       {!player.untradeable && <Coins className="card-tradeable" weight="fill" aria-label={t('card.tradeableIcon')} />}
+      {player.inStorage && <Archive className="card-storage" weight="fill" aria-label={t('card.inStorage')} />}
     </Tag>
   );
 });

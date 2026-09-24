@@ -39,6 +39,7 @@ export interface Player {
   skillMoves: number;
   weakFoot: number;
   foot: 'Right' | 'Left';
+  inStorage?: boolean; // in SBC storage, not in the club
 }
 
 export function toPlayer(i: ClubItem, meta: Meta): Player {

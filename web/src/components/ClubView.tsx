@@ -8,7 +8,7 @@ import { useI18n } from '../i18n';
 
 const PER_PAGE = 60;
 
-type Filter = 'all' | 'untradeable' | 'tradeable' | 'special' | 'squad' | 'kept';
+type Filter = 'all' | 'untradeable' | 'tradeable' | 'special' | 'squad' | 'kept' | 'storage';
 type Sort = 'rating' | 'name' | 'position';
 
 const FILTERS: [Filter, string][] = [
@@ -18,12 +18,14 @@ const FILTERS: [Filter, string][] = [
   ['special', 'club.special'],
   ['squad', 'club.activeSquad'],
   ['kept', 'club.keptOut'],
+  ['storage', 'club.storage'],
 ];
 
 const POS_ORDER = ['GK', 'RB', 'RWB', 'CB', 'LB', 'LWB', 'CDM', 'RM', 'CM', 'LM', 'CAM', 'RW', 'LW', 'CF', 'ST'];
 
 interface Props {
   club: Player[];
+  storage: Player[]; // SBC storage, shown under its own filter
   meta: Meta;
   squad: { starters: number[]; bench: number[] } | null;
   excludeIds: number[];
@@ -31,7 +33,7 @@ interface Props {
 }
 
 /** The players in the club, searchable; a card opens its details and can be kept out of SBCs. */
-export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Props) {
+export function ClubView({ club, storage, meta, squad, excludeIds, onToggleExclude }: Props) {
   const { t } = useI18n();
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
@@ -58,7 +60,7 @@ export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Pro
 
   const shown = useMemo(() => {
     const needle = deferredQ.trim().toLowerCase();
-    const list = club.filter((p) => {
+    const list = (filter === 'storage' ? storage : club).filter((p) => {
       if (p.isLoan) return false;
       if (needle && !p.name.toLowerCase().includes(needle) && !p.fullName.toLowerCase().includes(needle)) return false;
       switch (filter) {
@@ -79,11 +81,11 @@ export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Pro
       : sort === 'position' ? pos(a) - pos(b) || b.rating - a.rating
       : b.rating - a.rating || a.name.localeCompare(b.name),
     );
-  }, [club, deferredQ, filter, sort, starters, bench, kept]);
+  }, [club, storage, deferredQ, filter, sort, starters, bench, kept]);
 
   const current = clampPage(page, shown.length, PER_PAGE);
   const pageItems = shown.slice((current - 1) * PER_PAGE, current * PER_PAGE);
-  const selected = club.find((p) => p.id === selectedId) ?? null;
+  const selected = club.find((p) => p.id === selectedId) ?? storage.find((p) => p.id === selectedId) ?? null;
   const owned = useMemo(() => club.filter((p) => !p.isLoan), [club]);
   const untradeable = useMemo(() => owned.filter((p) => p.untradeable).length, [owned]);
   const turnPage = (n: number) => {
@@ -126,6 +128,7 @@ export function ClubView({ club, meta, squad, excludeIds, onToggleExclude }: Pro
               }}
             >
               {t(label)}
+              {f === 'storage' && ` (${storage.length})`}
             </button>
           ))}
         </div>

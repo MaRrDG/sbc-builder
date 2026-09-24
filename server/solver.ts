@@ -46,6 +46,7 @@ export function playerCost(p: Player): number {
   const r = p.rating;
   let c = r < 65 ? 1 + (r - 40) * 0.02 : r < 75 ? 2 + (r - 65) * 0.1 : 4 * Math.pow(2, (r - 75) / 2.2);
   if (!p.untradeable) c *= 1.35; // prefer burning untradeables
+  if (p.inStorage) c *= 0.8; // storage has little room and holds duplicates: use it first
   if (isSpecial(p)) c *= 4;
   if (isLegend(p) || isHero(p)) c *= 6;
   return Math.round(c * 100) / 100;
