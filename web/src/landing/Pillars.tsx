@@ -27,7 +27,7 @@ function Advantage({ id, title, body, bg, children }: { id: string; title: strin
 }
 
 // DEMO_SQUAD index + an example market price
-const OWNED: [number, number][] = [[1, 61000], [2, 52500], [4, 44000], [5, 38500], [6, 21000]];
+const OWNED: [number, number][] = [[1, 152000], [3, 98000], [4, 44000], [5, 38500], [6, 21000]];
 
 function ClubProof() {
   const { t, lang } = useI18n();
