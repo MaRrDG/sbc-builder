@@ -15,9 +15,21 @@ import { adminSync, applySubmittedSbc, autoSyncAll, autoSyncSoon, getChallenges,
 import { enqueue, findJob, finishJob, hasPending, nextJob, webAppOpen, webAppReturned } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, listAccounts, type Account } from './accounts.js';
 import { adminStats, isAdmin, requireAdmin } from './admin.js';
-import { initAuth, optionalSiteAccount, siteAccount, siteUser } from './auth.js';
+import { initAuth, optionalSiteAccount, siteAccount, siteContext, siteUser } from './auth.js';
 import { linkDecision } from './auth-rules.js';
-import { consumeLinkToken, createLinkToken, linkTokenUser, personaRow, personasOf, setOwner, unlinkPersona } from './db/users.js';
+import { planFor, planInfo } from './plans.js';
+import {
+  consumeLinkToken,
+  countSolve,
+  createLinkToken,
+  linkTokenUser,
+  personaRow,
+  personasOf,
+  resetQuota,
+  setOwner,
+  setPlan,
+  unlinkPersona,
+} from './db/users.js';
 import { eq } from 'drizzle-orm';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
@@ -152,7 +164,7 @@ app.get('/api/me', async (req) => {
     const a = accountById(id);
     return a ? [a.toJSON()] : [];
   });
-  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId) };
+  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId) };
 });
 
 /** One-time migration of solver settings saved under old browser keys: key prefix -> persona, own personas only. */
@@ -254,6 +266,26 @@ app.post<{ Body: { personaId?: number; trusted?: boolean } }>('/api/admin/trust'
   const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, adminId));
   await setTrusted(acc.id, trusted, `admin ${row?.email ?? adminId}, ${new Date().toISOString().slice(0, 10)}`);
   return { ok: true, personaId: acc.id, trusted };
+});
+
+/** Free or Premium, optionally until a date (then Free again). The quota is left as it is. */
+app.post<{ Body: { userId?: string; tier?: string; premiumUntil?: string | null } }>('/api/admin/plan', async (req, reply) => {
+  await requireAdmin(req);
+  const { userId, tier, premiumUntil } = req.body ?? {};
+  const until = premiumUntil ? new Date(premiumUntil) : null;
+  if (typeof userId !== 'string' || (tier !== 'free' && tier !== 'premium') || (until && Number.isNaN(until.getTime())))
+    return reply.code(400).send({ error: 'invalid payload' });
+  if (!(await setPlan(userId, tier, tier === 'premium' ? until : null))) return reply.code(404).send({ error: 'unknown user' });
+  return { ok: true };
+});
+
+/** Gives a Free user their whole week back. */
+app.post<{ Body: { userId?: string } }>('/api/admin/quota-reset', async (req, reply) => {
+  await requireAdmin(req);
+  const userId = req.body?.userId;
+  if (typeof userId !== 'string') return reply.code(400).send({ error: 'invalid payload' });
+  if (!(await resetQuota(userId))) return reply.code(404).send({ error: 'unknown user' });
+  return { ok: true };
 });
 
 // ---- extension 0.7+: identity and sync jobs run in the web app tab ------------------
@@ -431,7 +463,11 @@ const DEFAULT_OPTIONS: SolveOptions = {
 app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOptions>; deep?: boolean; useStorage?: boolean } }>(
   '/api/solve',
   async (req, reply) => {
-    const acc = await siteAccount(req);
+    const { userId, acc } = await siteContext(req);
+    const plan = await planFor(userId);
+    // Free: 20 found squads per 7-day window (server/plan.ts); checked before the solver runs
+    if (plan.quota && plan.quota.used >= plan.quota.limit)
+      throw new SessionError('Weekly solve limit reached.', 403, 'quotaExhausted', { limit: plan.quota.limit, resetsAt: plan.quota.resetsAt ?? 0 });
     const meta = await metaFor(acc);
     const { setId, challengeId } = req.body;
     const ch = (await getChallenges(acc, setId))?.data.find((c) => c.challengeId === challengeId);
@@ -467,8 +503,12 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
         reasons: diagnose(players, reqs, meta, options, squad, bricks),
         slots: slotsMeta.map((s, i) => ({ position: s, player: null, chem: 0, brick: brickOf(i), fixed: false })),
         eval: empty,
+        quota: plan.quota,
       };
     }
+    // only a found squad costs a token; Premium is not counted
+    const quota =
+      plan.quota && sol.eval.allMet ? planInfo(await countSolve(userId), false, Date.now()).quota : plan.quota;
     return {
       found: sol.eval.allMet,
       status: sol.status,
@@ -485,6 +525,7 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
       missingPlaced: sol.missingPlaced,
       placed: { kept: sol.fixedIds.length, total: sol.placedCount },
       usedStorage: !!req.body.useStorage,
+      quota,
     };
   },
 );

@@ -79,7 +79,7 @@ Signed in with Clerk; only the `Authorization` header is needed.
 { "user": { "id": "user_2Rf…", "email": "you@example.com" }, "personas": [{ "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true }] }
 ```
 
-The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen.
+The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null }` (`server/plan.ts`). `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium.
 
 ### `POST /api/me/legacy-keys`
 
@@ -136,16 +136,27 @@ Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated
                 "failing": 0, "paused": 0, "atLimit": 0, "versions": { "0.8.0": 1 } },
   "ea": { "today": 11 },
   "db": { "sets": 9, "challenges": 12, "brickReports": 0, "trusted": 0 },
-  "userList": [{ "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000, "personas": ["<account>"] }],
+  "userList": [{ "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000, "personas": ["<account>"],
+                 "planSet": "free", "plan": { "tier": "free", "premiumUntil": null, "quota": { "used": 3, "limit": 20, "resetsAt": null } } }],
   "unlinked": ["<account>"]
 }
 ```
 
 `<account>`: `{ personaId, personaName, clubName, mode: "client"|"legacy", extVersion, online, clubAt, sbcAt, clubStale, sbcStale, players, unassigned, running, error, ea: { today, limit, pausedUntil }, clubSyncs: { used, limit }, forced }`. `*Stale`: fetched before the last SBC drop. `unlinked`: accounts no site user owns (extensions older than 0.8). `forced`: an admin sync waiting for the next web app visit. Reads only the cache and the DB, never EA.
 
+Each `userList` entry also carries `planSet` (the stored value, `"free"` or `"premium"`, for the admin screen's select — ignores admin-always-Premium and an expired `premiumUntil`) and `plan` (the effective `PlanInfo`, same shape as in `GET /api/me`, `quota: null` for Premium including admins).
+
 ### `POST /api/admin/trust`
 
 `{ "personaId": 1005016552645, "trusted": true }`: trusts (or untrusts) an EA account; its locked-slot (brick) layouts then win over the vote for every user (`server/bricks.ts`), effective at once. The note records which admin did it and when. Returns `{ "ok": true, "personaId": …, "trusted": true }`; `404` for an unknown account. Each account in `/api/admin/stats` carries `trusted`. `npm run db:trust` still works from a shell.
+
+### `POST /api/admin/plan`
+
+`{ "userId": "user_2Rf…", "tier": "free" | "premium", "premiumUntil": "2026-12-31" | null }` (`premiumUntil` is an ISO date, ignored — stored as `null` — when `tier` is `"free"`). Sets the user's plan; the quota columns (`used`, the window) are left as they are. Returns `{ "ok": true }`; `400` on a bad payload, `404` for an unknown user.
+
+### `POST /api/admin/quota-reset`
+
+`{ "userId": "user_2Rf…" }`: gives a Free user their whole week back (clears `quotaStart` and `quotaUsed`). Returns `{ "ok": true }`; `404` for an unknown user.
 
 ### `POST /api/admin/sync`
 
@@ -243,6 +254,12 @@ Client mode: queues a `challengeSquad` job that reads a challenge you already st
 
 `deep: true` gives the solver 30 s instead of 10 s. `useStorage: true` adds the SBC storage to the pool (storage players cost 0.8× an identical club card, so they go first); the answer then has `usedStorage: true` and storage players carry `inStorage: true`. The site solves club-only first and asks before trying with storage, keeping that squad only when its `cost` is lower. Any option left out uses the default above; `keepPlaced` (default `false`) keeps players already placed in the web app where the requirements allow. A brick challenge without a known layout answers `409`. Each slot in the answer carries `brick` (`null` or `{ custom, nation, league, club }`) and `fixed` (kept from the web app); `missingPlaced` lists placed items no longer in the club.
 
+A Free user with `used >= limit` gets `403` before the solver runs:
+
+```json
+{ "error": "Weekly solve limit reached.", "code": "quotaExhausted", "params": { "limit": 20, "resetsAt": 1790605200000 } }
+```
+
 Found:
 
 ```json
@@ -250,15 +267,18 @@ Found:
   "found": true, "status": "OPTIMAL", "ms": 520, "cost": 16.75,
   "eval": { "rating": 62, "chemistry": 15, "allMet": true,
             "results": [{ "text": "Scotland: Min. 1 Player", "met": true, "actual": 1 }] },
-  "slots": [{ "position": { "uniqueId": 0, "name": "GK", "typeId": 0 }, "player": { "…": "…" }, "chem": 3 }]
+  "slots": [{ "position": { "uniqueId": 0, "name": "GK", "typeId": 0 }, "player": { "…": "…" }, "chem": 3 }],
+  "quota": { "used": 4, "limit": 20, "resetsAt": 1790605200000 }
 }
 ```
 
 Not possible:
 
 ```json
-{ "found": false, "reasons": ["France: Min. 2 Players: you have 0 usable. Your solver settings hide 20 more."], "slots": ["… empty …"] }
+{ "found": false, "reasons": ["France: Min. 2 Players: you have 0 usable. Your solver settings hide 20 more."], "slots": ["… empty …"], "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000 } }
 ```
+
+`quota` is the same `Quota` shape as in `GET /api/me`, `null` for Premium. Only a call whose answer is a *found* squad (`eval.allMet`) counts against it; a not-found answer costs nothing. The first counted solve of the week opens the 7-day window (`resetsAt`).
 
 ---
 

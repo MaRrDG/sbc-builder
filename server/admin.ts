@@ -9,6 +9,7 @@ import { db } from './db/index.js';
 import { trustedIds } from './db/sbcs.js';
 import { brickReports, challenges, personas, sbcSets, trustedAccounts, users } from './db/schema.js';
 import { latestExtension } from './extension.js';
+import { planInfo } from './plans.js';
 import { readCache } from './store.js';
 import { forcedSync, getStatus, lastSbcDrop } from './sync.js';
 
@@ -68,6 +69,7 @@ export async function adminStats() {
   const byId = new Map(accounts.map((a) => [a.personaId, a]));
 
   const userRows = await db.select().from(users);
+  const admins = adminEmails();
   const owners = await db.select({ personaId: personas.personaId, userId: personas.userId, linkedAt: personas.linkedAt }).from(personas);
   const ownerOf = new Map(owners.map((o) => [o.personaId, o.userId]));
   const [[sets], [chs], [bricks], [trusted]] = await Promise.all([
@@ -119,6 +121,8 @@ export async function adminStats() {
         createdAt: u.createdAt.getTime(),
         lastSeenAt: u.lastSeenAt.getTime(),
         personas: owners.filter((o) => o.userId === u.id).flatMap((o) => byId.get(o.personaId) ?? []),
+        planSet: u.plan === 'premium' ? ('premium' as const) : ('free' as const),
+        plan: planInfo(u, !!u.email && admins.includes(u.email.toLowerCase()), now),
       })),
     // accounts whose extension never linked them to a site user (old extensions)
     unlinked: accounts.filter((a) => !ownerOf.has(a.personaId)),
