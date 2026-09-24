@@ -224,7 +224,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'plan.premium': 'Premium',
   'plan.resetsIn': 'Rezolvările revin în {until}.',
   'plan.windowIdle': 'Săptămâna ta începe cu următoarea rezolvare.',
-  'plan.howFree': 'Free îți dă {limit} rezolvări pe săptămână. Doar o echipă găsită consumă una: Rezolvă, Mai ieftin, încercarea cu SBC storage și rezolvarea din nou după excluderea unui jucător. Răspunsurile „nicio echipă” sunt gratuite. Săptămâna începe la prima rezolvare și se resetează după 7 zile.',
+  'plan.howFree': 'Free îți dă {limit} de rezolvări pe săptămână. Doar o echipă găsită consumă una: Rezolvă, Mai ieftin, încercarea cu SBC storage și rezolvarea din nou după excluderea unui jucător. Răspunsurile „nicio echipă” sunt gratuite. Săptămâna începe la prima rezolvare și se resetează după 7 zile.',
   'plan.premiumAdds': 'Premium adaugă:',
   'plan.premiumList': 'rezolvări nelimitate și setări globale pentru fiecare SBC.',
   'plan.soon': 'În curând.',
@@ -233,8 +233,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'plan.globalLocked': 'Setările globale fac parte din Premium. Pe Free, fiecare SBC poate avea în continuare setările lui și jucătorii excluși.',
 
   // quota meter (butonul Rezolvă)
-  'quota.left_one': '{count} din {limit} rezolvări rămasă săptămâna asta',
-  'quota.left_few': '{count} din {limit} rezolvări rămase săptămâna asta',
+  'quota.left_one': '{count} din {limit} de rezolvări rămasă săptămâna asta',
+  'quota.left_few': '{count} din {limit} de rezolvări rămase săptămâna asta',
   'quota.left_other': '{count} din {limit} de rezolvări rămase săptămâna asta',
   'quota.resets': 'se resetează în {until}',
   'quota.what': 'Cum funcționează rezolvările săptămânale',
@@ -330,7 +330,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'err.personaNotYours': 'Contul EA nu e legat de tine.',
   'err.personaTakenOver': 'Contul EA e acum legat de alt utilizator FC Solver.',
   'err.rateLimited': 'Prea multe cereri. Așteaptă un minut și încearcă din nou.',
-  'err.quotaExhausted': 'Ai folosit toate cele {limit} rezolvări din săptămâna asta.',
+  'err.quotaExhausted': 'Ai folosit toate cele {limit} de rezolvări din săptămâna asta.',
   'err.adminOnly': 'Doar pentru admini.',
 
   'guide.title': 'Cum funcționează FC Solver',
@@ -546,7 +546,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.price.free.note': 'Fără card',
   'landing.price.free.f1': 'Clubul tău și lista de SBC-uri, sincronizate din tab-ul tău',
   'landing.price.free.f2': 'Solverul optim și verificarea 1:1',
-  'landing.price.free.f3': '{limit} rezolvări pe săptămână, contează doar echipele găsite',
+  'landing.price.free.f3': '{limit} de rezolvări pe săptămână, contează doar echipele găsite',
   'landing.price.free.f4': 'Setări și jucători excluși pentru fiecare SBC',
   'landing.price.pro.name': 'Premium',
   'landing.price.pro.billedMonthly': 'Facturat lunar',
