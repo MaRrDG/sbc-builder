@@ -47,10 +47,14 @@ function writeLocal(key: string, value: unknown) {
 
 type View = Route['view'];
 type LocalMap = Record<number, SolveOptions>;
+/** setId -> players kept out of that SBC only (the global list is in the options) */
+type SetExcludes = Record<number, number[]>;
+const NO_IDS: number[] = [];
 
 const optionsKey = (id: number) => `sbc-options-p${id}`;
 const localKey = (id: number) => `sbc-local-options-p${id}`;
 const resultsKey = (id: number) => `sbc-results-p${id}`;
+const setExcludesKey = (id: number) => `sbc-set-excludes-p${id}`;
 const KEEP_RESULTS = 20; // solved squads kept per account, newest last
 
 export default function App({
@@ -83,6 +87,7 @@ export default function App({
   const [error, setError] = useState<string | null>(null);
   const [options, setOptions] = useState<SolveOptions>(DEFAULT_OPTIONS);
   const [localOptions, setLocalOptions] = useState<LocalMap>({});
+  const [setExcludes, setSetExcludes] = useState<SetExcludes>({});
   const [showOptions, setShowOptions] = useState(false);
   const [filter, setFilter] = useState('');
   const [menuOpen, setMenuOpen] = useState(false); // phone navigation menu
@@ -117,6 +122,12 @@ export default function App({
   const local = setId ? localOptions[setId] ?? null : null;
   // an SBC with its own settings ignores the global ones entirely
   const effective = local ?? options;
+  const setKept = (setId && setExcludes[setId]) || NO_IDS;
+  // what the solver gets: the settings plus the players kept out of this SBC only
+  const solveOptions = useMemo(
+    () => (setKept.length ? { ...effective, excludeIds: [...new Set([...effective.excludeIds, ...setKept])] } : effective),
+    [effective, setKept],
+  );
   const setRepeat = currentSet ? repeatOf(currentSet, now) : null;
   const lock =
     !challenge ? null
@@ -143,6 +154,7 @@ export default function App({
       writeLocal(ACTIVE, id);
       setOptions({ ...DEFAULT_OPTIONS, ...readLocal(optionsKey(id), {}) });
       setLocalOptions(readLocal<LocalMap>(localKey(id), {}));
+      setSetExcludes(readLocal<SetExcludes>(setExcludesKey(id), {}));
       setChallenges(null);
       // solved squads survive reloads and tab switches; they are only replaced by solving again
       setResults(readLocal<Record<number, SolveResult>>(resultsKey(id), {}));
@@ -318,7 +330,17 @@ export default function App({
     });
   };
 
-  const runSolve = async (deep = false, opts = effective) => {
+  const updateSetExcludes = (id: number, ids: number[]) => {
+    setSetExcludes((prev) => {
+      const next = { ...prev };
+      if (ids.length) next[id] = ids;
+      else delete next[id];
+      if (activeId) writeLocal(setExcludesKey(activeId), next);
+      return next;
+    });
+  };
+
+  const runSolve = async (deep = false, opts = solveOptions) => {
     if (!challenge || lock) return;
     setSelectedId(null);
     setSolving(true);
@@ -345,11 +367,12 @@ export default function App({
   const selected = selectedSlot?.player ?? null;
   const squadRole = (id: number) => (squad?.starters.includes(id) ? 'XI' : squad?.bench.includes(id) ? 'Subs' : null) as 'XI' | 'Subs' | null;
 
+  // kept out of this SBC only; the club screen keeps players out of every SBC
   const excludeAndResolve = (playerId: number) => {
-    const next = { ...effective, excludeIds: [...new Set([...effective.excludeIds, playerId])] };
-    if (local && setId) updateLocal(setId, next);
-    else updateOptions(next);
-    void runSolve(false, next);
+    if (!setId) return;
+    const ids = [...new Set([...setKept, playerId])];
+    updateSetExcludes(setId, ids);
+    void runSolve(false, { ...solveOptions, excludeIds: [...new Set([...solveOptions.excludeIds, playerId])] });
   };
 
   const toggleGlobalExclude = (playerId: number) => {
@@ -826,6 +849,32 @@ export default function App({
                       </ul>
                       {challenge.elgOperation === 'OR' && <p className="muted">{t('set.orHint')}</p>}
                     </section>
+                    {setKept.length > 0 && (
+                      <section className="reqs-panel kept">
+                        <h3>{t('set.keptOut')}</h3>
+                        <ul>
+                          {setKept.map((id) => {
+                            const p = clubById.get(id);
+                            return (
+                              <li key={id}>
+                                <b>{p?.rating ?? '?'}</b> {p?.name ?? `#${id}`}
+                                <button
+                                  type="button"
+                                  className="icon"
+                                  aria-label={t('opt.allowPlayer', { name: p?.name ?? t('opt.player') })}
+                                  onClick={() => updateSetExcludes(setId!, setKept.filter((x) => x !== id))}
+                                >
+                                  <X weight="bold" />
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                        <button type="button" className="text" onClick={() => updateSetExcludes(setId!, [])}>
+                          {t('opt.allowAll')}
+                        </button>
+                      </section>
+                    )}
 
                   </div>
                 </div>

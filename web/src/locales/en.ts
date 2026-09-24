@@ -71,6 +71,7 @@ export const en = {
   'repeat.lineSpent': 'Limit reached ({limit}/{limit} {when}) · available again in {until}',
 
   // set screen
+  'set.keptOut': 'Kept out of this SBC',
   'set.back': 'All SBCs',
   'set.squadFromWebApp': 'Squad from web app',
   'set.readingSquad': 'Reading squad…',
@@ -166,7 +167,7 @@ export const en = {
   'player.chemHere': 'Chemistry here',
   'player.pips': '{value} of {max}',
   'player.allowAgain': 'Allow in SBCs again',
-  'player.keepOutResolve': 'Keep out of SBCs and re-solve',
+  'player.keepOutResolve': 'Keep out of this SBC and re-solve',
   'player.keepOut': 'Keep out of SBCs',
 
   // club
