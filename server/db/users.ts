@@ -2,6 +2,7 @@
 // their own user ("Disconnect"); a takeover keeps the previous owner for the "taken over" notice.
 import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
 import { hashToken, newLinkToken } from '../auth-rules.js';
+import type { PlanRow, Tier } from '../plan.js';
 import { db } from './index.js';
 import { linkTokens, personas, users } from './schema.js';
 
@@ -69,5 +70,37 @@ export async function linkTokenUser(token: string): Promise<string | null> {
 
 export async function consumeLinkToken(token: string): Promise<boolean> {
   const done = await db.update(linkTokens).set({ usedAt: sql`now()` }).where(usable(token)).returning({ u: linkTokens.userId });
+  return done.length > 0;
+}
+
+const planCols = { plan: users.plan, premiumUntil: users.premiumUntil, quotaStart: users.quotaStart, quotaUsed: users.quotaUsed };
+
+export async function planRow(userId: string): Promise<PlanRow | null> {
+  const [row] = await db.select(planCols).from(users).where(eq(users.id, userId));
+  return row ?? null;
+}
+
+/** One found solve: opens a new 7-day window when none is open (same cutoff as quotaState), else counts on. */
+export async function countSolve(userId: string): Promise<PlanRow> {
+  const fresh = sql`(${users.quotaStart} is null or ${users.quotaStart} <= now() - interval '7 days')`;
+  const [row] = await db
+    .update(users)
+    .set({
+      quotaStart: sql`case when ${fresh} then now() else ${users.quotaStart} end`,
+      quotaUsed: sql`case when ${fresh} then 1 else ${users.quotaUsed} + 1 end`,
+    })
+    .where(eq(users.id, userId))
+    .returning(planCols);
+  return row;
+}
+
+/** The quota columns are left alone: switching plans never refills or empties the week. */
+export async function setPlan(userId: string, tier: Tier, premiumUntil: Date | null): Promise<boolean> {
+  const done = await db.update(users).set({ plan: tier, premiumUntil }).where(eq(users.id, userId)).returning({ id: users.id });
+  return done.length > 0;
+}
+
+export async function resetQuota(userId: string): Promise<boolean> {
+  const done = await db.update(users).set({ quotaStart: null, quotaUsed: 0 }).where(eq(users.id, userId)).returning({ id: users.id });
   return done.length > 0;
 }

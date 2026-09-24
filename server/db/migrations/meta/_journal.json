@@ -15,6 +15,13 @@
       "when": 1790150721823,
       "tag": "0001_fair_dragon_lord",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790250951526,
+      "tag": "0002_brave_mikhail_rasputin",
+      "breakpoints": true
     }
   ]
 }
