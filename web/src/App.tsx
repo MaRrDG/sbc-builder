@@ -9,6 +9,7 @@ import { SolverOptions, DEFAULT_OPTIONS, exclusionCount } from './components/Sol
 import { LocalOptions } from './components/LocalOptions';
 import { SetList } from './components/SetList';
 import { ClubView } from './components/ClubView';
+import { LegalLinks } from './legal/LegalPage';
 import { AdminView } from './components/AdminView';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
@@ -430,7 +431,7 @@ export default function App({
     setError(null);
   };
 
-  const go = (v: Exclude<View, 'signin' | 'ssoCallback'>) => {
+  const go = (v: Exclude<View, 'signin' | 'ssoCallback' | 'legal'>) => {
     setShowOptions(false);
     setMenuOpen(false);
     // pressing SBCs again goes back to the list
@@ -644,6 +645,7 @@ export default function App({
             {accountPicker}
           </div>
           <button type="button" className="nav-item mobile-only" onClick={doSignOut}>{t('auth.signOut')}</button>
+          <LegalLinks navigate={navigate} className="text legal-side" />
         </nav>
 
         <main className="main">

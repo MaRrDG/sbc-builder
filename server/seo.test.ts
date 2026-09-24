@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml } from './seo.js';
+import { analyticsOrigins, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 
 const HTML = `<html><head>
 <title>FC Solver</title>
@@ -73,4 +73,12 @@ test('SITE_URL picks the canonical host; without it every host is canonical', ()
     if (prev === undefined) delete process.env.SITE_URL;
     else process.env.SITE_URL = prev;
   }
+});
+
+test('analytics snippet: injected into <head>, its origins go to the CSP', () => {
+  const tag = '<script defer src="https://stats.example.eu/script.js" data-site="abc" data-api-host="https://collect.example.eu"></script>';
+  assert.deepEqual(analyticsOrigins(tag), ['https://stats.example.eu', 'https://collect.example.eu']);
+  assert.match(withAnalytics('<head></head>', tag), /<script defer src="https:\/\/stats\.example\.eu\/script\.js"[^<]*<\/script>\n  <\/head>/);
+  assert.equal(withAnalytics('<head></head>', ''), '<head></head>');
+  assert.deepEqual(analyticsOrigins(''), []);
 });

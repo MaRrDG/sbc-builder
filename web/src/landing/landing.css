@@ -141,6 +141,7 @@
 .lp-footer img { grid-column: 1 / 6; }
 .lp-footer nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 20px; grid-column: 7 / -1; }
 .lp-footer p { grid-column: 1 / 9; max-width: 70ch; margin: 0; }
+.lp-footer .legal-links { grid-column: 9 / -1; gap: 16px; }
 
 /* 861-1180px: anchors stay, so the language button shows its flag only and "Sign in" goes
    (the CTA leads to sign-in anyway); the bar then fits in Romanian too */
@@ -155,7 +156,8 @@
   .lp-signin { display: inline; } /* room again once the anchors are gone */
   .lp-footer img,
   .lp-footer nav,
-  .lp-footer p { grid-column: 1 / -1; justify-content: flex-start; }
+  .lp-footer p,
+  .lp-footer .legal-links { grid-column: 1 / -1; justify-content: flex-start; }
 }
 @media (max-width: 480px) {
   .lp-signin { display: none; }

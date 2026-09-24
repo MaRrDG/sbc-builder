@@ -3091,3 +3091,93 @@ button.card:active {
     grid-row: 2;
   }
 }
+
+/* ---------- legal pages (/terms, /privacy, /cookies) and their links ---------- */
+.legal-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin-top: 32px;
+  font-size: 13px;
+}
+
+.legal-links a {
+  color: var(--ink-3);
+}
+
+.legal-links a:hover {
+  color: var(--ink);
+}
+
+/* at the bottom of the app's sidebar */
+.sidebar .legal-links {
+  margin-top: auto;
+  padding: 12px 12px 0;
+  gap: 4px 12px;
+  font-size: 12px;
+}
+
+.legal-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.legal-nav a {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.legal-nav a[aria-current='page'] {
+  border-color: var(--ink-3);
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
+.legal article {
+  max-width: 72ch;
+  line-height: 1.6;
+}
+
+.legal article h1 {
+  margin-bottom: 12px;
+}
+
+.legal article h2 {
+  margin: 28px 0 8px;
+  font-family: var(--font-num);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.legal article p,
+.legal article li {
+  color: var(--ink-2);
+}
+
+.legal article p {
+  margin: 0 0 10px;
+}
+
+.legal article ul {
+  margin: 0 0 10px;
+  padding-left: 20px;
+}
+
+.legal article li + li {
+  margin-top: 6px;
+}
+
+.legal-intro {
+  font-size: 15px;
+}
+
+.legal-updated {
+  margin-top: 32px;
+  font-size: 13px;
+}

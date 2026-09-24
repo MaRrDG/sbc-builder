@@ -77,7 +77,9 @@ Cloudflare: proxied (orange cloud) `A` record for the subdomain to the host IP, 
 
 ## SEO
 
-`server/seo.ts` serves `robots.txt` and `sitemap.xml` and fills the `<head>` of `index.html` per public page (`/`, `/guide`, `/setup`: title, description, canonical, Open Graph / Twitter card with `/og.png`, JSON-LD `WebApplication`). The app (`/dashboard/*`), `/signin` and `/api` are `noindex` (meta tag + `X-Robots-Tag`) and disallowed in robots.txt.
+`server/seo.ts` serves `robots.txt` and `sitemap.xml` and fills the `<head>` of `index.html` per public page (`/`, `/guide`, `/setup`, `/terms`, `/privacy`, `/cookies`: title, description, canonical, Open Graph / Twitter card with `/og.png`, JSON-LD `WebApplication`). The app (`/dashboard/*`), `/signin` and `/api` are `noindex` (meta tag + `X-Robots-Tag`) and disallowed in robots.txt.
+
+Analytics: `ANALYTICS_SNIPPET` in `.env` holds the `<script>` tag OpenWebTrack's dashboard generates for the site, in **cookieless** mode (the cookie and privacy pages say so; a cookie mode would need a consent banner). The server appends it to `<head>` and adds its origins to the CSP. Empty: no analytics. Fonts are bundled (`@fontsource/*`), nothing loads from Google.
 
 `SITE_URL` in `.env` names the canonical domain. Every other host that reaches the app (the old domain, an IP) gets `robots.txt: Disallow: /` and `noindex`, so only one copy is indexed. Without it, every host counts as canonical.
 

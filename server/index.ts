@@ -20,7 +20,7 @@ import { consumeLinkToken, createLinkToken, linkTokenUser, personaRow, personasO
 import { eq } from 'drizzle-orm';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
-import { isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml } from './seo.js';
+import { analyticsOrigins, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { db, initDb } from './db/index.js';
@@ -71,13 +71,14 @@ function csp(): string {
     .filter((o) => o.startsWith('https://'))
     .map((o) => `https://clerk.${new URL(o).host}`);
   const clerkAll = [...clerk, 'https://*.clerk.accounts.dev', 'https://*.clerk.com'].join(' ');
+  const stats = analyticsOrigins().join(' '); // ANALYTICS_SNIPPET (OpenWebTrack)
   return [
     "default-src 'self'",
-    `script-src 'self' ${clerkAll} https://challenges.cloudflare.com`,
-    `connect-src 'self' ${clerkAll} https://clerk-telemetry.com`,
+    `script-src 'self' ${clerkAll} https://challenges.cloudflare.com ${stats}`,
+    `connect-src 'self' ${clerkAll} https://clerk-telemetry.com ${stats}`,
     "img-src 'self' data: blob: https:",
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
     `frame-src https://challenges.cloudflare.com ${clerkAll}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
@@ -493,7 +494,7 @@ const dist = join(ROOT, 'dist');
 // Search engines: robots.txt, sitemap.xml and index.html with this page's <head> (server/seo.ts).
 let indexHtml: string | null = null; // read once; a new build restarts the server
 async function sendPage(req: FastifyRequest, reply: FastifyReply, path: string) {
-  indexHtml ??= await readFile(join(dist, 'index.html'), 'utf8');
+  indexHtml ??= withAnalytics(await readFile(join(dist, 'index.html'), 'utf8'));
   // the host decides indexing; the URLs we print are always one of our own origins
   const claimed = requestOrigin(req.headers, req.protocol);
   const canonical = isCanonicalHost(claimed);

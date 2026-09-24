@@ -6,6 +6,8 @@ type Keys = keyof typeof en;
 type Plural<K> = K extends `${infer B}_other` ? `${B}_few` : never;
 
 export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = {
+  'legal.nav': 'Informații legale',
+  'legal.updated': 'Ultima actualizare: {date}',
   'meta.landing': 'FC Solver · soluții SBC EA FC 27 din clubul tău',
   'meta.guide': 'Cum funcționează FC Solver · SBC-uri EA FC 27',
   'meta.setup': 'Instalează extensia FC Solver · EA FC 27',
