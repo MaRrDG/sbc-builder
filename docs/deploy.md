@@ -24,7 +24,7 @@ Browser ──HTTPS──► Cloudflare (SSL: Flexible) ──HTTP :80──► 
 - `restart: unless-stopped` and a health check on `/api/meta`;
 - `SBC_DROP_TIME` (default `20:01`) and `SBC_DROP_TZ` (default `Europe/Bucharest`) control the daily SBC refresh.
 
-Other environment variables: `DATABASE_URL` (required; set by compose in production, read from `.env` locally), `CLERK_SECRET_KEY` (required; the API exits without it), `SITE_ORIGINS` (comma list of origins whose Clerk session tokens are accepted; default localhost `:5173` / `:5178` and the production domain), `CLUB_SYNCS_PER_DAY` (3), `EA_DAILY_LIMIT` (150), `PORT` (5178), `HOST` (0.0.0.0 in the image, 127.0.0.1 by default elsewhere), `SOLVER_PYTHON` (path to the Python with OR-Tools), `SOLVER_DUMP` (write each solver problem to a file, for debugging).
+Other environment variables: `DATABASE_URL` (required; set by compose in production, read from `.env` locally), `CLERK_SECRET_KEY` (required; the API exits without it), `SITE_ORIGINS` (comma list of origins whose Clerk session tokens are accepted; default localhost `:5173` / `:5178` and the production domain), `CLUB_SYNCS_PER_DAY` (3), `EA_DAILY_LIMIT` (150), `PORT` (5178), `HOST` (0.0.0.0 in the image, 127.0.0.1 by default elsewhere), `SOLVER_PYTHON` (path to the Python with OR-Tools), `SOLVER_DUMP` (write each solver problem to a file, for debugging), `SITE_URL` (the domain search engines index, e.g. `https://fcsolver.gg`; see SEO).
 
 ## Apache
 
@@ -74,6 +74,21 @@ apache2ctl configtest && systemctl reload apache2
 ```
 
 Cloudflare: proxied (orange cloud) `A` record for the subdomain to the host IP, SSL mode Flexible, Always Use HTTPS on.
+
+## SEO
+
+`server/seo.ts` serves `robots.txt` and `sitemap.xml` and fills the `<head>` of `index.html` per public page (`/`, `/guide`, `/setup`: title, description, canonical, Open Graph / Twitter card with `/og.png`, JSON-LD `WebApplication`). The app (`/dashboard/*`), `/signin` and `/api` are `noindex` (meta tag + `X-Robots-Tag`) and disallowed in robots.txt.
+
+`SITE_URL` in `.env` names the canonical domain. Every other host that reaches the app (the old domain, an IP) gets `robots.txt: Disallow: /` and `noindex`, so only one copy is indexed. Without it, every host counts as canonical.
+
+Moving to a new domain:
+
+1. Cloudflare: add the zone, point it at the server; Apache: a vhost for the new name (copy `deploy/sbc-builder.conf`).
+2. `.env`: `SITE_URL=https://<new domain>`; `SITE_ORIGINS` must list the new origin too (Clerk session tokens), e.g. `SITE_ORIGINS=https://<new domain>,https://sbc-builder.mario-theodor.ro`, and add `SITE_ORIGINS: ${SITE_ORIGINS}` to the app's compose environment.
+3. Clerk: the production instance is tied to a domain; change it (or create one) for the new domain and update both keys, then rebuild.
+4. Extension: zips carry the origin they were downloaded from, so users download the extension again from the new domain once (same folder, keys stay).
+5. Old domain: 301-redirect its pages to the new one in Apache (keeps links and ranking), but **not `/api/`**: installed extensions still call the old origin (it is baked into their zip and host permissions, and a 301 turns their POSTs into GETs). Keep `/api/` proxied on the old name until every account runs an extension downloaded from the new domain.
+6. Google Search Console: add the domain property (DNS TXT in Cloudflare), submit `https://<new domain>/sitemap.xml`, request indexing of `/`.
 
 ## Backup
 

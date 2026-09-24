@@ -1,6 +1,7 @@
-import Fastify, { type FastifyRequest } from 'fastify';
+import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { SessionError, THROTTLE_CODES, type ClubItem } from './ea.js';
 import { loadMeta } from './meta.js';
@@ -19,6 +20,7 @@ import { consumeLinkToken, createLinkToken, linkTokenUser, personaRow, personasO
 import { eq } from 'drizzle-orm';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
+import { isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml } from './seo.js';
 import { db, initDb } from './db/index.js';
 import { users } from './db/schema.js';
 
@@ -407,13 +409,34 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
 
 // ---- web ------------------------------------------------------------------------
 const dist = join(ROOT, 'dist');
+
+// Search engines: robots.txt, sitemap.xml and index.html with this page's <head> (server/seo.ts).
+let indexHtml: string | null = null; // read once; a new build restarts the server
+async function sendPage(req: FastifyRequest, reply: FastifyReply, path: string) {
+  indexHtml ??= await readFile(join(dist, 'index.html'), 'utf8');
+  const origin = requestOrigin(req.headers, req.protocol);
+  const canonical = isCanonicalHost(origin);
+  if (!canonical || !pageMeta(path)) reply.header('X-Robots-Tag', 'noindex, nofollow');
+  return reply.header('Cache-Control', 'no-cache').type('text/html').send(renderHead(indexHtml, path, siteUrl(origin), canonical));
+}
+app.get('/robots.txt', (req, reply) => {
+  const origin = requestOrigin(req.headers, req.protocol);
+  return reply.type('text/plain').header('Cache-Control', 'public, max-age=3600').send(robotsTxt(siteUrl(origin), isCanonicalHost(origin)));
+});
+app.get('/sitemap.xml', (req, reply) =>
+  reply.type('application/xml').header('Cache-Control', 'public, max-age=3600').send(sitemapXml(siteUrl(requestOrigin(req.headers, req.protocol)))),
+);
+
 if (existsSync(dist))
   await app.register(fastifyStatic, {
     root: dist,
+    index: false, // "/" is a page like the others: its <head> is filled by sendPage (route below)
     // Vite hashes asset names, so they can be cached forever; index.html must always be revalidated
     setHeaders: (res, path) =>
       res.header('Cache-Control', path.includes(`${join('dist', 'assets')}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
   });
+
+if (existsSync(dist)) app.get('/', (req, reply) => sendPage(req, reply, '/'));
 
 // Screens have their own URLs (/sbc/16/39, /club, ...): any other GET outside /api gets the app,
 // which reads the path itself. Unknown /api paths still answer 404.
@@ -421,7 +444,7 @@ app.setNotFoundHandler((req, reply) => {
   const path = req.url.split('?')[0];
   // files (with an extension) that do not exist stay 404, so a stale page never gets HTML as JS
   if (req.method === 'GET' && !path.startsWith('/api/') && !/\.[a-z0-9]+$/i.test(path) && existsSync(dist))
-    return reply.header('Cache-Control', 'no-cache').type('text/html').sendFile('index.html');
+    return sendPage(req, reply, path.replace(/\/+$/, '') || '/');
   return reply.code(404).send({ error: 'not found' });
 });
 
