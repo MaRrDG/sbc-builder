@@ -59,17 +59,22 @@ export async function siteUser(req: FastifyRequest): Promise<string> {
   return sub;
 }
 
-export async function siteAccount(req: FastifyRequest): Promise<Account> {
+/** The signed-in user and the EA persona (X-Persona) the call is about. */
+export async function siteContext(req: FastifyRequest): Promise<{ userId: string; acc: Account }> {
   const userId = await siteUser(req);
   const raw = req.headers['x-persona'];
   const id = Number(Array.isArray(raw) ? raw[0] : raw);
   if (!Number.isInteger(id) || id <= 0) throw new SessionError('Pick an EA account first.', 400, 'noPersona');
   const row = await personaRow(id);
   const acc = accountById(id);
-  if (row?.userId === userId && acc) return acc;
+  if (row?.userId === userId && acc) return { userId, acc };
   if (row?.previousUserId === userId)
     throw new SessionError('This EA account is now linked to another FC Solver user.', 403, 'personaTakenOver');
   throw new SessionError('This EA account is not linked to you.', 403, 'personaNotYours');
+}
+
+export async function siteAccount(req: FastifyRequest): Promise<Account> {
+  return (await siteContext(req)).acc;
 }
 
 /** For endpoints that also work signed out (/api/meta). */
