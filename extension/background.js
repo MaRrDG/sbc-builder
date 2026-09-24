@@ -342,7 +342,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
   if (msg?.type === 'job-done') {
     setBusy(null);
-    api(`/api/jobs/${encodeURIComponent(msg.jobId)}/done`, { method: 'POST', body: JSON.stringify({ ok: msg.ok, error: msg.error }) })
+    api(`/api/jobs/${encodeURIComponent(msg.jobId)}/done`, { method: 'POST', body: JSON.stringify({ ok: msg.ok, error: msg.error, pagesTagged: true }) })
       .then(() => chrome.storage.local.set({ lastStatus: msg.ok ? 'Synced from the web app' : `Sync failed: ${msg.error}`, lastAt: Date.now() }))
       .catch(() => {});
     return;
@@ -355,7 +355,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       const res = await fetch(`${server}/api/webapp-event`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Account-Key': accessKey },
-        body: JSON.stringify(msg.event),
+        // a sync job's pages carry its id, so the server can tell when the whole club came in
+        body: JSON.stringify(typeof msg.jobId === 'string' ? { ...msg.event, jobId: msg.jobId } : msg.event),
       });
       const body = await res.json().catch(() => ({}));
       if (body.summary) await chrome.storage.local.set({ lastStatus: body.summary, lastAt: Date.now() });

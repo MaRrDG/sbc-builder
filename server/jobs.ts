@@ -6,6 +6,7 @@ import { randomBytes } from 'node:crypto';
 import type { Account } from './accounts.js';
 import { readCache } from './store.js';
 import type { SetsData } from './sync.js';
+import type { ClubPages } from './club-pages.js';
 
 export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad';
 
@@ -20,6 +21,9 @@ export interface Job {
   error?: string;
   /** sbc only: set progress when the job was queued, to see which sets changed afterwards */
   before?: Record<number, string>;
+  /** club only: the pages this job loaded, and whether they added up to the whole club */
+  clubPages?: ClubPages;
+  clubReplaced?: boolean;
 }
 
 const queues = new Map<number, Job[]>();
@@ -70,6 +74,7 @@ export async function enqueue(acc: Account, kind: JobKind, setIds?: number[], ch
     if (!Number.isInteger(challengeId)) return null;
     job.challengeId = challengeId;
   }
+  if (kind === 'club') job.clubPages = new Map();
   if (kind === 'sbc') {
     const sets = await readCache<SetsData>(acc.key('sets'));
     job.before = Object.fromEntries(sets?.data.categories.flatMap((c) => c.sets).map((s) => [s.setId, progress(s)]) ?? []);
@@ -96,8 +101,22 @@ export function findJob(acc: Account, id: string) {
   return queueOf(acc).find((j) => j.id === id) ?? null;
 }
 
-/** The page finished a job. An SBC list refresh queues the challenges of sets that changed. */
-export async function finishJob(acc: Account, job: Job, ok: boolean, error?: string) {
+const CLUB_PAGES_WAIT = 10 * 1000; // the last page is relayed separately and may land after "done"
+
+/**
+ * The page finished a job. A club sync only counts once its pages replaced the whole club;
+ * an SBC list refresh queues the challenges of sets that changed.
+ */
+export async function finishJob(acc: Account, job: Job, ok: boolean, error?: string, pagesTagged = false) {
+  // extensions before 0.8.3 don't tag their pages with the job: the passive scan in events.ts covers them
+  if (ok && job.kind === 'club' && pagesTagged) {
+    for (const until = Date.now() + CLUB_PAGES_WAIT; !job.clubReplaced && Date.now() < until; )
+      await new Promise((r) => setTimeout(r, 250));
+    if (!job.clubReplaced) {
+      ok = false;
+      error = 'Some club pages did not reach FC Solver, so the club was not replaced. Sync again.';
+    }
+  }
   job.status = ok ? 'done' : 'failed';
   lastFinished.set(acc.id, Date.now());
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';

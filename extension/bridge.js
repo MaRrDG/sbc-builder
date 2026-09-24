@@ -5,7 +5,7 @@ window.addEventListener('message', (event) => {
   if (d.kind === 'identity') chrome.runtime.sendMessage({ type: 'identity', identity: d.identity });
   else if (d.kind === 'call') chrome.runtime.sendMessage({ type: 'job-call', jobId: d.jobId, method: d.method, path: d.path, status: d.status });
   else if (d.kind === 'job-done') chrome.runtime.sendMessage({ type: 'job-done', jobId: d.jobId, ok: d.ok, error: d.error });
-  else if (d.kind === 'event') chrome.runtime.sendMessage({ type: 'webapp-event', event: d.event });
+  else if (d.kind === 'event') chrome.runtime.sendMessage({ type: 'webapp-event', event: d.event, jobId: d.jobId });
 });
 
 // While this tab is open, ask for sync jobs. Polling is also how FC Solver knows the web app is
