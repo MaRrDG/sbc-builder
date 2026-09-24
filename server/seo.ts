@@ -61,12 +61,16 @@ function setAttr(html: string, tag: RegExp, value: string) {
 }
 const meta = (attr: 'name' | 'property', key: string) => new RegExp(`(<meta ${attr}="${key}" content=")[^"]*(")`);
 
-/** index.html with the head filled for this path, on this origin. */
-export function renderHead(html: string, path: string, base: string, canonicalHost: boolean): string {
+/**
+ * index.html with the head filled for this path, on this origin. `imageVersion` (a hash of og.png)
+ * goes into the preview image URL: Discord, Facebook and CDNs cache images by URL, so a new
+ * picture needs a new URL.
+ */
+export function renderHead(html: string, path: string, base: string, canonicalHost: boolean, imageVersion = ''): string {
   const page = pageMeta(path);
   const indexable = canonicalHost && !!page;
   const url = `${base}${page ? path : '/'}`;
-  const image = `${base}/og.png`;
+  const image = `${base}/og.png${imageVersion ? `?v=${imageVersion}` : ''}`;
   let out = html.replace(/__SITE__/g, base); // JSON-LD and anything else that needs the origin
   out = setAttr(out, meta('name', 'robots'), indexable ? 'index, follow' : 'noindex, nofollow');
   out = setAttr(out, /(<link rel="canonical" href=")[^"]*(")/, url);

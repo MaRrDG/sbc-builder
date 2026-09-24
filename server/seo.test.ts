@@ -82,3 +82,9 @@ test('analytics snippet: injected into <head>, its origins go to the CSP', () =>
   assert.equal(withAnalytics('<head></head>', ''), '<head></head>');
   assert.deepEqual(analyticsOrigins(''), []);
 });
+
+test('the preview image URL carries its version', () => {
+  const out = renderHead(HTML, '/', 'https://fcsolver.gg', true, 'abc123');
+  assert.match(out, /<meta property="og:image" content="https:\/\/fcsolver\.gg\/og\.png\?v=abc123" \/>/);
+  assert.match(out, /<meta name="twitter:image" content="https:\/\/fcsolver\.gg\/og\.png\?v=abc123" \/>/);
+});
