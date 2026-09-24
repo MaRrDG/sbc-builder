@@ -295,4 +295,4 @@ Returns `{ "ok": true, "summary": "1 added to club" }`. Items the server has no 
 
 ### `GET /api/extension.zip`
 
-The extension as a zip, with this server's origin written into it (default server and host permission). Uses `X-Forwarded-Proto` / `X-Forwarded-Host` when behind a proxy.
+The extension as a zip, with this server's origin written into it (default server and host permission). Uses `X-Forwarded-Proto` / `X-Forwarded-Host` when behind a proxy. Sent with `Cache-Control: no-store`, and the site links it with a `?t=` query, so a cache (Cloudflare) never hands out a zip from before an update.

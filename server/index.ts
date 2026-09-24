@@ -270,6 +270,8 @@ app.get('/api/extension.zip', async (req, reply) => {
   return reply
     .header('Content-Type', 'application/zip')
     .header('Content-Disposition', 'attachment; filename="fc-solver-extension.zip"')
+    // never from a cache (Cloudflare kept a zip for 4 h and handed out the old version after an update)
+    .header('Cache-Control', 'no-store')
     .send(Buffer.from(zip));
 });
 

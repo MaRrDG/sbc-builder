@@ -268,3 +268,6 @@ export type AdminSyncResult =
   | { personaId: number; outcome: 'queued'; clubSkipped: boolean }
   | { personaId: number; outcome: 'deferred' }
   | { personaId: number; outcome: 'skipped'; code: string; params?: Record<string, string | number> };
+
+/** The extension download; the query keeps any cache from handing out a zip from before an update. */
+export const extensionZipUrl = () => `/api/extension.zip?t=${Date.now()}`;
