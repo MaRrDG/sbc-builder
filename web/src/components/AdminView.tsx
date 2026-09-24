@@ -1,7 +1,7 @@
 // Admin dashboard: users, their EA accounts, data freshness, EA usage and a manual sync for everyone.
 // The server enforces admin rights; this screen is only linked for admins.
 import { useCallback, useEffect, useState } from 'react';
-import { ArrowsClockwise, CheckCircle, Circle, Clock, WarningCircle } from '@phosphor-icons/react';
+import { ArrowsClockwise, CheckCircle, Circle, Clock, ShieldCheck, WarningCircle } from '@phosphor-icons/react';
 import { api, type AdminAccount, type AdminStats, type AdminSyncResult } from '../api';
 import { useAgo, useI18n } from '../i18n';
 import { errorText } from '../messages';
@@ -45,6 +45,18 @@ export function AdminView() {
     }
   };
 
+  const trust = async (personaId: number, trusted: boolean) => {
+    setBusy(`trust:${personaId}`);
+    try {
+      await api.adminTrust(personaId, trusted);
+      await load();
+    } catch (e) {
+      setError(errorText(e, t));
+    } finally {
+      setBusy(null);
+    }
+  };
+
   if (!stats)
     return (
       <section className="admin-page">
@@ -64,7 +76,7 @@ export function AdminView() {
   const versions = Object.entries(a.versions).sort((x, y) => y[1] - x[1]);
 
   const row = (p: AdminAccount) => (
-    <AccountRow key={p.personaId} acc={p} latest={stats.latestExtension} busy={busy} onSync={sync} />
+    <AccountRow key={p.personaId} acc={p} latest={stats.latestExtension} busy={busy} onSync={sync} onTrust={trust} />
   );
 
   return (
@@ -184,8 +196,14 @@ function Kpi({ label, value, sub }: { label: string; value: number; sub: string 
 }
 
 function AccountRow({
-  acc, latest, busy, onSync,
-}: { acc: AdminAccount; latest: string; busy: string | null; onSync: (what: What, ids: number[]) => void }) {
+  acc, latest, busy, onSync, onTrust,
+}: {
+  acc: AdminAccount;
+  latest: string;
+  busy: string | null;
+  onSync: (what: What, ids: number[]) => void;
+  onTrust: (personaId: number, trusted: boolean) => void;
+}) {
   const { t } = useI18n();
   const ago = useAgo();
   const fresh = (at: number | null, stale: boolean, label: string) => (
@@ -199,7 +217,14 @@ function AccountRow({
   return (
     <li className="admin-account">
       <div className="admin-account-id">
-        <b>{acc.personaName}</b>
+        <b>
+          {acc.personaName}
+          {acc.trusted && (
+            <span className="admin-trusted" title={t('admin.acc.trustedHint')}>
+              <ShieldCheck weight="fill" aria-hidden="true" /> {t('admin.acc.trusted')}
+            </span>
+          )}
+        </b>
         <small className="muted">
           {acc.clubName} · {acc.mode === 'client' ? t('admin.acc.client') : t('admin.acc.legacy')} · {t('admin.acc.ext', { v: acc.extVersion ?? '?' })}
           {acc.extVersion && acc.extVersion !== latest && ` (${t('admin.versions.old')})`}
@@ -217,9 +242,21 @@ function AccountRow({
         {acc.ea.pausedUntil && <span className="admin-bad"><WarningCircle weight="bold" aria-hidden="true" /> {t('admin.acc.paused')}</span>}
         {acc.error && <span className="admin-bad"><WarningCircle weight="bold" aria-hidden="true" /> {acc.error}</span>}
       </div>
-      <button type="button" className="ghost wide admin-row-sync" disabled={!!busy} onClick={() => onSync('all', [acc.personaId])}>
-        <ArrowsClockwise weight="bold" aria-hidden="true" /> {busy === key ? t('admin.sync.running') : t('admin.acc.sync')}
-      </button>
+      <div className="admin-row-actions">
+        <button
+          type="button"
+          className={`ghost wide admin-row-sync${acc.trusted ? ' on' : ''}`}
+          disabled={!!busy}
+          aria-pressed={acc.trusted}
+          title={t('admin.acc.trustedHint')}
+          onClick={() => onTrust(acc.personaId, !acc.trusted)}
+        >
+          <ShieldCheck weight={acc.trusted ? 'fill' : 'bold'} aria-hidden="true" /> {acc.trusted ? t('admin.acc.untrust') : t('admin.acc.trust')}
+        </button>
+        <button type="button" className="ghost wide admin-row-sync" disabled={!!busy} onClick={() => onSync('all', [acc.personaId])}>
+          <ArrowsClockwise weight="bold" aria-hidden="true" /> {busy === key ? t('admin.sync.running') : t('admin.acc.sync')}
+        </button>
+      </div>
     </li>
   );
 }

@@ -3055,6 +3055,32 @@ button.card:active {
   font-size: 13px;
 }
 
+.admin-row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.admin-row-sync.on {
+  border-color: var(--line);
+  background: var(--surface-2);
+}
+
+.admin-trusted {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-2);
+  vertical-align: 2px;
+}
+
 @media (max-width: 860px) {
   .admin-account {
     grid-template-columns: minmax(0, 1fr) auto;

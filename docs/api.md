@@ -143,6 +143,10 @@ Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated
 
 `<account>`: `{ personaId, personaName, clubName, mode: "client"|"legacy", extVersion, online, clubAt, sbcAt, clubStale, sbcStale, players, unassigned, running, error, ea: { today, limit, pausedUntil }, clubSyncs: { used, limit }, forced }`. `*Stale`: fetched before the last SBC drop. `unlinked`: accounts no site user owns (extensions older than 0.8). `forced`: an admin sync waiting for the next web app visit. Reads only the cache and the DB, never EA.
 
+### `POST /api/admin/trust`
+
+`{ "personaId": 1005016552645, "trusted": true }`: trusts (or untrusts) an EA account; its locked-slot (brick) layouts then win over the vote for every user (`server/bricks.ts`), effective at once. The note records which admin did it and when. Returns `{ "ok": true, "personaId": …, "trusted": true }`; `404` for an unknown account. Each account in `/api/admin/stats` carries `trusted`. `npm run db:trust` still works from a shell.
+
 ### `POST /api/admin/sync`
 
 `{ "what": "club" | "sbc" | "all", "personaIds"?: [1005016552645] }` (default `all`, every account). Same limits as everyone: EA budget, throttle pause, `CLUB_SYNCS_PER_DAY`. Per account:

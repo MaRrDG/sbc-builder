@@ -6,6 +6,7 @@ import { SessionError, type ClubItem } from './ea.js';
 import { listAccounts, type Account } from './accounts.js';
 import { siteUser } from './auth.js';
 import { db } from './db/index.js';
+import { trustedIds } from './db/sbcs.js';
 import { brickReports, challenges, personas, sbcSets, trustedAccounts, users } from './db/schema.js';
 import { latestExtension } from './extension.js';
 import { readCache } from './store.js';
@@ -32,7 +33,7 @@ export async function requireAdmin(req: FastifyRequest): Promise<string> {
 
 const DAY = 24 * 60 * 60 * 1000;
 
-async function accountRow(acc: Account, drop: number) {
+async function accountRow(acc: Account, drop: number, trusted: Set<number>) {
   const st = await getStatus(acc);
   const club = await readCache<ClubItem[]>(acc.key('club'));
   return {
@@ -53,6 +54,7 @@ async function accountRow(acc: Account, drop: number) {
     ea: { today: st.ea.today, limit: st.ea.limit, pausedUntil: st.ea.pausedUntil },
     clubSyncs: st.clubSyncs,
     forced: forcedSync(acc),
+    trusted: trusted.has(acc.id), // its brick layouts win over the vote
   };
 }
 
@@ -61,7 +63,8 @@ export type AdminAccount = Awaited<ReturnType<typeof accountRow>>;
 export async function adminStats() {
   const now = Date.now();
   const drop = lastSbcDrop();
-  const accounts = await Promise.all(listAccounts().map((a) => accountRow(a, drop)));
+  const trustedSet = await trustedIds();
+  const accounts = await Promise.all(listAccounts().map((a) => accountRow(a, drop, trustedSet)));
   const byId = new Map(accounts.map((a) => [a.personaId, a]));
 
   const userRows = await db.select().from(users);
