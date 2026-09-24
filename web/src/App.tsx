@@ -271,6 +271,20 @@ export default function App({
     return () => window.removeEventListener('keydown', onKey);
   }, [menuOpen]);
 
+  // On the SBC screens, ask for a fresh SBC list (the server keeps a 30 min cooldown and needs the
+  // web app open), so SBCs finished on a console or in the companion app show up without a click.
+  const onSbcs = view === 'sbcs';
+  const live = !!account?.session;
+  useEffect(() => {
+    if (!onSbcs || !activeId || !live) return;
+    const visit = () => {
+      if (!document.hidden) void api.syncVisit().then(setStatus, () => {});
+    };
+    visit();
+    document.addEventListener('visibilitychange', visit);
+    return () => document.removeEventListener('visibilitychange', visit);
+  }, [onSbcs, activeId, live]);
+
   // refresh windows of repeatable SBCs roll over while the page is open
   useEffect(() => {
     const tick = () => !document.hidden && setNow(Date.now());
@@ -417,7 +431,14 @@ export default function App({
             <span className="ghost sync-info" title={t('top.sbcTitle')}>
               <ArrowsClockwise weight="bold" className={status?.running === 'sbc' ? 'spin' : ''} />
               <span>{t('top.sbcs')}</span>
-              <small>{ago(status?.sbcAt ?? null)} · {t('top.sbcAuto')}</small>
+              <small>
+                {ago(status?.sbcAt ?? null)} ·{' '}
+                {status?.sbcNextAt == null
+                  ? t('top.sbcAuto')
+                  : status.sbcNextAt > now
+                    ? t('top.sbcNext', { m: Math.max(1, Math.ceil((status.sbcNextAt - now) / 60_000)) })
+                    : t('top.sbcReady')}
+              </small>
             </span>
           </div>
 

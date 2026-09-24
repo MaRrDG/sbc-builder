@@ -9,8 +9,8 @@ import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
-import { adminSync, applySubmittedSbc, autoSyncAll, autoSyncSoon, getChallenges, getStatus, markEdited, requestSync, type SetsData } from './sync.js';
-import { enqueue, findJob, finishJob, nextJob, webAppOpen } from './jobs.js';
+import { adminSync, applySubmittedSbc, autoSyncAll, autoSyncSoon, getChallenges, getStatus, markEdited, refreshSbcsOnVisit, requestSync, type SetsData } from './sync.js';
+import { enqueue, findJob, finishJob, nextJob, webAppOpen, webAppReturned } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, listAccounts, type Account } from './accounts.js';
 import { adminStats, isAdmin, requireAdmin } from './admin.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteUser } from './auth.js';
@@ -134,6 +134,13 @@ app.post<{ Body: { what: 'club' | 'sbc' | 'all' } }>('/api/sync', async (req) =>
   return getStatus(acc);
 });
 
+/** The site's SBC page opened: refresh the SBC list through the web app tab unless it is fresh. */
+app.post('/api/sync/visit', async (req) => {
+  const acc = await siteAccount(req);
+  await refreshSbcsOnVisit(acc);
+  return getStatus(acc);
+});
+
 /** Read a started challenge's squad (locked slots, placed players) through the web app tab. */
 app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, reply) => {
   const acc = await siteAccount(req);
@@ -203,7 +210,11 @@ app.get('/api/jobs/next', async (req) => {
   } catch {
     return { job: null }; // over budget or paused: the queue waits
   }
+  // came (back) to the web app: SBCs done elsewhere in the meantime show up; handed out next poll
+  const visible = (req.query as { visible?: string }).visible;
+  const returned = webAppReturned(acc, visible === undefined ? undefined : visible === '1');
   const job = nextJob(acc);
+  if (returned) await refreshSbcsOnVisit(acc);
   return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId } };
 });
 
@@ -226,7 +237,9 @@ app.post<{ Params: { id: string }; Body: { ok: boolean; error?: string; pagesTag
   const job = findJob(acc, req.params.id);
   if (!job) return reply.code(404).send({ error: 'unknown job' });
   const error = typeof req.body?.error === 'string' ? req.body.error.slice(0, 300) : undefined;
-  await finishJob(acc, job, !!req.body?.ok, error, req.body?.pagesTagged === true);
+  const { playedElsewhere } = await finishJob(acc, job, !!req.body?.ok, error, req.body?.pagesTagged === true);
+  // SBCs done on a console or in the companion app used club players: refresh the club too (daily cap applies)
+  if (playedElsewhere) await requestSync(acc, 'club', true).catch(() => {});
   markEdited(acc);
   return { ok: true };
 });

@@ -20,6 +20,7 @@ export interface SyncStatus {
   error: string | null;
   clubAt: number | null;
   sbcAt: number | null;
+  sbcNextAt: number | null; // earliest a visit refreshes the SBC list again (null: legacy account)
   editedAt: number | null; // last local edit (e.g. an SBC submitted in the web app)
   unassigned: number; // players from opened packs not sent to the club yet
 }
@@ -45,6 +46,7 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
     unassigned: (await readCache<unknown[]>(acc.key('unassigned')))?.data.length ?? 0,
     clubAt: (await readCache(acc.key('club')))?.fetchedAt ?? null,
     sbcAt: (await readCache(acc.key('sets')))?.fetchedAt ?? null,
+    sbcNextAt: acc.clientMode ? await sbcNextAt(acc) : null,
   };
 }
 
@@ -261,6 +263,31 @@ export function lastSbcDrop(now = new Date()): number {
   let drop = Date.UTC(wall.getUTCFullYear(), wall.getUTCMonth(), wall.getUTCDate(), DROP_H, DROP_M);
   if (drop > wall.getTime()) drop -= 24 * 60 * 60 * 1000;
   return drop - offset;
+}
+
+// Besides the daily drop, the SBC list refreshes when the user shows up (opens the SBC page on
+// the site, or comes back to the web app), at most once per cooldown: SBCs done on a console or
+// in the companion app show up without waiting for 20:01.
+export const SBC_VISIT_COOLDOWN_MS = Number(process.env.SBC_VISIT_COOLDOWN_MIN ?? 30) * 60 * 1000;
+
+async function sbcNextAt(acc: Account): Promise<number> {
+  return ((await readCache(acc.key('sets')))?.fetchedAt ?? 0) + SBC_VISIT_COOLDOWN_MS;
+}
+
+/**
+ * A visit asks for fresh SBCs: queue a list refresh when the cooldown is over. Client-mode only,
+ * and only with the web app open (nothing else may call EA). Never throws: a visit is not a click.
+ */
+export async function refreshSbcsOnVisit(acc: Account): Promise<boolean> {
+  try {
+    if (!acc.clientMode || !webAppOpen(acc) || hasPending(acc, 'sbc')) return false;
+    if (Date.now() < (await sbcNextAt(acc))) return false;
+    await acc.meter.check();
+    await enqueue(acc, 'sbc');
+    return true;
+  } catch {
+    return false; // over today's EA budget or paused
+  }
 }
 
 /**

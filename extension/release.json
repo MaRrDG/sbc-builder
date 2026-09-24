@@ -1,4 +1,7 @@
 {
+  "0.8.4": [
+    "Coming back to the web app refreshes your SBCs, so ones you finished on a console or in the companion app show up (at most every 30 minutes)"
+  ],
   "0.8.3": [
     "A club sync now replaces your whole cached club, so players you no longer own stop showing up in solutions"
   ],
