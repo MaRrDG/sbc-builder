@@ -2,6 +2,7 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { SessionError, THROTTLE_CODES, type ClubItem } from './ea.js';
 import { loadMeta } from './meta.js';
@@ -493,13 +494,17 @@ const dist = join(ROOT, 'dist');
 
 // Search engines: robots.txt, sitemap.xml and index.html with this page's <head> (server/seo.ts).
 let indexHtml: string | null = null; // read once; a new build restarts the server
+let ogVersion: string | null = null;
 async function sendPage(req: FastifyRequest, reply: FastifyReply, path: string) {
   indexHtml ??= withAnalytics(await readFile(join(dist, 'index.html'), 'utf8'));
+  ogVersion ??= await readFile(join(dist, 'og.png'))
+    .then((b) => createHash('sha256').update(b).digest('hex').slice(0, 10))
+    .catch(() => '');
   // the host decides indexing; the URLs we print are always one of our own origins
   const claimed = requestOrigin(req.headers, req.protocol);
   const canonical = isCanonicalHost(claimed);
   if (!canonical || !pageMeta(path)) reply.header('X-Robots-Tag', 'noindex, nofollow');
-  return reply.header('Cache-Control', 'no-cache').type('text/html').send(renderHead(indexHtml, path, siteUrl(publicOrigin(claimed)), canonical));
+  return reply.header('Cache-Control', 'no-cache').type('text/html').send(renderHead(indexHtml, path, siteUrl(publicOrigin(claimed)), canonical, ogVersion));
 }
 app.get('/robots.txt', (req, reply) => {
   const claimed = requestOrigin(req.headers, req.protocol);
