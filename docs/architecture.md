@@ -49,13 +49,15 @@ The site signs in with Clerk (our own screens on `@clerk/react` v6 hooks: Google
 
 Postgres holds who owns what:
 
-- `users`: Clerk user id, email, `created_at`, `last_seen_at` (sub-project 3 hangs the subscription here);
+- `users`: Clerk user id, email, `created_at`, `last_seen_at`, `plan` (Free/Premium), `premium_until`, `quota_start`, `quota_used`;
 - `personas`: one owner per EA persona, `previous_user_id` after a takeover;
 - `link_tokens`: SHA-256 of short-lived (10 min), single-use tokens.
 
 Linking: the signed-in site asks `POST /api/link-token` and hands the token to the extension's `site.js` (`window.postMessage`); the worker sends it with the next `/api/hello`. A persona nobody owns (or already this user's) is linked on the key the extension holds; one owned by someone else answers `needSid`, and only a fresh EA session proof (`/usermassinfo`) moves it. The previous owner then gets `personaTakenOver` and a one-time notice. Once linked, the persona shows up on every device the user signs in on, phone included; the cached club and SBCs are per persona on the server, so they are the same everywhere.
 
 Browsers from before sign-in held access keys (`#keys=`, `localStorage`); the site sends them once to `POST /api/me/legacy-keys` only to move saved solver settings to `…-p<personaId>`, then forgets them.
+
+**Plans and quotas** use `users.plan` (Free or Premium), `premium_until` (expiry date), and weekly quota columns (`quota_start` timestamp, `quota_used` count). Free users get `FREE_WEEKLY_SOLVES` found solves per 7-day window starting at the first counted solve; Premium unlimited solves. Admins are always Premium. Plan rules are pure functions in `server/plan.ts`; per-user lookup with quota state is in `server/plans.ts`. Enforcement happens in `/api/solve` before calling the solver (403 `quotaExhausted` if over quota), and counting happens after a found squad. Plan assignment is via the admin screen.
 
 ## Getting the session
 
