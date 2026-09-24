@@ -1,5 +1,7 @@
-// Pro pricing shown on the landing page. Display only: billing does not exist yet.
+// Premium pricing shown on the landing page. Display only: billing does not exist yet.
 export type Billing = 'monthly' | 'yearly';
+
+export const FREE_WEEKLY_SOLVES = 20; // display only; the server's FREE_WEEKLY_SOLVES decides
 
 const MONTHLY = 5;
 const YEARLY_PER_MONTH = 3;

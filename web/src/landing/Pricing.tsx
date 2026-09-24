@@ -1,8 +1,8 @@
-// Free vs Pro. Display only until billing exists: the Pro button is disabled ("Coming soon").
+// Free vs Premium. Display only until billing exists: the Premium button is disabled ("Coming soon").
 import { useState, type ReactNode } from 'react';
 import { Check } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
-import { formatEur, proPrice, yearlySaving, type Billing } from './pricing';
+import { formatEur, proPrice, yearlySaving, FREE_WEEKLY_SOLVES, type Billing } from './pricing';
 import { Backdrop } from './Backdrop';
 
 export function Pricing({ cta }: { cta: ReactNode }) {
@@ -40,7 +40,7 @@ export function Pricing({ cta }: { cta: ReactNode }) {
           <h3>{t('landing.price.free.name')}</h3>
           <p className="lp-amount">{eur(0)}</p>
           <p className="lp-billed">{t('landing.price.free.note')}</p>
-          {list([t('landing.price.free.f1'), t('landing.price.free.f2'), t('landing.price.free.f3')])}
+          {list([t('landing.price.free.f1'), t('landing.price.free.f2'), t('landing.price.free.f3', { limit: FREE_WEEKLY_SOLVES }), t('landing.price.free.f4')])}
           {cta}
         </article>
         <article className="lp-plan lp-plan-pro">
@@ -51,7 +51,7 @@ export function Pricing({ cta }: { cta: ReactNode }) {
           <p className="lp-billed">
             {billing === 'monthly' ? t('landing.price.pro.billedMonthly') : t('landing.price.pro.billedYearly', { amount: eur(pro.billed) })}
           </p>
-          {list([t('landing.price.pro.f1'), t('landing.price.pro.f2')])}
+          {list([t('landing.price.pro.f1'), t('landing.price.pro.f2'), t('landing.price.pro.f3')])}
           <button type="button" className="lp-btn" disabled>
             {t('landing.price.pro.soon')}
           </button>

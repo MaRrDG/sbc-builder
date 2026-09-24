@@ -74,9 +74,10 @@ const en: Record<LegalDoc, Doc> = {
       },
       {
         id: 'paid',
-        h: 'Paid plans',
+        h: 'Plans',
         p: [
-          'Prices shown on the website for a Pro plan are indicative; paid plans are not on sale yet. When they are, their price, billing and cancellation terms will be shown before you pay, and these terms will be updated.',
+          'FC Solver has a Free plan and a Premium plan. Free includes a weekly number of solves (shown in the app next to the Solve button and in Settings); only a solve that finds a squad counts, and the week starts with your first counted solve and resets 7 days later. Premium removes the limit and adds global solver settings. We may grant or end Premium, and change the Free limit, with notice in the app.',
+          'Prices shown on the website for Premium are indicative; paid plans are not on sale yet. When they are, their price, billing and cancellation terms will be shown before you pay, and these terms will be updated.',
         ],
       },
       {
@@ -248,9 +249,10 @@ const ro: Record<LegalDoc, Doc> = {
       },
       {
         id: 'paid',
-        h: 'Planuri plătite',
+        h: 'Planuri',
         p: [
-          'Prețurile afișate pe site pentru planul Pro sunt orientative; planurile plătite nu sunt încă de vânzare. Când vor fi, prețul, facturarea și condițiile de anulare îți vor fi arătate înainte de plată, iar acești termeni vor fi actualizați.',
+          'FC Solver are un plan Free și un plan Premium. Free include un număr săptămânal de rezolvări (afișat în aplicație lângă butonul Rezolvă și în Setări); contează doar o rezolvare care găsește o echipă, iar săptămâna începe la prima rezolvare numărată și se resetează după 7 zile. Premium elimină limita și adaugă setări globale pentru solver. Putem acorda sau încheia Premium și putem schimba limita Free, cu anunț în aplicație.',
+          'Prețurile afișate pe site pentru Premium sunt orientative; planurile plătite nu sunt încă de vânzare. Când vor fi, prețul, facturarea și condițiile de anulare îți vor fi arătate înainte de plată, iar acești termeni vor fi actualizați.',
         ],
       },
       {
