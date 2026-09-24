@@ -94,9 +94,11 @@ interface Props {
   placed: Map<number, Player>;
   selectedId: number | null;
   onPlayerClick: (playerId: number) => void;
+  /** the weekly Free quota is used up: Solve and Cheaper are disabled until it resets */
+  outOfSolves: boolean;
 }
 
-export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick }: Props) {
+export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves }: Props) {
   const { t } = useI18n();
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
@@ -204,12 +206,12 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
             <SealCheck weight="fill" aria-hidden="true" /> {lock.title}
           </span>
         ) : (
-          <button className="solve" type="button" disabled={solving} onClick={() => onSolve(false)}>
+          <button className="solve" type="button" disabled={solving || outOfSolves} onClick={() => onSolve(false)}>
             <Lightning weight="fill" aria-hidden="true" /> {result ? t('pitch.resolve') : t('pitch.solve')}
           </button>
         )}
         {result && !locked && (
-          <button className="solve-deep" type="button" disabled={solving} onClick={() => onSolve(true)} title={t('pitch.cheaperTitle')}>
+          <button className="solve-deep" type="button" disabled={solving || outOfSolves} onClick={() => onSolve(true)} title={t('pitch.cheaperTitle')}>
             {t('pitch.cheaper')}
           </button>
         )}

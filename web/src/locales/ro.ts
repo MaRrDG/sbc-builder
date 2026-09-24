@@ -19,6 +19,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'time.dAgo': 'acum {n} zile',
   'time.until.min': '{m} min',
   'time.until.hmin': '{h} h {m} min',
+  'time.until.dh': '{d} z {h} h',
 
   'top.home': 'FC Solver, pagina principală',
   'top.club': 'Club',
@@ -231,6 +232,15 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'plan.until': 'până la {date}',
   'plan.globalLocked': 'Setările globale fac parte din Premium. Pe Free, fiecare SBC poate avea în continuare setările lui și jucătorii excluși.',
 
+  // quota meter (butonul Rezolvă)
+  'quota.left_one': '{count} din {limit} rezolvări rămasă săptămâna asta',
+  'quota.left_few': '{count} din {limit} rezolvări rămase săptămâna asta',
+  'quota.left_other': '{count} din {limit} de rezolvări rămase săptămâna asta',
+  'quota.resets': 'se resetează în {until}',
+  'quota.what': 'Cum funcționează rezolvările săptămânale',
+  'quota.premium': 'Premium · rezolvări nelimitate',
+  'quota.out': 'Nu mai ai rezolvări săptămâna asta. Revin în {until}.',
+
   'opt.keepXI': 'Păstrează primul 11 din lotul activ',
   'opt.keepSubs': 'Păstrează rezervele din lotul activ',
   'opt.keepSpecial': 'Păstrează cardurile speciale și promo',
@@ -320,6 +330,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'err.personaNotYours': 'Contul EA nu e legat de tine.',
   'err.personaTakenOver': 'Contul EA e acum legat de alt utilizator FC Solver.',
   'err.rateLimited': 'Prea multe cereri. Așteaptă un minut și încearcă din nou.',
+  'err.quotaExhausted': 'Ai folosit toate cele {limit} rezolvări din săptămâna asta.',
   'err.adminOnly': 'Doar pentru admini.',
 
   'guide.title': 'Cum funcționează FC Solver',
