@@ -73,6 +73,8 @@ export default function App({
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [club, setClub] = useState<Player[]>([]);
+  const [storage, setStorage] = useState<Player[]>([]); // SBC storage: solved with only when asked
+  const [storageNote, setStorageNote] = useState<{ challengeId: number; text: string } | null>(null);
   const [categories, setCategories] = useState<{ categoryId: number; name: string; sets: SbcSet[] }[]>([]);
   const { t, lang, setLang } = useI18n();
   const ago = useAgo();
@@ -105,6 +107,7 @@ export default function App({
   const [readAsked, setReadAsked] = useState<Set<number>>(() => new Set());
   const result = challengeId ? results[challengeId] ?? null : null;
   const clubById = useMemo(() => new Map(club.map((p) => [p.id, p])), [club]);
+  const storageIds = useMemo(() => new Set(storage.map((p) => p.id)), [storage]);
   // players already placed in this challenge in the web app, shown on the pitch before solving
   const placedPlayers = useMemo(
     () =>
@@ -140,6 +143,7 @@ export default function App({
     const [m, c, s, st] = await Promise.all([api.meta(), api.club(), api.sets(), api.status()]);
     setMeta(m);
     setClub(c.players);
+    setStorage(c.storage ?? []);
     setSquad(c.squad);
     setCategories(s.categories);
     setStatus(st.sync);
@@ -340,22 +344,48 @@ export default function App({
     });
   };
 
-  const runSolve = async (deep = false, opts = solveOptions) => {
+  const saveResult = (id: number, r: SolveResult) =>
+    setResults((prev) => {
+      const { [id]: _old, ...rest } = prev;
+      const next = { ...rest, [id]: r };
+      const ids = Object.keys(next);
+      for (const k of ids.slice(0, Math.max(0, ids.length - KEEP_RESULTS))) delete next[Number(k)];
+      if (activeId) writeLocal(resultsKey(activeId), next);
+      return next;
+    });
+
+  // "Cheaper?" keeps the SBC storage in if the current squad already uses it; a plain solve is club only
+  const runSolve = async (deep = false, opts = solveOptions, useStorage = deep && !!result?.usedStorage) => {
     if (!challenge || lock) return;
     setSelectedId(null);
     setSolving(true);
     setError(null);
+    setStorageNote(null);
     try {
-      const r = await api.solve(challenge.setId, challenge.challengeId, opts, deep);
-      setResults((prev) => {
-        const { [challenge.challengeId]: _old, ...rest } = prev;
-        const next = { ...rest, [challenge.challengeId]: r };
-        const ids = Object.keys(next);
-        for (const id of ids.slice(0, Math.max(0, ids.length - KEEP_RESULTS))) delete next[Number(id)];
-        if (activeId) writeLocal(resultsKey(activeId), next);
-        return next;
-      });
+      const r = await api.solve(challenge.setId, challenge.challengeId, opts, deep, useStorage);
+      saveResult(challenge.challengeId, r);
       if (!r.found && r.slots.some((s) => s.player)) setError(t('set.closest'));
+    } catch (e) {
+      onApiError(e);
+    } finally {
+      setSolving(false);
+    }
+  };
+
+  // Asked after a club-only squad: solve again with the SBC storage and keep it only if it is cheaper.
+  const tryStorage = async () => {
+    if (!challenge || lock || !result?.found) return;
+    const id = challenge.challengeId;
+    const before = result;
+    setSelectedId(null);
+    setSolving(true);
+    setError(null);
+    try {
+      const r = await api.solve(challenge.setId, id, solveOptions, false, true);
+      const used = r.slots.filter((s) => s.player?.inStorage).length;
+      // a cheaper squad replaces the club-only one (its notice says how many came from storage)
+      if (r.found && used > 0 && (r.cost ?? Infinity) < (before.cost ?? Infinity)) saveResult(id, r);
+      else setStorageNote({ challengeId: id, text: t('set.storageNone') });
     } catch (e) {
       onApiError(e);
     } finally {
@@ -428,7 +458,10 @@ export default function App({
   const busy = !!syncing || !!status?.running;
   const clubLeft = status?.clubSyncs ? Math.max(0, status.clubSyncs.limit - status.clubSyncs.used) : null;
   // players of the shown squad that left the club since it was found (used, sold, moved)
-  const goneFromClub = result && club.length ? result.slots.filter((s) => s.player && !clubById.has(s.player.id)).length : 0;
+  const goneFromClub =
+    result && club.length ? result.slots.filter((s) => s.player && !clubById.has(s.player.id) && !storageIds.has(s.player.id)).length : 0;
+  const note = storageNote?.challengeId === challengeId ? storageNote.text : null;
+  const askStorage = !!result?.found && !result.usedStorage && storage.length > 0 && !note;
 
   const controls = (
     <>
@@ -649,7 +682,7 @@ export default function App({
           )}
 
           {!showGuide && view === 'club' && meta && (
-            <ClubView club={club} meta={meta} squad={squad} excludeIds={options.excludeIds} onToggleExclude={toggleGlobalExclude} />
+            <ClubView club={club} storage={storage} meta={meta} squad={squad} excludeIds={options.excludeIds} onToggleExclude={toggleGlobalExclude} />
           )}
 
           {!showGuide && view === 'settings' && meta && (
@@ -776,6 +809,27 @@ export default function App({
                         ) : (
                           t('set.bricksOpen')
                         )}
+                      </div>
+                    )}
+                    {askStorage && !solving && (
+                      <div className="notice-inline" role="status">
+                        {t('set.storageAsk', { count: storage.length })}{' '}
+                        <button type="button" className="text" onClick={() => void tryStorage()}>
+                          {t('set.storageTry')}
+                        </button>
+                      </div>
+                    )}
+                    {note && !solving && (
+                      <div className="notice-inline" role="status">
+                        {note}
+                      </div>
+                    )}
+                    {result?.usedStorage && !note && !solving && (
+                      <div className="notice-inline" role="status">
+                        {t('set.storageUsed', { count: result.slots.filter((s) => s.player?.inStorage).length })}{' '}
+                        <button type="button" className="text" onClick={() => void runSolve()}>
+                          {t('set.storageClubOnly')}
+                        </button>
                       </div>
                     )}
                     {result?.found && result.placed && result.placed.kept < result.placed.total && !solving && (

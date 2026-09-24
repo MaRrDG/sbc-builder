@@ -292,8 +292,15 @@ app.get('/api/meta', async (req) => {
 async function clubPlayers(acc: Account) {
   const meta = await metaFor(acc);
   const club = await readCache<ClubItem[]>(acc.key('club'));
+  const storage = await readCache<ClubItem[]>(acc.key('storage'));
   const squad = (await readCache<ActiveSquad>(acc.key('squad')))?.data ?? null;
-  return { fetchedAt: club?.fetchedAt ?? null, players: (club?.data ?? []).map((i) => toPlayer(i, meta)), squad };
+  return {
+    fetchedAt: club?.fetchedAt ?? null,
+    players: (club?.data ?? []).map((i) => toPlayer(i, meta)),
+    storage: (storage?.data ?? []).map((i) => ({ ...toPlayer(i, meta), inStorage: true })),
+    storageAt: storage?.fetchedAt ?? null,
+    squad,
+  };
 }
 
 app.get('/api/club', async (req) => clubPlayers(await siteAccount(req)));
@@ -337,7 +344,7 @@ const DEFAULT_OPTIONS: SolveOptions = {
   keepPlaced: false,
 };
 
-app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOptions>; deep?: boolean } }>(
+app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOptions>; deep?: boolean; useStorage?: boolean } }>(
   '/api/solve',
   async (req, reply) => {
     const acc = await siteAccount(req);
@@ -345,8 +352,10 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     const { setId, challengeId } = req.body;
     const ch = (await getChallenges(acc, setId))?.data.find((c) => c.challengeId === challengeId);
     if (!ch) return reply.code(404).send({ error: 'challenge not found (open it in the web app first)', code: 'challengeNotFound', params: {} });
-    const { players } = await clubPlayers(acc);
-    if (players.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)', code: 'clubEmpty', params: {} });
+    const { players: inClub, storage } = await clubPlayers(acc);
+    if (inClub.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)', code: 'clubEmpty', params: {} });
+    // SBC storage only when asked for ("try a cheaper squad with SBC storage")
+    const players = req.body.useStorage ? [...inClub, ...storage] : inClub;
     const reqs = parseRequirements(ch.elgReq, meta);
     const options = { ...DEFAULT_OPTIONS, ...req.body.options };
     const t0 = Date.now();
@@ -391,6 +400,7 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
       })),
       missingPlaced: sol.missingPlaced,
       placed: { kept: sol.fixedIds.length, total: sol.placedCount },
+      usedStorage: !!req.body.useStorage,
     };
   },
 );

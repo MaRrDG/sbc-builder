@@ -205,6 +205,13 @@ export async function applySubmittedSbc(acc: Account, challengeId: number, itemI
     removed = club.data.length - left.length;
     await writeCache(acc.key('club'), left, club.fetchedAt);
   }
+  // players from SBC storage go too
+  const storage = await readCache<ClubItem[]>(acc.key('storage'));
+  if (storage) {
+    const left = storage.data.filter((i) => !used.has(i.id));
+    removed += storage.data.length - left.length;
+    if (left.length !== storage.data.length) await writeCache(acc.key('storage'), left, storage.fetchedAt);
+  }
   const squad = await readCache<{ starters: number[]; bench: number[] }>(acc.key('squad'));
   if (squad) {
     const keep = (ids: number[]) => ids.filter((id) => !used.has(id));

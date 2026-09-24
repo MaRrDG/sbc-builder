@@ -23,6 +23,7 @@ export interface Player {
   skillMoves: number;
   weakFoot: number;
   foot: 'Right' | 'Left';
+  inStorage?: boolean; // in SBC storage, not in the club
 }
 
 export interface Account {
@@ -147,6 +148,7 @@ export interface SolveResult {
   cost?: number;
   missingPlaced?: number[];
   placed?: { kept: number; total: number };
+  usedStorage?: boolean; // solved with the SBC storage in the pool
   eval: { rating: number; chemistry: number; results: { text: string; met: boolean; actual: number | string }[]; allMet: boolean };
   slots: SlotResult[];
 }
@@ -215,13 +217,16 @@ export const api = {
   sync: (what: 'club') => req<SyncStatus>('/api/sync', { method: 'POST', body: { what } }),
   syncVisit: () => req<SyncStatus>('/api/sync/visit', { method: 'POST' }),
   meta: () => req<Meta>('/api/meta'),
-  club: () => req<{ fetchedAt: number | null; players: Player[]; squad: { starters: number[]; bench: number[] } | null }>('/api/club'),
+  club: () =>
+    req<{ fetchedAt: number | null; players: Player[]; storage: Player[]; storageAt: number | null; squad: { starters: number[]; bench: number[] } | null }>(
+      '/api/club',
+    ),
   sets: () => req<{ fetchedAt: number | null; categories: { categoryId: number; name: string; sets: SbcSet[] }[] }>('/api/sets'),
   challenges: (setId: number, refresh = false) =>
     req<{ fetchedAt: number | null; challenges: Challenge[] }>(`/api/sets/${setId}/challenges${refresh ? '?refresh=1' : ''}`),
   readChallenge: (challengeId: number) => req<SyncStatus>(`/api/challenges/${challengeId}/read`, { method: 'POST' }),
-  solve: (setId: number, challengeId: number, options: SolveOptions, deep = false) =>
-    req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep } }),
+  solve: (setId: number, challengeId: number, options: SolveOptions, deep = false, useStorage = false) =>
+    req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep, useStorage } }),
   adminStats: () => req<AdminStats>('/api/admin/stats'),
   adminSync: (what: 'club' | 'sbc' | 'all', personaIds?: number[]) =>
     req<{ results: AdminSyncResult[] }>('/api/admin/sync', { method: 'POST', body: { what, personaIds } }),

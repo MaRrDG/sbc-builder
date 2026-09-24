@@ -7,7 +7,7 @@
 (() => {
   const SRC = 'sbc-builder-hook';
   const UTAS = /^(https:\/\/utas\.[^/]+\/ut\/game\/fc27)(\/[^?]*)/;
-  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles)$/;
+  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile)$/;
   // Our requests go through one queue, one at a time, with a short random pause between them,
   // and only once the web app itself has been quiet for a moment, so they never pile up on its own.
   const GAP_MIN_MS = 1500;
@@ -175,7 +175,8 @@
       post({ kind: 'call', jobId, method, path, status });
     }
     if (status < 200 || status >= 300) throw Object.assign(new Error(`EA answered ${status} to ${method} ${path}`), { status });
-    if (jobId) post({ kind: 'event', jobId, event: { method, path, query: '', request: body ?? null, response: data } });
+    const [bare, query = ''] = path.split('?');
+    if (jobId) post({ kind: 'event', jobId, event: { method, path: bare, query, request: body ?? null, response: data } });
     return data;
   }
 
@@ -188,6 +189,10 @@
       const list = await c('GET', '/squad/list');
       if (Number.isInteger(list?.activeSquadId)) await c('GET', `/squad/${list.activeSquadId}`);
       await c('GET', '/chemistry/profiles');
+      // SBC storage, the same read the web app makes; the club is already in, so only throttling fails the job
+      await c('GET', '/storagepile?skuMode=FUT').catch((e) => {
+        if (THROTTLE.includes(e?.status)) throw e;
+      });
     },
     async sbc(c) {
       await c('GET', '/sbs/sets');

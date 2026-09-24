@@ -169,9 +169,13 @@ Static data for rendering: names of nations / leagues / clubs / rarities, format
   "players": [{ "id": 943996158675, "assetId": 183277, "name": "Hazard", "fullName": "Eden Hazard", "rating": 89, "tier": 3, "rareflag": 72,
                 "possiblePositions": ["LM", "CAM", "LW"], "nation": 7, "league": 13, "club": 114605, "untradeable": true,
                 "attributes": [91, 84, 85, 93, 37, 69], "skillMoves": 4, "weakFoot": 4, "foot": "Right", "...": "..." }],
+  "storage": [{ "id": 945300000001, "name": "Fox", "rating": 85, "inStorage": true, "...": "..." }],
+  "storageAt": 1790064473000,
   "squad": { "starters": [945052590995, "…"], "bench": ["…"] }
 }
 ```
+
+`storage`: the SBC storage (from `GET /storagepile`, read by the club sync and whenever the web app opens SBC Storage), same player shape plus `inStorage: true`. Not used by `/api/solve` unless asked.
 
 ### `GET /api/sets` (site)
 
@@ -229,7 +233,7 @@ Client mode: queues a `challengeSquad` job that reads a challenge you already st
 }
 ```
 
-`deep: true` gives the solver 30 s instead of 10 s. Any option left out uses the default above; `keepPlaced` (default `false`) keeps players already placed in the web app where the requirements allow. A brick challenge without a known layout answers `409`. Each slot in the answer carries `brick` (`null` or `{ custom, nation, league, club }`) and `fixed` (kept from the web app); `missingPlaced` lists placed items no longer in the club.
+`deep: true` gives the solver 30 s instead of 10 s. `useStorage: true` adds the SBC storage to the pool (storage players cost 0.8× an identical club card, so they go first); the answer then has `usedStorage: true` and storage players carry `inStorage: true`. The site solves club-only first and asks before trying with storage, keeping that squad only when its `cost` is lower. Any option left out uses the default above; `keepPlaced` (default `false`) keeps players already placed in the web app where the requirements allow. A brick challenge without a known layout answers `409`. Each slot in the answer carries `brick` (`null` or `{ custom, nation, league, club }`) and `fixed` (kept from the web app); `missingPlaced` lists placed items no longer in the club.
 
 Found:
 
@@ -260,7 +264,7 @@ Sent after the web app successfully submits an SBC.
 { "challengeId": 35, "itemIds": [945052590995, 944099662109] }
 ```
 
-Removes those items from the cached club and squad, marks the challenge completed and bumps the set progress (`challengesCompletedCount`, and for repeatable sets `timesCompleted`, `timesCompletedInInterval`, `lastCompletedTime`). Returns `{ "ok": true, "removed": 11 }`.
+Removes those items from the cached club, SBC storage and squad, marks the challenge completed and bumps the set progress (`challengesCompletedCount`, and for repeatable sets `timesCompleted`, `timesCompletedInInterval`, `lastCompletedTime`). Returns `{ "ok": true, "removed": 11 }`.
 
 ### `POST /api/webapp-event` (extension)
 
@@ -270,13 +274,14 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 |---|---|
 | `POST /purchased/items` (pack opened) | players from `response.itemList` join the Unassigned list |
 | `GET /purchased/items` (Unassigned viewed) | Unassigned list replaced with `response.itemData` |
-| `PUT /item` with `{ itemData: [{ id, pile }] }` | `pile: "club"`: Unassigned → club. Any other pile: leaves club and Unassigned |
-| `DELETE /item/:id` or `/item?itemIds=…` | quick sold: leaves club and Unassigned |
+| `PUT /item` with `{ itemData: [{ id, pile }] }` | `pile: "club"`: Unassigned or SBC storage → club. Any other pile: leaves club, Unassigned and SBC storage |
+| `DELETE /item/:id` or `/item?itemIds=…` | quick sold: leaves club, Unassigned and SBC storage |
 | `GET /sbs/sets` | replaces the cached SBC list |
 | `GET /sbs/setId/:id/challenges` | replaces that set's cached challenges |
 | `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club. With `jobId` (a club sync job's page): collected per job in any order, nothing upserted, and the club is replaced once page 0 through the short last page are all in |
 | `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (other saved squads are ignored) |
 | `GET /chemistry/profiles` | replaces the promo chemistry profiles |
+| `GET /storagepile` | replaces the cached SBC storage (players from `itemData`) |
 | `POST /sbs/challenge/:id`, `GET/PUT /sbs/challenge/:id/squad` | the challenge's squad: locked slots and players already placed (last 6 kept raw in `challengeSquads/{id}`) |
 
 ```json

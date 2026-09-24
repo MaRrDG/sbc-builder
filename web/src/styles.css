@@ -1660,6 +1660,19 @@ button.card:active {
   filter: drop-shadow(0 1px 1px oklch(0.2 0.02 60 / 0.6));
 }
 
+.card-storage {
+  position: absolute;
+  top: 11%;
+  right: 5%;
+  width: 26%;
+  height: auto;
+  padding: 4%;
+  border-radius: 50%;
+  background: oklch(0.22 0.03 200 / 0.92);
+  color: oklch(0.97 0.01 200);
+  box-shadow: 0 0 0 1.5px oklch(0.97 0.01 200 / 0.8);
+}
+
 .card-empty {
   display: grid;
   place-items: center;
