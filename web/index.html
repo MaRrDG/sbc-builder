@@ -46,14 +46,13 @@
       }
     </script>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Geist:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- the no-JS text stays in the page for crawlers but only shows if the app has not started after 4 s -->
+    <style>.seo-fallback { animation: seo-fallback-in 0s 4s both; } @keyframes seo-fallback-in { from { visibility: hidden; } }</style>
   </head>
   <body style="margin: 0; background: #0d1411">
     <!-- replaced by the app on load; what crawlers and link previews without JavaScript read -->
     <div id="root">
-      <main style="max-width: 640px; margin: 64px auto; padding: 0 16px; color: #f3f1ea; font-family: system-ui, sans-serif">
+      <main class="seo-fallback" style="max-width: 640px; margin: 64px auto; padding: 0 16px; color: #f3f1ea; font-family: system-ui, sans-serif">
         <h1>FC Solver: the cheapest EA FC 27 SBC squad from your own club</h1>
         <p>
           Pick a Squad Building Challenge and press Solve. FC Solver builds it from the players you already own, including

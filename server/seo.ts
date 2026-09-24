@@ -25,7 +25,21 @@ const PAGES: Record<string, PageMeta> = {
     description:
       'Set up the FC Solver Chrome extension in two minutes: it reads your EA FC 27 club and SBCs from the web app so FC Solver can solve them. Read-only toward EA.',
   },
+  '/terms': {
+    title: 'Terms of use · FC Solver',
+    description: 'The terms for using FC Solver, an independent EA FC 27 SBC solver that only reads your club and never acts in your EA account.',
+  },
+  '/privacy': {
+    title: 'Privacy policy · FC Solver',
+    description: 'Which personal data FC Solver processes, why, who else handles it, how long it is kept and how to use your GDPR rights.',
+  },
+  '/cookies': {
+    title: 'Cookie policy · FC Solver',
+    description: 'FC Solver uses only strictly necessary cookies and cookieless statistics: no advertising or tracking cookies, no consent banner.',
+  },
 };
+
+const LEGAL_PATHS = new Set(['/terms', '/privacy', '/cookies']);
 
 export const pageMeta = (path: string): PageMeta | null => PAGES[path] ?? null;
 
@@ -89,7 +103,21 @@ export function robotsTxt(base: string, canonicalHost: boolean): string {
 
 export function sitemapXml(base: string): string {
   const urls = Object.keys(PAGES)
-    .map((p) => `  <url><loc>${esc(base + p)}</loc><changefreq>weekly</changefreq><priority>${p === '/' ? '1.0' : '0.6'}</priority></url>`)
+    .map((p) => `  <url><loc>${esc(base + p)}</loc><changefreq>weekly</changefreq><priority>${p === '/' ? '1.0' : LEGAL_PATHS.has(p) ? '0.3' : '0.6'}</priority></url>`)
     .join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
+
+// Analytics (OpenWebTrack, cookieless): the <script> tag its dashboard generates, pasted into
+// ANALYTICS_SNIPPET in .env. Unset: no analytics at all.
+export const analyticsSnippet = () => (process.env.ANALYTICS_SNIPPET ?? '').trim();
+
+/** Origins the snippet loads from, for the CSP (script-src / connect-src). */
+export function analyticsOrigins(snippet = analyticsSnippet()): string[] {
+  const out = new Set<string>();
+  for (const m of snippet.matchAll(/\b(?:src|data-[\w-]*(?:host|api|url|endpoint)[\w-]*)\s*=\s*["'](https:\/\/[^"'\s/]+)/gi)) out.add(m[1]);
+  return [...out];
+}
+
+/** index.html with the analytics snippet at the end of <head>. */
+export const withAnalytics = (html: string, snippet = analyticsSnippet()) => (snippet ? html.replace('</head>', `${snippet}\n  </head>`) : html);

@@ -10,6 +10,8 @@ export const en = {
   'time.until.hmin': '{h}h {m}m',
 
   // browser tab titles of the public pages
+  'legal.nav': 'Legal',
+  'legal.updated': 'Last updated: {date}',
   'meta.landing': 'FC Solver · EA FC 27 SBC solver for your own club',
   'meta.guide': 'How FC Solver works · EA FC 27 SBC solver',
   'meta.setup': 'Install the FC Solver extension · EA FC 27',

@@ -6,8 +6,10 @@
 //   /dashboard/settings   settings          /dashboard/admin       admin dashboard (admins only)
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
+//   /terms  /privacy  /cookies              legal pages (public)
 // Old app paths without /dashboard (/sbc/16, /club, ...) still parse; useRoute rewrites the address bar.
 import { useCallback, useEffect, useState } from 'react';
+import type { LegalDoc } from './legal/docs';
 
 export type Route =
   | { view: 'landing' }
@@ -17,6 +19,7 @@ export type Route =
   | { view: 'setup' }
   | { view: 'guide' }
   | { view: 'admin' }
+  | { view: 'legal'; doc: LegalDoc }
   | { view: 'signin'; next: string }
   | { view: 'ssoCallback' };
 
@@ -34,6 +37,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (a === 'signin') return b === 'callback' ? { view: 'ssoCallback' } : { view: 'signin', next: new URLSearchParams(search).get('next') ?? '/dashboard' };
   if (a === 'setup') return { view: 'setup' };
   if (a === 'guide') return { view: 'guide' };
+  if (a === 'terms' || a === 'privacy' || a === 'cookies') return { view: 'legal', doc: a };
   const [x, y, z] = a === 'dashboard' ? parts.slice(1) : parts;
   if (x === 'club') return { view: 'club' };
   if (x === 'settings') return { view: 'settings' };
@@ -50,6 +54,8 @@ export function routePath(r: Route): string {
       return r.next && r.next !== '/dashboard' ? `/signin?next=${encodeURIComponent(r.next)}` : '/signin';
     case 'ssoCallback':
       return '/signin/callback';
+    case 'legal':
+      return `/${r.doc}`;
     case 'setup':
     case 'guide':
       return `/${r.view}`;

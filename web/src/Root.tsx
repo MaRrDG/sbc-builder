@@ -8,6 +8,7 @@ import { safeNext } from './next';
 import { useRoute, type Route } from './route';
 import { useI18n } from './i18n';
 import { LangMenu } from './components/LangMenu';
+import { LegalLinks, LegalPage } from './legal/LegalPage';
 import { SignIn } from './components/SignIn';
 import { Guide } from './components/Guide';
 import { SetupGuide } from './components/SetupGuide';
@@ -34,7 +35,7 @@ export default function Root() {
     isSignedIn ? () => setRefused(true) : () => navigate(toSignIn(), true),
   );
 
-  const publicView = route.view === 'landing' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup';
+  const publicView = route.view === 'landing' || route.view === 'legal' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup';
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn && !publicView) navigate(toSignIn(), true);
@@ -47,6 +48,9 @@ export default function Root() {
     const titled = route.view === 'landing' || route.view === 'guide' || route.view === 'setup' || route.view === 'signin';
     if (titled && (route.view === 'landing' || !isSignedIn)) document.title = t(`meta.${route.view}`);
   }, [route.view, isSignedIn, t]);
+
+  // legal pages, like the landing page, are for everyone and do not wait for Clerk
+  if (route.view === 'legal') return <LegalPage doc={route.doc} navigate={navigate} />;
 
   // the landing page is for everyone and does not wait for Clerk
   if (route.view === 'landing')
@@ -98,6 +102,7 @@ export default function Root() {
           </p>
         )}
         {body}
+        <LegalLinks navigate={navigate} />
       </div>
     );
   }
