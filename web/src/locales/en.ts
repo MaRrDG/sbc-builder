@@ -218,6 +218,20 @@ export const en = {
   'settings.ownNone': 'None. Open an SBC and press Options to give it its own settings.',
   'settings.gone': 'SBC #{id} (no longer available)',
   'settings.useGlobal': 'Use global',
+
+  // plan
+  'plan.free': 'Free plan',
+  'plan.premium': 'Premium',
+  'plan.resetsIn': 'Your solves come back in {until}.',
+  'plan.windowIdle': 'Your week starts with your next solve.',
+  'plan.howFree': 'Free gives you {limit} solves per week. Only a found squad costs one: Solve, Cheaper, the SBC storage retry and re-solving after excluding a player each count. "No squad" answers are free. The week starts with your first solve and resets 7 days later.',
+  'plan.premiumAdds': 'Premium adds:',
+  'plan.premiumList': 'unlimited solves and global solver settings for every SBC.',
+  'plan.soon': 'Coming soon.',
+  'plan.unlimited': 'Unlimited solves and global settings.',
+  'plan.until': 'until {date}',
+  'plan.globalLocked': 'Global settings are part of Premium. On Free, each SBC can still have its own settings and excluded players.',
+
   'opt.keepXI': 'Keep my active squad XI',
   'opt.keepSubs': 'Keep my active squad subs',
   'opt.keepSpecial': 'Keep special and promo cards',

@@ -47,7 +47,7 @@ interface Props {
   meta: Meta;
   chem?: number;
   inSquad: 'XI' | 'Subs' | null;
-  onExclude: () => void;
+  onExclude?: () => void;
   onClose: () => void;
   /** Club view: already kept out, so the button lets it back in instead. */
   excluded?: boolean;
@@ -142,7 +142,7 @@ export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose
         )}
       </dl>
 
-      {excluded ? (
+      {onExclude && (excluded ? (
         <button type="button" className="ghost wide" onClick={onExclude}>
           <ArrowCounterClockwise weight="bold" /> {t('player.allowAgain')}
         </button>
@@ -150,7 +150,7 @@ export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose
         <button type="button" className="ghost wide danger" onClick={onExclude}>
           <Prohibit weight="bold" /> {excludeLabel ?? t('player.keepOutResolve')}
         </button>
-      )}
+      ))}
     </section>
   );
 }
