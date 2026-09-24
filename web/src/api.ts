@@ -151,6 +151,19 @@ export interface SolveResult {
   usedStorage?: boolean; // solved with the SBC storage in the pool
   eval: { rating: number; chemistry: number; results: { text: string; met: boolean; actual: number | string }[]; allMet: boolean };
   slots: SlotResult[];
+  quota?: Quota | null;
+}
+
+export interface Quota {
+  used: number;
+  limit: number;
+  resetsAt: number | null;
+}
+
+export interface PlanInfo {
+  tier: 'free' | 'premium';
+  premiumUntil: number | null;
+  quota: Quota | null;
 }
 
 /** A server error; `code` + `params` let the UI say it in the user's language. */
@@ -208,7 +221,7 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
 }
 
 export const api = {
-  me: () => req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean }>('/api/me'),
+  me: () => req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo }>('/api/me'),
   legacyKeys: (keys: string[]) => req<{ map: Record<string, number> }>('/api/me/legacy-keys', { method: 'POST', body: { keys } }),
   linkToken: () => req<{ token: string; expiresIn: number }>('/api/link-token', { method: 'POST' }),
   unlinkPersona: (personaId: number) => req<{ ok: true }>(`/api/personas/${personaId}`, { method: 'DELETE' }),
@@ -232,6 +245,9 @@ export const api = {
     req<{ results: AdminSyncResult[] }>('/api/admin/sync', { method: 'POST', body: { what, personaIds } }),
   adminTrust: (personaId: number, trusted: boolean) =>
     req<{ ok: true; personaId: number; trusted: boolean }>('/api/admin/trust', { method: 'POST', body: { personaId, trusted } }),
+  adminPlan: (userId: string, tier: 'free' | 'premium', premiumUntil: string | null) =>
+    req<{ ok: true }>('/api/admin/plan', { method: 'POST', body: { userId, tier, premiumUntil } }),
+  adminQuotaReset: (userId: string) => req<{ ok: true }>('/api/admin/quota-reset', { method: 'POST', body: { userId } }),
 };
 
 export interface AdminAccount {
@@ -269,7 +285,7 @@ export interface AdminStats {
   };
   ea: { today: number };
   db: { sets: number; challenges: number; brickReports: number; trusted: number };
-  userList: { id: string; email: string; createdAt: number; lastSeenAt: number; personas: AdminAccount[] }[];
+  userList: { id: string; email: string; createdAt: number; lastSeenAt: number; personas: AdminAccount[]; plan: PlanInfo; planSet: 'free' | 'premium' }[];
   unlinked: AdminAccount[];
 }
 

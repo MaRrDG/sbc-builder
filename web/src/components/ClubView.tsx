@@ -29,7 +29,7 @@ interface Props {
   meta: Meta;
   squad: { starters: number[]; bench: number[] } | null;
   excludeIds: number[];
-  onToggleExclude: (playerId: number) => void;
+  onToggleExclude?: (playerId: number) => void;
 }
 
 /** The players in the club, searchable; a card opens its details and can be kept out of SBCs. */
@@ -173,7 +173,7 @@ export function ClubView({ club, storage, meta, squad, excludeIds, onToggleExclu
               inSquad={role(selected.id)}
               excluded={kept.has(selected.id)}
               excludeLabel={t('player.keepOut')}
-              onExclude={() => onToggleExclude(selected.id)}
+              onExclude={onToggleExclude ? () => onToggleExclude(selected.id) : undefined}
               onClose={() => setSelectedId(null)}
             />
           </div>

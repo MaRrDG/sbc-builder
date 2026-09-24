@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, GearSix, List, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, Crown, GearSix, List, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
-  type Account, type Challenge, type Meta, type Player, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
+  type Account, type Challenge, type Meta, type Player, type PlanInfo, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
 } from './api';
 import { Pitch, ReqTick } from './components/Pitch';
 import { SolverOptions, DEFAULT_OPTIONS, exclusionCount } from './components/SolverOptions';
@@ -23,6 +23,7 @@ import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
+import { PlanCard } from './components/PlanCard';
 import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
 import { unlinkExtension, useExtensionLink } from './link';
@@ -69,6 +70,7 @@ export default function App({
   const [activeId, setActiveId] = useState<number | null>(null);
   const [me, setMe] = useState<{ id: string; email: string } | null>(null);
   const [admin, setAdmin] = useState(false);
+  const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [takenOver, setTakenOver] = useState(false);
   const { signOut } = useClerk();
   const [status, setStatus] = useState<SyncStatus | null>(null);
@@ -124,8 +126,11 @@ export default function App({
   const localSets = useMemo(() => new Set(Object.keys(localOptions).map(Number)), [localOptions]);
   const currentSet = (setId && setsById.get(setId)) || null;
   const local = setId ? localOptions[setId] ?? null : null;
+  // global settings are Premium: a Free account solves with the defaults unless the SBC has its own
+  const premium = plan?.tier === 'premium';
+  const globalOptions = premium ? options : DEFAULT_OPTIONS;
   // an SBC with its own settings ignores the global ones entirely
-  const effective = local ?? options;
+  const effective = local ?? globalOptions;
   const setKept = (setId && setExcludes[setId]) || NO_IDS;
   // what the solver gets: the settings plus the players kept out of this SBC only
   const solveOptions = useMemo(
@@ -173,9 +178,10 @@ export default function App({
 
   // Boot (and after the extension links a new EA account): who am I, which personas are mine.
   const loadMe = useCallback(async () => {
-    const { user, personas, admin } = await api.me();
+    const { user, personas, admin, plan: p } = await api.me();
     setMe(user);
     setAdmin(admin);
+    setPlan(p);
     setLinked(personas);
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
@@ -684,7 +690,7 @@ export default function App({
           )}
 
           {!showGuide && view === 'club' && meta && (
-            <ClubView club={club} storage={storage} meta={meta} squad={squad} excludeIds={options.excludeIds} onToggleExclude={toggleGlobalExclude} />
+            <ClubView club={club} storage={storage} meta={meta} squad={squad} excludeIds={globalOptions.excludeIds} onToggleExclude={premium ? toggleGlobalExclude : undefined} />
           )}
 
           {!showGuide && view === 'settings' && meta && (
@@ -696,10 +702,18 @@ export default function App({
                 </div>
               </header>
               <div className="settings-grid">
-                <div className="settings-card options">
-                  <SolverOptions options={options} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
+                <div className={`settings-card options${premium ? '' : ' locked'}`}>
+                  {!premium && (
+                    <p className="locked-note">
+                      <Crown weight="fill" aria-hidden="true" /> {t('plan.globalLocked')}
+                    </p>
+                  )}
+                  <fieldset disabled={!premium} className="plain">
+                    <SolverOptions options={premium ? options : DEFAULT_OPTIONS} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
+                  </fieldset>
                 </div>
                 <div className="settings-side">
+                <PlanCard plan={plan} now={now} />
                 <AccountCard email={me?.email ?? ''} personas={linked} onUnlink={unlink} onSignOut={doSignOut} />
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
                 <aside className="settings-card">
@@ -948,7 +962,7 @@ export default function App({
             <LocalOptions
               key={setId}
               setName={currentSet?.name ?? ''}
-              global={options}
+              global={globalOptions}
               local={local}
               onSetLocal={(o) => {
                 updateLocal(setId, o);

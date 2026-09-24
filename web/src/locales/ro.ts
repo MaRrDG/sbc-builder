@@ -217,6 +217,20 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'settings.ownNone': 'Niciunul. Deschide un SBC și apasă Opțiuni ca să-i dai setări proprii.',
   'settings.gone': 'SBC #{id} (nu mai e disponibil)',
   'settings.useGlobal': 'Folosește globale',
+
+  // plan
+  'plan.free': 'Plan Free',
+  'plan.premium': 'Premium',
+  'plan.resetsIn': 'Rezolvările revin în {until}.',
+  'plan.windowIdle': 'Săptămâna ta începe cu următoarea rezolvare.',
+  'plan.howFree': 'Free îți dă {limit} rezolvări pe săptămână. Doar o echipă găsită consumă una: Rezolvă, Mai ieftin, încercarea cu SBC storage și rezolvarea din nou după excluderea unui jucător. Răspunsurile „nicio echipă” sunt gratuite. Săptămâna începe la prima rezolvare și se resetează după 7 zile.',
+  'plan.premiumAdds': 'Premium adaugă:',
+  'plan.premiumList': 'rezolvări nelimitate și setări globale pentru fiecare SBC.',
+  'plan.soon': 'În curând.',
+  'plan.unlimited': 'Rezolvări nelimitate și setări globale.',
+  'plan.until': 'până la {date}',
+  'plan.globalLocked': 'Setările globale fac parte din Premium. Pe Free, fiecare SBC poate avea în continuare setările lui și jucătorii excluși.',
+
   'opt.keepXI': 'Păstrează primul 11 din lotul activ',
   'opt.keepSubs': 'Păstrează rezervele din lotul activ',
   'opt.keepSpecial': 'Păstrează cardurile speciale și promo',
