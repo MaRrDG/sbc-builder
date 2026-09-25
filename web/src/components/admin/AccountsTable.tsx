@@ -1,6 +1,6 @@
 // All EA accounts on this server (linked or not): filter / sort / page in the URL; unlinked rows expand in place.
 import { useEffect, useRef, useState } from 'react';
-import { Circle } from '@phosphor-icons/react';
+import { Circle, ShieldCheck } from '@phosphor-icons/react';
 import { api, type AdminAccountRow } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
 import { adminRoute, routePath } from '../../route';
@@ -44,6 +44,7 @@ export function AccountsTable({ route, navigate }: AdminProps) {
     { key: 'name', label: t('admin.accounts.col.persona'), sortable: true, primary: true, render: (a) => a.personaName },
     { key: 'club', label: t('admin.accounts.col.club'), hideSm: true, render: (a) => a.clubName },
     { key: 'owner', label: t('admin.accounts.col.owner'), render: (a) => a.ownerEmail ?? <span className="adm-badge">{t('admin.accounts.unlinked')}</span> },
+    { key: 'mode', label: t('admin.account.mode'), hideSm: true, render: (a) => t(`admin.accounts.mode.${a.mode}`) },
     { key: 'ext', label: t('admin.account.ext'), hideSm: true, render: (a) => a.extVersion ?? '?' },
     { key: 'online', label: t('admin.accounts.col.state'), render: (a) => (
       <span className="adm-dot"><Circle weight={a.online ? 'fill' : 'regular'} aria-hidden="true" />{a.online ? t('admin.account.online') : t('admin.account.offline')}{a.error && <span className="adm-badge bad">{t('admin.accounts.error')}</span>}</span>
@@ -51,6 +52,7 @@ export function AccountsTable({ route, navigate }: AdminProps) {
     { key: 'clubAt', label: t('admin.account.club'), sortable: true, hideSm: true, render: (a) => ago(a.clubAt) },
     { key: 'sbcAt', label: t('admin.account.sbcs'), sortable: true, hideSm: true, render: (a) => ago(a.sbcAt) },
     { key: 'eaToday', label: t('admin.account.ea'), sortable: true, num: true, render: (a) => `${a.ea.today}/${a.ea.limit}` },
+    { key: 'trusted', label: t('admin.accounts.col.trusted'), hideSm: true, render: (a) => (a.trusted ? <span className="adm-badge"><ShieldCheck aria-hidden="true" /> {t('admin.trusted')}</span> : '—') },
   ];
 
   const expanded = data?.rows.find((a) => a.personaId === open && !a.ownerId);
