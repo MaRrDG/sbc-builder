@@ -1,5 +1,5 @@
 // One user: plan + quota controls, their EA accounts, solves per day and the event log.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Copy } from '@phosphor-icons/react';
 import { api, type AdminEvent } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
@@ -27,8 +27,13 @@ export function UserDetail({ route, navigate }: AdminProps) {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
+  // Sync the form from the loaded user only when it's a different user (or right after a plan
+  // save), never on an unrelated reload (trust toggle, sync, quota reset) — that would wipe an
+  // admin's unsaved tier/date edit.
+  const syncedFor = useRef<string | null>(null);
   useEffect(() => {
-    if (!d) return;
+    if (!d || syncedFor.current === d.user.id) return;
+    syncedFor.current = d.user.id;
     setTier(d.planSet);
     setUntil(dateInput(d.plan.premiumUntil));
   }, [d]);
@@ -39,6 +44,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
     setMsg(null);
     try {
       await fn();
+      if (key === 'plan') syncedFor.current = null; // pick up the just-saved plan on the next reload
       setMsg(t('admin.user.saved'));
       await reload();
     } catch (e) {

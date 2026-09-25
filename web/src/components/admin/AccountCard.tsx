@@ -46,7 +46,7 @@ export function AccountCard({ acc, latest, onChanged, extra }: { acc: AdminAccou
       <dl className="adm-dl">
         <dt>{t('admin.account.mode')}</dt><dd>{t(`admin.account.mode.${acc.mode}`)}</dd>
         <dt>{t('admin.account.ext')}</dt><dd>{acc.extVersion ?? '?'} {outdated && <span className="adm-badge bad">{t('admin.versions.old')}</span>}</dd>
-        <dt>{t('admin.account.club')}</dt><dd>{fresh(acc.clubAt, acc.clubStale, t('admin.account.players', { n: acc.players }))}</dd>
+        <dt>{t('admin.account.club')}</dt><dd>{fresh(acc.clubAt, acc.clubStale, t('admin.account.players', { n: acc.players, count: acc.players }))}</dd>
         <dt>{t('admin.account.sbcs')}</dt><dd>{fresh(acc.sbcAt, acc.sbcStale, t('admin.account.sbcList'))}</dd>
         <dt>{t('admin.account.ea')}</dt>
         <dd>
