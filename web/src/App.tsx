@@ -10,11 +10,11 @@ import { LocalOptions } from './components/LocalOptions';
 import { SetList } from './components/SetList';
 import { ClubView } from './components/ClubView';
 import { LegalLinks } from './legal/LegalPage';
-import { AdminView } from './components/AdminView';
+import { AdminLayout } from './components/admin/AdminLayout';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
-import { canGoBack, type Route } from './route';
+import { adminRoute, canGoBack, type Route } from './route';
 import { useAgo, useI18n, type Lang } from './i18n';
 import { LangMenu } from './components/LangMenu';
 import { Guide } from './components/Guide';
@@ -428,7 +428,7 @@ export default function App({
     setShowOptions(false);
     setMenuOpen(false);
     // pressing SBCs again goes back to the list
-    navigate(v === 'sbcs' ? { view: 'sbcs', setId: null, challengeId: null } : { view: v });
+    navigate(v === 'sbcs' ? { view: 'sbcs', setId: null, challengeId: null } : v === 'admin' ? adminRoute('overview') : { view: v });
     setError(null);
   };
 
@@ -679,7 +679,7 @@ export default function App({
             </section>
           )}
 
-          {view === 'admin' && <AdminView />}
+          {route.view === 'admin' && <AdminLayout route={route} navigate={navigate} />}
 
           {view === 'guide' && <Guide clubSyncs={status?.clubSyncs.limit ?? 3} eaLimit={status?.ea.limit ?? 150} />}
 

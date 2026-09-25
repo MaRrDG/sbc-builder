@@ -243,7 +243,11 @@ export const api = {
   readChallenge: (challengeId: number) => req<SyncStatus>(`/api/challenges/${challengeId}/read`, { method: 'POST' }),
   solve: (setId: number, challengeId: number, options: SolveOptions, deep = false, useStorage = true) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep, useStorage } }),
-  adminStats: () => req<AdminStats>('/api/admin/stats'),
+  adminOverview: (range: 7 | 30) => req<AdminOverview>(`/api/admin/overview?range=${range}`),
+  adminUsers: (query: string) => req<Paged<AdminUserRow>>(`/api/admin/users${query ? `?${query}` : ''}`),
+  adminUser: (id: string) => req<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(id)}`),
+  adminUserEvents: (id: string, page: number) => req<Paged<AdminEvent>>(`/api/admin/users/${encodeURIComponent(id)}/events?page=${page}`),
+  adminAccounts: (query: string) => req<Paged<AdminAccountRow> & { latestExtension: string }>(`/api/admin/accounts${query ? `?${query}` : ''}`),
   adminSync: (what: 'club' | 'sbc' | 'all', personaIds?: number[]) =>
     req<{ results: AdminSyncResult[] }>('/api/admin/sync', { method: 'POST', body: { what, personaIds } }),
   adminTrust: (personaId: number, trusted: boolean) =>
@@ -276,20 +280,39 @@ export interface AdminAccount {
   trusted: boolean;
 }
 
-export interface AdminStats {
-  at: number;
-  lastDrop: number;
+export interface Paged<T> { rows: T[]; total: number; page: number; pageSize: number }
+
+export interface AdminUserRow {
+  id: string; email: string; createdAt: number; lastSeenAt: number;
+  planSet: 'free' | 'premium'; plan: PlanInfo; admin: boolean;
+  accounts: number; online: number; solves7d: number;
+}
+export type AdminAccountRow = AdminAccount & { ownerId: string | null; ownerEmail: string | null };
+export interface AdminUserDetail {
+  user: { id: string; email: string; createdAt: number; lastSeenAt: number; admin: boolean };
+  planSet: 'free' | 'premium'; plan: PlanInfo;
+  accounts: (AdminAccount & { linkedAt: number; previousUserId: string | null })[];
+  missing: number[];
+  solves: { days: string[]; found: number[]; notFound: number[] };
   latestExtension: string;
-  users: { total: number; active24h: number; active7d: number; new7d: number; withPersona: number };
-  accounts: {
-    total: number; linked: number; client: number; legacy: number; online: number;
-    clubStale: number; sbcStale: number; failing: number; paused: number; atLimit: number;
-    versions: Record<string, number>;
+}
+export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day'; personaId: number | null; data: Record<string, unknown> }
+export type AdminAttention =
+  | { kind: 'error' | 'paused' | 'atLimit' | 'outdated'; personaId: number; personaName: string; userId: string | null; detail: string | null }
+  | { kind: 'expiring'; userId: string; email: string; until: number };
+export interface AdminOverview {
+  at: number; lastDrop: number; latestExtension: string; range: 7 | 30;
+  kpis: {
+    users: { total: number; active24h: number; active7d: number; new7d: number };
+    premium: { total: number; expiring7d: number };
+    accounts: { total: number; online: number; problem: number; unlinked: number };
+    solvesToday: number;
+    ea: { today: number; limit: number };
   };
-  ea: { today: number };
+  series: { days: string[]; found: number[]; notFound: number[]; signups: number[]; eaRequests: number[]; syncs: number[]; syncFailed: number[] };
+  attention: AdminAttention[];
+  versions: { version: string; count: number; latest: boolean }[];
   db: { sets: number; challenges: number; brickReports: number; trusted: number };
-  userList: { id: string; email: string; createdAt: number; lastSeenAt: number; personas: AdminAccount[]; plan: PlanInfo; planSet: 'free' | 'premium' }[];
-  unlinked: AdminAccount[];
 }
 
 export type AdminSyncResult =
