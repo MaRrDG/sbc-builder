@@ -3,13 +3,15 @@
 //   /                     landing page (public)
 //   /dashboard            SBC list          /dashboard/sbc/16      a set (first open challenge)
 //   /dashboard/sbc/16/39  a challenge       /dashboard/club        club
-//   /dashboard/settings   settings          /dashboard/admin       admin dashboard (admins only)
+//   /dashboard/settings   settings          /dashboard/admin[/users[/:id]|/accounts][?filters]   admin panel (admins only)
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
 //   /terms  /privacy  /cookies              legal pages (public)
 // Old app paths without /dashboard (/sbc/16, /club, ...) still parse; useRoute rewrites the address bar.
 import { useCallback, useEffect, useState } from 'react';
 import type { LegalDoc } from './legal/docs';
+
+export type AdminPage = 'overview' | 'users' | 'user' | 'accounts';
 
 export type Route =
   | { view: 'landing' }
@@ -18,12 +20,19 @@ export type Route =
   | { view: 'settings' }
   | { view: 'setup' }
   | { view: 'guide' }
-  | { view: 'admin' }
+  | { view: 'admin'; page: AdminPage; userId: string | null; query: string }
   | { view: 'legal'; doc: LegalDoc }
   | { view: 'signin'; next: string }
   | { view: 'ssoCallback' };
 
 const id = (s: string | undefined) => (s && /^\d+$/.test(s) ? Number(s) : null);
+
+export const adminRoute = (page: AdminPage, extra: { userId?: string; query?: string } = {}): Route => ({
+  view: 'admin',
+  page,
+  userId: page === 'user' ? extra.userId ?? null : null,
+  query: page === 'users' || page === 'accounts' ? extra.query ?? '' : '',
+});
 
 export function parseRoute(path: string, search = '', hash = ''): Route {
   const parts = path.split('/').filter(Boolean);
@@ -41,7 +50,13 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   const [x, y, z] = a === 'dashboard' ? parts.slice(1) : parts;
   if (x === 'club') return { view: 'club' };
   if (x === 'settings') return { view: 'settings' };
-  if (x === 'admin') return { view: 'admin' };
+  if (x === 'admin') {
+    const query = search.replace(/^\?/, '');
+    if (y === 'users' && z) return adminRoute('user', { userId: decodeURIComponent(z) });
+    if (y === 'users') return adminRoute('users', { query });
+    if (y === 'accounts') return adminRoute('accounts', { query });
+    return adminRoute('overview');
+  }
   if (x === 'sbc' && id(y) !== null) return { view: 'sbcs', setId: id(y), challengeId: id(z) };
   return { view: 'sbcs', setId: null, challengeId: null };
 }
@@ -61,8 +76,11 @@ export function routePath(r: Route): string {
       return `/${r.view}`;
     case 'club':
     case 'settings':
-    case 'admin':
       return `/dashboard/${r.view}`;
+    case 'admin': {
+      const base = r.page === 'overview' ? '/dashboard/admin' : r.page === 'user' ? `/dashboard/admin/users/${encodeURIComponent(r.userId ?? '')}` : `/dashboard/admin/${r.page}`;
+      return r.query ? `${base}?${r.query}` : base;
+    }
     case 'sbcs':
       if (r.setId === null) return '/dashboard';
       return r.challengeId === null ? `/dashboard/sbc/${r.setId}` : `/dashboard/sbc/${r.setId}/${r.challengeId}`;
@@ -72,7 +90,7 @@ export function routePath(r: Route): string {
 /** Where the address bar should be for this route, or null when it already is (sign-in keeps its query). */
 export function canonicalPath(r: Route, pathname: string): string | null {
   if (r.view === 'signin' || r.view === 'ssoCallback') return null;
-  const want = routePath(r);
+  const want = routePath(r).split('?')[0];
   return want === pathname ? null : want;
 }
 

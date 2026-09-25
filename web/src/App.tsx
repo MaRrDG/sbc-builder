@@ -14,7 +14,7 @@ import { AdminView } from './components/AdminView';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
-import { canGoBack, type Route } from './route';
+import { adminRoute, canGoBack, type Route } from './route';
 import { useAgo, useI18n, type Lang } from './i18n';
 import { LangMenu } from './components/LangMenu';
 import { Guide } from './components/Guide';
@@ -449,7 +449,7 @@ export default function App({
     setShowOptions(false);
     setMenuOpen(false);
     // pressing SBCs again goes back to the list
-    navigate(v === 'sbcs' ? { view: 'sbcs', setId: null, challengeId: null } : { view: v });
+    navigate(v === 'sbcs' ? { view: 'sbcs', setId: null, challengeId: null } : v === 'admin' ? adminRoute('overview') : { view: v });
     setError(null);
   };
 
