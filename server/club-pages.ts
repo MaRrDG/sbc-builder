@@ -24,3 +24,10 @@ export function assembleClub<T extends { id: number }>(pages: ClubPages): T[] | 
   }
   return null;
 }
+
+/** Players the pages loaded so far, for the sync progress bar (pages may overlap: count ids once). */
+export function loadedPlayers(pages: ClubPages): number {
+  const ids = new Set<number>();
+  for (const page of pages.values()) for (const i of page.items) ids.add(i.id);
+  return ids.size;
+}

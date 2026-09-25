@@ -24,6 +24,8 @@ export interface Job {
   /** club only: the pages this job loaded, and whether they added up to the whole club */
   clubPages?: ClubPages;
   clubReplaced?: boolean;
+  /** club only: players loaded so far, for the progress bar */
+  clubLoaded?: number;
 }
 
 const queues = new Map<number, Job[]>();
@@ -151,12 +153,18 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
 }
 
 /** What the UI shows as "running" and the last error, for accounts on jobs. */
-export function jobStatus(acc: Account): { running: string | null; error: string | null } {
+export function jobStatus(acc: Account): {
+  running: string | null;
+  error: string | null;
+  club: { state: 'queued' | 'running'; loaded: number } | null;
+} {
   const q = queueOf(acc);
   const active = q.find((j) => j.status === 'running' || j.status === 'queued');
   const last = [...q].reverse().find((j) => j.status === 'done' || j.status === 'failed');
+  const clubJob = q.find((j) => j.kind === 'club' && (j.status === 'running' || j.status === 'queued'));
   return {
     running: active ? (active.kind === 'club' ? 'club' : active.kind === 'challengeSquad' ? 'squad' : 'sbc') : null,
     error: !active && last?.status === 'failed' ? last.error ?? null : null,
+    club: clubJob ? { state: clubJob.status === 'running' ? 'running' : 'queued', loaded: clubJob.clubLoaded ?? 0 } : null,
   };
 }

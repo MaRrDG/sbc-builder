@@ -37,6 +37,19 @@ export const en = {
 
   // notices
   'notice.webAppClosed': 'FC27 web app not open. FC Solver syncs only from your web app tab, so open it in this browser to sync. Cached data still works.',
+  // club sync modal
+  'clubSync.title': 'Syncing your players',
+  'clubSync.lede': 'FC Solver is reading your club from the FC web app tab, so every player you own is ready for the solver.',
+  'clubSync.loaded_one': '{count} player loaded',
+  'clubSync.loaded_other': '{count} players loaded',
+  'clubSync.loadedOf': 'Players loaded: {count} of about {total}',
+  'clubSync.keepOpen': 'Keep the FC web app tab open until it finishes. It usually takes under a minute.',
+  'clubSync.done': 'Club synced',
+  'clubSync.doneBody_one': '{count} player is ready for the solver.',
+  'clubSync.doneBody_other': '{count} players are ready for the solver.',
+  'clubSync.failed': 'The sync did not finish',
+  'clubSync.failedBody': 'Your club was not updated. Keep the FC web app tab open and press Club to try again.',
+  'clubSync.continue': 'Continue',
   'notice.noExtension': 'No extension yet?',
   'notice.howItWorks': 'How does it work?',
   'notice.unassigned_one': '{count} new player from packs is waiting in Unassigned. Send it to your club in the web app and it shows up here automatically.',

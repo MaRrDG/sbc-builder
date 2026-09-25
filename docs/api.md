@@ -37,7 +37,7 @@ Extension 0.7+. Says who is logged in to the web app, without handing over the s
 
 - `linkToken` (optional, 0.8+): a token from `POST /api/link-token` that the signed-in site handed the extension. A valid unused token links this persona to that user (and is used up). If the persona already belongs to another user, the answer is `401 { "needSid": true }` until the request carries a `sid` (the token stays usable for that resend). Unknown, expired or used tokens never fail the call.
 
-Returns `{ ok, account, accessKey, linked, linkRejected }` and switches the account to client mode (its stored SID, if any, is deleted). `linked`: the persona id when this call linked it (or it already was this user's), else `null`; `linkRejected`: a token was sent but was not valid.
+Returns `{ ok, account, accessKey, linked, linkRejected, clubQueued }` and switches the account to client mode (its stored SID, if any, is deleted). `linked`: the persona id when this call linked it (or it already was this user's), else `null`; `linkRejected`: a token was sent but was not valid; `clubQueued`: this call newly linked the persona (not `already`) and queued a club sync for the web app tab (same limits as any sync: club syncs per day, EA budget; skipped quietly when over them).
 
 ### `GET /api/jobs/next` (extension)
 
@@ -102,13 +102,13 @@ Browsers no longer hold access keys; use `GET /api/me`.
 ```json
 {
   "account": { "personaId": 1005016552645, "session": true, "extVersion": "0.3.0", "...": "..." },
-  "sync": { "running": null, "error": null, "clubAt": 1790064472801, "sbcAt": 1790062053735, "sbcNextAt": 1790063853735, "editedAt": null, "unassigned": 1,
+  "sync": { "running": "club", "error": null, "club": { "state": "running", "loaded": 400, "expected": 1830 }, "clubAt": 1790064472801, "sbcAt": 1790062053735, "sbcNextAt": 1790063853735, "editedAt": null, "unassigned": 1,
             "ea": { "today": 12, "limit": 150, "pausedUntil": null, "byPath": { "/club": 3 }, "recent": [{ "at": 1790064472801, "method": "POST", "path": "/club", "status": 200 }] } },
   "extension": { "version": "0.4.0", "notes": ["Update notices in the web app and on the site"] }
 }
 ```
 
-`ea` counts today's requests to EA for this account (paths grouped, ids replaced by `:id`); `pausedUntil` is set after EA signalled throttling. `editedAt` changes whenever the cache was edited from web app activity; the UI polls this every 5 s and reloads when it moves. `unassigned` counts pack players not yet sent to the club. `sbcNextAt`: from then on a visit refreshes the SBC list (`sbcAt` + 30 min, `SBC_VISIT_COOLDOWN_MIN`); `null` for legacy accounts.
+`ea` counts today's requests to EA for this account (paths grouped, ids replaced by `:id`); `pausedUntil` is set after EA signalled throttling. `editedAt` changes whenever the cache was edited from web app activity; the UI polls this every 5 s and reloads when it moves. `unassigned` counts pack players not yet sent to the club. `club`: a club sync `queued` or `running` in the web app tab (else `null`), with the players its pages loaded so far and `expected`, the cached club size as a rough total (`null` before the first sync); the site shows a blocking progress modal while it runs and polls every 1.5 s then. `sbcNextAt`: from then on a visit refreshes the SBC list (`sbcAt` + 30 min, `SBC_VISIT_COOLDOWN_MIN`); `null` for legacy accounts.
 
 ### `POST /api/sync` (site)
 

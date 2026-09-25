@@ -19,7 +19,7 @@ import { parseLayout } from './layout.js';
 import { softly } from './db/index.js';
 import { reportBricks, saveChallenges, saveSets } from './db/sbcs.js';
 import { findJob } from './jobs.js';
-import { addClubPage, assembleClub } from './club-pages.js';
+import { addClubPage, assembleClub, loadedPlayers } from './club-pages.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const WATCHED_PATH =
@@ -74,6 +74,7 @@ async function onJobClubPage(acc: Account, jobId: string, req: Record<string, un
   const count = Number(req.count);
   if (job?.kind !== 'club' || !job.clubPages || job.clubReplaced || !Number.isInteger(start) || !(count > 0)) return null;
   addClubPage(job.clubPages, start, count, items, raw);
+  job.clubLoaded = loadedPlayers(job.clubPages);
   const club = assembleClub<ClubItem>(job.clubPages);
   if (!club) return null;
   job.clubReplaced = true;

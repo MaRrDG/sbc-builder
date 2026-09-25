@@ -25,6 +25,7 @@ import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/U
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
 import { QuotaMeter } from './components/QuotaMeter';
+import { ClubSyncModal } from './components/ClubSyncModal';
 import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
 import { unlinkExtension, useExtensionLink } from './link';
@@ -225,7 +226,9 @@ export default function App({
     [loadMe, t],
   );
 
-  // Poll sync state so auto-syncs and new sessions show up without a reload.
+  // Poll sync state so auto-syncs and new sessions show up without a reload; faster while the
+  // club sync modal shows its progress.
+  const clubSyncing = status?.club?.state === 'running';
   useEffect(() => {
     if (!activeId) return;
     const t = setInterval(async () => {
@@ -248,9 +251,9 @@ export default function App({
         if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onApiError(e);
         /* otherwise the server is restarting; next tick retries */
       }
-    }, 5000);
+    }, clubSyncing ? 1500 : 5000);
     return () => clearInterval(t);
-  }, [activeId, setId, loadAccountData, onApiError]);
+  }, [activeId, setId, loadAccountData, onApiError, clubSyncing]);
 
   useEffect(() => {
     // a link straight to /sbc/... loads before the account is picked: wait for its key
@@ -568,6 +571,7 @@ export default function App({
 
   return (
     <div className="app">
+      <ClubSyncModal status={status} players={club.length} />
       <header className="topbar">
         <a className="brand" href="/dashboard" aria-label={t('top.home')}>
           {/* the wordmark needs ~120px; narrow phones get the square icon */}

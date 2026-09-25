@@ -23,6 +23,8 @@ export interface SyncStatus {
   sbcNextAt: number | null; // earliest a visit refreshes the SBC list again (null: legacy account)
   editedAt: number | null; // last local edit (e.g. an SBC submitted in the web app)
   unassigned: number; // players from opened packs not sent to the club yet
+  /** a club sync waiting for / running in the web app tab: players loaded so far, and the cached club size as a rough total */
+  club: { state: 'queued' | 'running'; loaded: number; expected: number | null } | null;
 }
 
 const running = new Map<number, string>();
@@ -37,7 +39,10 @@ export function markEdited(acc: Account) {
 
 export async function getStatus(acc: Account): Promise<SyncStatus> {
   const jobs = acc.clientMode ? jobStatus(acc) : null;
+  const clubJob = jobs ? jobs.club : running.get(acc.id) === 'club' ? { state: 'running' as const, loaded: 0 } : null;
+  const cachedClub = clubJob ? await readCache<unknown[]>(acc.key('club')) : null;
   return {
+    club: clubJob && { ...clubJob, expected: cachedClub?.data.length || null },
     ea: await acc.meter.summary(),
     clubSyncs: { used: await clubSyncsToday(acc), limit: CLUB_SYNCS_PER_DAY },
     running: jobs ? jobs.running : running.get(acc.id) ?? null,
@@ -334,6 +339,24 @@ export async function autoSync(acc: Account): Promise<void> {
   } catch (e) {
     if (f) forced.set(acc.id, f); // e.g. over today's EA budget: keep it for later
     console.warn(`auto sync failed for ${acc.info.personaName}:`, (e as Error).message);
+  }
+}
+
+/**
+ * The extension just linked this account to a user: load the club right away, so the site shows
+ * the user's players. The hello came from the web app tab itself, so the job runs there shortly.
+ * Same limits as any sync (daily club syncs, EA budget); quietly skipped when over them.
+ */
+export async function syncOnLink(acc: Account): Promise<boolean> {
+  try {
+    if (!acc.clientMode || hasPending(acc, 'club')) return false;
+    if ((await clubSyncsToday(acc)) >= CLUB_SYNCS_PER_DAY) return false;
+    await acc.meter.check();
+    await enqueue(acc, 'club');
+    await countClubSync(acc);
+    return true;
+  } catch {
+    return false; // over today's EA budget or paused
   }
 }
 

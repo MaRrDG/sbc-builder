@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { addClubPage, assembleClub, type ClubPages } from './club-pages.js';
+import { addClubPage, assembleClub, loadedPlayers, type ClubPages } from './club-pages.js';
 
 const players = (from: number, n: number) => Array.from({ length: n }, (_, k) => ({ id: from + k }));
 
@@ -51,4 +51,12 @@ test('a filtered-out item does not look like a gap', () => {
   addClubPage(pages, 0, 3, players(0, 2), 3);
   addClubPage(pages, 3, 3, players(3, 1), 1);
   assert.deepEqual(assembleClub(pages)?.map((p) => p.id), [0, 1, 3]);
+});
+
+test('loaded players count each id once', () => {
+  const pages: ClubPages = new Map();
+  assert.equal(loadedPlayers(pages), 0);
+  addClubPage(pages, 0, 3, players(0, 3), 3);
+  addClubPage(pages, 2, 3, players(2, 3), 3); // overlaps one player
+  assert.equal(loadedPlayers(pages), 5);
 });

@@ -11,7 +11,7 @@ import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
-import { adminSync, applySubmittedSbc, autoSyncAll, autoSyncSoon, getChallenges, getStatus, markEdited, refreshSbcsOnVisit, requestSync, type SetsData } from './sync.js';
+import { adminSync, applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshSbcsOnVisit, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, hasPending, nextJob, webAppOpen, webAppReturned } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, listAccounts, type Account } from './accounts.js';
 import { adminStats, isAdmin, requireAdmin } from './admin.js';
@@ -308,6 +308,7 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
   const token = typeof linkToken === 'string' && /^[\w-]{20,100}$/.test(linkToken) ? linkToken : null;
   const userId = token ? await linkTokenUser(token) : null;
   let linked: number | null = null;
+  let clubQueued = false;
   if (userId) {
     const decision = linkDecision((await personaRow(r.account.id))?.userId ?? null, userId, r.proved);
     // owned by someone else: only a fresh EA proof moves it; the token stays usable for the resend
@@ -315,8 +316,10 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     if (decision !== 'already') await setOwner(r.account.id, userId);
     await consumeLinkToken(token!);
     linked = r.account.id;
+    // newly linked here: load the club now (the site re-sends tokens every few minutes, so not on 'already')
+    if (decision !== 'already') clubQueued = await syncOnLink(r.account);
   }
-  return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked, linkRejected: !!token && !userId };
+  return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked, linkRejected: !!token && !userId, clubQueued };
 });
 
 /** Next sync job for the web app tab (null when idle). Polling also marks the tab as open. */
