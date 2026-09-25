@@ -59,6 +59,10 @@ Browsers from before sign-in held access keys (`#keys=`, `localStorage`); the si
 
 **Plans and quotas** use `users.plan` (Free or Premium), `premium_until` (expiry date), and weekly quota columns (`quota_start` timestamp, `quota_used` count). Free users get `FREE_WEEKLY_SOLVES` found solves per 7-day window starting at the first counted solve; Premium unlimited solves. Admins are always Premium. Plan rules are pure functions in `server/plan.ts`; per-user lookup with quota state is in `server/plans.ts`. Enforcement happens in `/api/solve` before calling the solver (403 `quotaExhausted` if over quota), and counting happens after a found squad. Plan assignment is via the admin screen.
 
+## Admin history
+
+`events` (Postgres, `server/db/events.ts`) is an append-only log the admin panel reads from: `solve` (`/api/solve`, `server/index.ts`), `sync` (`server/sync.ts` legacy mode, `server/jobs.ts` client mode), `ea_error` (a throttle pause, `server/meter.ts`) and `ea_day` (the day's running EA request count, also `meter.ts`, one row per account and day — a restart writes another row for the same day, so readers collapse it with `max(count)` rather than summing). `logEvent()` is fire-and-forget (`softly`, `server/db/index.ts`): a DB failure is logged and never breaks the solve, sync or EA request it rides on. Rows older than 180 days (`KEEP_DAYS`) are deleted by `pruneEvents()`, run on a daily timer in `server/index.ts`. `server/admin/` reads this table plus `users`/`personas`/the file cache (never EA) to build the admin API: `query.ts` (pure filters, paging, day-key helpers), `users.ts`, `accounts.ts`, `overview.ts` (KPIs, activity charts, attention list), `routes.ts` (wiring), `auth.ts` (admin-only gate).
+
 ## Getting the session
 
 **Extension 0.7+ (client mode): every request to EA leaves from the web app tab.** The server keeps no SID and never calls EA for these accounts, except once to prove a new account.
