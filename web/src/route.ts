@@ -52,7 +52,15 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (x === 'settings') return { view: 'settings' };
   if (x === 'admin') {
     const query = search.replace(/^\?/, '');
-    if (y === 'users' && z) return adminRoute('user', { userId: decodeURIComponent(z) });
+    if (y === 'users' && z) {
+      let userId = z;
+      try {
+        userId = decodeURIComponent(z);
+      } catch {
+        /* malformed %: fall back to the raw path segment rather than breaking routing */
+      }
+      return adminRoute('user', { userId });
+    }
     if (y === 'users') return adminRoute('users', { query });
     if (y === 'accounts') return adminRoute('accounts', { query });
     return adminRoute('overview');

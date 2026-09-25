@@ -55,7 +55,7 @@ export function AccountCard({ acc, latest, onChanged, extra }: { acc: AdminAccou
         </dd>
         {acc.running && (<><dt>{t('admin.account.running')}</dt><dd>{acc.running}</dd></>)}
         {acc.error && (<><dt>{t('admin.account.error')}</dt><dd className="adm-bad">{acc.error}</dd></>)}
-        {acc.forced && (<><dt>{t('admin.account.forced')}</dt><dd>{[acc.forced.club && 'club', acc.forced.sbc && 'sbc'].filter(Boolean).join(', ')}</dd></>)}
+        {acc.forced && (<><dt>{t('admin.account.forced')}</dt><dd>{[acc.forced.club && t('admin.account.club'), acc.forced.sbc && t('admin.account.sbcs')].filter(Boolean).join(', ')}</dd></>)}
         {extra}
       </dl>
       <div className="adm-actions">

@@ -41,9 +41,14 @@ export function UsersTable({ route, navigate }: AdminProps) {
     queryRef.current = route.query;
   });
 
-  // search box: typed text is local, the URL follows 300 ms after typing stops
+  // search box: typed text is local, the URL follows 300 ms after typing stops. Only resync from
+  // the URL (Back/Forward, Clear filters) when it disagrees with what's already committed — not
+  // after our own trim, or a trailing space the user is still typing would be eaten mid-keystroke.
   const [text, setText] = useState(q.q ?? '');
-  useEffect(() => setText(q.q ?? ''), [q.q]);
+  useEffect(() => {
+    const urlQ = q.q ?? '';
+    setText((cur) => (urlQ === cur.trim() ? cur : urlQ));
+  }, [q.q]);
   useEffect(() => {
     if (text === (q.q ?? '')) return;
     const id = setTimeout(() => navigate(adminRoute('users', { query: setQuery(queryRef.current, { q: text.trim() || null }) }), true), 300);

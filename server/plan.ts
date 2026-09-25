@@ -1,5 +1,5 @@
 // Free and Premium plans: which one a user is on and how much of the weekly solve quota is left.
-// Pure rules; the rows come from server/db/users.ts, the admin flag from server/admin.ts.
+// Pure rules; the rows come from server/db/users.ts, the admin flag from server/admin/auth.ts.
 
 export type Tier = 'free' | 'premium';
 export const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
