@@ -53,10 +53,10 @@ export function Overview({ navigate }: AdminProps) {
       {error && <p className="signin-error" role="alert">{error}</p>}
       <p className="muted">{t('admin.lede', { time: ago(o.at) })}</p>
       <div className="adm-kpis">
-        <KpiCard label={t('admin.kpi.users')} value={k.users.total} sub={t('admin.kpi.usersNew', { n: k.users.new7d })} {...kpiLink(users(''))} />
-        <KpiCard label={t('admin.kpi.active')} value={k.users.active24h} sub={t('admin.kpi.active7d', { n: k.users.active7d })} {...kpiLink(users('activity=24h'))} />
-        <KpiCard label={t('admin.kpi.premium')} value={k.premium.total} sub={t('admin.kpi.expiring', { n: k.premium.expiring7d })} {...kpiLink(users('plan=premium'))} />
-        <KpiCard label={t('admin.kpi.online')} value={`${k.accounts.online}/${k.accounts.total}`} sub={t('admin.kpi.unlinked', { n: k.accounts.unlinked })} {...kpiLink(accounts('state=online'))} />
+        <KpiCard label={t('admin.kpi.users')} value={k.users.total} sub={t('admin.kpi.usersNew', { n: k.users.new7d, count: k.users.new7d })} {...kpiLink(users(''))} />
+        <KpiCard label={t('admin.kpi.active')} value={k.users.active24h} sub={t('admin.kpi.active7d', { n: k.users.active7d, count: k.users.active7d })} {...kpiLink(users('activity=24h'))} />
+        <KpiCard label={t('admin.kpi.premium')} value={k.premium.total} sub={t('admin.kpi.expiring', { n: k.premium.expiring7d, count: k.premium.expiring7d })} {...kpiLink(users('plan=premium'))} />
+        <KpiCard label={t('admin.kpi.online')} value={`${k.accounts.online}/${k.accounts.total}`} sub={t('admin.kpi.unlinked', { n: k.accounts.unlinked, count: k.accounts.unlinked })} {...kpiLink(accounts('state=online'))} />
         <KpiCard label={t('admin.kpi.problem')} value={k.accounts.problem} tone={k.accounts.problem ? 'bad' : undefined} sub={t('admin.kpi.problemSub')} {...kpiLink(accounts('state=problem'))} />
         <KpiCard label={t('admin.kpi.solvesToday')} value={k.solvesToday} />
         <KpiCard label={t('admin.kpi.ea')} value={k.ea.today} sub={t('admin.kpi.eaSub', { limit: k.ea.limit })} />

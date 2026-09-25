@@ -46,7 +46,7 @@ export function parseUserQuery(raw: Record<string, unknown>): UserQuery {
     activity: pick(raw.activity, USER_ACTIVITY, 'all'),
     ea: pick(raw.ea, USER_EA, 'all'),
     sort,
-    dir: pick(raw.dir, DIRS, 'desc'),
+    dir: pick(raw.dir, DIRS, sort === 'email' ? 'asc' : 'desc'),
     page: parsePage(raw.page),
   };
 }

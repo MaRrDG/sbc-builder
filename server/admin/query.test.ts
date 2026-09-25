@@ -23,6 +23,15 @@ test('parseUserQuery: defaults and garbage fall back', () => {
   assert.equal(parseUserQuery({ q: 'x'.repeat(500) }).q.length, 100);
 });
 
+test('parseUserQuery: default dir depends on sort, matching UsersTable', () => {
+  assert.equal(parseUserQuery({}).dir, 'desc');
+  assert.equal(parseUserQuery({ sort: 'lastSeen' }).dir, 'desc');
+  assert.equal(parseUserQuery({ sort: 'createdAt' }).dir, 'desc');
+  assert.equal(parseUserQuery({ sort: 'solves7d' }).dir, 'desc');
+  assert.equal(parseUserQuery({ sort: 'email' }).dir, 'asc');
+  assert.equal(parseUserQuery({ sort: 'email', dir: 'desc' }).dir, 'desc'); // explicit dir still wins
+});
+
 test('parsePage / parseRange', () => {
   assert.equal(parsePage('2'), 2);
   assert.equal(parsePage('2.5'), 1);

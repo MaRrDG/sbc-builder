@@ -62,12 +62,13 @@ export function UserDetail({ route, navigate }: AdminProps) {
       </>
     );
 
+  const whatText = (w: unknown) => t(w === 'sbc' ? 'admin.account.sbcs' : 'admin.account.club');
   const eventText = (e: AdminEvent) => {
     const x = e.data as Record<string, string | number | boolean>;
     if (e.type === 'solve') return t(x.found ? 'admin.event.solveFound' : 'admin.event.solveMiss', { set: String(x.setId), ch: String(x.challengeId) });
-    if (e.type === 'sync') return t(x.ok ? 'admin.event.syncOk' : 'admin.event.syncFail', { what: String(x.what), error: String(x.error ?? '') });
+    if (e.type === 'sync') return t(x.ok ? 'admin.event.syncOk' : 'admin.event.syncFail', { what: whatText(x.what), error: String(x.error ?? '') });
     if (e.type === 'ea_error') return t('admin.event.throttle');
-    return t('admin.event.eaDay', { day: String(x.day), n: Number(x.count) });
+    return t('admin.event.eaDay', { day: String(x.day), n: Number(x.count), count: Number(x.count) });
   };
   const evCols: Column<AdminEvent>[] = [
     { key: 'at', label: t('admin.event.when'), render: (e) => <time dateTime={new Date(e.at).toISOString()} title={new Date(e.at).toLocaleString()}>{ago(e.at)}</time> },
@@ -125,17 +126,20 @@ export function UserDetail({ route, navigate }: AdminProps) {
         {msg && <p role="status" className="muted">{msg}</p>}
       </section>
 
-      <section className="adm-grid2">
-        {d.accounts.length === 0 && d.missing.length === 0 && <p className="muted">{t('admin.user.noAccounts')}</p>}
-        {d.accounts.map((a) => (
-          <AccountCard key={a.personaId} acc={a} latest={d.latestExtension} onChanged={() => void reload()} extra={
-            <>
-              <dt>{t('admin.account.linked')}</dt><dd>{new Date(a.linkedAt).toLocaleDateString()}</dd>
-              {a.previousUserId && (<><dt>{t('admin.account.previous')}</dt><dd>{a.previousUserId}</dd></>)}
-            </>
-          } />
-        ))}
-        {d.missing.map((pid) => <p key={pid} className="muted">{t('admin.user.missing', { id: pid })}</p>)}
+      <section>
+        <h2>{t('admin.user.accountsTitle')}</h2>
+        <div className="adm-grid2">
+          {d.accounts.length === 0 && d.missing.length === 0 && <p className="muted">{t('admin.user.noAccounts')}</p>}
+          {d.accounts.map((a) => (
+            <AccountCard key={a.personaId} acc={a} latest={d.latestExtension} onChanged={() => void reload()} extra={
+              <>
+                <dt>{t('admin.account.linked')}</dt><dd>{new Date(a.linkedAt).toLocaleDateString()}</dd>
+                {a.previousUserId && (<><dt>{t('admin.account.previous')}</dt><dd>{a.previousUserId}</dd></>)}
+              </>
+            } />
+          ))}
+          {d.missing.map((pid) => <p key={pid} className="muted">{t('admin.user.missing', { id: pid })}</p>)}
+        </div>
       </section>
 
       <section className="adm-card">

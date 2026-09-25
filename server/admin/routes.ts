@@ -3,7 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { eq } from 'drizzle-orm';
 import { accountById, listAccounts } from '../accounts.js';
 import { db } from '../db/index.js';
-import { userEventCount, userEvents } from '../db/events.js';
+import { ownedPersonaIds, userEventCount, userEvents } from '../db/events.js';
 import { setTrusted } from '../db/sbcs.js';
 import { resetQuota, setPlan } from '../db/users.js';
 import { users } from '../db/schema.js';
@@ -28,12 +28,13 @@ export function registerAdminRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>('/api/admin/users/:id', async (req, reply) => {
     await requireAdmin(req);
     const d = await userDetail(req.params.id);
-    return d ?? reply.code(404).send({ error: 'unknown user' });
+    return d ?? reply.code(404).send({ error: 'unknown user', code: 'unknownUser', params: {} });
   });
   app.get<{ Params: { id: string } } & Q>('/api/admin/users/:id/events', async (req) => {
     await requireAdmin(req);
-    const page = clampPage(parsePage(req.query.page), await userEventCount(req.params.id));
-    return { ...(await userEvents(req.params.id, page, PAGE_SIZE)), page, pageSize: PAGE_SIZE };
+    const personaIds = await ownedPersonaIds(req.params.id);
+    const page = clampPage(parsePage(req.query.page), await userEventCount(req.params.id, personaIds));
+    return { ...(await userEvents(req.params.id, personaIds, page, PAGE_SIZE)), page, pageSize: PAGE_SIZE };
   });
   app.get<Q>('/api/admin/accounts', async (req) => {
     await requireAdmin(req);
@@ -75,7 +76,7 @@ export function registerAdminRoutes(app: FastifyInstance) {
     const until = premiumUntil ? new Date(premiumUntil) : null;
     if (typeof userId !== 'string' || (tier !== 'free' && tier !== 'premium') || (until && Number.isNaN(until.getTime())))
       return reply.code(400).send({ error: 'invalid payload' });
-    if (!(await setPlan(userId, tier, tier === 'premium' ? until : null))) return reply.code(404).send({ error: 'unknown user' });
+    if (!(await setPlan(userId, tier, tier === 'premium' ? until : null))) return reply.code(404).send({ error: 'unknown user', code: 'unknownUser', params: {} });
     invalidateAccountRows();
     return { ok: true };
   });
@@ -85,7 +86,7 @@ export function registerAdminRoutes(app: FastifyInstance) {
     await requireAdmin(req);
     const userId = req.body?.userId;
     if (typeof userId !== 'string') return reply.code(400).send({ error: 'invalid payload' });
-    if (!(await resetQuota(userId))) return reply.code(404).send({ error: 'unknown user' });
+    if (!(await resetQuota(userId))) return reply.code(404).send({ error: 'unknown user', code: 'unknownUser', params: {} });
     invalidateAccountRows();
     return { ok: true };
   });

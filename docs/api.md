@@ -203,11 +203,11 @@ Dashboard: KPIs, daily series for the last `range` days (default `7`), what need
 }
 ```
 
-`missing`: persona IDs the user owns that have no cached account on this server. `solves`: the last 30 days. `404` `{ "error": "unknown user" }` for an unknown id.
+`missing`: persona IDs the user owns that have no cached account on this server. `solves`: the last 30 days. `404` `{ "error": "unknown user", "code": "unknownUser", "params": {} }` for an unknown id.
 
 ### `GET /api/admin/users/:id/events?page=`
 
-The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true } }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`), `sync`, `ea_error`, `ea_day` (the latter three are per account and rarely carry a user). Events older than 180 days are deleted. An unknown user gives an empty list.
+The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true } }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`), `sync`, `ea_error`, `ea_day`; the latter three are logged per EA account (`personaId` only, no `userId`), and are matched to a user by the accounts they currently own (`personas` table), not by who owned them at the time. Events older than 180 days are deleted. An unknown user gives an empty list.
 
 ### `GET /api/admin/accounts?q=&state=&sort=&dir=&page=`
 
@@ -227,11 +227,11 @@ The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "
 
 ### `POST /api/admin/plan`
 
-`{ "userId": "user_2Rf…", "tier": "free" | "premium", "premiumUntil": "2026-12-31T23:59:59.000Z" | null }` (`premiumUntil` is an ISO timestamp, ignored — stored as `null` — when `tier` is `"free"`; a date-only string like `"2026-12-31"` parses as UTC midnight, so the admin UI sends the end of that day in the admin's local time instead). Sets the user's plan; the quota columns (`used`, the window) are left as they are. Returns `{ "ok": true }`; `400` on a bad payload (including a non-string, non-null `premiumUntil`), `404` for an unknown user.
+`{ "userId": "user_2Rf…", "tier": "free" | "premium", "premiumUntil": "2026-12-31T23:59:59.000Z" | null }` (`premiumUntil` is an ISO timestamp, ignored — stored as `null` — when `tier` is `"free"`; a date-only string like `"2026-12-31"` parses as UTC midnight, so the admin UI sends the end of that day in the admin's local time instead). Sets the user's plan; the quota columns (`used`, the window) are left as they are. Returns `{ "ok": true }`; `400` on a bad payload (including a non-string, non-null `premiumUntil`), `404` `{ "error": "unknown user", "code": "unknownUser", "params": {} }` for an unknown user.
 
 ### `POST /api/admin/quota-reset`
 
-`{ "userId": "user_2Rf…" }`: gives a Free user their whole week back (clears `quotaStart` and `quotaUsed`). Returns `{ "ok": true }`; `400` when `userId` is missing or not a string, `404` for an unknown user.
+`{ "userId": "user_2Rf…" }`: gives a Free user their whole week back (clears `quotaStart` and `quotaUsed`). Returns `{ "ok": true }`; `400` when `userId` is missing or not a string, `404` `{ "error": "unknown user", "code": "unknownUser", "params": {} }` for an unknown user.
 
 ### `POST /api/admin/sync`
 
