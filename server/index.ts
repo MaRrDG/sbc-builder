@@ -37,6 +37,7 @@ import { analyticsOrigins, isCanonicalHost, pageMeta, renderHead, robotsTxt, sit
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { db, initDb } from './db/index.js';
+import { logEvent, pruneEvents } from './db/events.js';
 import { setTrusted } from './db/sbcs.js';
 import { users } from './db/schema.js';
 
@@ -498,6 +499,7 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     };
     if (!sol) {
       const empty = evaluate(slotsMeta.map(() => null), slotsMeta.map((s) => s.typeId), reqs, ch.elgOperation, meta, bricks);
+      logEvent({ type: 'solve', userId, personaId: acc.id, data: { setId, challengeId, found: false } });
       return {
         found: false,
         ms: Date.now() - t0,
@@ -510,6 +512,7 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     // only a found squad costs a token; Premium is not counted
     const quota =
       plan.quota && sol.eval.allMet ? planInfo(await countSolve(userId), false, Date.now()).quota : plan.quota;
+    logEvent({ type: 'solve', userId, personaId: acc.id, data: { setId, challengeId, found: sol.eval.allMet } });
     return {
       found: sol.eval.allMet,
       status: sol.status,
@@ -590,6 +593,8 @@ try {
   console.error(`[startup] cannot start: ${(e as Error).message}`);
   process.exit(1);
 }
+void pruneEvents();
+setInterval(() => void pruneEvents(), 24 * 60 * 60 * 1000).unref();
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
 console.log(`FC Solver API on http://localhost:${PORT}`);
 

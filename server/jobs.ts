@@ -5,6 +5,7 @@
 import { randomBytes } from 'node:crypto';
 import type { Account } from './accounts.js';
 import { readCache } from './store.js';
+import { logEvent } from './db/events.js';
 import type { SetsData } from './sync.js';
 import type { ClubPages } from './club-pages.js';
 
@@ -132,6 +133,8 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
   job.status = ok ? 'done' : 'failed';
   lastFinished.set(acc.id, Date.now());
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';
+  if (job.kind === 'club' || job.kind === 'sbc')
+    logEvent({ type: 'sync', personaId: acc.id, data: { what: job.kind, ok, mode: 'client', ...(ok ? {} : { error: job.error!.slice(0, 200) }) } });
   if (!ok || job.kind !== 'sbc') return { playedElsewhere: false, changedSets: 0 };
   const sets = await readCache<SetsData>(acc.key('sets'));
   const changed: number[] = [];

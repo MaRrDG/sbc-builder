@@ -75,8 +75,10 @@ Types and where they are written:
 |---|---|---|
 | `solve` | `/api/solve` after a solve | `{ setId, challengeId, found }` |
 | `sync` | sync completion in `sync.ts` (club / sbc, client and legacy) | `{ what, ok }` |
-| `ea_error` | sync error / throttle pause | `{ code }` |
+| `ea_error` | `meter.ts` `pause()` (EA throttling) | `{ code }` |
 | `ea_day` | `meter.ts` on day rollover, one per account | `{ day, count }` |
+
+Failed syncs are `sync` rows with `ok: false` and `error`.
 
 Signups come from `users.created_at`, not events. `logEvent()` in `server/db/events.ts` is fire-and-forget: it never throws into the caller, errors are logged once. Rows older than 180 days are deleted by a daily cleanup (at server start + every 24 h). Charts start empty and fill from deploy day on; EA requests for "today" come from the live meter, past days from `ea_day`.
 
