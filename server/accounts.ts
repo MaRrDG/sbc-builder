@@ -25,7 +25,7 @@ export class Account {
   readonly meter: RequestMeter;
 
   constructor(public info: AccountInfo) {
-    this.meter = new RequestMeter(`accounts/${info.personaId}/ea-requests`);
+    this.meter = new RequestMeter(`accounts/${info.personaId}/ea-requests`, info.personaId);
     if (info.sid) this.attach(info.sid);
   }
 

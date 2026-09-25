@@ -2,6 +2,7 @@
 // so a bug or a loop can never hammer EA with the user's session.
 import { readCache, writeCache } from './store.js';
 import { SessionError } from './ea.js';
+import { logEvent } from './db/events.js';
 
 export const DAILY_LIMIT = Number(process.env.EA_DAILY_LIMIT ?? 150);
 const TZ = process.env.SBC_DROP_TZ ?? 'Europe/Bucharest';
@@ -15,6 +16,7 @@ export interface MeterData {
 }
 
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
+export const meterDay = today;
 /** "/sbs/setId/16/challenges" -> "/sbs/setId/:id/challenges", so counts group by endpoint. */
 const endpoint = (path: string) => path.split('?')[0].replace(/\/\d+(?=\/|$)/g, '/:id');
 
@@ -24,11 +26,19 @@ export class RequestMeter {
   private data: MeterData | null = null;
   private pausedUntil = 0;
 
-  constructor(private cacheKey: string) {}
+  constructor(
+    private cacheKey: string,
+    private personaId: number,
+  ) {}
 
   private async load(): Promise<MeterData> {
     if (!this.data) this.data = (await readCache<MeterData>(this.cacheKey))?.data ?? null;
-    if (!this.data || this.data.day !== today()) this.data = { day: today(), count: 0, byPath: {}, recent: this.data?.recent ?? [] };
+    if (!this.data || this.data.day !== today()) {
+      // the finished day, for the admin chart; a repeat after a restart is deduped by the query (max per day)
+      if (this.data && this.data.count > 0)
+        logEvent({ type: 'ea_day', personaId: this.personaId, data: { day: this.data.day, count: this.data.count } });
+      this.data = { day: today(), count: 0, byPath: {}, recent: this.data?.recent ?? [] };
+    }
     return this.data;
   }
 
@@ -60,6 +70,7 @@ export class RequestMeter {
   /** EA signalled throttling: stop sending anything for this account for a while. */
   pause() {
     this.pausedUntil = Date.now() + COOLDOWN_MS;
+    logEvent({ type: 'ea_error', personaId: this.personaId, data: { code: 'throttle' } });
   }
 
   async summary() {

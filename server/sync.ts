@@ -7,6 +7,7 @@ import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
 import { enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
 import { softly } from './db/index.js';
+import { logEvent } from './db/events.js';
 import { saveChallenges, saveSets } from './db/sbcs.js';
 
 export interface SetsData {
@@ -61,9 +62,12 @@ async function run<T>(acc: Account, label: string, fn: () => Promise<T>): Promis
   running.set(acc.id, label);
   errors.set(acc.id, null);
   try {
-    return await fn();
+    const r = await fn();
+    logEvent({ type: 'sync', personaId: acc.id, data: { what: label, ok: true, mode: 'legacy' } });
+    return r;
   } catch (e) {
     errors.set(acc.id, (e as Error).message);
+    logEvent({ type: 'sync', personaId: acc.id, data: { what: label, ok: false, mode: 'legacy', error: (e as Error).message.slice(0, 200) } });
     throw e;
   } finally {
     running.delete(acc.id);

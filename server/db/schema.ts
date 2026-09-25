@@ -87,3 +87,17 @@ export const linkTokens = pgTable('link_tokens', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   usedAt: timestamp('used_at', { withTimezone: true }),
 });
+
+/** Admin history: solves, syncs, EA throttles and per-day EA request counts (server/db/events.ts). */
+export const events = pgTable(
+  'events',
+  {
+    id: serial('id').primaryKey(),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    type: text('type').notNull(), // 'solve' | 'sync' | 'ea_error' | 'ea_day'
+    userId: text('user_id'),
+    personaId: bigint('persona_id', { mode: 'number' }),
+    data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
+  },
+  (t) => [index('events_type_at').on(t.type, t.at), index('events_user_at').on(t.userId, t.at)],
+);
