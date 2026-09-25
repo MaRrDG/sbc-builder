@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, Crown, GearSix, List, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
@@ -14,7 +14,7 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
-import { adminRoute, canGoBack, type Route } from './route';
+import { ADMIN_TABS, adminRoute, canGoBack, routePath, type Route } from './route';
 import { useAgo, useI18n, type Lang } from './i18n';
 import { LangMenu } from './components/LangMenu';
 import { Guide } from './components/Guide';
@@ -86,6 +86,8 @@ export default function App({
   const view: View = route.view;
   const setId = route.view === 'sbcs' ? route.setId : null;
   const challengeId = route.view === 'sbcs' ? route.challengeId : null;
+  // the admin sidebar sub-item that's active (user detail page counts as "users")
+  const adminActive = route.view === 'admin' ? (route.page === 'user' ? 'users' : route.page) : null;
   const showGuide = view === 'setup';
   const [challenges, setChallenges] = useState<Challenge[] | null>(null);
   const [results, setResults] = useState<Record<number, SolveResult>>({});
@@ -432,6 +434,16 @@ export default function App({
     setError(null);
   };
 
+  // admin sidebar sub-items: real links (ctrl/cmd-click opens a new tab), otherwise navigate in place
+  const goAdmin = (r: Route) => (e: MouseEvent) => {
+    if (e.metaKey || e.ctrlKey) return;
+    e.preventDefault();
+    setShowOptions(false);
+    setMenuOpen(false);
+    navigate(r);
+    setError(null);
+  };
+
   // leave the setup guide the way you came in, or to the SBC list when opened directly
   const closeGuide = () => (canGoBack() ? history.back() : go('sbcs'));
 
@@ -645,10 +657,29 @@ export default function App({
             <span>{t('nav.guide')}</span>
           </button>
           {admin && (
-            <button type="button" className="nav-item" aria-current={view === 'admin' ? 'page' : undefined} onClick={() => go('admin')}>
-              <ChartBar weight="bold" aria-hidden="true" />
-              <span>{t('nav.admin')}</span>
-            </button>
+            <>
+              <button type="button" className="nav-item" aria-current={view === 'admin' ? 'page' : undefined} onClick={() => go('admin')}>
+                <ChartBar weight="bold" aria-hidden="true" />
+                <span>{t('nav.admin')}</span>
+              </button>
+              <ul className="nav-sub" aria-label={t('admin.tabs')}>
+                {ADMIN_TABS.map((tab) => {
+                  const r = adminRoute(tab.page);
+                  return (
+                    <li key={tab.page}>
+                      <a
+                        className="nav-item nav-sub-item"
+                        href={routePath(r)}
+                        aria-current={adminActive === tab.page ? 'page' : undefined}
+                        onClick={goAdmin(r)}
+                      >
+                        <span>{t(tab.key)}</span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
           {/* on phones the top bar only has the logo; its controls live in this menu */}
           <div className="menu-controls mobile-only">
