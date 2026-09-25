@@ -1,5 +1,5 @@
 // Users: server-side filter / sort / paging, all in the URL query (?q&plan&activity&ea&sort&dir&page).
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Circle, Crown } from '@phosphor-icons/react';
 import { api, type AdminUserRow, type PlanInfo } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
@@ -35,12 +35,18 @@ export function UsersTable({ route, navigate }: AdminProps) {
     navigate(adminRoute('users', { query: setQuery(route.query, patch) }), true);
   const { data, error } = useLoad(() => api.adminUsers(route.query), [route.query]);
 
+  // latest URL query, for the debounced commit below (its timeout must not close over a stale query)
+  const queryRef = useRef(route.query);
+  useEffect(() => {
+    queryRef.current = route.query;
+  });
+
   // search box: typed text is local, the URL follows 300 ms after typing stops
   const [text, setText] = useState(q.q ?? '');
   useEffect(() => setText(q.q ?? ''), [q.q]);
   useEffect(() => {
     if (text === (q.q ?? '')) return;
-    const id = setTimeout(() => go({ q: text.trim() || null }), 300);
+    const id = setTimeout(() => navigate(adminRoute('users', { query: setQuery(queryRef.current, { q: text.trim() || null }) }), true), 300);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
@@ -55,7 +61,7 @@ export function UsersTable({ route, navigate }: AdminProps) {
     { key: 'plan', label: t('admin.users.col.plan'), render: (u) => <PlanBadge plan={u.plan} /> },
     { key: 'quota', label: t('admin.users.col.quota'), num: true, hideSm: true, render: (u) => (u.plan.quota ? `${u.plan.quota.used}/${u.plan.quota.limit}` : '—') },
     {
-      key: 'accounts', label: t('admin.users.col.accounts'), render: (u) =>
+      key: 'accounts', label: t('admin.users.col.accounts'), hideSm: true, render: (u) =>
         u.accounts === 0 ? <span className="muted">—</span> : (
           <span className="adm-dot">
             <Circle weight={u.online ? 'fill' : 'regular'} aria-hidden="true" />
