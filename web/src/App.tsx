@@ -10,7 +10,7 @@ import { LocalOptions } from './components/LocalOptions';
 import { SetList } from './components/SetList';
 import { ClubView } from './components/ClubView';
 import { LegalLinks } from './legal/LegalPage';
-import { AdminView } from './components/AdminView';
+import { AdminLayout } from './components/admin/AdminLayout';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
@@ -701,7 +701,7 @@ export default function App({
             </section>
           )}
 
-          {view === 'admin' && <AdminView />}
+          {route.view === 'admin' && <AdminLayout route={route} navigate={navigate} />}
 
           {view === 'guide' && <Guide clubSyncs={status?.clubSyncs.limit ?? 3} eaLimit={status?.ea.limit ?? 150} />}
 
