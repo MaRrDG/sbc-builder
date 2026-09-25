@@ -409,7 +409,6 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'account.disconnectYes': 'Da, deconectează',
   'account.cancel': 'Anulează',
   // admin
-  'admin.title': 'Admin',
   'admin.tabs': 'Secțiuni admin',
   'admin.tab.overview': 'Dashboard',
   'admin.tab.users': 'Utilizatori',

@@ -60,11 +60,11 @@ export function AccountCard({ acc, latest, onChanged, extra }: { acc: AdminAccou
       </dl>
       <div className="adm-actions">
         {(['all', 'club', 'sbc'] as const).map((w) => (
-          <button key={w} type="button" className={w === 'all' ? 'solve-sm' : 'ghost wide'} disabled={!!busy} onClick={() => void sync(w)}>
+          <button key={w} type="button" className={w === 'all' ? 'solve-sm' : 'ghost'} disabled={!!busy} onClick={() => void sync(w)}>
             <ArrowsClockwise aria-hidden="true" /> {t(`admin.sync.${w}`)}
           </button>
         ))}
-        <button type="button" className="ghost wide" disabled={!!busy} onClick={() => void act('trust', async () => (await api.adminTrust(acc.personaId, !acc.trusted), null))}>
+        <button type="button" className="ghost adm-trust" disabled={!!busy} onClick={() => void act('trust', async () => (await api.adminTrust(acc.personaId, !acc.trusted), null))}>
           <ShieldCheck aria-hidden="true" /> {acc.trusted ? t('admin.untrust') : t('admin.trust')}
         </button>
       </div>

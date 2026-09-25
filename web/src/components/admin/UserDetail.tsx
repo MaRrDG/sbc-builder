@@ -126,7 +126,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
         {msg && <p role="status" className="muted">{msg}</p>}
       </section>
 
-      <section>
+      <section className="adm-section">
         <h2>{t('admin.user.accountsTitle')}</h2>
         <div className="adm-grid2">
           {d.accounts.length === 0 && d.missing.length === 0 && <p className="muted">{t('admin.user.noAccounts')}</p>}
@@ -149,7 +149,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
         ]} />
       </section>
 
-      <section>
+      <section className="adm-section">
         <h2>{t('admin.user.events')}</h2>
         {ev.error && <p className="signin-error" role="alert">{ev.error}</p>}
         <DataTable caption={t('admin.user.events')} columns={evCols} rows={ev.data?.rows ?? null} rowKey={(e) => e.id}

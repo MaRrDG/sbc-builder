@@ -304,6 +304,23 @@ h3 {
   color: var(--go);
 }
 
+/* admin sidebar sub-items: nested, smaller and indented under the Admin item */
+.nav-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.nav-item.nav-sub-item {
+  height: 34px;
+  padding-left: 34px;
+  font-size: 13px;
+  text-decoration: none;
+}
+
 .search {
   display: flex;
   align-items: center;
@@ -2912,14 +2929,12 @@ button.card:active {
 
 /* ---------- admin ---------- */
 .adm { display: grid; gap: 18px; padding-bottom: 32px; }
+.adm-section > h2 { margin: 0 0 12px; font-size: 15px; }
 .adm-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px; }
 .adm-head h1 { margin: 0; }
-.adm-tabs { display: flex; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); overflow-x: auto; }
-.adm-tabs a { padding: 8px 14px; border-radius: var(--r-ctl); color: var(--ink-2); text-decoration: none; white-space: nowrap; font-weight: 600; }
-.adm-tabs a:hover { background: var(--surface-2); color: var(--ink); }
-.adm-tabs a[aria-current='page'] { background: var(--go); color: var(--go-ink); }
 .adm-card { border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); padding: 16px; }
 .adm-card > h2 { margin: 0 0 12px; font-size: 15px; }
+.adm-card > * + h2 { margin-top: 18px; }
 .adm-card h3 { margin: 0; font-size: 14px; }
 .adm-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .adm-toolbar input[type='search'] { flex: 1 1 240px; min-width: 0; }
@@ -2979,7 +2994,10 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .adm-dl dt { color: var(--ink-3); }
 .adm-dl dd { margin: 0; overflow-wrap: anywhere; }
 .adm-back { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); text-decoration: none; }
-.adm-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.adm-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.adm-actions > button { width: auto; }
+.adm-actions .ghost { height: 32px; border-color: var(--line); }
+.adm-actions .adm-trust { margin-left: auto; }
 @media (max-width: 860px) {
   .adm-table thead { display: none; }
   .adm-table tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px; border-bottom: 1px solid var(--line); }
