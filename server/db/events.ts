@@ -44,3 +44,8 @@ export async function userEvents(userId: string, page: number, pageSize: number)
     rows: rows.map((r) => ({ id: r.id, at: r.at.getTime(), type: r.type as EventType, personaId: r.personaId, data: r.data })),
   };
 }
+
+export async function userEventCount(userId: string): Promise<number> {
+  const [{ n }] = await db.select({ n: count() }).from(events).where(eq(events.userId, userId));
+  return n;
+}

@@ -124,31 +124,106 @@ When an `sbc` job finds set progress higher than cached (an SBC done on a consol
 
 ## Admin (site)
 
-Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated, default `dragutmariotheodor1@gmail.com`); anyone else gets `403` `adminOnly`.
+Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated, default `dragutmariotheodor1@gmail.com`); anyone else gets `403` `adminOnly` (`401` `signIn` when not signed in). The POSTs below are actions; after a successful one the next admin read is fresh (account rows are memoized 5 s otherwise).
 
-### `GET /api/admin/stats`
+All admin reads use only the cache and the DB, never EA. Lists are paged by 25 (`pageSize`); `page` starts at 1 and a page past the end returns the last page (the answer's `page` says which). Invalid query values fall back to the default, never a `400`. Days are calendar days in `SBC_DROP_TZ` (default `Europe/Bucharest`), oldest first.
+
+`<account>`: `{ personaId, personaName, clubName, mode: "client"|"legacy", extVersion, online, clubAt, sbcAt, clubStale, sbcStale, players, unassigned, running, error, ea: { today, limit, pausedUntil }, clubSyncs: { used, limit }, forced, trusted }`. `*Stale`: fetched before the last SBC drop. `forced`: an admin sync waiting for the next web app visit. `trusted`: its brick layouts win over the vote. In `/api/admin/accounts` each also carries `ownerId` and `ownerEmail` (`null`: no site user owns it, extensions older than 0.8); in a user's detail each adds `linkedAt` and `previousUserId`.
+
+`planSet` is the stored plan (`"free"` or `"premium"`, for the admin's select — ignores admin-always-Premium and an expired `premiumUntil`); `plan` is the effective `PlanInfo`, same shape as in `GET /api/me` (`quota: null` for Premium, admins included).
+
+### `GET /api/admin/overview?range=7|30`
+
+Dashboard: KPIs, daily series for the last `range` days (default `7`), what needs attention, extension versions.
 
 ```json
 {
-  "at": 1790064472801, "lastDrop": 1790013660000, "latestExtension": "0.8.0",
-  "users": { "total": 2, "active24h": 2, "active7d": 2, "new7d": 2, "withPersona": 1 },
-  "accounts": { "total": 1, "linked": 1, "client": 1, "legacy": 0, "online": 0, "clubStale": 0, "sbcStale": 0,
-                "failing": 0, "paused": 0, "atLimit": 0, "versions": { "0.8.0": 1 } },
-  "ea": { "today": 11 },
-  "db": { "sets": 9, "challenges": 12, "brickReports": 0, "trusted": 0 },
-  "userList": [{ "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000, "personas": ["<account>"],
-                 "planSet": "free", "plan": { "tier": "free", "premiumUntil": null, "quota": { "used": 3, "limit": 20, "resetsAt": null } } }],
-  "unlinked": ["<account>"]
+  "at": 1790064472801, "lastDrop": 1790013660000, "latestExtension": "0.8.6", "range": 7,
+  "kpis": {
+    "users": { "total": 2, "active24h": 1, "active7d": 2, "new7d": 2 },
+    "premium": { "total": 1, "expiring7d": 0 },
+    "accounts": { "total": 1, "online": 0, "problem": 1, "unlinked": 0 },
+    "solvesToday": 0,
+    "ea": { "today": 0, "limit": 150 }
+  },
+  "series": {
+    "days": ["2026-09-19", "…", "2026-09-25"],
+    "found": [0, …], "notFound": [0, …], "signups": [0, …], "eaRequests": [0, …], "syncs": [0, …], "syncFailed": [0, …]
+  },
+  "attention": [
+    { "kind": "outdated", "personaId": 1005016552645, "personaName": "MaR804", "userId": "user_2Rf…", "detail": "0.8.0" },
+    { "kind": "expiring", "userId": "user_3Ab…", "email": "someone@example.com", "until": 1790500000000 }
+  ],
+  "versions": [{ "version": "0.8.0", "count": 1, "latest": false }],
+  "db": { "sets": 9, "challenges": 12, "brickReports": 0, "trusted": 0 }
 }
 ```
 
-`<account>`: `{ personaId, personaName, clubName, mode: "client"|"legacy", extVersion, online, clubAt, sbcAt, clubStale, sbcStale, players, unassigned, running, error, ea: { today, limit, pausedUntil }, clubSyncs: { used, limit }, forced }`. `*Stale`: fetched before the last SBC drop. `unlinked`: accounts no site user owns (extensions older than 0.8). `forced`: an admin sync waiting for the next web app visit. Reads only the cache and the DB, never EA.
+- `premium.total`: effective Premium (admins, and stored Premium whose `premiumUntil` is empty or still ahead), the same rule as `/api/me`. `expiring7d`: stored Premium ending within the next 7 days.
+- `accounts.problem`: an error, stale club or SBC data, a throttle pause, or today's EA budget used up. `unlinked`: no site user owns it.
+- `series` arrays line up with `days`. `found` / `notFound`: solves by outcome. `eaRequests`: EA calls per day, summed over accounts (one count per account and day even when logged twice); today's value is the live meter. `syncs` / `syncFailed`: syncs run and how many failed.
+- `attention`: one item per account at most, the first that applies of `error` (`detail`: the message), `paused`, `atLimit`, `outdated` (`detail`: its extension version, `null` if unknown); then every user whose stored Premium ends within 7 days (`expiring`, `until` in ms). `userId` of an account item is its owner or `null`.
+- `versions`: accounts per extension version (`"?"` when unknown), most used first.
 
-Each `userList` entry also carries `planSet` (the stored value, `"free"` or `"premium"`, for the admin screen's select — ignores admin-always-Premium and an expired `premiumUntil`) and `plan` (the effective `PlanInfo`, same shape as in `GET /api/me`, `quota: null` for Premium including admins).
+### `GET /api/admin/users?q=&plan=&activity=&ea=&sort=&dir=&page=`
+
+| param | values | default |
+|---|---|---|
+| `q` | text: email contains it (literally, `%` and `_` included), or the user owns an account whose persona or club name contains it or whose persona ID equals it | none |
+| `plan` | `all`, `free`, `premium` (effective, as above), `expiring` (stored Premium ending within 7 days) | `all` |
+| `activity` | `all`, `24h`, `7d` (seen within), `inactive30` (not seen for 30 days) | `all` |
+| `ea` | `all`, `with`, `without` (owns an EA account or not), `problem`, `outdated` (owns such an account) | `all` |
+| `sort` | `lastSeen`, `createdAt`, `solves7d`, `email` | `lastSeen` |
+| `dir` | `asc`, `desc` | `desc` |
+| `page` | 1… | `1` |
+
+```json
+{
+  "rows": [{
+    "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000,
+    "planSet": "free", "plan": { "tier": "free", "premiumUntil": null, "quota": { "used": 3, "limit": 20, "resetsAt": null } },
+    "admin": false, "accounts": 1, "online": 0, "solves7d": 12
+  }],
+  "total": 2, "page": 1, "pageSize": 25
+}
+```
+
+`accounts`: EA accounts the user owns; `online`: how many of them have a live session; `solves7d`: solves in the last 7 days.
+
+### `GET /api/admin/users/:id`
+
+```json
+{
+  "user": { "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000, "admin": false },
+  "planSet": "premium", "plan": { "tier": "premium", "premiumUntil": 1792000000000, "quota": null },
+  "accounts": [{ "…": "<account>", "linkedAt": 1790000100000, "previousUserId": null }],
+  "missing": [],
+  "solves": { "days": ["2026-08-27", "…", "2026-09-25"], "found": [0, …], "notFound": [0, …] },
+  "latestExtension": "0.8.6"
+}
+```
+
+`missing`: persona IDs the user owns that have no cached account on this server. `solves`: the last 30 days. `404` `{ "error": "unknown user" }` for an unknown id.
+
+### `GET /api/admin/users/:id/events?page=`
+
+The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true } }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`), `sync`, `ea_error`, `ea_day` (the latter three are per account and rarely carry a user). Events older than 180 days are deleted. An unknown user gives an empty list.
+
+### `GET /api/admin/accounts?q=&state=&sort=&dir=&page=`
+
+| param | values | default |
+|---|---|---|
+| `q` | text: persona name, club name or owner email contains it, or persona ID equals it | none |
+| `state` | `all`, `online`, `problem`, `outdated`, `unlinked`, `trusted` | `all` |
+| `sort` | `name`, `clubAt`, `sbcAt`, `eaToday` (empty dates last either way) | `name` |
+| `dir` | `asc`, `desc` | `asc` |
+| `page` | 1… | `1` |
+
+`{ "rows": ["<account> + ownerId, ownerEmail"], "total": 1, "page": 1, "pageSize": 25, "latestExtension": "0.8.6" }`
 
 ### `POST /api/admin/trust`
 
-`{ "personaId": 1005016552645, "trusted": true }`: trusts (or untrusts) an EA account; its locked-slot (brick) layouts then win over the vote for every user (`server/bricks.ts`), effective at once. The note records which admin did it and when. Returns `{ "ok": true, "personaId": …, "trusted": true }`; `404` for an unknown account. Each account in `/api/admin/stats` carries `trusted`. `npm run db:trust` still works from a shell.
+`{ "personaId": 1005016552645, "trusted": true }`: trusts (or untrusts) an EA account; its locked-slot (brick) layouts then win over the vote for every user (`server/bricks.ts`), effective at once. The note records which admin did it and when. Returns `{ "ok": true, "personaId": …, "trusted": true }`; `404` for an unknown account. Each `<account>` carries `trusted`. `npm run db:trust` still works from a shell.
 
 ### `POST /api/admin/plan`
 

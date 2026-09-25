@@ -1,5 +1,5 @@
 // A signed-in user's plan and quota, for /api/me, /api/solve and the admin screen.
-import { isAdmin } from './admin.js';
+import { isAdmin } from './admin/auth.js';
 import { planRow } from './db/users.js';
 import { effectivePlan, quotaState, weeklyLimit, type PlanRow, type Quota, type Tier } from './plan.js';
 
