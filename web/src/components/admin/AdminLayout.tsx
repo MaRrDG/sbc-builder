@@ -40,7 +40,7 @@ export function AdminLayout({ route, navigate }: AdminProps) {
       </header>
       {route.page === 'overview' && <Overview route={route} navigate={navigate} />}
       {route.page === 'users' && <UsersTable route={route} navigate={navigate} />}
-      {route.page === 'user' && <UserDetail route={route} navigate={navigate} />}
+      {route.page === 'user' && <UserDetail key={route.userId ?? ''} route={route} navigate={navigate} />}
       {route.page === 'accounts' && <AccountsTable route={route} navigate={navigate} />}
     </section>
   );
