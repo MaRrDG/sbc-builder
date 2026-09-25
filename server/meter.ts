@@ -22,6 +22,11 @@ const endpoint = (path: string) => path.split('?')[0].replace(/\/\d+(?=\/|$)/g, 
 
 const COOLDOWN_MS = 15 * 60 * 1000;
 
+/** Whether a day that just rolled over is worth an `ea_day` admin-log entry (nothing to show for an idle day). */
+export function shouldLogRollover(stale: MeterData | null): boolean {
+  return !!stale && stale.count > 0;
+}
+
 export class RequestMeter {
   private data: MeterData | null = null;
   private pausedUntil = 0;
@@ -34,10 +39,19 @@ export class RequestMeter {
   private async load(): Promise<MeterData> {
     if (!this.data) this.data = (await readCache<MeterData>(this.cacheKey))?.data ?? null;
     if (!this.data || this.data.day !== today()) {
-      // the finished day, for the admin chart; a repeat after a restart is deduped by the query (max per day)
-      if (this.data && this.data.count > 0)
-        logEvent({ type: 'ea_day', personaId: this.personaId, data: { day: this.data.day, count: this.data.count } });
-      this.data = { day: today(), count: 0, byPath: {}, recent: this.data?.recent ?? [] };
+      const stale = this.data;
+      // the finished day, for the admin chart
+      if (shouldLogRollover(stale)) logEvent({ type: 'ea_day', personaId: this.personaId, data: { day: stale!.day, count: stale!.count } });
+      this.data = { day: today(), count: 0, byPath: {}, recent: stale?.recent ?? [] };
+      if (stale) {
+        // persist the rollover now, not just on the next record(): otherwise a restart before then
+        // (tsx watch, a redeploy) reads the old day from cache again and logs it a second time
+        try {
+          await writeCache(this.cacheKey, this.data);
+        } catch (e) {
+          console.error(`[meter] persisting day rollover failed: ${(e as Error).message}`);
+        }
+      }
     }
     return this.data;
   }
