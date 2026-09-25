@@ -53,6 +53,8 @@ export interface SyncStatus {
   sbcNextAt: number | null; // a visit refreshes the SBC list from then on (null: legacy account)
   editedAt: number | null;
   unassigned: number;
+  /** a club sync waiting for / running in the web app tab; expected = cached club size, a rough total */
+  club: { state: 'queued' | 'running'; loaded: number; expected: number | null } | null;
 }
 
 export interface Meta {
