@@ -1,5 +1,6 @@
-// Admin panel shell: tabs Overview · Users · EA accounts; the page and its filters live in the URL.
-import { adminRoute, routePath, type AdminPage, type Route } from '../../route';
+// Admin panel shell: Overview · Users · EA accounts, shown as sub-items under "Admin" in the app sidebar
+// (see App.tsx); the page and its filters live in the URL.
+import { ADMIN_TABS, type Route } from '../../route';
 import { useI18n } from '../../i18n';
 import { Overview } from './Overview';
 import { UsersTable } from './UsersTable';
@@ -9,34 +10,14 @@ import { AccountsTable } from './AccountsTable';
 type AdminR = Extract<Route, { view: 'admin' }>;
 export interface AdminProps { route: AdminR; navigate: (r: Route, replace?: boolean) => void }
 
-const TABS: { page: Exclude<AdminPage, 'user'>; key: string }[] = [
-  { page: 'overview', key: 'admin.tab.overview' },
-  { page: 'users', key: 'admin.tab.users' },
-  { page: 'accounts', key: 'admin.tab.accounts' },
-];
-
 export function AdminLayout({ route, navigate }: AdminProps) {
   const { t } = useI18n();
   const active = route.page === 'user' ? 'users' : route.page;
+  const titleKey = ADMIN_TABS.find((tab) => tab.page === active)?.key ?? 'admin.tab.overview';
   return (
     <section className="adm">
       <header className="adm-head">
-        <h1>{t('admin.title')}</h1>
-        <nav className="adm-tabs" aria-label={t('admin.tabs')}>
-          {TABS.map((tab) => {
-            const r = adminRoute(tab.page);
-            return (
-              <a
-                key={tab.page}
-                href={routePath(r)}
-                aria-current={active === tab.page ? 'page' : undefined}
-                onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); navigate(r); }}
-              >
-                {t(tab.key)}
-              </a>
-            );
-          })}
-        </nav>
+        <h1>{t(titleKey)}</h1>
       </header>
       {route.page === 'overview' && <Overview route={route} navigate={navigate} />}
       {route.page === 'users' && <UsersTable route={route} navigate={navigate} />}

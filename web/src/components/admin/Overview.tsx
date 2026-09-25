@@ -133,8 +133,8 @@ export function Overview({ navigate }: AdminProps) {
           <button type="button" className="solve-sm" disabled={!!busy} onClick={() => void syncAll('all')}>
             <ArrowsClockwise aria-hidden="true" /> {busy === 'all' ? t('admin.sync.running') : t('admin.sync.all')}
           </button>
-          <button type="button" className="ghost wide" disabled={!!busy} onClick={() => void syncAll('club')}>{t('admin.sync.club')}</button>
-          <button type="button" className="ghost wide" disabled={!!busy} onClick={() => void syncAll('sbc')}>{t('admin.sync.sbc')}</button>
+          <button type="button" className="ghost" disabled={!!busy} onClick={() => void syncAll('club')}>{t('admin.sync.club')}</button>
+          <button type="button" className="ghost" disabled={!!busy} onClick={() => void syncAll('sbc')}>{t('admin.sync.sbc')}</button>
         </div>
         {syncError && <p className="signin-error" role="alert">{syncError}</p>}
         {results && (

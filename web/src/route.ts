@@ -27,6 +27,13 @@ export type Route =
 
 const id = (s: string | undefined) => (s && /^\d+$/.test(s) ? Number(s) : null);
 
+/** The admin sections shown as sidebar sub-items (and as the page's h1); i18n keys, not labels. */
+export const ADMIN_TABS: { page: Exclude<AdminPage, 'user'>; key: string }[] = [
+  { page: 'overview', key: 'admin.tab.overview' },
+  { page: 'users', key: 'admin.tab.users' },
+  { page: 'accounts', key: 'admin.tab.accounts' },
+];
+
 export const adminRoute = (page: AdminPage, extra: { userId?: string; query?: string } = {}): Route => ({
   view: 'admin',
   page,

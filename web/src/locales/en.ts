@@ -416,7 +416,6 @@ export const en = {
   'account.disconnectYes': 'Yes, disconnect',
   'account.cancel': 'Cancel',
   // admin
-  'admin.title': 'Admin',
   'admin.tabs': 'Admin sections',
   'admin.tab.overview': 'Dashboard',
   'admin.tab.users': 'Users',

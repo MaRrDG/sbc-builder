@@ -1,19 +1,33 @@
 // Daily bar chart, stacked series, hand-written SVG. Values are also in a visually hidden table.
+import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../../i18n';
 import { shortDay } from './format';
 
 type Tone = 'go' | 'ink' | 'muted' | 'bad';
 interface Props { title: string; days: string[]; series: { label: string; values: number[]; tone: Tone }[] }
 
-const W = 600;
+const DEFAULT_W = 600;
 const H = 180;
 const PAD = { l: 28, r: 6, t: 10, b: 22 };
 
 export function BarChart({ title, days, series }: Props) {
   const { t, lang } = useI18n();
+  const figRef = useRef<HTMLElement>(null);
+  const [W, setW] = useState(DEFAULT_W);
+  useEffect(() => {
+    const el = figRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width;
+      if (width) setW(Math.round(width));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const totals = days.map((_, i) => series.reduce((n, s) => n + s.values[i], 0));
   const max = Math.max(1, ...totals);
   const niceMax = max <= 5 ? max : Math.ceil(max / 5) * 5;
+  const ticks = niceMax < 2 ? [0, niceMax] : [0, niceMax / 2, niceMax];
   const iw = W - PAD.l - PAD.r;
   const ih = H - PAD.t - PAD.b;
   const bw = iw / days.length;
@@ -21,13 +35,13 @@ export function BarChart({ title, days, series }: Props) {
   const every = days.length > 10 ? Math.ceil(days.length / 6) : 1;
   const sum = totals.reduce((a, b) => a + b, 0);
   return (
-    <figure className="adm-chart">
+    <figure className="adm-chart" ref={figRef}>
       <figcaption>
         <span>{title}</span>
         <b>{sum}</b>
       </figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('admin.chart.aria', { title, total: sum })} preserveAspectRatio="none">
-        {[0, niceMax / 2, niceMax].map((v) => (
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('admin.chart.aria', { title, total: sum })}>
+        {ticks.map((v) => (
           <g key={v}>
             <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} className="adm-grid" />
             <text x={PAD.l - 6} y={y(v) + 4} className="adm-axis" textAnchor="end">{Math.round(v)}</text>
@@ -58,11 +72,13 @@ export function BarChart({ title, days, series }: Props) {
           ))}
         </ul>
       )}
-      <table className="sr-only">
-        <caption>{title}</caption>
-        <thead><tr><th scope="col">{t('admin.chart.day')}</th>{series.map((s) => <th key={s.label} scope="col">{s.label}</th>)}</tr></thead>
-        <tbody>{days.map((d, i) => <tr key={d}><th scope="row">{d}</th>{series.map((s) => <td key={s.label}>{s.values[i]}</td>)}</tr>)}</tbody>
-      </table>
+      <div className="sr-only">
+        <table>
+          <caption>{title}</caption>
+          <thead><tr><th scope="col">{t('admin.chart.day')}</th>{series.map((s) => <th key={s.label} scope="col">{s.label}</th>)}</tr></thead>
+          <tbody>{days.map((d, i) => <tr key={d}><th scope="row">{d}</th>{series.map((s) => <td key={s.label}>{s.values[i]}</td>)}</tr>)}</tbody>
+        </table>
+      </div>
     </figure>
   );
 }
