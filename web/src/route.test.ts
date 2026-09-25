@@ -1,13 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canonicalPath, parseRoute, routePath, type Route } from './route.js';
+import { adminRoute, canonicalPath, parseRoute, routePath, type Route } from './route.js';
 
 test('root is the landing page, the app lives under /dashboard', () => {
   assert.deepEqual(parseRoute('/'), { view: 'landing' });
   assert.deepEqual(parseRoute('/dashboard'), { view: 'sbcs', setId: null, challengeId: null });
   assert.deepEqual(parseRoute('/dashboard/sbc/16/39'), { view: 'sbcs', setId: 16, challengeId: 39 });
   assert.deepEqual(parseRoute('/dashboard/club'), { view: 'club' });
-  assert.deepEqual(parseRoute('/dashboard/admin'), { view: 'admin' });
+  assert.deepEqual(parseRoute('/dashboard/admin'), adminRoute('overview'));
 });
 
 test('old top-level app paths still parse', () => {
@@ -22,7 +22,7 @@ test('routePath round-trips', () => {
     { view: 'sbcs', setId: null, challengeId: null },
     { view: 'sbcs', setId: 16, challengeId: null },
     { view: 'sbcs', setId: 16, challengeId: 39 },
-    { view: 'club' }, { view: 'settings' }, { view: 'admin' }, { view: 'setup' }, { view: 'guide' },
+    { view: 'club' }, { view: 'settings' }, adminRoute('overview'), { view: 'setup' }, { view: 'guide' },
   ];
   for (const r of routes) assert.deepEqual(parseRoute(routePath(r)), r, routePath(r));
   assert.equal(routePath({ view: 'sbcs', setId: 16, challengeId: 39 }), '/dashboard/sbc/16/39');
@@ -46,4 +46,21 @@ test('extension links on / open the app, not the landing page', () => {
   // plain `/` is still the landing page
   assert.deepEqual(parseRoute('/'), { view: 'landing' });
   assert.deepEqual(parseRoute('/', '?foo=1'), { view: 'landing' });
+});
+
+test('admin sub-routes keep their query', () => {
+  assert.deepEqual(parseRoute('/dashboard/admin'), adminRoute('overview'));
+  assert.deepEqual(parseRoute('/dashboard/admin/users', '?plan=premium&page=2'), adminRoute('users', { query: 'plan=premium&page=2' }));
+  assert.deepEqual(parseRoute('/dashboard/admin/users/user_2Rf%2Bx'), adminRoute('user', { userId: 'user_2Rf+x' }));
+  assert.deepEqual(parseRoute('/dashboard/admin/accounts', '?state=online'), adminRoute('accounts', { query: 'state=online' }));
+  assert.deepEqual(parseRoute('/dashboard/admin/nope'), adminRoute('overview'));
+  assert.equal(routePath(adminRoute('users', { query: 'plan=premium' })), '/dashboard/admin/users?plan=premium');
+  assert.equal(routePath(adminRoute('users')), '/dashboard/admin/users');
+  assert.equal(routePath(adminRoute('user', { userId: 'user_2Rf+x' })), '/dashboard/admin/users/user_2Rf%2Bx');
+  for (const r of [adminRoute('overview'), adminRoute('accounts', { query: 'q=a' }), adminRoute('user', { userId: 'u_1' })])
+    assert.deepEqual(parseRoute(...(routePath(r).split('?') as [string, string?]).map((s, i) => (i ? `?${s}` : s)) as [string, string]), r);
+});
+
+test('canonicalPath ignores the admin query', () => {
+  assert.equal(canonicalPath(adminRoute('users', { query: 'page=2' }), '/dashboard/admin/users'), null);
 });
