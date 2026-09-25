@@ -150,7 +150,8 @@ export interface SolveResult {
   cost?: number;
   missingPlaced?: number[];
   placed?: { kept: number; total: number };
-  usedStorage?: boolean; // solved with the SBC storage in the pool
+  usedStorage?: boolean; // at least one player comes from the SBC storage
+  clubOnly?: boolean; // solved without the SBC storage (asked for)
   eval: { rating: number; chemistry: number; results: { text: string; met: boolean; actual: number | string }[]; allMet: boolean };
   slots: SlotResult[];
   quota?: Quota | null;
@@ -240,7 +241,7 @@ export const api = {
   challenges: (setId: number, refresh = false) =>
     req<{ fetchedAt: number | null; challenges: Challenge[] }>(`/api/sets/${setId}/challenges${refresh ? '?refresh=1' : ''}`),
   readChallenge: (challengeId: number) => req<SyncStatus>(`/api/challenges/${challengeId}/read`, { method: 'POST' }),
-  solve: (setId: number, challengeId: number, options: SolveOptions, deep = false, useStorage = false) =>
+  solve: (setId: number, challengeId: number, options: SolveOptions, deep = false, useStorage = true) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep, useStorage } }),
   adminStats: () => req<AdminStats>('/api/admin/stats'),
   adminSync: (what: 'club' | 'sbc' | 'all', personaIds?: number[]) =>

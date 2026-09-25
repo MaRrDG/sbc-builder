@@ -478,8 +478,9 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     if (!ch) return reply.code(404).send({ error: 'challenge not found (open it in the web app first)', code: 'challengeNotFound', params: {} });
     const { players: inClub, storage } = await clubPlayers(acc);
     if (inClub.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)', code: 'clubEmpty', params: {} });
-    // SBC storage only when asked for ("try a cheaper squad with SBC storage")
-    const players = req.body.useStorage ? [...inClub, ...storage] : inClub;
+    // SBC storage is in by default (its duplicates are cheaper, so the solver takes them first); `useStorage: false` = club only
+    const clubOnly = req.body.useStorage === false;
+    const players = clubOnly ? inClub : [...inClub, ...storage];
     const reqs = parseRequirements(ch.elgReq, meta);
     const options = { ...DEFAULT_OPTIONS, ...req.body.options };
     const t0 = Date.now();
@@ -507,6 +508,7 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
         reasons: diagnose(players, reqs, meta, options, squad, bricks),
         slots: slotsMeta.map((s, i) => ({ position: s, player: null, chem: 0, brick: brickOf(i), fixed: false })),
         eval: empty,
+        clubOnly,
         quota: plan.quota,
       };
     }
@@ -528,7 +530,8 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
       })),
       missingPlaced: sol.missingPlaced,
       placed: { kept: sol.fixedIds.length, total: sol.placedCount },
-      usedStorage: !!req.body.useStorage,
+      usedStorage: sol.slots.some((p) => p?.inStorage),
+      clubOnly,
       quota,
     };
   },

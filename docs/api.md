@@ -194,7 +194,7 @@ Static data for rendering: names of nations / leagues / clubs / rarities, format
 }
 ```
 
-`storage`: the SBC storage (from `GET /storagepile`, read by the club sync and whenever the web app opens SBC Storage), same player shape plus `inStorage: true`. Not used by `/api/solve` unless asked.
+`storage`: the SBC storage (from `GET /storagepile`, read by the club sync and whenever the web app opens SBC Storage), same player shape plus `inStorage: true`. In the `/api/solve` pool by default.
 
 ### `GET /api/sets` (site)
 
@@ -252,7 +252,7 @@ Client mode: queues a `challengeSquad` job that reads a challenge you already st
 }
 ```
 
-`deep: true` gives the solver 30 s instead of 10 s. `useStorage: true` adds the SBC storage to the pool (storage players cost 0.8× an identical club card, so they go first); the answer then has `usedStorage: true` and storage players carry `inStorage: true`. The site solves club-only first and asks before trying with storage, keeping that squad only when its `cost` is lower. Any option left out uses the default above; `keepPlaced` (default `false`) keeps players already placed in the web app where the requirements allow. A brick challenge without a known layout answers `409`. Each slot in the answer carries `brick` (`null` or `{ custom, nation, league, club }`) and `fixed` (kept from the web app); `missingPlaced` lists placed items no longer in the club.
+`deep: true` gives the solver 30 s instead of 10 s. The SBC storage is in the pool by default (storage players cost 0.8× an identical club card, so a duplicate in storage goes before its club copy, and the same player never goes twice); `useStorage: false` solves club only. The answer has `usedStorage: true` when at least one player comes from storage (those carry `inStorage: true`) and `clubOnly: true` when storage was left out. Any option left out uses the default above; `keepPlaced` (default `false`) keeps players already placed in the web app where the requirements allow. A brick challenge without a known layout answers `409`. Each slot in the answer carries `brick` (`null` or `{ custom, nation, league, club }`) and `fixed` (kept from the web app); `missingPlaced` lists placed items no longer in the club.
 
 A Free user with `used >= limit` gets `403` before the solver runs:
 
