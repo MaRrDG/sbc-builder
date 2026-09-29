@@ -39,7 +39,7 @@ Most data is per account and stays in `data/accounts/<personaId>/*.json`: club, 
 - `brick_reports`: the locked slots ("bricks") of a brick challenge as one account saw them, one row per account and distinct layout. Only the bricks, never the reporter's placed players.
 - `trusted_accounts`: accounts whose report wins outright (`npm run db:trust`).
 
-Writes ride on what already happens, never an extra EA call: the web-app relay (`events.ts`) and the syncs (`sync.ts`) upsert sets and challenges next to the JSON cache, and a relayed challenge squad with bricks becomes a report. A DB failure there is logged and does not break the sync. A report first passes structural checks (`bricks.ts`: brick challenge, 1 to 10 bricks, indexes 0..10 without repeats, non-negative ids, positions a string list).
+Writes ride on what already happens, never an extra EA call: the web-app relay (`events.ts`) and the syncs (`sync.ts`) upsert sets and challenges next to the JSON cache, and a relayed challenge squad with bricks becomes a report. A DB failure there is logged and does not break the sync. An SBC list sync seeds the challenges of a set that is new to the account and untouched (0 completed, 0 repeats) from `challenges` rows seen since the latest drop, with `status` / `timesCompleted` reset, instead of asking EA; a started-but-not-submitted challenge shows `NOT_STARTED` until the set is opened in the web app. A report first passes structural checks (`bricks.ts`: brick challenge, 1 to 10 bricks, indexes 0..10 without repeats, non-negative ids, positions a string list).
 
 `challengeLayout()` (`layout.ts`) takes the bricks from the shared layout and the placed players from the account's own capture, so a brick SBC anyone opened once in the web app is solvable for everyone. The shared layout: newest report from a trusted account, else the layout most distinct accounts reported, ties to the earliest. It is cached in memory for 10 minutes and dropped when a new report arrives.
 
@@ -89,7 +89,7 @@ Everything EA returns is written to JSON files with a `fetchedAt` timestamp (`se
 |---|---|
 | Club players, active squad, chemistry profiles | fetched before the latest daily drop (20:01), like the SBC list, or a visit (site opened / back in front) when older than 2 h (`CLUB_VISIT_STALE_H`), or the user presses **Club**; at most `CLUB_SYNCS_PER_DAY` (3) syncs a day per account, scheduled ones included |
 | SBC list | by the schedule (fetched before the latest 20:01 Europe/Bucharest drop), and on a visit (the site's SBC page opens, or the user comes back to the web app) when older than 30 min; no manual refresh. Progress higher than cached (SBC done on a console / companion app) also queues a club sync |
-| Challenges of a set | the set is new or its progress changed during an SBC sync; otherwise only when opened in the web app |
+| Challenges of a set | the set is new (taken from the shared copy when untouched and complete since the drop) or its progress changed during an SBC sync; otherwise only when opened in the web app |
 | Static game data (names, formations, card art tunables) | older than 7 days (public CDN, no session needed) |
 
 A one-minute ticker only compares timestamps; it costs nothing unless a sync is due. When the session is missing at 20:01, the club and SBC syncs happen as soon as the web app opens: `/api/hello` schedules a check 20 seconds later (the web app's own start-up burst), and the extension queue still waits for the web app to go quiet before each request.

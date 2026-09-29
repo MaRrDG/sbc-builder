@@ -1,6 +1,6 @@
 // SBC history and shared brick layouts. Sets / challenges are upserted (never deleted);
 // brick reports are append-only and the shared layout is voted from them (server/bricks.ts).
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, gte, sql } from 'drizzle-orm';
 import type { Challenge, SbcSet } from '../ea.js';
 import type { BrickSlot } from '../layout.js';
 import { canonicalBricks, chooseLayout, layoutHash, rejectReason } from '../bricks.js';
@@ -61,6 +61,15 @@ export async function saveChallenges(setId: number, list: Challenge[]): Promise<
       lastSeen: sql`now()`,
     },
   });
+}
+
+/** A set's challenges as last seen by any account since `since` (for seeding other accounts). */
+export async function sharedChallenges(setId: number, since: Date): Promise<Challenge[]> {
+  const rows = await db
+    .select({ raw: challenges.raw })
+    .from(challenges)
+    .where(and(eq(challenges.setId, setId), gte(challenges.lastSeen, since)));
+  return rows.map((r) => r.raw as Challenge);
 }
 
 const CACHE_MS = 10 * 60 * 1000; // db:trust runs in another process, so entries also expire
