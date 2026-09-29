@@ -186,7 +186,16 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
             </div>
           );
         })}
-        {solving && <div className="pitch-status" role="status">{t('pitch.searching')}</div>}
+        {solving && (
+          <div className="pitch-loading" role="status">
+            <div className="deck" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <p>{t('pitch.searching')}</p>
+          </div>
+        )}
         {lock && (
           <div className="pitch-done">
             <SealCheck weight="fill" aria-hidden="true" />
