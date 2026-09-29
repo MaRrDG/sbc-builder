@@ -8,7 +8,7 @@ import { listAccounts, type Account } from './accounts.js';
 import { enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
 import { softly } from './db/index.js';
 import { logEvent } from './db/events.js';
-import { clubDueOnVisit } from './visit-rules.js';
+import { clubDueOnVisit, clubManualAt } from './visit-rules.js';
 import { saveChallenges, saveSets } from './db/sbcs.js';
 
 export interface SetsData {
@@ -17,7 +17,7 @@ export interface SetsData {
 
 export interface SyncStatus {
   ea: Awaited<ReturnType<Account['meter']['summary']>>;
-  clubSyncs: { used: number; limit: number }; // today, manual + scheduled
+  clubNextAt: number | null; // when the Club button works again (null: now)
   running: string | null;
   error: string | null;
   clubAt: number | null;
@@ -46,7 +46,7 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
   return {
     club: clubJob && { ...clubJob, expected: cachedClub?.data.length || null },
     ea: await acc.meter.summary(),
-    clubSyncs: { used: await clubSyncsToday(acc), limit: CLUB_SYNCS_PER_DAY },
+    clubNextAt: await clubButtonAt(acc),
     running: jobs ? jobs.running : running.get(acc.id) ?? null,
     error: jobs ? jobs.error : errors.get(acc.id) ?? null,
     editedAt: edited.get(acc.id) ?? null,
@@ -80,18 +80,18 @@ async function run<T>(acc: Account, label: string, fn: () => Promise<T>): Promis
   }
 }
 
-// Club syncs (button or schedule) are capped per account per day. The SBC list is never
-// synced on demand: only by the schedule, after the daily drop.
-export const CLUB_SYNCS_PER_DAY = Number(process.env.CLUB_SYNCS_PER_DAY ?? 3);
-const TZ_DAY = () => new Intl.DateTimeFormat('en-CA', { timeZone: DROP_TZ }).format(new Date());
+// Club syncs have no daily cap: the schedule runs once after the drop, visits only when the club is
+// older than CLUB_VISIT_STALE_H, and the Club button waits CLUB_MANUAL_COOLDOWN_MIN after the last
+// club load or sync (EA's daily request budget still caps everything). The SBC list is never synced
+// on demand: only by the schedule, after the daily drop, and on visits.
+export const CLUB_MANUAL_COOLDOWN_MS = Number(process.env.CLUB_MANUAL_COOLDOWN_MIN ?? 15) * 60 * 1000;
+const clubQueuedAt = new Map<number, number>();
 
-async function clubSyncsToday(acc: Account): Promise<number> {
-  const c = await readCache<{ day: string; club: number }>(acc.key('sync-count'));
-  return c?.data.day === TZ_DAY() ? c.data.club : 0;
-}
-
-async function countClubSync(acc: Account) {
-  await writeCache(acc.key('sync-count'), { day: TZ_DAY(), club: (await clubSyncsToday(acc)) + 1 });
+async function clubButtonAt(acc: Account): Promise<number | null> {
+  const loaded = (await readCache(acc.key('club')))?.fetchedAt ?? null;
+  const queued = clubQueuedAt.get(acc.id) ?? null;
+  const last = loaded === null ? queued : queued === null ? loaded : Math.max(loaded, queued);
+  return clubManualAt(last, Date.now(), CLUB_MANUAL_COOLDOWN_MS);
 }
 
 /**
@@ -103,29 +103,25 @@ export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all', sc
     throw new SessionError('The SBC list refreshes on its own after the daily drop (20:01).', 403, 'sbcScheduleOnly');
   const club = what === 'club' || what === 'all';
   const sbc = what === 'sbc' || what === 'all';
-  if (club && (await clubSyncsToday(acc)) >= CLUB_SYNCS_PER_DAY) {
-    if (!scheduled)
-      throw new SessionError(
-        `Club already synced ${CLUB_SYNCS_PER_DAY} times today. Opening your club in the web app still updates it for free.`,
-        429,
-        'clubLimit',
-        { limit: CLUB_SYNCS_PER_DAY },
-      );
-    if (!sbc) return;
+  // the cooldown also keeps a failing scheduled / visit sync from being retried every minute
+  const clubAt = club ? await clubButtonAt(acc) : null;
+  if (club && !scheduled && clubAt !== null) {
+    const minutes = Math.ceil((clubAt - Date.now()) / 60000);
+    throw new SessionError(`Club synced moments ago. Try again in ${minutes} min.`, 429, 'clubCooldown', { minutes });
   }
-  const doClub = club && (await clubSyncsToday(acc)) < CLUB_SYNCS_PER_DAY;
+  const doClub = club && clubAt === null;
   if (acc.clientMode) {
     if (!webAppOpen(acc)) throw new SessionError('Open the FC27 web app in this browser to sync. FC Solver asks EA only from there.', 409, 'webAppClosed');
     await acc.meter.check(); // over today's budget or paused: refuse before the tab starts
     if (doClub && !hasPending(acc, 'club')) {
       await enqueue(acc, 'club');
-      await countClubSync(acc);
+      clubQueuedAt.set(acc.id, Date.now());
     }
     if (sbc) await enqueue(acc, 'sbc');
     return;
   }
   if (doClub) {
-    await countClubSync(acc);
+    clubQueuedAt.set(acc.id, Date.now());
     await syncClub(acc);
   }
   if (sbc) await syncSbcs(acc);
@@ -306,8 +302,7 @@ export async function refreshOnVisit(acc: Account, { sbcs = true }: { sbcs?: boo
     if (!acc.clientMode || !webAppOpen(acc)) return out;
     await acc.meter.check();
     const club = await readCache(acc.key('club'));
-    if (!hasPending(acc, 'club') && clubDueOnVisit(club?.fetchedAt ?? null, Date.now(), CLUB_VISIT_STALE_MS, await clubSyncsToday(acc), CLUB_SYNCS_PER_DAY - 1)) {
-      // - 1: visits never use the last daily club sync, it stays for the post-drop / manual sync
+    if (!hasPending(acc, 'club') && clubDueOnVisit(club?.fetchedAt ?? null, Date.now(), CLUB_VISIT_STALE_MS)) {
       await requestSync(acc, 'club', true);
       out.club = true;
     }
@@ -364,15 +359,14 @@ export async function autoSync(acc: Account): Promise<void> {
 /**
  * The extension just linked this account to a user: load the club right away, so the site shows
  * the user's players. The hello came from the web app tab itself, so the job runs there shortly.
- * Same limits as any sync (daily club syncs, EA budget); quietly skipped when over them.
+ * Same limit as any sync (EA budget); quietly skipped when over it.
  */
 export async function syncOnLink(acc: Account): Promise<boolean> {
   try {
     if (!acc.clientMode || hasPending(acc, 'club')) return false;
-    if ((await clubSyncsToday(acc)) >= CLUB_SYNCS_PER_DAY) return false;
     await acc.meter.check();
     await enqueue(acc, 'club');
-    await countClubSync(acc);
+    clubQueuedAt.set(acc.id, Date.now());
     return true;
   } catch {
     return false; // over today's EA budget or paused
@@ -391,14 +385,16 @@ export type AdminSyncOutcome =
 
 /**
  * Admin sync for one account, with the same limits as everyone else (EA budget, throttle pause,
- * club syncs per day). Offline accounts are remembered and sync on their next web app visit.
+ * club cooldown). Offline accounts are remembered and sync on their next web app visit.
  */
 export async function adminSync(acc: Account, what: 'club' | 'sbc' | 'all'): Promise<AdminSyncOutcome> {
   const personaId = acc.id;
   const wantClub = what !== 'sbc';
   const wantSbc = what !== 'club';
-  const club = wantClub && (await clubSyncsToday(acc)) < CLUB_SYNCS_PER_DAY;
-  if (!club && !wantSbc) return { personaId, outcome: 'skipped', code: 'clubLimit', params: { limit: CLUB_SYNCS_PER_DAY } };
+  const clubAt = wantClub ? await clubButtonAt(acc) : null;
+  const club = wantClub && clubAt === null;
+  if (!club && !wantSbc)
+    return { personaId, outcome: 'skipped', code: 'clubCooldown', params: { minutes: Math.ceil(((clubAt ?? Date.now()) - Date.now()) / 60000) } };
   if (!acc.hasSession) {
     const prev = forced.get(acc.id);
     forced.set(acc.id, { club: club || !!prev?.club, sbc: wantSbc || !!prev?.sbc });

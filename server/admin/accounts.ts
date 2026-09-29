@@ -29,7 +29,6 @@ async function accountRow(acc: Account, drop: number, trusted: Set<number>) {
     running: st.running,
     error: st.error,
     ea: { today: st.ea.today, limit: st.ea.limit, pausedUntil: st.ea.pausedUntil },
-    clubSyncs: st.clubSyncs,
     forced: forcedSync(acc),
     trusted: trusted.has(acc.id), // its brick layouts win over the vote
   };

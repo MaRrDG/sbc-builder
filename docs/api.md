@@ -112,11 +112,11 @@ Browsers no longer hold access keys; use `GET /api/me`.
 
 ### `POST /api/sync` (site)
 
-Manual sync, club only: `what: "club"` (players, active squad, chemistry profiles), at most `CLUB_SYNCS_PER_DAY` (3) a day per account including scheduled ones (`429` after that; `sync.clubSyncs` shows `{ used, limit }`). `"sbc"` is refused with `403`: the SBC list refreshes on the schedule after the daily drop and on visits (`POST /api/sync/visit`). Returns the new `sync` status. Client mode: queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused. Legacy: syncs from the server, `409`/`401` without a live EA session.
+Manual sync, club only: `what: "club"` (players, active squad, chemistry profiles), no daily cap, but not within `CLUB_MANUAL_COOLDOWN_MIN` (15) minutes of the last club load or club sync (`429` `clubCooldown` with `{ minutes }`; `sync.clubNextAt` says when it works again, `null` = now). `"sbc"` is refused with `403`: the SBC list refreshes on the schedule after the daily drop and on visits (`POST /api/sync/visit`). Returns the new `sync` status. Client mode: queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused. Legacy: syncs from the server, `409`/`401` without a live EA session.
 
 ### `POST /api/sync/visit` (site)
 
-Body `{ "sbcs": true }` (optional, default `true`). The site calls it on every screen when the account goes live and when the tab comes back in front. Client mode, web app open: queues a club sync when the cached club is older than `CLUB_VISIT_STALE_H` (2) hours and fewer than `CLUB_SYNCS_PER_DAY - 1` (2) club syncs ran today (visits count toward the cap but leave one of the daily club syncs for the post-drop / manual sync); with `sbcs`, also queues an `sbc` job when nothing is pending and the SBC list is older than 30 min (`SBC_VISIT_COOLDOWN_MIN`). Never fails for cooldown, closed web app or budget; it just does nothing. Returns the `sync` status.
+Body `{ "sbcs": true }` (optional, default `true`). The site calls it on every screen when the account goes live and when the tab comes back in front. Client mode, web app open: queues a club sync (SBC storage included) when the cached club is older than `CLUB_VISIT_STALE_H` (2) hours and no club sync was queued in the last `CLUB_MANUAL_COOLDOWN_MIN` (15) minutes (no daily cap); with `sbcs`, also queues an `sbc` job when nothing is pending and the SBC list is older than 30 min (`SBC_VISIT_COOLDOWN_MIN`). Never fails for cooldown, closed web app or budget; it just does nothing. Returns the `sync` status.
 
 When an `sbc` job finds set progress higher than cached (an SBC done on a console or in the companion app, not seen by the extension), it also queues a club sync (scheduled, so within the daily club cap).
 
@@ -128,7 +128,7 @@ Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated
 
 All admin reads use only the cache and the DB, never EA. Lists are paged by 25 (`pageSize`); `page` starts at 1 and a page past the end returns the last page (the answer's `page` says which). Invalid query values fall back to the default, never a `400`. Days are calendar days in `SBC_DROP_TZ` (default `Europe/Bucharest`), oldest first.
 
-`<account>`: `{ personaId, personaName, clubName, mode: "client"|"legacy", extVersion, online, clubAt, sbcAt, clubStale, sbcStale, players, unassigned, running, error, ea: { today, limit, pausedUntil }, clubSyncs: { used, limit }, forced, trusted }`. `*Stale`: fetched before the last SBC drop. `forced`: an admin sync waiting for the next web app visit. `trusted`: its brick layouts win over the vote. In `/api/admin/accounts` each also carries `ownerId` and `ownerEmail` (`null`: no site user owns it, extensions older than 0.8); in a user's detail each adds `linkedAt` and `previousUserId`.
+`<account>`: `{ personaId, personaName, clubName, mode: "client"|"legacy", extVersion, online, clubAt, sbcAt, clubStale, sbcStale, players, unassigned, running, error, ea: { today, limit, pausedUntil }, forced, trusted }`. `*Stale`: fetched before the last SBC drop. `forced`: an admin sync waiting for the next web app visit. `trusted`: its brick layouts win over the vote. In `/api/admin/accounts` each also carries `ownerId` and `ownerEmail` (`null`: no site user owns it, extensions older than 0.8); in a user's detail each adds `linkedAt` and `previousUserId`.
 
 `planSet` is the stored plan (`"free"` or `"premium"`, for the admin's select — ignores admin-always-Premium and an expired `premiumUntil`); `plan` is the effective `PlanInfo`, same shape as in `GET /api/me` (`quota: null` for Premium, admins included).
 
@@ -235,7 +235,7 @@ The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "
 
 ### `POST /api/admin/sync`
 
-`{ "what": "club" | "sbc" | "all", "personaIds"?: [1005016552645] }` (default `all`, every account). Same limits as everyone: EA budget, throttle pause, `CLUB_SYNCS_PER_DAY`. Per account:
+`{ "what": "club" | "sbc" | "all", "personaIds"?: [1005016552645] }` (default `all`, every account). Same limits as everyone: EA budget, throttle pause, the club cooldown (`CLUB_MANUAL_COOLDOWN_MIN`). Per account:
 
 ```json
 { "results": [
@@ -245,7 +245,7 @@ The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "
 ] }
 ```
 
-`queued`: the web app tab is open (or a legacy SID is live), the sync started. `deferred`: offline; the next web app visit runs it (kept in memory, lost on a server restart). `skipped`: `code` is an `err.*` message code (`clubLimit`, `budget`, `paused`, `syncRunning`).
+`queued`: the web app tab is open (or a legacy SID is live), the sync started. `deferred`: offline; the next web app visit runs it (kept in memory, lost on a server restart). `skipped`: `code` is an `err.*` message code (`clubCooldown`, `budget`, `paused`, `syncRunning`).
 
 ---
 

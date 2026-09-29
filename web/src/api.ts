@@ -46,7 +46,7 @@ export interface EaRequests {
 
 export interface SyncStatus {
   ea: EaRequests;
-  clubSyncs: { used: number; limit: number };
+  clubNextAt: number | null; // when the Club button works again (null: now)
   running: string | null;
   error: string | null;
   clubAt: number | null;
@@ -289,7 +289,6 @@ export interface AdminAccount {
   running: string | null;
   error: string | null;
   ea: { today: number; limit: number; pausedUntil: number | null };
-  clubSyncs: { used: number; limit: number };
   /** an admin sync waiting for the account's next web app visit */
   forced: { club: boolean; sbc: boolean } | null;
   /** its locked-slot (brick) layouts win over the vote */
