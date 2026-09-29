@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, Crown, GearSix, List, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, Crown, GearSix, List, Prohibit, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
   type Account, type Challenge, type Meta, type Player, type PlanInfo, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
@@ -102,6 +102,7 @@ export default function App({
   const [syncing, setSyncing] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [marked, setMarked] = useState<Set<number>>(new Set());
   const [squad, setSquad] = useState<{ starters: number[]; bench: number[] } | null>(null);
   const [latestExt, setLatestExt] = useState<ExtensionRelease | null>(null);
   // arriving from the extension's "How to update" link opens the steps right away
@@ -375,6 +376,7 @@ export default function App({
   const runSolve = async (deep = false, opts = solveOptions, useStorage = !(deep && result?.clubOnly)) => {
     if (!challenge || lock || outOfSolves) return;
     setSelectedId(null);
+    setMarked(new Set());
     setSolving(true);
     setError(null);
     try {
@@ -389,16 +391,26 @@ export default function App({
     }
   };
 
+  useEffect(() => setMarked(new Set()), [setId]);
+
   const selectedSlot = result?.slots.find((sl) => sl.player?.id === selectedId) ?? null;
   const selected = selectedSlot?.player ?? null;
   const squadRole = (id: number) => (squad?.starters.includes(id) ? 'XI' : squad?.bench.includes(id) ? 'Subs' : null) as 'XI' | 'Subs' | null;
 
-  // kept out of this SBC only; the club screen keeps players out of every SBC
-  const excludeAndResolve = (playerId: number) => {
-    if (!setId) return;
-    const ids = [...new Set([...setKept, playerId])];
-    updateSetExcludes(setId, ids);
-    if (!outOfSolves) void runSolve(false, { ...solveOptions, excludeIds: [...new Set([...solveOptions.excludeIds, playerId])] }, !result?.clubOnly);
+  // marked players are kept out of this SBC only, all at once with one solve; the club screen keeps players out of every SBC
+  const toggleMark = (playerId: number) =>
+    setMarked((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(playerId)) next.add(playerId);
+      return next;
+    });
+
+  const excludeMarked = () => {
+    if (!setId || !marked.size) return;
+    const ids = [...marked];
+    updateSetExcludes(setId, [...new Set([...setKept, ...ids])]);
+    setMarked(new Set());
+    if (!outOfSolves) void runSolve(false, { ...solveOptions, excludeIds: [...new Set([...solveOptions.excludeIds, ...ids])] }, !result?.clubOnly);
   };
 
   const toggleGlobalExclude = (playerId: number) => {
@@ -825,6 +837,7 @@ export default function App({
                       // switching challenges inside a set replaces the entry: Back leaves the set
                       navigate({ view: 'sbcs', setId: c.setId, challengeId: c.challengeId }, true);
                       setSelectedId(null);
+                      setMarked(new Set());
                       setError(null);
                     }}
                   >
@@ -921,7 +934,19 @@ export default function App({
                       selectedId={selectedId}
                       onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
                       outOfSolves={outOfSolves}
+                      marked={marked}
                     />
+                    {marked.size > 0 && !solving && (
+                      <div className="mark-bar" role="region" aria-label={t('pitch.marked')}>
+                        <span>{t('mark.count', { count: marked.size })}</span>
+                        <button type="button" className="ghost" onClick={() => setMarked(new Set())}>
+                          {t('mark.clear')}
+                        </button>
+                        <button type="button" className="solve-sm" onClick={excludeMarked}>
+                          <Prohibit weight="bold" aria-hidden="true" /> {outOfSolves ? t('mark.applyNoSolve') : t('mark.apply')}
+                        </button>
+                      </div>
+                    )}
                     {result && !solving && (
                       <p className="hint">
                         {t('set.hint', { s: (result.ms / 1000).toFixed(1) })}
@@ -937,9 +962,11 @@ export default function App({
                         meta={meta}
                         chem={selectedSlot?.chem}
                         inSquad={squadRole(selected.id)}
-                        onExclude={() => excludeAndResolve(selected.id)}
+                        onExclude={() => toggleMark(selected.id)}
+                        excluded={marked.has(selected.id)}
                         onClose={() => setSelectedId(null)}
-                        excludeLabel={outOfSolves ? t('player.keepOut') : undefined}
+                        excludeLabel={t('player.mark')}
+                        excludedLabel={t('player.unmark')}
                       />
                     )}
                     <section className="reqs-panel">
