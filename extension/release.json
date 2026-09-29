@@ -1,4 +1,7 @@
 {
+  "0.8.7": [
+    "Reads the SBC list the way the web app does now, so points SBCs (Player SBCs) show up in FC Solver"
+  ],
   "0.8.6": [
     "Reads your SBC Storage, so FC Solver can offer cheaper squads that use it"
   ],

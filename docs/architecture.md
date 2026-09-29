@@ -96,7 +96,7 @@ A one-minute ticker only compares timestamps; it costs nothing unless a sync is 
 
 Opening an SBC or solving never asks EA: both read the cache only. Only syncs do.
 
-**The web app loads it for us.** The extension relays the web app's own responses for `/sbs/sets`, `/sbs/setId/{id}/challenges`, `/club` pages, `/squad/list` + `/squad/{id}` and `/chemistry/profiles`. These replace the cache directly. Club pages are special: a filtered or partial listing only refreshes the players it shows, but a plain listing scrolled from start to end (contiguous pages, same order, within 10 minutes) replaces the whole club and counts as that day's club sync, exactly like a club sync.
+**The web app loads it for us.** The extension relays the web app's own responses for `/sbs/hub/v2` (the SBC list, points SBCs included; the older `/sbs/sets` too), `/sbs/setId/{id}/challenges`, `/club` pages, `/squad/list` + `/squad/{id}` and `/chemistry/profiles`. These replace the cache directly. Club pages are special: a filtered or partial listing only refreshes the players it shows, but a plain listing scrolled from start to end (contiguous pages, same order, within 10 minutes) replaces the whole club and counts as that day's club sync, exactly like a club sync.
 
 **Budget.** Every request to EA is counted per account (`data/accounts/<id>/ea-requests.json`, shown in Settings). After `EA_DAILY_LIMIT` (default 150) requests in a day nothing more is sent; normal use is 10 to 25. If EA answers 429, 458, 495, 512 or 521 the account pauses all EA requests for 15 minutes.
 
