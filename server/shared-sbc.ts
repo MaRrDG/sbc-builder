@@ -1,4 +1,4 @@
-// Challenges are the same for everyone; only status and timesCompleted are per account. A set
+// Challenges are the same for everyone; only status, timesCompleted, and submittedScore are per account. A set
 // this account never touched can take its challenges from the shared copy instead of asking EA.
 import type { Challenge, SbcSet } from './ea.js';
 
@@ -12,5 +12,5 @@ export function seedChallenges(set: SeedSet, shared: Challenge[] | null): Challe
   const prio = (c: Challenge) => (c as Challenge & { priority?: number }).priority ?? 0;
   return [...shared]
     .sort((a, b) => prio(a) - prio(b) || a.challengeId - b.challengeId)
-    .map((c) => ({ ...c, status: 'NOT_STARTED', timesCompleted: 0 }));
+    .map((c) => ({ ...c, status: 'NOT_STARTED', timesCompleted: 0, ...(c.submittedScore !== undefined && { submittedScore: 0 }) }));
 }

@@ -31,3 +31,9 @@ test('does not mutate the shared rows', () => {
   seedChallenges(set, shared);
   assert.equal(shared[0].status, 'COMPLETED');
 });
+
+test('a seeded points challenge starts with nothing submitted', () => {
+  const out = seedChallenges(set, [ch(10, 1, { scoreRequirement: 4000, submittedScore: 1200 }), ch(11, 2)]);
+  assert.equal(out?.[0].submittedScore, 0);
+  assert.equal('submittedScore' in out![1], false); // squad challenges stay as EA sent them
+});

@@ -18,6 +18,7 @@ export interface Player {
   resourceId: number;
   name: string;
   rating: number;
+  points: number; // gradingScore: worth in a points SBC (0 = not usable there)
   rareflag: number;
   tier: 1 | 2 | 3;
   positions: number[]; // position type ids
@@ -49,6 +50,7 @@ export function toPlayer(i: ClubItem, meta: Meta): Player {
     resourceId: i.resourceId,
     name: meta.players[i.assetId]?.name ?? `#${i.assetId}`,
     rating: i.rating,
+    points: i.gradingScore ?? 0,
     rareflag: i.rareflag,
     tier: i.rating <= 64 ? 1 : i.rating <= 74 ? 2 : 3,
     positions: i.possiblePositions.map((p) => POSITION_IDS[p]).filter((p) => p !== undefined),
@@ -197,7 +199,7 @@ export function chemistry(slots: (Player | null)[], slotTypes: number[], meta: M
 export function brickPlayer(b: BrickSlot, slotType: number): Player {
   const positions = b.positions?.map((p) => POSITION_IDS[p]).filter((p) => p !== undefined) ?? [slotType];
   return {
-    id: -1 - b.index, assetId: -1 - b.index, resourceId: 0, name: 'Locked', rating: 0, rareflag: b.rareflag, tier: 1,
+    id: -1 - b.index, assetId: -1 - b.index, resourceId: 0, name: 'Locked', rating: 0, points: 0, rareflag: b.rareflag, tier: 1,
     positions, preferredPosition: '', possiblePositions: b.positions ?? [], club: b.club, league: b.league, nation: b.nation,
     untradeable: true, firstOwner: false, groups: [], state: 'brick', isLoan: false, minPrice: 0, fullName: '', rarityName: '',
     attributes: [], skillMoves: 0, weakFoot: 0, foot: 'Right',
