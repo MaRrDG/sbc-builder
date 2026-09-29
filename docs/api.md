@@ -397,7 +397,7 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 | `GET /purchased/items` (Unassigned viewed) | Unassigned list replaced with `response.itemData` |
 | `PUT /item` with `{ itemData: [{ id, pile }] }` | `pile: "club"`: Unassigned or SBC storage → club. Any other pile: leaves club, Unassigned and SBC storage |
 | `DELETE /item/:id` or `/item?itemIds=…` | quick sold: leaves club, Unassigned and SBC storage |
-| `GET /sbs/sets` | replaces the cached SBC list |
+| `GET /sbs/hub/v2`, `GET /sbs/sets` | replaces the cached SBC list (`hub/v2` is what the web app loads when points SBCs are on) |
 | `GET /sbs/setId/:id/challenges` | replaces that set's cached challenges |
 | `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club. With `jobId` (a club sync job's page): collected per job in any order, nothing upserted, and the club is replaced once page 0 through the short last page are all in |
 | `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (other saved squads are ignored) |

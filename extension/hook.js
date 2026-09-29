@@ -7,7 +7,7 @@
 (() => {
   const SRC = 'sbc-builder-hook';
   const UTAS = /^(https:\/\/utas\.[^/]+\/ut\/game\/fc27)(\/[^?]*)/;
-  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile)$/;
+  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile)$/;
   // Our requests go through one queue, one at a time, with a short random pause between them,
   // and only once the web app itself has been quiet for a moment, so they never pile up on its own.
   const GAP_MIN_MS = 1500;
@@ -194,8 +194,13 @@
         if (THROTTLE.includes(e?.status)) throw e;
       });
     },
+    // the list the web app itself loads: /sbs/hub/v2 carries the points ("one-click") SBCs too;
+    // never with ?claimCompensationRewards (that claims rewards). Old list if the hub is off.
     async sbc(c) {
-      await c('GET', '/sbs/sets');
+      await c('GET', '/sbs/hub/v2').catch((e) => {
+        if (THROTTLE.includes(e?.status)) throw e;
+        return c('GET', '/sbs/sets');
+      });
     },
     async challenges(c, job) {
       for (const id of (job.setIds ?? []).slice(0, 40)) if (Number.isInteger(id)) await c('GET', `/sbs/setId/${id}/challenges`);

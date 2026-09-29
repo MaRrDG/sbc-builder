@@ -4,7 +4,7 @@
 //    any other pile (trade, storage, ...) -> out of the club;
 //  - DELETE /item/{id} or /item?itemIds=... (quick sell) -> gone everywhere.
 // It also fills the cache from what the web app itself loads, so FC Solver rarely has to ask EA:
-//  - GET /sbs/sets, GET /sbs/setId/{id}/challenges -> SBC list and challenges;
+//  - GET /sbs/hub/v2 (or the older /sbs/sets), GET /sbs/setId/{id}/challenges -> SBC list and challenges;
 //  - POST /club pages -> players upserted; a complete unfiltered scan replaces the club
 //    (pages of a club sync job carry its id and are put together per job, see club-pages.ts);
 //  - GET /squad/list + /squad/{id} (or /squad/active) -> active squad;
@@ -23,7 +23,7 @@ import { addClubPage, assembleClub, loadedPlayers } from './club-pages.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const WATCHED_PATH =
-  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile)$/;
+  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile)$/;
 
 export interface WebAppEvent {
   method: string;
@@ -141,7 +141,8 @@ async function onSquad(acc: Account, squadId: number | 'active', res: { id?: num
 /** Responses the web app loaded for itself; they replace or refresh our cache. Null if not one of them. */
 async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): Promise<string | null | undefined> {
   const res = (ev.response ?? {}) as Record<string, unknown>;
-  if (method === 'GET' && ev.path === '/sbs/sets') {
+  // the web app loads the list from /sbs/hub/v2 when points (one-click) SBCs are on, same categories shape
+  if (method === 'GET' && (ev.path === '/sbs/hub/v2' || ev.path === '/sbs/sets')) {
     if (!Array.isArray(res.categories)) return null;
     await writeCache<SetsData>(acc.key('sets'), { categories: res.categories as SetsData['categories'] });
     await softly('save sets', () => saveSets((res.categories as SetsData['categories']).flatMap((c) => c.sets ?? [])));
