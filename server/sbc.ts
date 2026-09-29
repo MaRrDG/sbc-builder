@@ -29,10 +29,26 @@ export const Key = {
   PLAYER_TRADABILITY: 33,
   CHEMISTRY_POINTS: 35,
   ALL_PLAYERS_CHEMISTRY_POINTS: 36,
+  ATTRIBUTE_VALUE: 40, // web app: ACADEMY_PLAYER_SLOTTING, the value an attribute requirement compares against
+  ATTRIBUTE_ID: 41, // web app: PLAYER_ATTRIBUTE, which attribute (ATTRIBUTE_NAMES)
 } as const;
 
 export const Scope = { GREATER: 0, LOWER: 1, EXACT: 2 } as const;
 export type ScopeT = (typeof Scope)[keyof typeof Scope];
+
+/** Attribute ids used by attribute requirements (keys 40 / 41): the web app's AcademyEligibilityAttribute, readable. */
+export const ATTRIBUTE_NAMES: Record<number, string> = {
+  1: 'OVR', 2: 'Pace', 3: 'Shooting', 4: 'Passing', 5: 'Dribbling', 6: 'Defending', 7: 'Physicality',
+  8: 'Acceleration', 9: 'Sprint Speed', 10: 'Agility', 11: 'Balance', 12: 'Jumping', 13: 'Stamina',
+  14: 'Strength', 15: 'Reactions', 16: 'Aggression', 17: 'Composure', 18: 'Interceptions',
+  19: 'Positioning', 20: 'Vision', 21: 'Ball Control', 22: 'Crossing', 23: 'Dribbling (detail)',
+  24: 'Finishing', 25: 'FK Accuracy', 26: 'Heading Accuracy', 27: 'Long Passing', 28: 'Short Passing',
+  29: 'Defensive Awareness', 30: 'Shot Power', 31: 'Long Shots', 32: 'Standing Tackle',
+  33: 'Sliding Tackle', 34: 'Volleys', 35: 'Curve', 36: 'Penalties', 37: 'Weak Foot', 38: 'Skill Moves',
+  39: 'Attacking Work Rate', 40: 'Defensive Work Rate', 49: 'Alternative Positions',
+  50: 'Base Traits', 51: 'Icon Traits', 52: 'Total Traits',
+  68: 'Diving', 69: 'Handling', 70: 'Kicking', 71: 'GK Positioning', 72: 'Reflexes', 73: 'Speed',
+};
 
 export interface Requirement {
   slot: number;
@@ -64,7 +80,8 @@ export function parseRequirements(reqs: EligibilityReq[], meta: Meta): Requireme
         req.keys.set(r.eligibilityKey, vals);
       }
     }
-    req.combined = req.keys.size > 1;
+    // an attribute requirement carries two keys (which attribute + its value) but is one per-card rule
+    req.combined = req.keys.size > 1 && !req.keys.has(Key.ATTRIBUTE_ID);
     req.text = describe(req, meta);
     out.push(req);
   }
@@ -111,6 +128,11 @@ function describe(r: Requirement, meta: Meta): string {
   if (r.combined) {
     const parts = [...r.keys].map(([k, vs]) => names(k, vs));
     return `${parts.join(' + ')}: ${players(r.count)}`;
+  }
+  if (r.keys.has(Key.ATTRIBUTE_ID)) {
+    const id = r.keys.get(Key.ATTRIBUTE_ID)![0];
+    const word = ['Min', 'Max', 'Exactly'][r.scope];
+    return `${ATTRIBUTE_NAMES[id] ?? `Attribute ${id}`} ${word}: ${r.keys.get(Key.ATTRIBUTE_VALUE)?.[0] ?? '?'}`;
   }
   switch (key) {
     case Key.TEAM_RATING:
