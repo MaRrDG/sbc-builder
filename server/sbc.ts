@@ -36,19 +36,8 @@ export const Key = {
 export const Scope = { GREATER: 0, LOWER: 1, EXACT: 2 } as const;
 export type ScopeT = (typeof Scope)[keyof typeof Scope];
 
-/** Attribute ids used by attribute requirements (keys 40 / 41): the web app's AcademyEligibilityAttribute, readable. */
-export const ATTRIBUTE_NAMES: Record<number, string> = {
-  1: 'OVR', 2: 'Pace', 3: 'Shooting', 4: 'Passing', 5: 'Dribbling', 6: 'Defending', 7: 'Physicality',
-  8: 'Acceleration', 9: 'Sprint Speed', 10: 'Agility', 11: 'Balance', 12: 'Jumping', 13: 'Stamina',
-  14: 'Strength', 15: 'Reactions', 16: 'Aggression', 17: 'Composure', 18: 'Interceptions',
-  19: 'Positioning', 20: 'Vision', 21: 'Ball Control', 22: 'Crossing', 23: 'Dribbling (detail)',
-  24: 'Finishing', 25: 'FK Accuracy', 26: 'Heading Accuracy', 27: 'Long Passing', 28: 'Short Passing',
-  29: 'Defensive Awareness', 30: 'Shot Power', 31: 'Long Shots', 32: 'Standing Tackle',
-  33: 'Sliding Tackle', 34: 'Volleys', 35: 'Curve', 36: 'Penalties', 37: 'Weak Foot', 38: 'Skill Moves',
-  39: 'Attacking Work Rate', 40: 'Defensive Work Rate', 49: 'Alternative Positions',
-  50: 'Base Traits', 51: 'Icon Traits', 52: 'Total Traits',
-  68: 'Diving', 69: 'Handling', 70: 'Kicking', 71: 'GK Positioning', 72: 'Reflexes', 73: 'Speed',
-};
+/** Attribute ids used by attribute requirements (keys 40 / 41). Only ids whose web app label was observed; others read "Attribute N". */
+export const ATTRIBUTE_NAMES: Record<number, string> = { 1: 'OVR' };
 
 export interface Requirement {
   slot: number;
@@ -131,8 +120,10 @@ function describe(r: Requirement, meta: Meta): string {
   }
   if (r.keys.has(Key.ATTRIBUTE_ID)) {
     const id = r.keys.get(Key.ATTRIBUTE_ID)![0];
+    // only "Min" has been observed from EA; Max / Exactly wording is assumed. Key 42 (ADDITIONAL_TARGET_VALUE) is not handled.
     const word = ['Min', 'Max', 'Exactly'][r.scope];
-    return `${ATTRIBUTE_NAMES[id] ?? `Attribute ${id}`} ${word}: ${r.keys.get(Key.ATTRIBUTE_VALUE)?.[0] ?? '?'}`;
+    const label = `${ATTRIBUTE_NAMES[id] ?? `Attribute ${id}`}${word ? ` ${word}` : ''}`;
+    return `${label}: ${r.keys.get(Key.ATTRIBUTE_VALUE)?.[0] ?? '?'}`;
   }
   switch (key) {
     case Key.TEAM_RATING:
