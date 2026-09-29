@@ -5,6 +5,7 @@ import {
   type Account, type Challenge, type Meta, type Player, type PlanInfo, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
 } from './api';
 import { Pitch, ReqTick } from './components/Pitch';
+import { PointsArea } from './components/PointsArea';
 import { SolverOptions, DEFAULT_OPTIONS, exclusionCount } from './components/SolverOptions';
 import { LocalOptions } from './components/LocalOptions';
 import { SetList } from './components/SetList';
@@ -383,7 +384,7 @@ export default function App({
       const r = await api.solve(challenge.setId, challenge.challengeId, opts, deep, useStorage);
       saveResult(challenge.challengeId, r);
       noteQuota(r);
-      if (!r.found && r.slots.some((s) => s.player)) setError(t('set.closest'));
+      if (!r.found && (r.slots.some((s) => s.player) || !!r.points?.cards.length)) setError(t('set.closest'));
     } catch (e) {
       onApiError(e);
     } finally {
@@ -393,8 +394,10 @@ export default function App({
 
   useEffect(() => setMarked(new Set()), [setId]);
 
+  // the players the current result shows: pitch slots, or a points SBC's cards
+  const shownPlayers = result?.points ? result.points.cards : (result?.slots.flatMap((s) => (s.player ? [s.player] : [])) ?? []);
   const selectedSlot = result?.slots.find((sl) => sl.player?.id === selectedId) ?? null;
-  const selected = selectedSlot?.player ?? null;
+  const selected = shownPlayers.find((p) => p.id === selectedId) ?? null;
   const squadRole = (id: number) => (squad?.starters.includes(id) ? 'XI' : squad?.bench.includes(id) ? 'Subs' : null) as 'XI' | 'Subs' | null;
 
   // marked players are kept out of this SBC only, all at once with one solve; the club screen keeps players out of every SBC
@@ -477,7 +480,7 @@ export default function App({
   const clubLeft = status?.clubSyncs ? Math.max(0, status.clubSyncs.limit - status.clubSyncs.used) : null;
   // players of the shown squad that left the club since it was found (used, sold, moved)
   const goneFromClub =
-    result && club.length ? result.slots.filter((s) => s.player && !clubById.has(s.player.id) && !storageIds.has(s.player.id)).length : 0;
+    result && club.length ? shownPlayers.filter((p) => !clubById.has(p.id) && !storageIds.has(p.id)).length : 0;
   // the window may have expired while the tab sat open; apply the server's expiry rule here too
   const effectiveQuota =
     plan?.quota && plan.quota.resetsAt !== null && now >= plan.quota.resetsAt
@@ -878,7 +881,7 @@ export default function App({
                     )}
                     {result?.usedStorage && !result.clubOnly && !solving && (
                       <div className="notice-inline" role="status">
-                        {t('set.storageUsed', { count: result.slots.filter((s) => s.player?.inStorage).length })}{' '}
+                        {t('set.storageUsed', { count: shownPlayers.filter((p) => p.inStorage).length })}{' '}
                         <button type="button" className="text" disabled={outOfSolves} onClick={() => void runSolve(false, solveOptions, false)}>
                           {t('set.storageClubOnly')}
                         </button>
@@ -921,21 +924,38 @@ export default function App({
                         {t('quota.out', { until: untilText(t, effectiveQuota.resetsAt, now) })}
                       </div>
                     )}
-                    <Pitch
-                      meta={meta}
-                      challenge={challenge}
-                      result={result}
-                      solving={solving}
-                      onSolve={runSolve}
-                      onToggleOptions={() => setShowOptions((v) => !v)}
-                      lock={lock}
-                      localOptions={!!local}
-                      placed={placedPlayers}
-                      selectedId={selectedId}
-                      onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
-                      outOfSolves={outOfSolves}
-                      marked={marked}
-                    />
+                    {(challenge.scoreRequirement ?? 0) > 0 ? (
+                      <PointsArea
+                        meta={meta}
+                        challenge={challenge}
+                        result={result}
+                        solving={solving}
+                        onSolve={runSolve}
+                        onToggleOptions={() => setShowOptions((v) => !v)}
+                        lock={lock}
+                        localOptions={!!local}
+                        selectedId={selectedId}
+                        onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
+                        outOfSolves={outOfSolves}
+                        marked={marked}
+                      />
+                    ) : (
+                      <Pitch
+                        meta={meta}
+                        challenge={challenge}
+                        result={result}
+                        solving={solving}
+                        onSolve={runSolve}
+                        onToggleOptions={() => setShowOptions((v) => !v)}
+                        lock={lock}
+                        localOptions={!!local}
+                        placed={placedPlayers}
+                        selectedId={selectedId}
+                        onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
+                        outOfSolves={outOfSolves}
+                        marked={marked}
+                      />
+                    )}
                     {marked.size > 0 && !solving && !lock && (
                       <div className="mark-bar" role="region" aria-label={t('pitch.marked')}>
                         <span>{t('mark.count', { count: marked.size })}</span>
@@ -947,7 +967,12 @@ export default function App({
                         </button>
                       </div>
                     )}
-                    {result && !solving && (
+                    {result?.points && !solving && (
+                      <p className="hint">
+                        {t('points.summary', { points: result.points.total.toLocaleString(lang), over: result.points.overshoot.toLocaleString(lang) })}
+                      </p>
+                    )}
+                    {result && !result.points && !solving && (
                       <p className="hint">
                         {t('set.hint', { s: (result.ms / 1000).toFixed(1) })}
                       </p>
@@ -979,10 +1004,31 @@ export default function App({
                             <li key={r.slot} className={res ? (res.met ? 'met' : 'unmet') : ''}>
                               <ReqTick met={res?.met} />
                               <span>{r.text}</span>
+                              {res?.unchecked && <span className="actual">{t('points.notChecked')}</span>}
                             </li>
                           );
                         })}
                       </ul>
+                      {(challenge.scoreRequirement ?? 0) > 0 && (
+                        <>
+                          <ul className="reqs">
+                            <li className={result?.points ? (result.found ? 'met' : 'unmet') : ''}>
+                              <ReqTick met={result?.points ? result.found : undefined} />
+                              <span>{t('points.target', { n: (challenge.scoreRequirement ?? 0).toLocaleString(lang) })}</span>
+                            </li>
+                          </ul>
+                          <dl className="points-facts">
+                            <dt>{t('points.submitted')}</dt>
+                            <dd>{(challenge.submittedScore ?? 0).toLocaleString(lang)}</dd>
+                            <dt>{t('points.left')}</dt>
+                            <dd>
+                              {Math.max(0, (challenge.scoreRequirement ?? 0) - (challenge.submittedScore ?? 0)).toLocaleString(lang)}{' '}
+                              <span className="muted">{t('points.asOf', { ago: ago(challenge.fetchedAt ?? null) })}</span>
+                            </dd>
+                          </dl>
+                          <p className="muted">{t('points.submitHint')}</p>
+                        </>
+                      )}
                       {challenge.elgOperation === 'OR' && <p className="muted">{t('set.orHint')}</p>}
                     </section>
                     {setKept.length > 0 && (

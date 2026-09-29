@@ -1,5 +1,5 @@
 import { useDeferredValue, useMemo, useState } from 'react';
-import { MagnifyingGlass, SlidersHorizontal } from '@phosphor-icons/react';
+import { Diamond, MagnifyingGlass, SlidersHorizontal } from '@phosphor-icons/react';
 import type { SbcSet } from '../api';
 import { repeatOf } from '../repeat';
 import { SetBadge } from './SetBadge';
@@ -19,7 +19,7 @@ interface Props {
 
 /** Every SBC set, grouped by category like the web app; a click opens the set. */
 export function SetList({ categories, filter, onFilter, onPick, localSets, now }: Props) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [page, setPage] = useState(1);
   const q = useDeferredValue(filter).trim().toLowerCase();
   const total = categories.reduce((n, c) => n + c.sets.length, 0);
@@ -71,6 +71,11 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now }
                     <span className="set-tile-top">
                       <span className="set-name">{s.name}</span>
                       <SetBadge set={s} now={now} />
+                      {s.pointsTarget ? (
+                        <span className="points-pill">
+                          <Diamond weight="fill" aria-hidden="true" /> {t('points.tile', { n: s.pointsTarget.toLocaleString(lang) })}
+                        </span>
+                      ) : null}
                     </span>
                     {s.description && <span className="set-desc">{s.description}</span>}
                     {localSets.has(s.setId) && (
