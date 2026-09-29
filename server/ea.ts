@@ -35,6 +35,7 @@ export interface ClubItem {
   skillmoves?: number;
   weakfootabilitytypecode?: number;
   preferredfoot?: number;
+  gradingScore?: number; // what the card is worth in a points SBC
 }
 
 export interface EligibilityReq {
@@ -59,6 +60,9 @@ export interface Challenge {
   elgOperation: 'AND' | 'OR';
   awards: unknown[];
   endTime: number;
+  /** points SBCs: points needed in total, and already handed in by this account */
+  scoreRequirement?: number;
+  submittedScore?: number;
 }
 
 export interface SbcSet {
