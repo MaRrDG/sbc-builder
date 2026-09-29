@@ -4,9 +4,12 @@
 // responses come back through /api/webapp-event like any other web app load.
 import { randomBytes } from 'node:crypto';
 import type { Account } from './accounts.js';
-import { readCache } from './store.js';
+import { readCache, writeCache } from './store.js';
+import type { Challenge, SbcSet } from './ea.js';
+import { sharedChallenges } from './db/sbcs.js';
+import { seedChallenges } from './shared-sbc.js';
 import { logEvent } from './db/events.js';
-import type { SetsData } from './sync.js';
+import { lastSbcDrop, type SetsData } from './sync.js';
 import type { ClubPages } from './club-pages.js';
 
 export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad';
@@ -118,6 +121,19 @@ export function findJob(acc: Account, id: string) {
 
 const CLUB_PAGES_WAIT = 10 * 1000; // the last page is relayed separately and may land after "done"
 
+/** A set new to this account and untouched: take its challenges from the shared copy, no EA call. */
+async function seedFromShared(acc: Account, set: SbcSet): Promise<boolean> {
+  try {
+    const list = seedChallenges(set, await sharedChallenges(set.setId, new Date(lastSbcDrop())));
+    if (!list) return false;
+    await writeCache<Challenge[]>(acc.key(`challenges/${set.setId}`), list);
+    return true;
+  } catch (e) {
+    console.error(`[db] shared challenges for set ${set.setId} failed: ${(e as Error).message}`);
+    return false; // ask EA as before
+  }
+}
+
 /**
  * The page finished a job. A club sync only counts once its pages replaced the whole club;
  * an SBC list refresh queues the challenges of sets that changed.
@@ -149,6 +165,7 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
     if (cached && job.before?.[set.setId] === progress(set)) continue;
     // finished one-off sets are only loaded when the user opens them in the web app
     if (!cached && set.challengesCompletedCount >= set.challengesCount && !set.repeatable) continue;
+    if (!cached && (await seedFromShared(acc, set))) continue;
     changed.push(set.setId);
   }
   if (changed.length) await enqueue(acc, 'challenges', changed);
