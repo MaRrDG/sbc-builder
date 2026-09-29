@@ -24,6 +24,7 @@ export interface Player {
   weakFoot: number;
   foot: 'Right' | 'Left';
   inStorage?: boolean; // in SBC storage, not in the club
+  points?: number; // what a points SBC counts for this card
 }
 
 export interface Account {
@@ -80,6 +81,7 @@ export interface SbcSet {
   lastCompletedTime?: number; // unix seconds
   releaseTime?: number; // unix seconds
   endTime: number;
+  pointsTarget?: number; // points SBC: total points to reach
 }
 
 export interface Requirement {
@@ -106,6 +108,9 @@ export interface Challenge {
   layout: ChallengeLayout | null;
   /** EA locks slots here but FC Solver has not seen which yet */
   needsLayout: boolean;
+  scoreRequirement?: number; // points SBC: points the challenge asks for
+  submittedScore?: number; // points already handed in
+  fetchedAt?: number | null; // when the web app last sent this challenge
 }
 
 export interface BrickInfo {
@@ -152,9 +157,20 @@ export interface SolveResult {
   placed?: { kept: number; total: number };
   usedStorage?: boolean; // at least one player comes from the SBC storage
   clubOnly?: boolean; // solved without the SBC storage (asked for)
-  eval: { rating: number; chemistry: number; results: { text: string; met: boolean; actual: number | string }[]; allMet: boolean };
+  eval: { rating: number; chemistry: number; results: { text: string; met: boolean; actual: number | string; unchecked?: boolean }[]; allMet: boolean };
   slots: SlotResult[];
+  points?: PointsResult; // points SBCs only
   quota?: Quota | null;
+}
+
+/** A points SBC answer: the cards to add, in the web app's order. */
+export interface PointsResult {
+  target: number; // points still missing when solved
+  required: number;
+  submitted: number;
+  total: number; // points of the chosen cards
+  overshoot: number;
+  cards: Player[];
 }
 
 export interface Quota {
@@ -178,7 +194,7 @@ export class ApiError extends Error {
 
 /** Why the solver found no squad: a code the UI translates, plus the values to fill in. */
 export interface Reason {
-  code: 'pool' | 'count' | 'sameGroup' | 'distinct' | 'rating' | 'combo';
+  code: 'pool' | 'count' | 'sameGroup' | 'distinct' | 'rating' | 'combo' | 'points';
   req?: string; // the requirement text, as EA words it
   have?: number;
   need?: number;

@@ -1487,6 +1487,135 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
   30% { transform: rotateY(180deg) translateY(-8px); }
 }
 
+/* points SBC: the Work Area replaces the pitch, same frame and corners */
+.points-header {
+  display: grid;
+  gap: 8px;
+  width: min(640px, 92%);
+  padding-inline: 40px;
+}
+
+.points-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.points-num {
+  margin-left: auto;
+  font-family: var(--font-num);
+  font-size: 18px;
+  color: var(--ink-2);
+}
+
+.points-num b {
+  font-size: 24px;
+  color: var(--ink);
+}
+
+.points-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.points-bar span {
+  display: block;
+  height: 100%;
+  background: var(--ink-3);
+  transition: width 220ms var(--ease);
+}
+
+.points-bar span.met {
+  background: var(--go);
+}
+
+.points-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.points-status .met {
+  color: var(--go);
+}
+
+.points-status svg {
+  vertical-align: -2px;
+}
+
+.points-area {
+  position: relative;
+  min-height: 240px;
+  padding: 22px 24px 72px;
+  background: linear-gradient(180deg, var(--pitch-a), var(--pitch-b));
+}
+
+/* 7 cards per row in the 1280px layout (672px board), 4 on a 390px phone */
+.points-grid {
+  --card-w: 68px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--card-w) + 10px), 1fr));
+  gap: 18px 8px;
+  justify-items: center;
+}
+
+.points-slot {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+}
+
+.points-value {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-num);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.points-value svg {
+  color: var(--ink-2);
+  width: 11px;
+  height: 11px;
+}
+
+.points-empty {
+  margin: 40px auto;
+  max-width: 36ch;
+  text-align: center;
+  color: var(--ink-2);
+}
+
+@media (max-width: 860px) {
+  .points-header {
+    padding-inline: 24px;
+  }
+
+  .points-grid {
+    --card-w: 64px;
+    gap: 14px 6px;
+  }
+
+  .points-area {
+    padding: 16px 10px 68px;
+  }
+}
+
+/* phones: the corners sit under the area, no room to reserve for them */
+@media (max-width: 640px) {
+  .points-area {
+    grid-column: 1 / -1;
+    padding-bottom: 16px;
+  }
+}
+
 .pitch-done {
   position: absolute;
   inset: 0;
