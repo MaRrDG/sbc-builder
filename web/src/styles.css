@@ -3209,3 +3209,35 @@ a.adm-kpi:hover { background: var(--surface-2); }
   cursor: pointer;
 }
 .club-sync-close:hover { filter: brightness(1.08); }
+
+.slot-marked {
+  position: absolute;
+  top: -6px;
+  right: calc(50% - var(--card-w) / 2 - 4px);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--bad);
+}
+
+.mark-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  background: var(--surface);
+}
+
+.mark-bar span {
+  margin-right: auto;
+  font-weight: 600;
+}

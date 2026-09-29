@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Challenge, Meta, Player, SolveResult } from '../api';
-import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin } from '@phosphor-icons/react';
+import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin, Prohibit } from '@phosphor-icons/react';
 import { BrickCard, Card, EmptyCard } from './Card';
 import { useI18n } from '../i18n';
 
@@ -96,9 +96,11 @@ interface Props {
   onPlayerClick: (playerId: number) => void;
   /** the weekly Free quota is used up: Solve and Cheaper are disabled until it resets */
   outOfSolves: boolean;
+  /** players marked to keep out (⊘ badge) */
+  marked: Set<number>;
 }
 
-export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves }: Props) {
+export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, marked }: Props) {
   const { t } = useI18n();
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
@@ -164,6 +166,11 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
               {kept && player && (
                 <span className="slot-fixed" title={t('pitch.keptTitle')}>
                   <PushPin weight="fill" aria-label={t('pitch.kept')} />
+                </span>
+              )}
+              {player && marked.has(player.id) && !solving && (
+                <span className="slot-marked" title={t('pitch.marked')}>
+                  <Prohibit weight="bold" aria-label={t('pitch.marked')} />
                 </span>
               )}
               {brick ? (

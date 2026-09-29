@@ -52,9 +52,11 @@ interface Props {
   /** Club view: already kept out, so the button lets it back in instead. */
   excluded?: boolean;
   excludeLabel?: string;
+  /** label when `excluded` (default: allow again) */
+  excludedLabel?: string;
 }
 
-export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose, excluded, excludeLabel }: Props) {
+export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose, excluded, excludeLabel, excludedLabel }: Props) {
   const { t } = useI18n();
   const labels = p.preferredPosition === 'GK' ? KEEPER : OUTFIELD;
   const base = `${meta.contentBase}/items/images/mobile`;
@@ -144,7 +146,7 @@ export function PlayerPanel({ player: p, meta, chem, inSquad, onExclude, onClose
 
       {onExclude && (excluded ? (
         <button type="button" className="ghost wide" onClick={onExclude}>
-          <ArrowCounterClockwise weight="bold" /> {t('player.allowAgain')}
+          <ArrowCounterClockwise weight="bold" /> {excludedLabel ?? t('player.allowAgain')}
         </button>
       ) : (
         <button type="button" className="ghost wide danger" onClick={onExclude}>
