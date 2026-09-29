@@ -4,6 +4,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { en } from '../web/src/locales/en.ts';
 import { ro } from '../web/src/locales/ro.ts';
+import { it } from '../web/src/locales/it.ts';
 
 const files = (dir: string): string[] =>
   readdirSync(dir).flatMap((f) => (statSync(join(dir, f)).isDirectory() ? files(join(dir, f)) : /\.tsx?$/.test(f) ? [join(dir, f)] : []));
@@ -27,15 +28,17 @@ for (const k of enKeys) if (k.endsWith('_other') && !enKeys.has(k.replace('_othe
 for (const k of enKeys) if (k.endsWith('_other') && !(k.replace('_other', '_few') in ro)) problems.push(`ro plural without _few: ${k}`);
 
 const params = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
-for (const [k, v] of Object.entries(ro)) {
-  const ref = (en as Record<string, string>)[k] ?? (en as Record<string, string>)[k.replace('_few', '_other')];
-  if (ref === undefined) problems.push(`ro has unknown key: ${k}`);
-  else if (params(ref).replace('count', '') !== params(v).replace('count', '') && !k.endsWith('_one'))
-    problems.push(`params differ for ${k}: en {${params(ref)}} ro {${params(v)}}`);
+for (const [lang, dict] of Object.entries({ ro, it })) {
+  for (const [k, v] of Object.entries(dict)) {
+    const ref = (en as Record<string, string>)[k] ?? (en as Record<string, string>)[k.replace('_few', '_other')];
+    if (ref === undefined) problems.push(`${lang} has unknown key: ${k}`);
+    else if (params(ref).replace('count', '') !== params(v).replace('count', '') && !k.endsWith('_one'))
+      problems.push(`params differ for ${k}: en {${params(ref)}} ${lang} {${params(v)}}`);
+  }
 }
 
 if (problems.length) {
   console.log(problems.join('\n'));
   process.exit(1);
 }
-console.log(`i18n ok: ${bases.size} messages, ${used.size} used directly, en + ro complete`);
+console.log(`i18n ok: ${bases.size} messages, ${used.size} used directly, en + ro + it complete`);

@@ -1,32 +1,35 @@
-// Site translations (English / Romanian). What comes from EA stays as EA sends it: SBC and
+// Site translations (English / Romanian / Italian). What comes from EA stays as EA sends it: SBC and
 // challenge names, descriptions, requirement texts, players, clubs, leagues, nations, rarities.
 // t('key', { n: 3 }) fills {n}; a key with _one / _few / _other variants picks by `count`
 // (Intl.PluralRules: Romanian says 1 jucător, 2 jucători, 20 de jucători).
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { en } from './locales/en';
 import { ro } from './locales/ro';
+import { it } from './locales/it';
 
-export type Lang = 'en' | 'ro';
+export type Lang = 'en' | 'ro' | 'it';
 export type MessageKey = keyof typeof en;
 type Params = Record<string, string | number>;
 
 /** Languages in the picker, each with its own name and flag (web/src/components/LangMenu.tsx). Add more here. */
-export const LANGS: { id: Lang; name: string; flag: 'gb' | 'ro' }[] = [
+export const LANGS: { id: Lang; name: string; flag: 'gb' | 'ro' | 'it' }[] = [
   { id: 'en', name: 'English', flag: 'gb' },
   { id: 'ro', name: 'Română', flag: 'ro' },
+  { id: 'it', name: 'Italiano', flag: 'it' },
 ];
 
-const dicts: Record<Lang, Record<string, string>> = { en, ro };
+const dicts: Record<Lang, Record<string, string>> = { en, ro, it };
 const STORE = 'fcs-lang';
 
 function initialLang(): Lang {
   try {
     const saved = localStorage.getItem(STORE);
-    if (saved === 'en' || saved === 'ro') return saved;
+    if (LANGS.some((l) => l.id === saved)) return saved as Lang;
   } catch {
     /* storage blocked: fall back to the browser language */
   }
-  return navigator.language?.toLowerCase().startsWith('ro') ? 'ro' : 'en';
+  const browser = navigator.language?.toLowerCase().slice(0, 2);
+  return LANGS.find((l) => l.id === browser)?.id ?? 'en';
 }
 
 export function translate(lang: Lang, key: string, params: Params = {}): string {
@@ -67,7 +70,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
 export const useI18n = () => useContext(Ctx);
 
-/** Relative time ("5m ago" / "acum 5m") in the current language. */
+/** Relative time ("5m ago" / "acum 5m" / "5 min fa") in the current language. */
 export function useAgo() {
   const { t } = useI18n();
   return useCallback(

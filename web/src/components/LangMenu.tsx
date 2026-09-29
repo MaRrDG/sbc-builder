@@ -28,6 +28,13 @@ const FLAGS: Record<(typeof LANGS)[number]['flag'], ReactElement> = {
       <path fill="#CE1126" d="M2 0h1v2H2z" />
     </svg>
   ),
+  it: (
+    <svg viewBox="0 0 3 2" aria-hidden="true">
+      <path fill="#009246" d="M0 0h1v2H0z" />
+      <path fill="#fff" d="M1 0h1v2H1z" />
+      <path fill="#CE2B37" d="M2 0h1v2H2z" />
+    </svg>
+  ),
 };
 
 /** Language picker: flag + native name, a small menu that scales to more languages. */
