@@ -11,7 +11,7 @@ import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
-import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshSbcsOnVisit, requestSync, type SetsData } from './sync.js';
+import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, hasPending, nextJob, webAppOpen, webAppReturned } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { isAdmin } from './admin/auth.js';
@@ -217,10 +217,10 @@ app.post<{ Body: { what: 'club' | 'sbc' | 'all' } }>('/api/sync', async (req) =>
   return getStatus(acc);
 });
 
-/** The site's SBC page opened: refresh the SBC list through the web app tab unless it is fresh. */
-app.post('/api/sync/visit', async (req) => {
+/** The site opened (or came back in front): refresh a stale club, and the SBC list on the SBC screens. */
+app.post<{ Body: { sbcs?: boolean } | undefined }>('/api/sync/visit', async (req) => {
   const acc = await siteAccount(req);
-  await refreshSbcsOnVisit(acc);
+  await refreshOnVisit(acc, { sbcs: req.body?.sbcs !== false });
   return getStatus(acc);
 });
 
@@ -285,7 +285,7 @@ app.get('/api/jobs/next', async (req) => {
   const visible = (req.query as { visible?: string }).visible;
   const returned = webAppReturned(acc, visible === undefined ? undefined : visible === '1');
   const job = nextJob(acc);
-  if (returned) await refreshSbcsOnVisit(acc);
+  if (returned) await refreshOnVisit(acc);
   return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId } };
 });
 

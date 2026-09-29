@@ -8,6 +8,7 @@ import { listAccounts, type Account } from './accounts.js';
 import { enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
 import { softly } from './db/index.js';
 import { logEvent } from './db/events.js';
+import { clubDueOnVisit } from './visit-rules.js';
 import { saveChallenges, saveSets } from './db/sbcs.js';
 
 export interface SetsData {
@@ -290,20 +291,33 @@ async function sbcNextAt(acc: Account): Promise<number> {
   return ((await readCache(acc.key('sets')))?.fetchedAt ?? 0) + SBC_VISIT_COOLDOWN_MS;
 }
 
+// A visit also refreshes a club older than this (within the daily club cap), so the club the
+// solver uses is almost always current.
+export const CLUB_VISIT_STALE_MS = Number(process.env.CLUB_VISIT_STALE_H ?? 2) * 60 * 60 * 1000;
+
 /**
- * A visit asks for fresh SBCs: queue a list refresh when the cooldown is over. Client-mode only,
- * and only with the web app open (nothing else may call EA). Never throws: a visit is not a click.
+ * A visit (site opened, web app back in front): queue a club sync when the club is stale and a
+ * list refresh when the SBC cooldown is over. Client-mode only, and only with the web app open
+ * (nothing else may call EA). Never throws: a visit is not a click.
  */
-export async function refreshSbcsOnVisit(acc: Account): Promise<boolean> {
+export async function refreshOnVisit(acc: Account, { sbcs = true }: { sbcs?: boolean } = {}): Promise<{ club: boolean; sbc: boolean }> {
+  const out = { club: false, sbc: false };
   try {
-    if (!acc.clientMode || !webAppOpen(acc) || hasPending(acc, 'sbc')) return false;
-    if (Date.now() < (await sbcNextAt(acc))) return false;
+    if (!acc.clientMode || !webAppOpen(acc)) return out;
     await acc.meter.check();
-    await enqueue(acc, 'sbc');
-    return true;
+    const club = await readCache(acc.key('club'));
+    if (!hasPending(acc, 'club') && clubDueOnVisit(club?.fetchedAt ?? null, Date.now(), CLUB_VISIT_STALE_MS, await clubSyncsToday(acc), CLUB_SYNCS_PER_DAY)) {
+      await requestSync(acc, 'club', true);
+      out.club = true;
+    }
+    if (sbcs && !hasPending(acc, 'sbc') && Date.now() >= (await sbcNextAt(acc))) {
+      await enqueue(acc, 'sbc');
+      out.sbc = true;
+    }
   } catch {
-    return false; // over today's EA budget or paused
+    // over today's EA budget or paused
   }
+  return out;
 }
 
 /**

@@ -304,14 +304,14 @@ export default function App({
     return () => window.removeEventListener('keydown', onKey);
   }, [menuOpen]);
 
-  // On the SBC screens, ask for a fresh SBC list (the server keeps a 30 min cooldown and needs the
-  // web app open), so SBCs finished on a console or in the companion app show up without a click.
+  // On every screen, a visit lets the server refresh a club older than 2 h (ClubSyncModal shows
+  // it); on the SBC screens also the SBC list (30 min cooldown). Needs the web app open.
   const onSbcs = view === 'sbcs';
   const live = !!account?.session;
   useEffect(() => {
-    if (!onSbcs || !activeId || !live) return;
+    if (!activeId || !live) return;
     const visit = () => {
-      if (!document.hidden) void api.syncVisit().then(setStatus, () => {});
+      if (!document.hidden) void api.syncVisit(onSbcs).then(setStatus, () => {});
     };
     visit();
     document.addEventListener('visibilitychange', visit);

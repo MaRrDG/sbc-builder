@@ -231,7 +231,7 @@ export const api = {
   status: () =>
     req<{ account: Account | null; sync: SyncStatus | null; extension: { version: string; notes: string[] } | null }>('/api/status'),
   sync: (what: 'club') => req<SyncStatus>('/api/sync', { method: 'POST', body: { what } }),
-  syncVisit: () => req<SyncStatus>('/api/sync/visit', { method: 'POST' }),
+  syncVisit: (sbcs: boolean) => req<SyncStatus>('/api/sync/visit', { method: 'POST', body: { sbcs } }),
   meta: () => req<Meta>('/api/meta'),
   club: () =>
     req<{ fetchedAt: number | null; players: Player[]; storage: Player[]; storageAt: number | null; squad: { starters: number[]; bench: number[] } | null }>(
