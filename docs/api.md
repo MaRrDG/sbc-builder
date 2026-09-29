@@ -116,7 +116,7 @@ Manual sync, club only: `what: "club"` (players, active squad, chemistry profile
 
 ### `POST /api/sync/visit` (site)
 
-The site's SBC screens opened (or came back in front). Client mode, web app open, nothing pending and the SBC list older than 30 min (`SBC_VISIT_COOLDOWN_MIN`): queues an `sbc` job. Never fails for cooldown, closed web app or budget; it just does nothing. Returns the `sync` status.
+Body `{ "sbcs": true }` (optional, default `true`). The site calls it on every screen when the account goes live and when the tab comes back in front. Client mode, web app open: queues a club sync when the cached club is older than `CLUB_VISIT_STALE_H` (2) hours and the daily club cap is not reached (it counts toward it); with `sbcs`, also queues an `sbc` job when nothing is pending and the SBC list is older than 30 min (`SBC_VISIT_COOLDOWN_MIN`). Never fails for cooldown, closed web app or budget; it just does nothing. Returns the `sync` status.
 
 When an `sbc` job finds set progress higher than cached (an SBC done on a console or in the companion app, not seen by the extension), it also queues a club sync (scheduled, so within the daily club cap).
 
