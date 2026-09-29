@@ -112,6 +112,7 @@ export default function App({
 
   const account = linked?.find((a) => a.personaId === activeId) ?? null;
   const challenge = challenges?.find((c) => c.challengeId === challengeId) ?? null;
+  const scoreTarget = challenge?.scoreRequirement ?? 0; // points SBC target, 0 for squad SBCs
   const [readAsked, setReadAsked] = useState<Set<number>>(() => new Set());
   const result = challengeId ? results[challengeId] ?? null : null;
   const clubById = useMemo(() => new Map(club.map((p) => [p.id, p])), [club]);
@@ -396,6 +397,7 @@ export default function App({
 
   // the players the current result shows: pitch slots, or a points SBC's cards
   const shownPlayers = result?.points ? result.points.cards : (result?.slots.flatMap((s) => (s.player ? [s.player] : [])) ?? []);
+  const reached = !!result?.points && result.points.total >= result.points.target;
   const selectedSlot = result?.slots.find((sl) => sl.player?.id === selectedId) ?? null;
   const selected = shownPlayers.find((p) => p.id === selectedId) ?? null;
   const squadRole = (id: number) => (squad?.starters.includes(id) ? 'XI' : squad?.bench.includes(id) ? 'Subs' : null) as 'XI' | 'Subs' | null;
@@ -924,7 +926,7 @@ export default function App({
                         {t('quota.out', { until: untilText(t, effectiveQuota.resetsAt, now) })}
                       </div>
                     )}
-                    {(challenge.scoreRequirement ?? 0) > 0 ? (
+                    {scoreTarget > 0 ? (
                       <PointsArea
                         meta={meta}
                         challenge={challenge}
@@ -1000,21 +1002,22 @@ export default function App({
                       <ul className="reqs">
                         {challenge.requirements.map((r, i) => {
                           const res = result?.eval.results[i];
+                          const state = res && !res.unchecked ? res.met : undefined;
                           return (
-                            <li key={r.slot} className={res ? (res.met ? 'met' : 'unmet') : ''}>
-                              <ReqTick met={res?.met} />
+                            <li key={r.slot} className={state === undefined ? '' : state ? 'met' : 'unmet'}>
+                              <ReqTick met={state} />
                               <span>{r.text}</span>
                               {res?.unchecked && <span className="actual">{t('points.notChecked')}</span>}
                             </li>
                           );
                         })}
                       </ul>
-                      {(challenge.scoreRequirement ?? 0) > 0 && (
+                      {scoreTarget > 0 && (
                         <>
                           <ul className="reqs">
-                            <li className={result?.points ? (result.found ? 'met' : 'unmet') : ''}>
-                              <ReqTick met={result?.points ? result.found : undefined} />
-                              <span>{t('points.target', { n: (challenge.scoreRequirement ?? 0).toLocaleString(lang) })}</span>
+                            <li className={result?.points ? (reached ? 'met' : 'unmet') : ''}>
+                              <ReqTick met={result?.points ? reached : undefined} />
+                              <span>{t('points.target', { n: scoreTarget.toLocaleString(lang) })}</span>
                             </li>
                           </ul>
                           <dl className="points-facts">
@@ -1022,7 +1025,7 @@ export default function App({
                             <dd>{(challenge.submittedScore ?? 0).toLocaleString(lang)}</dd>
                             <dt>{t('points.left')}</dt>
                             <dd>
-                              {Math.max(0, (challenge.scoreRequirement ?? 0) - (challenge.submittedScore ?? 0)).toLocaleString(lang)}{' '}
+                              {Math.max(0, scoreTarget - (challenge.submittedScore ?? 0)).toLocaleString(lang)}{' '}
                               <span className="muted">{t('points.asOf', { ago: ago(challenge.fetchedAt ?? null) })}</span>
                             </dd>
                           </dl>
