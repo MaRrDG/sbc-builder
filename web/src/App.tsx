@@ -936,7 +936,7 @@ export default function App({
                       outOfSolves={outOfSolves}
                       marked={marked}
                     />
-                    {marked.size > 0 && !solving && (
+                    {marked.size > 0 && !solving && !lock && (
                       <div className="mark-bar" role="region" aria-label={t('pitch.marked')}>
                         <span>{t('mark.count', { count: marked.size })}</span>
                         <button type="button" className="ghost" onClick={() => setMarked(new Set())}>
