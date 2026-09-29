@@ -48,7 +48,7 @@ Out of scope: submitting from FC Solver, any new EA API endpoint or job recipe, 
   - Grid of the existing FUT card component, **sorted like the web app (rating ascending)** so the user can add them in the same order; under each card `◆ points` instead of chemistry pips and position pill (`--pos` not used).
   - Corner buttons: Options (left), Solve / Re-solve (right, `--go`). No "Cheaper?".
   - Before a solve: empty frame with `0 / target ◆`, a short hint, Solve as the primary action.
-  - Under the frame: the mark bar (Task 7 behaviour) and a summary line: cards · points · overshoot · cost · "same order as in the web app".
+  - Under the frame: the mark bar (Task 7 behaviour) and a summary line: cards · points · overshoot · "same order as in the web app" (no cost: `playerCost` is an internal score, not coins; the pitch does not show it either).
 - Side panel (below the frame under 860px): challenge name, requirements with met / not checked glyphs (OVR Min, Points target), "Already submitted", "Left to reach", a line that the user adds the cards and submits in the web app; the PlayerPanel on card tap as today (copy name, mark / keep out).
 - Responsive: `grid-template-columns: repeat(auto-fill, minmax(<card width>, 1fr))` — 7 columns at 1280, 4 at 390; no inner scroll (the page scrolls); header stacks numbers over the bar on phones; no horizontal scroll at 390; touch targets ≥ 44px on phones.
 - SBC list: a points challenge's tile shows its target (e.g. "◆ 4,000").
