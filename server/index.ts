@@ -4,11 +4,11 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
-import { SessionError, THROTTLE_CODES, type ClubItem } from './ea.js';
+import { SessionError, THROTTLE_CODES, type ClubItem, type Challenge } from './ea.js';
 import { loadMeta } from './meta.js';
 import { parseRequirements, serializeRequirement } from './sbc.js';
 import { toPlayer, evaluate } from './squad.js';
-import { solve, diagnose, type SolveOptions, type ActiveSquad } from './solver.js';
+import { solve, diagnose, pointsPool, solvePoints, NO_FILTERS, type SolveOptions, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
@@ -37,6 +37,7 @@ import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { db, initDb } from './db/index.js';
 import { logEvent, pruneEvents } from './db/events.js';
+import { isPointsChallenge, pointsTarget } from './points.js';
 import { users } from './db/schema.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
@@ -376,8 +377,21 @@ async function clubPlayers(acc: Account) {
 app.get('/api/club', async (req) => clubPlayers(await siteAccount(req)));
 
 app.get('/api/sets', async (req) => {
-  const sets = await readCache<SetsData>((await siteAccount(req)).key('sets'));
-  return { fetchedAt: sets?.fetchedAt ?? null, categories: sets?.data.categories ?? [] };
+  const acc = await siteAccount(req);
+  const sets = await readCache<SetsData>(acc.key('sets'));
+  // a points challenge shows its target on the set tile (from the cached challenges, no EA call)
+  const categories = await Promise.all(
+    (sets?.data.categories ?? []).map(async (cat) => ({
+      ...cat,
+      sets: await Promise.all(
+        cat.sets.map(async (s) => {
+          const ch = (await readCache<Challenge[]>(acc.key(`challenges/${s.setId}`)))?.data.find(isPointsChallenge);
+          return ch ? { ...s, pointsTarget: pointsTarget(ch) } : s;
+        }),
+      ),
+    })),
+  );
+  return { fetchedAt: sets?.fetchedAt ?? null, categories };
 });
 
 app.get<{ Params: { id: string }; Querystring: { refresh?: string } }>('/api/sets/:id/challenges', async (req) => {
@@ -391,6 +405,7 @@ app.get<{ Params: { id: string }; Querystring: { refresh?: string } }>('/api/set
         const layout = await challengeLayout(acc, c.challengeId);
         return {
           ...c,
+          fetchedAt: ch?.fetchedAt ?? null,
           requirements: parseRequirements(c.elgReq, meta).map(serializeRequirement),
           layout,
           // EA locks slots in this challenge but we have not seen which yet
@@ -435,6 +450,43 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     const options = { ...DEFAULT_OPTIONS, ...req.body.options };
     const t0 = Date.now();
     const squad = (await readCache<ActiveSquad>(acc.key('squad')))?.data ?? null;
+    if (isPointsChallenge(ch)) {
+      const target = pointsTarget(ch);
+      if (target === 0) return reply.code(409).send({ error: 'This challenge already has all its points.', code: 'pointsDone', params: {} });
+      const pool = pointsPool(players, reqs, options, squad);
+      const have = pool.reduce((s, p) => s + p.points, 0);
+      const sol = have >= target ? await solvePoints(pool, reqs, target, req.body.deep ? 30 : 10) : null;
+      const found = !!sol?.check.allMet;
+      // only a found selection costs a token, like squads
+      const quota = plan.quota && found ? planInfo(await countSolve(userId), false, Date.now()).quota : plan.quota;
+      logEvent({ type: 'solve', userId, personaId: acc.id, data: { setId, challengeId, found, points: true } });
+      const everyone = pointsPool(players, reqs, NO_FILTERS, null).reduce((s, p) => s + p.points, 0);
+      return {
+        found,
+        status: sol?.status,
+        ms: Date.now() - t0,
+        cost: sol?.cost,
+        eval: {
+          rating: 0,
+          chemistry: 0,
+          results: sol?.check.results ?? reqs.map((r) => ({ text: r.text, met: false, actual: 0 })),
+          allMet: found,
+        },
+        slots: [],
+        points: {
+          target,
+          required: ch.scoreRequirement ?? 0,
+          submitted: ch.submittedScore ?? 0,
+          total: sol?.check.total ?? 0,
+          overshoot: sol?.check.overshoot ?? 0,
+          cards: sol?.cards ?? [],
+        },
+        reasons: sol ? undefined : [{ code: 'points' as const, have, need: target, hidden: Math.max(0, everyone - have) }],
+        usedStorage: !!sol?.cards.some((p) => p.inStorage),
+        clubOnly,
+        quota,
+      };
+    }
     const layout = await challengeLayout(acc, challengeId);
     if (isBrickChallenge(ch.type) && !layout)
       return reply.code(409).send({
