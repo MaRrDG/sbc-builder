@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "users_founder_persona" ON "users" USING btree ("founder_persona");

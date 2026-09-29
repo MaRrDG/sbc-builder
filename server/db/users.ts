@@ -1,8 +1,9 @@
 // FC Solver users and which EA personas they own. Personas are never deleted here except by
 // their own user ("Disconnect"); a takeover keeps the previous owner for the "taken over" notice.
-import { and, eq, gt, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gt, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import { hashToken, newLinkToken } from '../auth-rules.js';
 import type { PlanRow, Tier } from '../plan.js';
+import { earnsSpot } from '../founders.js';
 import { db } from './index.js';
 import { linkTokens, personas, users } from './schema.js';
 
@@ -103,4 +104,35 @@ export async function setPlan(userId: string, tier: Tier, premiumUntil: Date | n
 export async function resetQuota(userId: string): Promise<boolean> {
   const done = await db.update(users).set({ quotaStart: null, quotaUsed: 0 }).where(eq(users.id, userId)).returning({ id: users.id });
   return done.length > 0;
+}
+
+// any fixed number: serialises spot claims so two links at once never make it 51
+const FOUNDERS_LOCK = 4150;
+
+export async function foundersTaken(): Promise<number> {
+  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(users).where(isNotNull(users.founderAt));
+  return row?.n ?? 0;
+}
+
+/**
+ * Founding 50: give `userId` lifetime Premium when linking `personaId` earns a spot (server/founders.ts).
+ * Atomic: the count, the checks and the grant run under one transaction lock.
+ */
+export async function claimFounderSpot(userId: string, personaId: number, admin: boolean, limit: number): Promise<boolean> {
+  if (admin || limit <= 0) return false;
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${FOUNDERS_LOCK})`);
+    const [user] = await tx.select({ founderAt: users.founderAt }).from(users).where(eq(users.id, userId));
+    if (!user) return false;
+    const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(users).where(isNotNull(users.founderAt));
+    const [used] = await tx.select({ id: users.id }).from(users).where(eq(users.founderPersona, personaId));
+    if (!earnsSpot({ admin, alreadyFounder: !!user.founderAt, taken: n, limit, personaUsed: !!used })) return false;
+    await tx.update(users).set({ founderAt: sql`now()`, founderPersona: personaId, plan: 'premium', premiumUntil: null }).where(eq(users.id, userId));
+    return true;
+  });
+}
+
+/** Users with a linked EA account, earliest link first: who the startup backfill offers spots to. */
+export async function linkedInOrder(): Promise<{ userId: string; personaId: number }[]> {
+  return db.select({ userId: personas.userId, personaId: personas.personaId }).from(personas).orderBy(asc(personas.linkedAt));
 }

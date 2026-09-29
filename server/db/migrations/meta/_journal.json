@@ -29,6 +29,20 @@
       "when": 1790336359143,
       "tag": "0003_past_zuras",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790685408623,
+      "tag": "0004_parched_alex_power",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790685720075,
+      "tag": "0005_charming_hydra",
+      "breakpoints": true
     }
   ]
 }

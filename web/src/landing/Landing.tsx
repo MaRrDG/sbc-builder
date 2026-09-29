@@ -11,6 +11,7 @@ import { Steps } from './Steps';
 import { Pricing } from './Pricing';
 import { Faq } from './Faq';
 import { ToTop } from './ToTop';
+import { useFounders } from './Founders';
 import './landing.css';
 
 interface Props {
@@ -21,6 +22,7 @@ interface Props {
 
 export default function Landing({ signedIn, authReady, navigate }: Props) {
   const { t, lang, setLang } = useI18n();
+  const founders = useFounders();
   // the page is lazy-loaded, so the browser's own jump to /#why happened before the section existed
   useEffect(() => {
     let id = window.location.hash.slice(1);
@@ -86,10 +88,10 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
       </header>
 
       <main id="main">
-        <Hero cta={cta()} />
+        <Hero cta={cta()} founders={founders} />
         <Pillars />
         <Steps link={link} />
-        <Pricing cta={cta()} />
+        <Pricing cta={cta()} founders={founders} />
         <Faq />
       </main>
 

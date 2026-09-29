@@ -413,6 +413,10 @@ Optional `jobId`: set by extension 0.8.3+ on responses loaded for a sync job.
 
 Returns `{ "ok": true, "summary": "1 added to club" }`. Items the server has no data for (for example moved back from the transfer list) are picked up by the next club sync.
 
+### `GET /api/founders`
+
+Public, cached 30 s. Founding 50: `{ "limit": 50, "taken": 13, "left": 37 }`. The landing shows its hero board and the Premium ribbon while `left > 0`. A spot is given when a user links an EA persona through `POST /api/hello` (a new link, not `already`): lifetime Premium (`plan: "premium"`, `premium_until: null`), unless the user is an admin, already a founder, or that persona already earned a spot for someone. `FOUNDERS_LIMIT` (50) sets the number.
+
 ### `GET /api/extension/version`
 
 ```json
