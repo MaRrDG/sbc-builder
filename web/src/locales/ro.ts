@@ -52,6 +52,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'clubSync.doneBody_other': '{count} de jucători sunt gata pentru solver.',
   'clubSync.failed': 'Sincronizarea nu s-a terminat',
   'clubSync.failedBody': 'Clubul nu a fost actualizat. Ține tab-ul FC web app deschis și apasă Club ca să încerci din nou.',
+  'clubSync.notStartedBody': 'Tab-ul cu web app-ul FC nu era pregătit (nelogat la EA sau închis). Loghează-te în web app și ține-l deschis: sincronizarea pornește din nou singură.',
   'clubSync.continue': 'Continuă',
   'notice.noExtension': 'Nu ai încă extensia?',
   'notice.howItWorks': 'Cum funcționează?',

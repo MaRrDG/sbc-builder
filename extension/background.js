@@ -202,8 +202,11 @@ async function api(path, init = {}) {
 }
 
 /** A web app tab asked for work and FC Solver answered: we are connected. */
-async function pollJobs(tabId, visible) {
-  const res = await api(`/api/jobs/next${typeof visible === 'boolean' ? `?visible=${visible ? 1 : 0}` : ''}`).catch(() => null);
+async function pollJobs(tabId, visible, ready) {
+  const q = new URLSearchParams();
+  if (typeof visible === 'boolean') q.set('visible', visible ? '1' : '0');
+  if (typeof ready === 'boolean') q.set('ready', ready ? '1' : '0'); // not logged in to EA: no job handed out
+  const res = await api(`/api/jobs/next${q.size ? `?${q}` : ''}`).catch(() => null);
   if (res) {
     await chrome.storage.session.set({ lastPollOkAt: Date.now() });
     // red exactly when the live window runs out if no poll follows
@@ -324,7 +327,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         await refreshBadge();
         return sendResponse({ needIdentity: true });
       }
-      sendResponse(await pollJobs(_sender.tab?.id, msg.visible));
+      sendResponse(await pollJobs(_sender.tab?.id, msg.visible, msg.ready));
     })();
     return true; // async response
   }

@@ -5,7 +5,7 @@ import { SessionError } from './ea.js';
 import { readCache, writeCache, type Cached } from './store.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
-import { enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
+import { clubCalledAt, enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
 import { softly } from './db/index.js';
 import { logEvent } from './db/events.js';
 import { clubDueOnVisit, clubManualAt } from './visit-rules.js';
@@ -20,6 +20,7 @@ export interface SyncStatus {
   clubNextAt: number | null; // when the Club button works again (null: now)
   running: string | null;
   error: string | null;
+  errorCode: 'notStarted' | null; // the last sync failed before the web app tab asked EA anything
   clubAt: number | null;
   sbcAt: number | null;
   sbcNextAt: number | null; // earliest a visit refreshes the SBC list again (null: legacy account)
@@ -49,6 +50,7 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
     clubNextAt: await clubButtonAt(acc),
     running: jobs ? jobs.running : running.get(acc.id) ?? null,
     error: jobs ? jobs.error : errors.get(acc.id) ?? null,
+    errorCode: jobs ? jobs.errorCode : null,
     editedAt: edited.get(acc.id) ?? null,
     unassigned: (await readCache<unknown[]>(acc.key('unassigned')))?.data.length ?? 0,
     clubAt: (await readCache(acc.key('club')))?.fetchedAt ?? null,
@@ -82,15 +84,17 @@ async function run<T>(acc: Account, label: string, fn: () => Promise<T>): Promis
 
 // Club syncs have no daily cap: the schedule runs once after the drop, visits only when the club is
 // older than CLUB_VISIT_STALE_H, and the Club button waits CLUB_MANUAL_COOLDOWN_MIN after the last
-// club load or sync (EA's daily request budget still caps everything). The SBC list is never synced
+// club load or the last club sync that actually called EA (a sync that never reached EA, e.g. the
+// web app was not logged in, blocks nothing). EA's daily request budget still caps everything. The SBC list is never synced
 // on demand: only by the schedule, after the daily drop, and on visits.
 export const CLUB_MANUAL_COOLDOWN_MS = Number(process.env.CLUB_MANUAL_COOLDOWN_MIN ?? 15) * 60 * 1000;
-const clubQueuedAt = new Map<number, number>();
+// legacy accounts sync from the server: their club syncs call EA right away
+const legacyClubAt = new Map<number, number>();
 
 async function clubButtonAt(acc: Account): Promise<number | null> {
   const loaded = (await readCache(acc.key('club')))?.fetchedAt ?? null;
-  const queued = clubQueuedAt.get(acc.id) ?? null;
-  const last = loaded === null ? queued : queued === null ? loaded : Math.max(loaded, queued);
+  const called = acc.clientMode ? clubCalledAt(acc) : legacyClubAt.get(acc.id) ?? null;
+  const last = loaded === null ? called : called === null ? loaded : Math.max(loaded, called);
   return clubManualAt(last, Date.now(), CLUB_MANUAL_COOLDOWN_MS);
 }
 
@@ -115,13 +119,12 @@ export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all', sc
     await acc.meter.check(); // over today's budget or paused: refuse before the tab starts
     if (doClub && !hasPending(acc, 'club')) {
       await enqueue(acc, 'club');
-      clubQueuedAt.set(acc.id, Date.now());
     }
     if (sbc) await enqueue(acc, 'sbc');
     return;
   }
   if (doClub) {
-    clubQueuedAt.set(acc.id, Date.now());
+    legacyClubAt.set(acc.id, Date.now());
     await syncClub(acc);
   }
   if (sbc) await syncSbcs(acc);
@@ -366,7 +369,6 @@ export async function syncOnLink(acc: Account): Promise<boolean> {
     if (!acc.clientMode || hasPending(acc, 'club')) return false;
     await acc.meter.check();
     await enqueue(acc, 'club');
-    clubQueuedAt.set(acc.id, Date.now());
     return true;
   } catch {
     return false; // over today's EA budget or paused

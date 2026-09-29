@@ -52,6 +52,7 @@
     base = m[1];
     headers = { ...sent };
     credentials = withCredentials ? 'include' : 'same-origin';
+    post({ kind: 'ready' }); // logged in to EA: this tab can run sync jobs (sent on every request, cheap)
     if (prevSid && prevSid !== sid) identity = null; // new session, maybe another account
     // the web app normally asks /usermassinfo itself right after login; if not, we ask once
     if (!identity && !identifyTimer)

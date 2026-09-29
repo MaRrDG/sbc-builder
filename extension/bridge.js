@@ -1,8 +1,12 @@
 // Isolated-world relay: page hook <-> extension background.
+// the page hook has the web app's EA session (logged in): only then can this tab run sync jobs
+let ready = false;
+
 window.addEventListener('message', (event) => {
   if (event.source !== window || event.data?.source !== 'sbc-builder-hook') return;
   const d = event.data;
-  if (d.kind === 'identity') chrome.runtime.sendMessage({ type: 'identity', identity: d.identity });
+  if (d.kind === 'ready') ready = true;
+  else if (d.kind === 'identity') chrome.runtime.sendMessage({ type: 'identity', identity: d.identity });
   else if (d.kind === 'call') chrome.runtime.sendMessage({ type: 'job-call', jobId: d.jobId, method: d.method, path: d.path, status: d.status });
   else if (d.kind === 'job-done')
     chrome.runtime.sendMessage({ type: 'job-done', jobId: d.jobId, ok: d.ok, error: d.error }, (res) => {
@@ -16,7 +20,7 @@ window.addEventListener('message', (event) => {
 // open ("Live"); a hidden tab asks less often. Whether the tab is in front goes along, so coming
 // back to the web app (after playing on a console or the companion app) refreshes the SBCs.
 function askForJob() {
-  chrome.runtime.sendMessage({ type: 'poll', visible: !document.hidden }, (res) => {
+  chrome.runtime.sendMessage({ type: 'poll', visible: !document.hidden, ready }, (res) => {
     if (chrome.runtime.lastError || !res) return;
     if (res.needIdentity) window.postMessage({ source: 'fcs-bridge', kind: 'identify' }, window.location.origin);
     else if (res.job) {
