@@ -1242,6 +1242,15 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
   width: min(560px, 82%);
   margin: 0 auto;
   padding: 12px 36px 12px;
+  isolation: isolate;
+}
+
+/* the header shape lives on its own layer: a clip-path on the header itself would hide the requirements dropdown */
+.pitch-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
   background: oklch(0.17 0.02 225);
   clip-path: polygon(0 0, 100% 0, calc(100% - 26px) 100%, 26px 100%);
 }
@@ -2729,6 +2738,9 @@ button.card:active {
   .pitch-header {
     width: 100%;
     padding: 10px 22px;
+  }
+
+  .pitch-header::before {
     clip-path: none;
   }
 
