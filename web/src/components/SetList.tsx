@@ -7,6 +7,43 @@ import { Pager, clampPage } from './Pager';
 import { useI18n } from '../i18n';
 
 const PER_PAGE = 24;
+const KIND_KEY = 'sbc-set-kind';
+const KINDS = [
+  ['all', 'sets.kindAll'],
+  ['squad', 'sets.kindSquad'],
+  ['points', 'sets.kindPoints'],
+] as const;
+type Kind = (typeof KINDS)[number][0];
+
+// a points SBC is known from its cached challenges (/api/sets adds pointsTarget, 0 once done)
+const isPoints = (s: SbcSet) => s.pointsTarget !== undefined;
+
+const OPEN_KEY = 'sbc-set-open';
+
+function savedOpen(): boolean {
+  try {
+    return localStorage.getItem(OPEN_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+function remember(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    /* storage blocked: the choice lasts until reload */
+  }
+}
+
+function savedKind(): Kind {
+  try {
+    const v = localStorage.getItem(KIND_KEY);
+    return v === 'squad' || v === 'points' ? v : 'all';
+  } catch {
+    return 'all';
+  }
+}
 
 interface Props {
   categories: { categoryId: number; name: string; sets: SbcSet[] }[];
@@ -21,12 +58,14 @@ interface Props {
 export function SetList({ categories, filter, onFilter, onPick, localSets, now }: Props) {
   const { t, lang } = useI18n();
   const [page, setPage] = useState(1);
+  const [kind, setKind] = useState<Kind>(savedKind);
+  const [onlyOpen, setOnlyOpen] = useState(savedOpen);
   const q = useDeferredValue(filter).trim().toLowerCase();
   const total = categories.reduce((n, c) => n + c.sets.length, 0);
   // paginate the flat list, then regroup the page by category so headings stay in place
   const matches = useMemo(
-    () => categories.flatMap((cat) => cat.sets.filter((s) => !q || s.name.toLowerCase().includes(q)).map((s) => ({ cat, s }))),
-    [categories, q],
+    () => categories.flatMap((cat) => cat.sets.filter((s) => (!q || s.name.toLowerCase().includes(q)) && (kind === 'all' || isPoints(s) === (kind === 'points')) && (!onlyOpen || repeatOf(s, now).available)).map((s) => ({ cat, s }))),
+    [categories, q, kind, onlyOpen, now],
   );
   const current = clampPage(page, matches.length, PER_PAGE);
   const groups = useMemo(() => {
@@ -58,8 +97,38 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now }
           />
         </label>
       </header>
+      <div className="chips-row set-kinds" role="group" aria-label={t('sets.kind')}>
+        {KINDS.map(([k, label]) => (
+          <button
+            key={k}
+            type="button"
+            className="chip"
+            aria-pressed={kind === k}
+            onClick={() => {
+              setKind(k);
+              setPage(1);
+              remember(KIND_KEY, k);
+            }}
+          >
+            {t(label)}
+          </button>
+        ))}
+        <span className="chips-sep" aria-hidden="true" />
+        <button
+          type="button"
+          className="chip"
+          aria-pressed={onlyOpen}
+          onClick={() => {
+            setOnlyOpen(!onlyOpen);
+            setPage(1);
+            remember(OPEN_KEY, onlyOpen ? '0' : '1');
+          }}
+        >
+          {t('sets.onlyOpen')}
+        </button>
+      </div>
       {categories.length === 0 && <p className="muted">{t('sets.empty')}</p>}
-      {categories.length > 0 && matches.length === 0 && <p className="muted">{t('sets.noMatch', { q: filter })}</p>}
+      {categories.length > 0 && matches.length === 0 && <p className="muted">{q ? t('sets.noMatch', { q: filter }) : t('sets.noneOfKind')}</p>}
       {groups.map(({ cat, sets }) => (
           <section key={cat.categoryId} className="set-section">
             <h2>{cat.name}</h2>
