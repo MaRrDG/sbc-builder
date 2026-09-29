@@ -50,7 +50,7 @@ export function AccountCard({ acc, latest, onChanged, extra }: { acc: AdminAccou
         <dt>{t('admin.account.sbcs')}</dt><dd>{fresh(acc.sbcAt, acc.sbcStale, t('admin.account.sbcList'))}</dd>
         <dt>{t('admin.account.ea')}</dt>
         <dd>
-          {acc.ea.today}/{acc.ea.limit} · {t('admin.account.clubSyncs', { used: acc.clubSyncs.used, limit: acc.clubSyncs.limit })}
+          {acc.ea.today}/{acc.ea.limit}
           {acc.ea.pausedUntil && <span className="adm-badge bad">{t('admin.account.paused')}</span>}
         </dd>
         {acc.running && (<><dt>{t('admin.account.running')}</dt><dd>{acc.running}</dd></>)}

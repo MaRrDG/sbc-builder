@@ -479,7 +479,8 @@ export default function App({
   if (linked.length === 0) return <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} />;
 
   const busy = !!syncing || !!status?.running;
-  const clubLeft = status?.clubSyncs ? Math.max(0, status.clubSyncs.limit - status.clubSyncs.used) : null;
+  // the Club button rests a few minutes after the last club load or sync
+  const clubWait = status?.clubNextAt && status.clubNextAt > now ? Math.ceil((status.clubNextAt - now) / 60000) : 0;
   // players of the shown squad that left the club since it was found (used, sold, moved)
   const goneFromClub =
     result && club.length ? shownPlayers.filter((p) => !clubById.has(p.id) && !storageIds.has(p.id)).length : 0;
@@ -509,19 +510,16 @@ export default function App({
             <button
               type="button"
               className="ghost"
-              disabled={busy || !account?.session || clubLeft === 0}
+              disabled={busy || !account?.session || clubWait > 0}
               onClick={() => doSync('club')}
               title={
-                clubLeft === 0
-                  ? t('top.clubNoneLeft', { limit: status?.clubSyncs.limit ?? 3 })
-                  : t('top.clubTitle', { n: clubLeft ?? 0 })
+clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
               }
             >
               <ArrowsClockwise weight="bold" className={syncing === 'club' || status?.running === 'club' ? 'spin' : ''} />
               <span>{t('top.club')}</span>
               <small>
                 {ago(status?.clubAt ?? null)}
-                {clubLeft !== null && ` · ${t('top.clubLeft', { n: clubLeft })}`}
               </small>
             </button>
             <span className="ghost sync-info" title={t('top.sbcTitle')}>
@@ -729,7 +727,7 @@ export default function App({
 
           {route.view === 'admin' && <AdminLayout route={route} navigate={navigate} />}
 
-          {view === 'guide' && <Guide clubSyncs={status?.clubSyncs.limit ?? 3} eaLimit={status?.ea.limit ?? 150} />}
+          {view === 'guide' && <Guide eaLimit={status?.ea.limit ?? 150} />}
 
           {!showGuide && view === 'sbcs' && !setId && (
             <SetList

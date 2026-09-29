@@ -78,7 +78,7 @@ export default function Root() {
 
   if (!isSignedIn) {
     const body =
-      route.view === 'guide' ? <Guide clubSyncs={3} eaLimit={150} />
+      route.view === 'guide' ? <Guide eaLimit={150} />
       : route.view === 'setup' ? <SetupGuide />
       : <SignIn next={route.view === 'signin' ? safeNext(route.next) : '/dashboard'} onDone={(p) => window.location.replace(p)} />;
     return (

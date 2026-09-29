@@ -2,12 +2,11 @@ import { ArrowRight, ArrowsLeftRight, Browser, Cloud, PuzzlePiece, Lightning } f
 import { useI18n } from '../i18n';
 
 interface Props {
-  clubSyncs: number;
   eaLimit: number;
 }
 
 /** "How it works": the extension, its link with the web app, statuses, data freshness, limits. */
-export function Guide({ clubSyncs, eaLimit }: Props) {
+export function Guide({ eaLimit }: Props) {
   const { t } = useI18n();
   return (
     <article className="howto">
@@ -78,7 +77,7 @@ export function Guide({ clubSyncs, eaLimit }: Props) {
         <section className="howto-card">
           <h2>{t('guide.dataTitle')}</h2>
           <ul className="howto-list">
-            <li>{t('guide.dataClub', { n: clubSyncs })}</li>
+            <li>{t('guide.dataClub')}</li>
             <li>{t('guide.dataSbc')}</li>
             <li>{t('guide.dataSquad')}</li>
             <li>{t('guide.dataMoves')}</li>
