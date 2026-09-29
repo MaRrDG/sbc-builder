@@ -14,6 +14,8 @@ export function reasonText(r: Reason | string, t: T): string {
   if (typeof r === 'string') return r;
   const hidden = r.hidden ? ` ${t('reason.hidden', { count: r.hidden })}` : '';
   switch (r.code) {
+    case 'points':
+      return t('reason.points', { have: r.have ?? 0, need: r.need ?? 0 }) + (r.hidden ? ` ${t('reason.pointsHidden', { count: r.hidden })}` : '');
     case 'pool':
       return t('reason.pool', { have: r.have ?? 0, need: r.need ?? 11 }) + hidden;
     case 'count':

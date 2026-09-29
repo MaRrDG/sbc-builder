@@ -80,6 +80,53 @@ function ChemDots({ value }: { value: number }) {
   );
 }
 
+/** The "searching your club" overlay shown over the pitch / work area while solving. */
+export function SolveLoader() {
+  const { t } = useI18n();
+  return (
+    <div className="pitch-loading" role="status">
+      <div className="deck" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+      <p>{t('pitch.searching')}</p>
+    </div>
+  );
+}
+
+/** Options (left) and Solve / Cheaper (right) corners of the pitch frame. */
+export function PitchCorners({ lock, solving, outOfSolves, hasResult, localOptions, onSolve, onToggleOptions, cheaper }: {
+  lock: { title: string } | null; solving: boolean; outOfSolves: boolean; hasResult: boolean; localOptions: boolean;
+  onSolve: (deep?: boolean) => void; onToggleOptions: () => void; cheaper: boolean;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      <button className="corner corner-left" type="button" onClick={onToggleOptions}>
+        <Wrench weight="fill" aria-hidden="true" /> {t('pitch.options')}
+        {localOptions && <em className="badge">{t('pitch.local')}</em>}
+      </button>
+      <div className="corner corner-right">
+        {lock ? (
+          <span className="solve done">
+            <SealCheck weight="fill" aria-hidden="true" /> {lock.title}
+          </span>
+        ) : (
+          <button className="solve" type="button" disabled={solving || outOfSolves} onClick={() => onSolve(false)}>
+            <Lightning weight="fill" aria-hidden="true" /> {hasResult ? t('pitch.resolve') : t('pitch.solve')}
+          </button>
+        )}
+        {cheaper && hasResult && !lock && (
+          <button className="solve-deep" type="button" disabled={solving || outOfSolves} onClick={() => onSolve(true)} title={t('pitch.cheaperTitle')}>
+            {t('pitch.cheaper')}
+          </button>
+        )}
+      </div>
+    </>
+  );
+}
+
 interface Props {
   meta: Meta;
   challenge: Challenge;
@@ -193,16 +240,7 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
             </div>
           );
         })}
-        {solving && (
-          <div className="pitch-loading" role="status">
-            <div className="deck" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
-            <p>{t('pitch.searching')}</p>
-          </div>
-        )}
+        {solving && <SolveLoader />}
         {lock && (
           <div className="pitch-done">
             <SealCheck weight="fill" aria-hidden="true" />
@@ -212,26 +250,10 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
         )}
       </div>
 
-      <button className="corner corner-left" type="button" onClick={onToggleOptions}>
-        <Wrench weight="fill" aria-hidden="true" /> {t('pitch.options')}
-        {localOptions && <em className="badge">{t('pitch.local')}</em>}
-      </button>
-      <div className="corner corner-right">
-        {lock ? (
-          <span className="solve done">
-            <SealCheck weight="fill" aria-hidden="true" /> {lock.title}
-          </span>
-        ) : (
-          <button className="solve" type="button" disabled={solving || outOfSolves} onClick={() => onSolve(false)}>
-            <Lightning weight="fill" aria-hidden="true" /> {result ? t('pitch.resolve') : t('pitch.solve')}
-          </button>
-        )}
-        {result && !locked && (
-          <button className="solve-deep" type="button" disabled={solving || outOfSolves} onClick={() => onSolve(true)} title={t('pitch.cheaperTitle')}>
-            {t('pitch.cheaper')}
-          </button>
-        )}
-      </div>
+      <PitchCorners
+        lock={lock} solving={solving} outOfSolves={outOfSolves} hasResult={!!result} localOptions={localOptions}
+        onSolve={onSolve} onToggleOptions={onToggleOptions} cheaper
+      />
     </div>
   );
 }
