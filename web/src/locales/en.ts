@@ -49,6 +49,7 @@ export const en = {
   'clubSync.doneBody_other': '{count} players are ready for the solver.',
   'clubSync.failed': 'The sync did not finish',
   'clubSync.failedBody': 'Your club was not updated. Keep the FC web app tab open and press Club to try again.',
+  'clubSync.notStartedBody': 'The FC web app tab was not ready (not logged in to EA, or closed). Log in to the web app and keep it open: the sync runs again on its own.',
   'clubSync.continue': 'Continue',
   'notice.noExtension': 'No extension yet?',
   'notice.howItWorks': 'How does it work?',

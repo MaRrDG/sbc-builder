@@ -30,13 +30,22 @@ export interface Job {
   clubReplaced?: boolean;
   /** club only: players loaded so far, for the progress bar */
   clubLoaded?: number;
+  /** first request the page made to EA for this job (reported through /api/jobs/:id/call) */
+  calledAt?: number;
+  /** failed without ever calling EA (web app not logged in, tab closed): costs EA nothing */
+  notStarted?: boolean;
 }
 
 const queues = new Map<number, Job[]>();
 const lastPoll = new Map<number, number>();
 const lastVisible = new Map<number, boolean>();
 const lastFinished = new Map<number, number>();
+const lastClubCall = new Map<number, number>();
+const NOT_STARTED = 'The web app tab did not start the sync. Log in to EA in the web app and it runs again.';
 const RUNNING_TIMEOUT = 3 * 60 * 1000; // a tab closed mid-job: give up and allow a new one
+// handed to a tab that never called EA for it (web app not logged in, tab gone to the EA login):
+// the first request goes out within ~20 s (quiet wait + gap), so give up well before RUNNING_TIMEOUT
+const START_TIMEOUT = 60 * 1000;
 const OPEN_WINDOW = 30 * 1000; // the extension polls every few seconds while a web app tab is open
 const MAX_SETS_PER_JOB = 40;
 const REST_BETWEEN_JOBS = 5 * 1000; // a breather for EA between one job and the next
@@ -49,11 +58,21 @@ function queueOf(acc: Account) {
   if (!q) queues.set(acc.id, (q = []));
   // forget finished jobs after a while, fail jobs a closed tab never finished
   const now = Date.now();
-  for (const j of q)
-    if (j.status === 'running' && now - (j.startedAt ?? now) > RUNNING_TIMEOUT) {
+  for (const j of q) {
+    if (j.status === 'running' && !j.calledAt && now - (j.startedAt ?? now) > START_TIMEOUT) {
+      j.status = 'failed';
+      j.error = NOT_STARTED;
+      j.notStarted = true;
+    } else if (j.status === 'running' && now - (j.startedAt ?? now) > RUNNING_TIMEOUT) {
       j.status = 'failed';
       j.error = 'The web app tab stopped before the sync finished.';
+    } else if (j.status === 'queued' && now - j.createdAt > OPEN_WINDOW && !webAppOpen(acc)) {
+      // the tab closed (or went to the EA login) before it took the job: nobody will run it
+      j.status = 'failed';
+      j.error = NOT_STARTED;
+      j.notStarted = true;
     }
+  }
   const keep = q.filter((j) => j.status === 'queued' || j.status === 'running' || now - j.createdAt < 10 * 60 * 1000);
   q.splice(0, q.length, ...keep);
   return q;
@@ -101,10 +120,11 @@ export function webAppReturned(acc: Account, visible: boolean | undefined): bool
   return !wasOpen || (visible === true && wasVisible === false);
 }
 
-/** The extension asks for the next job; also marks the web app tab as open. */
-export function nextJob(acc: Account): Job | null {
+/** The extension asks for the next job; also marks the web app tab as open. `canRun` false: the tab is not logged in to EA yet. */
+export function nextJob(acc: Account, canRun = true): Job | null {
   lastPoll.set(acc.id, Date.now());
   const q = queueOf(acc);
+  if (!canRun) return null; // queued jobs wait for the login
   if (q.some((j) => j.status === 'running')) return null; // one at a time
   if (Date.now() - (lastFinished.get(acc.id) ?? 0) < REST_BETWEEN_JOBS) return null;
   const job = q.find((j) => j.status === 'queued') ?? null;
@@ -114,6 +134,16 @@ export function nextJob(acc: Account): Job | null {
   }
   return job;
 }
+
+/** The page made a request to EA for this job; a club sync's first one starts the Club button cooldown. */
+export function markCall(acc: Account, job: Job) {
+  if (job.calledAt) return;
+  job.calledAt = Date.now();
+  if (job.kind === 'club') lastClubCall.set(acc.id, job.calledAt);
+}
+
+/** When a club sync last actually asked EA for something (null: not since the server started). */
+export const clubCalledAt = (acc: Account) => lastClubCall.get(acc.id) ?? null;
 
 export function findJob(acc: Account, id: string) {
   return queueOf(acc).find((j) => j.id === id) ?? null;
@@ -151,7 +181,10 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
   job.status = ok ? 'done' : 'failed';
   lastFinished.set(acc.id, Date.now());
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';
-  if (job.kind === 'club' || job.kind === 'sbc')
+  // e.g. "The web app has not talked to EA yet.": the page never asked EA, so nothing was spent
+  if (!ok && !job.calledAt) job.notStarted = true;
+  // a tab that is not ready fails every scheduled retry at once: keep those out of the history
+  if ((job.kind === 'club' || job.kind === 'sbc') && !job.notStarted)
     logEvent({ type: 'sync', personaId: acc.id, data: { what: job.kind, ok, mode: 'client', ...(ok ? {} : { error: job.error!.slice(0, 200) }) } });
   if (!ok || job.kind !== 'sbc') return { playedElsewhere: false, changedSets: 0 };
   const sets = await readCache<SetsData>(acc.key('sets'));
@@ -176,6 +209,8 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
 export function jobStatus(acc: Account): {
   running: string | null;
   error: string | null;
+  /** 'notStarted': the last job failed before the tab asked EA anything (not logged in, tab closed) */
+  errorCode: 'notStarted' | null;
   club: { state: 'queued' | 'running'; loaded: number } | null;
 } {
   const q = queueOf(acc);
@@ -185,6 +220,7 @@ export function jobStatus(acc: Account): {
   return {
     running: active ? (active.kind === 'club' ? 'club' : active.kind === 'challengeSquad' ? 'squad' : 'sbc') : null,
     error: !active && last?.status === 'failed' ? last.error ?? null : null,
+    errorCode: !active && last?.status === 'failed' && last.notStarted ? 'notStarted' : null,
     club: clubJob ? { state: clubJob.status === 'running' ? 'running' : 'queued', loaded: clubJob.clubLoaded ?? 0 } : null,
   };
 }

@@ -49,6 +49,7 @@ export interface SyncStatus {
   clubNextAt: number | null; // when the Club button works again (null: now)
   running: string | null;
   error: string | null;
+  errorCode: 'notStarted' | null; // the last sync failed before the web app tab asked EA anything
   clubAt: number | null;
   sbcAt: number | null;
   sbcNextAt: number | null; // a visit refreshes the SBC list from then on (null: legacy account)

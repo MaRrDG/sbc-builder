@@ -12,7 +12,7 @@ import { solve, diagnose, pointsPool, solvePoints, NO_FILTERS, type SolveOptions
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
-import { enqueue, findJob, finishJob, hasPending, nextJob, webAppOpen, webAppReturned } from './jobs.js';
+import { enqueue, findJob, finishJob, hasPending, markCall, nextJob, webAppOpen, webAppReturned } from './jobs.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { isAdmin } from './admin/auth.js';
 import { registerAdminRoutes } from './admin/routes.js';
@@ -283,9 +283,10 @@ app.get('/api/jobs/next', async (req) => {
     return { job: null }; // over budget or paused: the queue waits
   }
   // came (back) to the web app: SBCs done elsewhere in the meantime show up; handed out next poll
-  const visible = (req.query as { visible?: string }).visible;
+  const { visible, ready } = req.query as { visible?: string; ready?: string };
   const returned = webAppReturned(acc, visible === undefined ? undefined : visible === '1');
-  const job = nextJob(acc);
+  // extension 0.8.8+: a web app tab not logged in to EA yet keeps the tab "open" but gets no job
+  const job = nextJob(acc, ready !== '0');
   if (returned) await refreshOnVisit(acc);
   return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId } };
 });
@@ -296,8 +297,10 @@ app.post<{ Params: { id: string }; Body: { method: string; path: string; status:
   async (req, reply) => {
     const acc = account(req);
     const { method, path, status } = req.body ?? ({} as never);
-    if (!findJob(acc, req.params.id) || typeof method !== 'string' || typeof path !== 'string' || !path.startsWith('/'))
+    const job = findJob(acc, req.params.id);
+    if (!job || typeof method !== 'string' || typeof path !== 'string' || !path.startsWith('/'))
       return reply.code(400).send({ error: 'invalid call' });
+    markCall(acc, job);
     await acc.meter.record(method.toUpperCase().slice(0, 8), path.slice(0, 200), Number.isInteger(status) ? status : null);
     if (THROTTLE_CODES.includes(status ?? 0)) acc.meter.pause();
     return { ok: true };

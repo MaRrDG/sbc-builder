@@ -41,7 +41,7 @@ Returns `{ ok, account, accessKey, linked, linkRejected, clubQueued }` and switc
 
 ### `GET /api/jobs/next` (extension)
 
-The web app tab asks for work: `{ "job": { "id": "9f…", "kind": "club" | "sbc" | "challenges", "setIds": [16] } }` or `{ "job": null }`. One job runs at a time; nothing is handed out when today's budget is used or the account is paused. Calling this marks the web app as open (`session: true` for 30 s). `?visible=1|0` (extension 0.8.4+): whether the tab is in front. When the web app was closed, or the tab was hidden and is now in front, the SBC list refresh of `POST /api/sync/visit` is queued (same 30 min cooldown); it is handed out on the next poll. That same transition on `/api/jobs/next` also triggers the visit refresh (club + SBC list, same rules as `POST /api/sync/visit`).
+The web app tab asks for work: `{ "job": { "id": "9f…", "kind": "club" | "sbc" | "challenges", "setIds": [16] } }` or `{ "job": null }`. One job runs at a time; nothing is handed out when today's budget is used or the account is paused. Calling this marks the web app as open (`session: true` for 30 s). `?visible=1|0` (extension 0.8.4+): whether the tab is in front. `?ready=0` (extension 0.8.8+): the tab has no EA session yet (not logged in); it still counts as open but gets no job, so queued jobs wait for the login. A job handed out that makes no EA request within 60 s fails (`errorCode: "notStarted"` in the sync status), as does a queued job whose tab stopped polling; neither starts the club cooldown, which counts from a club job's first EA request. When the web app was closed, or the tab was hidden and is now in front, the SBC list refresh of `POST /api/sync/visit` is queued (same 30 min cooldown); it is handed out on the next poll. That same transition on `/api/jobs/next` also triggers the visit refresh (club + SBC list, same rules as `POST /api/sync/visit`).
 
 ### `POST /api/jobs/:id/call` (extension)
 
@@ -102,7 +102,7 @@ Browsers no longer hold access keys; use `GET /api/me`.
 ```json
 {
   "account": { "personaId": 1005016552645, "session": true, "extVersion": "0.3.0", "...": "..." },
-  "sync": { "running": "club", "error": null, "club": { "state": "running", "loaded": 400, "expected": 1830 }, "clubAt": 1790064472801, "sbcAt": 1790062053735, "sbcNextAt": 1790063853735, "editedAt": null, "unassigned": 1,
+  "sync": { "running": "club", "error": null, "errorCode": null, "clubNextAt": null, "club": { "state": "running", "loaded": 400, "expected": 1830 }, "clubAt": 1790064472801, "sbcAt": 1790062053735, "sbcNextAt": 1790063853735, "editedAt": null, "unassigned": 1,
             "ea": { "today": 12, "limit": 150, "pausedUntil": null, "byPath": { "/club": 3 }, "recent": [{ "at": 1790064472801, "method": "POST", "path": "/club", "status": 200 }] } },
   "extension": { "version": "0.4.0", "notes": ["Update notices in the web app and on the site"] }
 }

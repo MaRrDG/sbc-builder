@@ -1,4 +1,7 @@
 {
+  "0.8.8": [
+    "Syncs wait until you are logged in to EA in the web app, instead of failing and getting stuck"
+  ],
   "0.8.7": [
     "Reads the SBC list the way the web app does now, so points SBCs (Player SBCs) show up in FC Solver"
   ],

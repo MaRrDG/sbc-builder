@@ -81,7 +81,7 @@ export function ClubSyncModal({ status, players }: { status: SyncStatus | null; 
         <>
           <WarningCircle weight="fill" className="club-sync-icon bad" aria-hidden />
           <h2 id="club-sync-title">{t('clubSync.failed')}</h2>
-          <p>{t('clubSync.failedBody')}</p>
+          <p>{status?.errorCode === 'notStarted' ? t('clubSync.notStartedBody') : t('clubSync.failedBody')}</p>
           <button type="button" className="club-sync-close" autoFocus onClick={() => setPhase(null)}>
             {t('clubSync.continue')}
           </button>
