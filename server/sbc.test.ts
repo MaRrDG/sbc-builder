@@ -24,3 +24,10 @@ test('unknown attribute id still gets readable text', () => {
   const [r] = parseRequirements(ovrMin45.map((e) => (e.eligibilityKey === 41 ? { ...e, eligibilityValue: 999 } : e)), meta);
   assert.equal(r.text, 'Attribute 999 Min: 45');
 });
+
+test('missing value and out-of-range scope keep the text clean', () => {
+  const noValue = parseRequirements(ovrMin45.filter((e) => e.eligibilityKey !== 40), meta)[0];
+  assert.equal(noValue.text, 'OVR Min: ?');
+  const odd = parseRequirements(ovrMin45.map((e) => (e.eligibilityKey === 13 ? { ...e, eligibilityValue: 7 } : e)), meta)[0];
+  assert.equal(odd.text, 'OVR: 45');
+});
