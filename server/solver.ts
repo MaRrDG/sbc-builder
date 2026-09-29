@@ -11,6 +11,7 @@ import {
 } from './squad.js';
 import type { BrickSlot, ChallengeLayout } from './layout.js';
 import { ROOT } from './store.js';
+import { cardRule, checkPoints, type PointsCheck } from './points.js';
 
 const PYTHON = process.env.SOLVER_PYTHON ?? join(ROOT, 'solver/.venv/bin/python');
 const SCRIPT = join(ROOT, 'solver/cpsat.py');
@@ -207,6 +208,7 @@ function buildProblem(
 }
 
 interface CpResult {
+  picked?: number[]; // points mode: pool indexes
   status: string;
   slots?: (number | null)[];
   kept?: number[]; // pool indexes of placed players the solver kept
@@ -265,14 +267,14 @@ async function solveAnd(
   };
 }
 
-const NO_FILTERS: SolveOptions = {
+export const NO_FILTERS: SolveOptions = {
   excludeIds: [], excludeActiveSquad: false, excludeSquadReserves: false, excludeNations: [], excludeLeagues: [],
   excludeClubs: [], onlyUntradeable: false, maxRating: 99, excludeSpecial: false, keepPlaced: true,
 };
 
 /** Why no squad exists, as data the site words in the user's language (web/src/messages.ts). */
 export interface Reason {
-  code: 'pool' | 'count' | 'sameGroup' | 'distinct' | 'rating' | 'combo';
+  code: 'pool' | 'count' | 'sameGroup' | 'distinct' | 'rating' | 'combo' | 'points';
   req?: string; // requirement text as EA words it
   have?: number;
   need?: number;
@@ -368,4 +370,33 @@ export async function solve(
   }
   if (best) best.eval = evaluate(best.slots, slotTypes, reqs, 'OR', meta, layout?.bricks ?? []);
   return best;
+}
+
+/** Cards a points SBC may use: the usual pool, the per-card requirements we can check, worth > 0 points. */
+export function pointsPool(players: Player[], reqs: Requirement[], options: SolveOptions, squad: ActiveSquad | null): Player[] {
+  const rules = reqs.map(cardRule).filter((r): r is (p: Player) => boolean => r !== null);
+  return eligiblePool(players, reqs, options, squad).filter((p) => p.points > 0 && rules.every((rule) => rule(p)));
+}
+
+export interface PointsSolution {
+  cards: Player[]; // sorted like the web app's Work Area: rating ascending
+  check: PointsCheck;
+  cost: number;
+  status: string;
+}
+
+/** Points SBC: the least overshoot over `target`, then the cheapest cards (solver/cpsat.py, mode "points"). */
+export async function solvePoints(pool: Player[], reqs: Requirement[], target: number, timeLimit = 10): Promise<PointsSolution | null> {
+  const problem = {
+    mode: 'points',
+    target,
+    items: pool.map((p) => ({ points: p.points, cost: playerCost(p), group: p.assetId })),
+    timeLimit,
+    workers: 8,
+  };
+  if (process.env.SOLVER_DUMP) (await import('node:fs')).writeFileSync(process.env.SOLVER_DUMP, JSON.stringify(problem));
+  const res = await runCpSat(problem);
+  if (!res.picked) return null;
+  const cards = res.picked.map((i) => pool[i]).sort((a, b) => a.rating - b.rating || a.id - b.id);
+  return { cards, check: checkPoints(cards, target, reqs), cost: res.cost ?? 0, status: res.status };
 }

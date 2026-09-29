@@ -239,6 +239,55 @@ def solve(p):
     }
 
 
+def solve_points(p):
+    """Points SBC: pick cards with points >= target, least overshoot first, then the lowest cost.
+
+    Stage 1 minimises the total (so the overshoot); stage 2 keeps that total and minimises the cost.
+    Items sharing a `group` (same player) are used at most once.
+    """
+    items = p["items"]
+    target = int(p["target"])
+    m = cp_model.CpModel()
+    x = [m.NewBoolVar(f"x{i}") for i in range(len(items))]
+    total = sum(int(it["points"]) * x[i] for i, it in enumerate(items))
+    m.Add(total >= target)
+    groups = {}
+    for i, it in enumerate(items):
+        groups.setdefault(it["group"], []).append(x[i])
+    for g in groups.values():
+        if len(g) > 1:
+            m.Add(sum(g) <= 1)
+
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = float(p.get("timeLimit", 10)) / 2
+    solver.parameters.num_workers = int(p.get("workers") or min(16, os.cpu_count() or 8))
+    ok = (cp_model.OPTIMAL, cp_model.FEASIBLE)
+
+    m.Minimize(total)
+    status = solver.Solve(m)
+    if status not in ok:
+        return {"status": solver.StatusName(status)}
+    best = int(round(solver.ObjectiveValue()))
+    picked = [i for i in range(len(items)) if solver.Value(x[i])]
+    wall = solver.WallTime()
+
+    m.Add(total == best)
+    m.Minimize(sum(int(round(it["cost"] * 100)) * x[i] for i, it in enumerate(items)))
+    for i in range(len(items)):
+        m.AddHint(x[i], 1 if i in picked else 0)
+    status2 = solver.Solve(m)
+    if status2 in ok:
+        picked = [i for i in range(len(items)) if solver.Value(x[i])]
+        status = status2
+    return {
+        "status": solver.StatusName(status),
+        "picked": picked,
+        "total": best,
+        "cost": round(sum(items[i]["cost"] for i in picked), 2),
+        "wallTime": wall + solver.WallTime(),
+    }
+
+
 if __name__ == "__main__":
     problem = json.load(sys.stdin)
-    json.dump(solve(problem), sys.stdout)
+    json.dump(solve_points(problem) if problem.get("mode") == "points" else solve(problem), sys.stdout)
