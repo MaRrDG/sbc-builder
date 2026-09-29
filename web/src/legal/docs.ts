@@ -1,5 +1,5 @@
-// Terms, privacy policy and cookie policy, in both site languages. Long legal text lives here as
-// whole documents instead of t() keys; docs.test.ts keeps the two languages in step.
+// Terms, privacy policy and cookie policy, in every site language. Long legal text lives here as
+// whole documents instead of t() keys; docs.test.ts keeps the languages in step.
 // Change UPDATED whenever a document's meaning changes.
 import type { Lang } from '../i18n';
 
@@ -371,4 +371,179 @@ const ro: Record<LegalDoc, Doc> = {
   },
 };
 
-export const LEGAL: Record<Lang, Record<LegalDoc, Doc>> = { en, ro };
+const it: Record<LegalDoc, Doc> = {
+  terms: {
+    title: "Termini d'uso",
+    intro: `Questi termini si applicano a FC Solver, al sito e alla sua estensione per Chrome, gestiti da ${OPERATOR} (Romania, «noi»). Creando un account o usando FC Solver li accetti.`,
+    sections: [
+      {
+        id: 'service',
+        h: 'Cosa fa FC Solver',
+        p: [
+          "FC Solver legge il tuo club di EA SPORTS FC 27 Ultimate Team e l'elenco delle Squad Building Challenges (SBC) tramite la sua estensione per browser, mentre hai aperta la web app di EA FC, e ti propone la rosa più economica, tra i giocatori che possiedi, che completa una SBC.",
+          'FC Solver si limita a leggere da EA: non compra, non vende, non sposta, non invia e non modifica nulla nel tuo account EA. Ogni rosa la costruisci e la invii tu, nella web app di EA.',
+        ],
+      },
+      {
+        id: 'ea',
+        h: 'Non affiliato a EA',
+        p: [
+          'FC Solver è un progetto indipendente di un appassionato. Non è affiliato, approvato, sponsorizzato o autorizzato da Electronic Arts Inc. EA SPORTS, EA SPORTS FC, Ultimate Team e i nomi, le immagini delle carte e i loghi correlati appartengono a Electronic Arts e ai suoi licenzianti; i nomi e le immagini dei giocatori appartengono ai rispettivi titolari.',
+          "L'uso dei servizi EA è regolato dai termini di EA. Gli strumenti che funzionano insieme alla web app di EA possono entrare in conflitto con essi, e solo EA decide cosa consentire. FC Solver fa a EA poche richieste, di sola lettura, ma non possiamo garantire che EA non limiterà mai un account. Usi FC Solver a tuo rischio.",
+        ],
+      },
+      {
+        id: 'account',
+        h: 'Il tuo account',
+        p: [
+          "Accedi con un codice via email o con Google. Devi avere almeno 16 anni ed essere autorizzato da EA a usare l'account EA che colleghi.",
+          "Collega solo account EA che sono tuoi. Tieni l'accesso e l'estensione sui tuoi dispositivi; l'estensione conserva una chiave che dà accesso ai tuoi dati su FC Solver.",
+        ],
+      },
+      {
+        id: 'use',
+        h: 'Uso corretto',
+        p: [
+          'Non fare un uso improprio di FC Solver: niente tentativi di violarne la sicurezza, di accedere ai dati di altre persone, di sovraccaricarlo, di estrarne dati in massa o di usarlo per automatizzare azioni nei servizi EA. Possiamo sospendere o rimuovere gli account che lo fanno.',
+        ],
+      },
+      {
+        id: 'accuracy',
+        h: 'Nessuna garanzia',
+        p: [
+          "Riproduciamo con cura le regole del gioco, ma rose, valutazioni, intesa e verifiche dei requisiti possono essere sbagliate o non aggiornate, per esempio dopo un aggiornamento del gioco o quando EA modifica una SBC. Controlla sempre la rosa nella web app di EA prima di inviarla.",
+          "FC Solver è fornito «così com'è», senza garanzie di alcun tipo, e può cambiare, non essere disponibile o chiudere in qualsiasi momento.",
+        ],
+      },
+      {
+        id: 'liability',
+        h: 'Responsabilità',
+        p: [
+          "Nei limiti consentiti dalla legge, non siamo responsabili per oggetti, crediti, pacchetti o ricompense persi, limitazioni dell'account o qualsiasi danno indiretto derivante dall'uso di FC Solver o da una rosa suggerita. Nulla in questi termini limita la responsabilità che la legge non consente di limitare, né i tuoi diritti di consumatore.",
+        ],
+      },
+      {
+        id: 'paid',
+        h: 'Piani',
+        p: [
+          "FC Solver ha un piano Free e un piano Premium. Il piano Free include un numero settimanale di risoluzioni (indicato nell'app accanto al pulsante Risolvi e nelle Impostazioni); conta solo una risoluzione che trova una rosa, e la settimana inizia con la tua prima risoluzione conteggiata e si azzera 7 giorni dopo. Premium elimina il limite e aggiunge le impostazioni globali del solver. Possiamo concedere o terminare Premium, e modificare il limite del piano Free, con un avviso nell'app.",
+          'I prezzi indicati sul sito per Premium sono indicativi; i piani a pagamento non sono ancora in vendita. Quando lo saranno, prezzo, fatturazione e condizioni di disdetta verranno mostrati prima del pagamento, e questi termini verranno aggiornati.',
+        ],
+      },
+      {
+        id: 'end',
+        h: 'Cessazione e modifiche',
+        p: [
+          "Puoi smettere di usare FC Solver in qualsiasi momento e chiederci di eliminare il tuo account (vedi l'informativa sulla privacy). Possiamo aggiornare questi termini; quando lo facciamo cambia la data qui sotto, e le modifiche importanti vengono annunciate sul sito.",
+        ],
+      },
+      {
+        id: 'law',
+        h: 'Legge applicabile e contatti',
+        p: [
+          `Questi termini sono regolati dalla legge romena; come consumatore nell'UE mantieni anche la tutela della legge del tuo Paese. Domande: ${CONTACT}.`,
+        ],
+      },
+    ],
+  },
+  privacy: {
+    title: 'Informativa sulla privacy',
+    intro: `Questa informativa spiega quali dati personali tratta FC Solver e perché. Il titolare del trattamento è ${OPERATOR}, Romania, contattabile all'indirizzo ${CONTACT}.`,
+    sections: [
+      {
+        id: 'data',
+        h: 'Cosa trattiamo',
+        p: [
+          "- Account: il tuo indirizzo email, il metodo di accesso (codice via email o Google; con Google, l'email del tuo account Google e i dati di base del profilo), un id utente interno, la data di registrazione e dell'ultima attività.",
+          "- Dati EA, letti dall'estensione dalla web app di EA che hai aperta: id e nome della tua persona EA, nome del club, i giocatori del tuo club, gli oggetti non assegnati e il deposito SBC, la tua rosa attiva, l'elenco delle SBC e i tuoi progressi, e gli slot bloccati delle SBC che apri. Non riceviamo la tua password EA. L'id della tua sessione EA viene usato una sola volta per confermare che l'account è tuo e non viene conservato (le estensioni precedenti alla 0.7 lo conservano ancora sul server finché non vengono aggiornate).",
+          '- Uso del servizio: quante richieste abbiamo fatto a EA per il tuo account ogni giorno, orari ed errori delle sincronizzazioni, la versione dell\'estensione e le impostazioni del solver che invii con ogni risoluzione.',
+          '- Dati tecnici: indirizzo IP e dettagli del browser nei log del server e di sicurezza, e per limitare gli abusi.',
+          "- Solo nel tuo browser: impostazioni del solver, rose salvate, lingua e preferenze simili (vedi la cookie policy).",
+        ],
+      },
+      {
+        id: 'why',
+        h: 'Perché, e su quale base giuridica',
+        p: [
+          "- Per fornire FC Solver (accesso, sincronizzazione del club e delle SBC, risoluzione): esecuzione del contratto con te (art. 6, par. 1, lett. b) GDPR).",
+          '- Per mantenerlo sicuro e funzionante (log, limiti di richieste, correzione di errori) e per capire in forma aggregata come viene usato il sito: il nostro legittimo interesse (art. 6, par. 1, lett. f)).',
+          "- I dati delle SBC sono condivisi in modo limitato: l'elenco delle SBC, le sfide e le disposizioni degli slot bloccati segnalate dagli account vengono salvate una sola volta per tutti, così ogni utente riceve disposizioni corrette. Le segnalazioni sono legate a un id persona EA e non vengono mai mostrate ad altri utenti.",
+        ],
+      },
+      {
+        id: 'who',
+        h: 'Chi altro li tratta',
+        p: [
+          '- Clerk, Inc. (USA): accesso e account utente. I trasferimenti verso gli USA si basano sul Data Privacy Framework UE-USA e sulle Clausole contrattuali standard.',
+          '- Google: solo se accedi con Google.',
+          '- Cloudflare, Inc.: rete, DNS e protezione dagli attacchi; il traffico passa attraverso i suoi server.',
+          '- OpenWebTrack (ospitato nell\'UE): statistiche del sito aggregate e senza cookie (pagine visitate, provenienza, Paese, tipo di dispositivo). Nessun cookie e nessun tracciamento tra siti.',
+          '- Il nostro server e il nostro database, gestiti da noi.',
+          'Non vendiamo dati personali e non li usiamo per la pubblicità.',
+        ],
+      },
+      {
+        id: 'keep',
+        h: 'Per quanto tempo li conserviamo',
+        p: [
+          "Dati dell'account e dati EA: finché il tuo account esiste; i dati del club e delle SBC vengono sovrascritti a ogni sincronizzazione. Contatori delle richieste a EA: pochi giorni. I log del server vengono conservati per un periodo limitato e poi eliminati a rotazione. Dopo che ci chiedi di eliminare il tuo account, rimuoviamo i tuoi dati entro 30 giorni, tranne i dati SBC condivisi descritti sopra, che non rimandano più a te una volta rimossa la persona.",
+        ],
+      },
+      {
+        id: 'rights',
+        h: 'I tuoi diritti',
+        p: [
+          `Puoi chiedere l'accesso ai tuoi dati, una loro copia, la rettifica, la cancellazione, la limitazione, oppure opporti al trattamento basato sul legittimo interesse, scrivendo a ${CONTACT}. Puoi scollegare tu stesso un account EA dalle Impostazioni. Hai anche il diritto di presentare reclamo all'autorità romena per la protezione dei dati (ANSPDCP, dataprotection.ro) o a quella del tuo Paese, come il Garante per la protezione dei dati personali in Italia.`,
+        ],
+      },
+      {
+        id: 'kids',
+        h: 'Minori',
+        p: ['FC Solver non è destinato a chi ha meno di 16 anni, e non trattiamo consapevolmente i loro dati.'],
+      },
+      {
+        id: 'changes',
+        h: 'Modifiche',
+        p: ['Quando questa informativa cambia, cambia anche la data qui sotto; le modifiche importanti vengono annunciate sul sito.'],
+      },
+    ],
+  },
+  cookies: {
+    title: 'Cookie policy',
+    intro: 'FC Solver usa solo ciò che gli serve per funzionare. Non ci sono cookie pubblicitari o di tracciamento, e le statistiche vengono raccolte senza cookie, quindi non c\'è alcun banner per il consenso.',
+    sections: [
+      {
+        id: 'needed',
+        h: 'Cookie strettamente necessari',
+        p: [
+          "- Clerk (accesso), per esempio __session, __client_uat e __client: ti mantengono connesso. Vengono impostati sul nostro dominio e sul dominio di accesso di Clerk; durano quanto la tua sessione o finché non esci.",
+          '- Cloudflare, per esempio __cf_bm o cf_clearance: distinguono le persone dai bot e proteggono il sito. Durano fino a 30 minuti, o di più dopo un controllo di sicurezza.',
+        ],
+      },
+      {
+        id: 'local',
+        h: 'Archiviazione nel tuo browser',
+        p: [
+          "Il sito salva alcune informazioni nella memoria locale del tuo browser, mai inviate ad altri: la lingua, le impostazioni del solver (globali e per SBC), i giocatori esclusi da una SBC, le ultime rose trovate e quali avvisi hai chiuso. Puoi cancellarle in qualsiasi momento dalle impostazioni del browser.",
+          "L'estensione conserva la sua chiave di accesso e il suo stato nella memoria propria dell'estensione in Chrome.",
+        ],
+      },
+      {
+        id: 'stats',
+        h: 'Statistiche',
+        p: [
+          'Contiamo le visite con OpenWebTrack in modalità senza cookie: sul tuo dispositivo non viene salvato alcun cookie o identificativo, e i risultati vengono esaminati solo in forma aggregata.',
+        ],
+      },
+      {
+        id: 'control',
+        h: 'Le tue scelte',
+        p: [
+          "Puoi bloccare o eliminare i cookie dal tuo browser; se blocchi quelli necessari, l'accesso non funzionerà. Domande: " + CONTACT + '.',
+        ],
+      },
+    ],
+  },
+};
+
+export const LEGAL: Record<Lang, Record<LegalDoc, Doc>> = { en, ro, it };
