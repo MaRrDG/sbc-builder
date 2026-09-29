@@ -285,6 +285,8 @@ How often a set can be done comes from `repeatabilityMode`:
 
 Refresh windows tick from `releaseTime` (the daily drop). A `REFRESH` set whose `lastCompletedTime` is before the current window start has 0 completions in this window. `/api/sbc-submitted` updates these fields in the cache.
 
+A set whose challenge is a points challenge (EA `scoreRequirement` above 0) also carries `pointsTarget`: the points still missing (`scoreRequirement - submittedScore`, never below 0), read from the cached challenges. No EA call.
+
 ### `GET /api/sets/:id/challenges?refresh=1` (site)
 
 Challenges of one set, each with its parsed requirements. Always from cache (empty list if the set was never loaded); only `refresh=1` asks EA.
@@ -293,6 +295,8 @@ Challenges of one set, each with its parsed requirements. Always from cache (emp
 { "challenges": [{ "challengeId": 35, "name": "Celtic v Rangers", "formation": "f442", "status": "IN_PROGRESS", "elgOperation": "AND",
     "requirements": [{ "slot": 1, "scope": 0, "count": 1, "combined": false, "keys": { "10": [42] }, "text": "Scotland: Min. 1 Player" }] }] }
 ```
+
+Points challenges also pass through EA's `scoreRequirement` (points to reach) and `submittedScore` (points already submitted), and every challenge carries `fetchedAt` (ms, `null` if never loaded): when its cached copy was read from EA, so the site can show "as of" for `submittedScore`.
 
 `scope`: `0` min, `1` max, `2` exactly. `keys` maps EA eligibility keys to accepted values (see [solver.md](solver.md)).
 
@@ -328,6 +332,20 @@ Client mode: queues a `challengeSquad` job that reads a challenge you already st
 ```
 
 `deep: true` gives the solver 30 s instead of 10 s. The SBC storage is in the pool by default (storage players cost 0.8× an identical club card, so a duplicate in storage goes before its club copy, and the same player never goes twice); `useStorage: false` solves club only. The answer has `usedStorage: true` when at least one player comes from storage (those carry `inStorage: true`) and `clubOnly: true` when storage was left out. Any option left out uses the default above; `keepPlaced` (default `false`) keeps players already placed in the web app where the requirements allow. A brick challenge without a known layout answers `409`. Each slot in the answer carries `brick` (`null` or `{ custom, nation, league, club }`) and `fixed` (kept from the web app); `missingPlaced` lists placed items no longer in the club.
+
+**Points challenges** (`scoreRequirement` above 0, no formation): the answer has `slots: []` and a `points` object instead of a squad. The pool is the usual one (same options and storage rules) minus cards the challenge's own rules exclude and cards without points.
+
+```json
+{
+  "found": true, "status": "OPTIMAL", "ms": 310, "cost": 2.4,
+  "eval": { "rating": 0, "chemistry": 0, "allMet": true, "results": [{ "text": "Min. 2 Players from ...", "met": true, "actual": 3 }] },
+  "slots": [],
+  "points": { "target": 120, "required": 300, "submitted": 180, "total": 124, "overshoot": 4, "cards": [{ "…": "…" }] },
+  "usedStorage": false, "clubOnly": false, "quota": { "used": 5, "limit": 20, "resetsAt": 1790605200000 }
+}
+```
+
+`points.target` is what is still missing, `total` the points of `cards`, `overshoot` = `total - target`. When the club's eligible cards hold fewer points than the target the solver does not run and the answer is `found: false` with `reasons: [{ "code": "points", "have": 80, "need": 120, "hidden": 40 }]` (`hidden`: points your solver settings keep out). When nothing is missing the answer is `409` `{ "code": "pointsDone" }`. Quota works as for squads (a found answer counts, the rest costs nothing).
 
 A Free user with `used >= limit` gets `403` before the solver runs:
 

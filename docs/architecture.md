@@ -106,6 +106,10 @@ On top of that, the extension reports what the user does in the web app so the c
 - **Pack opened**: its players go to an *Unassigned* list (they are not in the club yet).
 - **Items moved**: "send to club" moves them from Unassigned to the club; transfer list / storage / quick sell removes them.
 
+## Points challenges
+
+A challenge is a points challenge when EA sends a `scoreRequirement` above 0 (no formation). Each card's points are its `gradingScore`, which the club cache already holds, so there is no new EA call: solving reads the cache like any solve. The points still missing are `scoreRequirement - submittedScore`. `submittedScore` is as fresh as the challenge cache: it updates when the web app loads the set's challenges (relayed by the extension) or a sync refreshes them, and shows with the challenge's `fetchedAt`. A copy seeded from the shared SBC data resets it to 0, so an untouched-looking set may be behind your real progress until the web app opens it.
+
 ## Staying exact
 
 The web app is a large obfuscated bundle, but the relevant classes are readable. FC Solver ports them 1:1 (`server/squad.ts`):

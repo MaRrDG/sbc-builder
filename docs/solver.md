@@ -76,6 +76,10 @@ The squad is evaluated with `squad.ts` (ported `_calculateRating`, `UTSquadChemC
 
 If every requirement is possible alone, it says the combination is the problem (typically chemistry against rating).
 
+## Points challenges
+
+Some challenges have no formation: EA gives a `scoreRequirement` and each card is worth its `gradingScore` points (`points`, already in the club cache). `pointsPool()` is the usual pool (same filters, storage, active-squad rules) plus the challenge's per-card rules (`cardRule`) and `points > 0`, with one card per `assetId`. The model has two stages: stage 1 minimises the total points subject to total ≥ target (the missing points, `pointsTarget`) and the card rules; stage 2 fixes that total and minimises cost. `checkPoints()` re-checks the picked cards exactly (total, overshoot, each requirement); `found` comes from that check. If the pool holds fewer points than the target, no solver runs and the reason `points` says how many the pool has, how many are needed and how many the settings hide.
+
 ## Running the solver by hand
 
 ```bash
