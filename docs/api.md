@@ -41,7 +41,7 @@ Returns `{ ok, account, accessKey, linked, linkRejected, clubQueued }` and switc
 
 ### `GET /api/jobs/next` (extension)
 
-The web app tab asks for work: `{ "job": { "id": "9f…", "kind": "club" | "sbc" | "challenges", "setIds": [16] } }` or `{ "job": null }`. One job runs at a time; nothing is handed out when today's budget is used or the account is paused. Calling this marks the web app as open (`session: true` for 30 s). `?visible=1|0` (extension 0.8.4+): whether the tab is in front. When the web app was closed, or the tab was hidden and is now in front, the SBC list refresh of `POST /api/sync/visit` is queued (same 30 min cooldown); it is handed out on the next poll.
+The web app tab asks for work: `{ "job": { "id": "9f…", "kind": "club" | "sbc" | "challenges", "setIds": [16] } }` or `{ "job": null }`. One job runs at a time; nothing is handed out when today's budget is used or the account is paused. Calling this marks the web app as open (`session: true` for 30 s). `?visible=1|0` (extension 0.8.4+): whether the tab is in front. When the web app was closed, or the tab was hidden and is now in front, the SBC list refresh of `POST /api/sync/visit` is queued (same 30 min cooldown); it is handed out on the next poll. That same transition on `/api/jobs/next` also triggers the visit refresh (club + SBC list, same rules as `POST /api/sync/visit`).
 
 ### `POST /api/jobs/:id/call` (extension)
 
@@ -116,7 +116,7 @@ Manual sync, club only: `what: "club"` (players, active squad, chemistry profile
 
 ### `POST /api/sync/visit` (site)
 
-Body `{ "sbcs": true }` (optional, default `true`). The site calls it on every screen when the account goes live and when the tab comes back in front. Client mode, web app open: queues a club sync when the cached club is older than `CLUB_VISIT_STALE_H` (2) hours and the daily club cap is not reached (it counts toward it); with `sbcs`, also queues an `sbc` job when nothing is pending and the SBC list is older than 30 min (`SBC_VISIT_COOLDOWN_MIN`). Never fails for cooldown, closed web app or budget; it just does nothing. Returns the `sync` status.
+Body `{ "sbcs": true }` (optional, default `true`). The site calls it on every screen when the account goes live and when the tab comes back in front. Client mode, web app open: queues a club sync when the cached club is older than `CLUB_VISIT_STALE_H` (2) hours and fewer than `CLUB_SYNCS_PER_DAY - 1` (2) club syncs ran today (visits count toward the cap but leave one of the daily club syncs for the post-drop / manual sync); with `sbcs`, also queues an `sbc` job when nothing is pending and the SBC list is older than 30 min (`SBC_VISIT_COOLDOWN_MIN`). Never fails for cooldown, closed web app or budget; it just does nothing. Returns the `sync` status.
 
 When an `sbc` job finds set progress higher than cached (an SBC done on a console or in the companion app, not seen by the extension), it also queues a club sync (scheduled, so within the daily club cap).
 

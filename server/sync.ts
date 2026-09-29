@@ -306,7 +306,8 @@ export async function refreshOnVisit(acc: Account, { sbcs = true }: { sbcs?: boo
     if (!acc.clientMode || !webAppOpen(acc)) return out;
     await acc.meter.check();
     const club = await readCache(acc.key('club'));
-    if (!hasPending(acc, 'club') && clubDueOnVisit(club?.fetchedAt ?? null, Date.now(), CLUB_VISIT_STALE_MS, await clubSyncsToday(acc), CLUB_SYNCS_PER_DAY)) {
+    if (!hasPending(acc, 'club') && clubDueOnVisit(club?.fetchedAt ?? null, Date.now(), CLUB_VISIT_STALE_MS, await clubSyncsToday(acc), CLUB_SYNCS_PER_DAY - 1)) {
+      // - 1: visits never use the last daily club sync, it stays for the post-drop / manual sync
       await requestSync(acc, 'club', true);
       out.club = true;
     }
