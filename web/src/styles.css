@@ -3377,3 +3377,37 @@ a.adm-kpi:hover { background: var(--surface-2); }
   margin-right: auto;
   font-weight: 600;
 }
+
+.points-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.points-pill svg {
+  color: var(--ink-2);
+}
+
+.points-facts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 12px;
+  margin: 10px 0;
+  font-size: 13px;
+}
+
+.points-facts dt {
+  color: var(--ink-2);
+}
+
+.points-facts dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
