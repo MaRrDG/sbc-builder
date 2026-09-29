@@ -4,8 +4,9 @@ import { Check } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
 import { formatEur, proPrice, yearlySaving, FREE_WEEKLY_SOLVES, type Billing } from './pricing';
 import { Backdrop } from './Backdrop';
+import type { Founders } from './Founders';
 
-export function Pricing({ cta }: { cta: ReactNode }) {
+export function Pricing({ cta, founders }: { cta: ReactNode; founders: Founders | null }) {
   const { t, lang } = useI18n();
   const [billing, setBilling] = useState<Billing>('yearly');
   const pro = proPrice(billing);
@@ -44,6 +45,7 @@ export function Pricing({ cta }: { cta: ReactNode }) {
           {cta}
         </article>
         <article className="lp-plan lp-plan-pro">
+          {founders && <span className="lp-ribbon">{t('landing.founders.ribbon', { limit: founders.limit })}</span>}
           <h3>{t('landing.price.pro.name')}</h3>
           <p className="lp-amount">
             {eur(pro.perMonth)} <small>{t('landing.price.perMonth')}</small>
@@ -52,6 +54,7 @@ export function Pricing({ cta }: { cta: ReactNode }) {
             {billing === 'monthly' ? t('landing.price.pro.billedMonthly') : t('landing.price.pro.billedYearly', { amount: eur(pro.billed) })}
           </p>
           {list([t('landing.price.pro.f1'), t('landing.price.pro.f2'), t('landing.price.pro.f3')])}
+          {founders && <p className="lp-founders-note">{t('landing.founders.planNote', { count: founders.left, limit: founders.limit })}</p>}
           <button type="button" className="lp-btn" disabled>
             {t('landing.price.pro.soon')}
           </button>

@@ -66,7 +66,11 @@ export const users = pgTable('users', {
   premiumUntil: timestamp('premium_until', { withTimezone: true }), // null: no end
   quotaStart: timestamp('quota_start', { withTimezone: true }), // null: no open window
   quotaUsed: integer('quota_used').notNull().default(0),
-});
+  // Founding 50: when this user got lifetime Premium for being among the first to link an EA
+  // account, and which persona earned it (one persona earns one spot, however often it moves)
+  founderAt: timestamp('founder_at', { withTimezone: true }),
+  founderPersona: bigint('founder_persona', { mode: 'number' }),
+}, (t) => [uniqueIndex('users_founder_persona').on(t.founderPersona)]); // one spot per EA account, even without the lock
 
 /** Which user owns an EA persona. One owner per persona; a takeover remembers the previous one. */
 export const personas = pgTable(

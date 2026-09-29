@@ -18,7 +18,7 @@ import { isAdmin } from './admin/auth.js';
 import { registerAdminRoutes } from './admin/routes.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteContext, siteUser } from './auth.js';
 import { linkDecision } from './auth-rules.js';
-import { planFor, planInfo } from './plans.js';
+import { backfillFounders, foundersNow, grantFounderSpot, planFor, planInfo } from './plans.js';
 import {
   consumeLinkToken,
   countSolve,
@@ -200,6 +200,9 @@ app.get('/api/status', async (req) => {
 /** Latest extension release; the extension polls this to show its own update notice. */
 app.get('/api/extension/version', () => latestExtension());
 
+/** Founding 50 spots, for the landing page (public; cached 30 s). */
+app.get('/api/founders', () => foundersNow());
+
 /** The extension says which version it is right after install/update, no EA session needed. */
 app.post<{ Body: { version: string } }>('/api/extension/report', async (req, reply) => {
   const acc = account(req);
@@ -265,6 +268,9 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     // owned by someone else: only a fresh EA proof moves it; the token stays usable for the resend
     if (decision === 'needSid') return reply.code(401).send({ error: 'EA account linked to another user', needSid: true });
     if (decision !== 'already') await setOwner(r.account.id, userId);
+    // Founding 50: the first links get Premium for life; on 'already' too, so a grant a DB hiccup
+    // swallowed is retried (it returns at once for a founder)
+    await grantFounderSpot(userId, r.account.id);
     await consumeLinkToken(token!);
     linked = r.account.id;
     // newly linked here: load the club now (the site re-sends tokens every few minutes, so not on 'already')
@@ -610,6 +616,7 @@ try {
   process.exit(1);
 }
 void pruneEvents();
+void backfillFounders().catch((e) => console.error(`[founders] backfill failed: ${(e as Error).message}`));
 setInterval(() => void pruneEvents(), 24 * 60 * 60 * 1000).unref();
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
 console.log(`FC Solver API on http://localhost:${PORT}`);

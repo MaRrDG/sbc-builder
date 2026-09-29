@@ -1,6 +1,7 @@
 // A signed-in user's plan and quota, for /api/me, /api/solve and the admin screen.
 import { isAdmin } from './admin/auth.js';
-import { planRow } from './db/users.js';
+import { claimFounderSpot, foundersTaken, linkedInOrder, planRow } from './db/users.js';
+import { foundersLimit, foundersState, type FoundersState } from './founders.js';
 import { effectivePlan, quotaState, weeklyLimit, type PlanRow, type Quota, type Tier } from './plan.js';
 
 export interface PlanInfo {
@@ -20,4 +21,31 @@ export function planInfo(row: PlanRow, admin: boolean, now: number): PlanInfo {
 export async function planFor(userId: string): Promise<PlanInfo> {
   const row = (await planRow(userId)) ?? { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0 };
   return planInfo(row, await isAdmin(userId), Date.now());
+}
+
+/** Founding 50: linking `personaId` may earn `userId` lifetime Premium. Never throws: a link is not a purchase. */
+export async function grantFounderSpot(userId: string, personaId: number): Promise<boolean> {
+  try {
+    const got = await claimFounderSpot(userId, personaId, await isAdmin(userId), foundersLimit());
+    if (got) founders = null;
+    return got;
+  } catch (e) {
+    console.error(`[founders] spot for ${userId} failed: ${(e as Error).message}`);
+    return false;
+  }
+}
+
+/** On startup: users who linked before Founding 50 existed get their spots, in link order (idempotent). */
+export async function backfillFounders(): Promise<void> {
+  for (const { userId, personaId } of await linkedInOrder()) {
+    if ((await foundersTaken()) >= foundersLimit()) return;
+    await grantFounderSpot(userId, personaId);
+  }
+}
+
+// the landing asks on every visit: count at most every 30 s
+let founders: { at: number; state: FoundersState } | null = null;
+export async function foundersNow(): Promise<FoundersState> {
+  if (!founders || Date.now() - founders.at > 30_000) founders = { at: Date.now(), state: foundersState(await foundersTaken(), foundersLimit()) };
+  return founders.state;
 }

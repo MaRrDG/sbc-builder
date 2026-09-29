@@ -189,6 +189,43 @@
 .lp-hero .lp-lede { font-size: 18px; margin-bottom: 32px; }
 .lp-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; }
 
+/* ---------- Founding 50: the first EA-linked accounts get Premium for life ----------
+   Gold is a rare card's rim: the one colour only this offer uses. Green stays the primary action. */
+.landing { --gold-1: oklch(0.86 0.12 88); --gold-2: oklch(0.66 0.11 70); --gold-ink: oklch(0.25 0.05 70); }
+.lp-founders {
+  max-width: 460px;
+  margin-top: 28px;
+  padding: 14px 16px 16px;
+  border: 1px solid oklch(0.86 0.12 88 / 0.5);
+  border-radius: var(--r-box);
+  background: oklch(0.2 0.03 220 / 0.85);
+}
+.lp-founders-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; }
+.lp-founders h2 { margin: 0; color: var(--gold-1); font: 700 19px/1.05 var(--font-num); letter-spacing: 0.04em; text-transform: uppercase; }
+.lp-founders-top span { font: 700 17px/1 var(--font-num); font-variant-numeric: tabular-nums; }
+.lp-slots { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 3px; margin: 12px 0 10px; }
+.lp-slots i { aspect-ratio: 3 / 4; border: 1px solid oklch(0.86 0.12 88 / 0.5); border-radius: 2px; }
+.lp-slots i.taken { border-color: transparent; background: oklch(0.64 0.02 210 / 0.45); }
+.lp-founders p { margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+/* the open spots breathe, one after another; still under reduced motion (rule at the end) */
+.lp-slots i:not(.taken) { animation: lp-spot 2.4s ease-in-out calc(var(--k) * 40ms) infinite alternate; }
+@keyframes lp-spot { from { background: transparent; } to { background: oklch(0.86 0.12 88 / 0.18); } }
+
+.lp-plan-pro { position: relative; }
+.lp-ribbon {
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  padding: 4px 10px;
+  border-radius: var(--r-ctl);
+  background: linear-gradient(160deg, var(--gold-1), var(--gold-2));
+  color: var(--gold-ink);
+  font: 700 14px/1.2 var(--font-num);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.lp-founders-note { margin: 4px 0 8px; color: var(--ink-2); font-size: 13px; }
+
 .lp-stage {
   --card-w: clamp(46px, 6.2vw, 80px);
   position: relative;
