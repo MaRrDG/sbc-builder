@@ -52,3 +52,12 @@ export function checkPoints(cards: Player[], target: number, reqs: Requirement[]
   const allMet = target > 0 && total >= target && unique && cards.every((p) => p.points > 0) && results.every((x) => x.met);
   return { total, overshoot: Math.max(0, total - target), results, allMet };
 }
+
+/** Points the club can really offer: the solver takes one card per assetId, so only the best copy counts. */
+export function usablePoints(cards: Player[]): number {
+  const best = new Map<number, number>();
+  for (const p of cards) best.set(p.assetId, Math.max(best.get(p.assetId) ?? 0, p.points));
+  let sum = 0;
+  for (const v of best.values()) sum += v;
+  return sum;
+}

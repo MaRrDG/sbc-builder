@@ -29,7 +29,9 @@ export function PointsArea({ meta, challenge, result, solving, onSolve, onToggle
   const target = pts?.target ?? Math.max(0, (challenge.scoreRequirement ?? 0) - (challenge.submittedScore ?? 0));
   const cards = solving ? [] : (pts?.cards ?? []);
   const total = solving ? 0 : (pts?.total ?? 0);
-  const reached = !solving && !!result?.found;
+  const reached = !solving && !!pts && pts.total >= pts.target;
+  // nothing missing (submitted >= required) but EA has not marked it COMPLETED yet: nothing to solve
+  const shownLock = lock ?? (target === 0 ? { title: t('points.done'), text: t('points.doneText') } : null);
 
   return (
     <div className="pitch-wrap points-wrap">
@@ -55,7 +57,7 @@ export function PointsArea({ meta, challenge, result, solving, onSolve, onToggle
       </div>
 
       <div className="points-area">
-        {cards.length === 0 && !solving && !lock && <p className="points-empty">{t('points.empty', { n: n(target) })}</p>}
+        {cards.length === 0 && !solving && !shownLock && <p className="points-empty">{t('points.empty', { n: n(target), count: target })}</p>}
         <div className="points-grid">
           {cards.map((p, i) => (
             <div key={p.id} className="points-slot" style={{ ['--i' as string]: i }}>
@@ -72,17 +74,17 @@ export function PointsArea({ meta, challenge, result, solving, onSolve, onToggle
           ))}
         </div>
         {solving && <SolveLoader />}
-        {lock && (
+        {shownLock && (
           <div className="pitch-done">
             <SealCheck weight="fill" aria-hidden="true" />
-            <strong>{lock.title}</strong>
-            <span>{lock.text}</span>
+            <strong>{shownLock.title}</strong>
+            <span>{shownLock.text}</span>
           </div>
         )}
       </div>
 
       <PitchCorners
-        lock={lock} solving={solving} outOfSolves={outOfSolves} hasResult={!!result} localOptions={localOptions}
+        lock={shownLock} solving={solving} outOfSolves={outOfSolves} hasResult={!!result} localOptions={localOptions}
         onSolve={onSolve} onToggleOptions={onToggleOptions} cheaper={false}
       />
     </div>

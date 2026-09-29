@@ -73,7 +73,7 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now }
                       <SetBadge set={s} now={now} />
                       {s.pointsTarget ? (
                         <span className="points-pill">
-                          <Diamond weight="fill" aria-hidden="true" /> {t('points.tile', { n: s.pointsTarget.toLocaleString(lang) })}
+                          <Diamond weight="fill" aria-hidden="true" /> {t('points.tile', { n: s.pointsTarget.toLocaleString(lang), count: s.pointsTarget })}
                         </span>
                       ) : null}
                     </span>

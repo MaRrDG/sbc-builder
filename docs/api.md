@@ -345,7 +345,7 @@ Client mode: queues a `challengeSquad` job that reads a challenge you already st
 }
 ```
 
-`points.target` is what is still missing, `total` the points of `cards`, `overshoot` = `total - target`. When the club's eligible cards hold fewer points than the target the solver does not run and the answer is `found: false` with `reasons: [{ "code": "points", "have": 80, "need": 120, "hidden": 40 }]` (`hidden`: points your solver settings keep out). When nothing is missing the answer is `409` `{ "code": "pointsDone" }`. Quota works as for squads (a found answer counts, the rest costs nothing).
+`points.target` is what is still missing, `total` the points of `cards`, `overshoot` = `total - target`. When the club's eligible cards hold fewer points than the target the solver does not run and the answer is `found: false` with `reasons: [{ "code": "points", "have": 80, "need": 120, "hidden": 40 }]` (`hidden`: points your solver settings keep out; duplicates of one card, e.g. club + storage copy, count once because the solver takes one card per player). When the eligible points reach the target but the solver finds no selection (infeasible, unknown or timeout: the per-card requirements cannot be combined), the reason is `{ "code": "combo" }` instead, and `eval.results` is `[]` so the requirement rows stay neutral. When nothing is missing the answer is `409` `{ "code": "pointsDone" }`. Quota works as for squads (a found answer counts, the rest costs nothing).
 
 A Free user with `used >= limit` gets `403` before the solver runs:
 

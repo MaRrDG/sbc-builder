@@ -37,7 +37,7 @@ import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { db, initDb } from './db/index.js';
 import { logEvent, pruneEvents } from './db/events.js';
-import { isPointsChallenge, pointsTarget } from './points.js';
+import { isPointsChallenge, pointsTarget, usablePoints } from './points.js';
 import { users } from './db/schema.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
@@ -454,13 +454,19 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
       const target = pointsTarget(ch);
       if (target === 0) return reply.code(409).send({ error: 'This challenge already has all its points.', code: 'pointsDone', params: {} });
       const pool = pointsPool(players, reqs, options, squad);
-      const have = pool.reduce((s, p) => s + p.points, 0);
+      // the solver takes one card per assetId, so duplicates must not inflate what the club holds
+      const have = usablePoints(pool);
       const sol = have >= target ? await solvePoints(pool, reqs, target, req.body.deep ? 30 : 10) : null;
       const found = !!sol?.check.allMet;
       // only a found selection costs a token, like squads
       const quota = plan.quota && found ? planInfo(await countSolve(userId), false, Date.now()).quota : plan.quota;
       logEvent({ type: 'solve', userId, personaId: acc.id, data: { setId, challengeId, found, points: true } });
-      const everyone = pointsPool(players, reqs, NO_FILTERS, null).reduce((s, p) => s + p.points, 0);
+      // enough points but no answer (infeasible / unknown / timeout): the cards do not combine, so say that
+      const reasons = found
+        ? undefined
+        : have < target
+          ? [{ code: 'points' as const, have, need: target, hidden: Math.max(0, usablePoints(pointsPool(players, reqs, NO_FILTERS, null)) - have) }]
+          : [{ code: 'combo' as const }];
       return {
         found,
         status: sol?.status,
@@ -469,7 +475,7 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
         eval: {
           rating: 0,
           chemistry: 0,
-          results: sol?.check.results ?? reqs.map((r) => ({ text: r.text, met: false, actual: 0 })),
+          results: sol?.check.results ?? [], // no selection: requirement rows stay neutral
           allMet: found,
         },
         slots: [],
@@ -481,7 +487,7 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
           overshoot: sol?.check.overshoot ?? 0,
           cards: sol?.cards ?? [],
         },
-        reasons: sol ? undefined : [{ code: 'points' as const, have, need: target, hidden: Math.max(0, everyone - have) }],
+        reasons,
         usedStorage: !!sol?.cards.some((p) => p.inStorage),
         clubOnly,
         quota,

@@ -152,7 +152,6 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
   const { pos: coords, lines } = layout(positions.map((p) => p.uniqueId));
-  const locked = !!lock;
   const rating = result?.eval.rating ?? 0;
   const chem = result?.eval.chemistry ?? 0;
   const met = result?.eval.results.filter((r) => r.met).length ?? 0;
