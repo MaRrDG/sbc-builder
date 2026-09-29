@@ -4,7 +4,7 @@ import type { EligibilityReq } from './ea.js';
 import type { Meta } from './meta.js';
 import { parseRequirements } from './sbc.js';
 import type { Player } from './squad.js';
-import { cardRule, checkPoints, isPointsChallenge, pointsTarget } from './points.js';
+import { cardRule, checkPoints, isPointsChallenge, pointsTarget, usablePoints } from './points.js';
 
 const meta = { names: { nation: {}, league: {}, club: {}, rarity: {}, group: {} } } as unknown as Meta;
 const req = (list: [number, number][]) =>
@@ -59,4 +59,12 @@ test('a card that breaks a requirement, a duplicate, a zero-point card or an unk
 
 test('nothing to reach is never found', () => {
   assert.equal(checkPoints([], 0, OVR_MIN_45).allMet, false);
+});
+
+test('usablePoints counts one card per assetId', () => {
+  const a = card(80, 2100, { assetId: 7 });
+  const dup = card(80, 2100, { assetId: 7, inStorage: true } as Partial<Player>);
+  const b = card(70, 500, { assetId: 8 });
+  assert.equal(usablePoints([a, dup, b]), 2600);
+  assert.equal(usablePoints([]), 0);
 });

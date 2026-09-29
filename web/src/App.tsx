@@ -971,7 +971,7 @@ export default function App({
                     )}
                     {result?.points && !solving && (
                       <p className="hint">
-                        {t('points.summary', { points: result.points.total.toLocaleString(lang), over: result.points.overshoot.toLocaleString(lang) })}
+                        {t('points.summary', { points: result.points.total.toLocaleString(lang), over: result.points.overshoot.toLocaleString(lang), count: result.points.total })}
                       </p>
                     )}
                     {result && !result.points && !solving && (
