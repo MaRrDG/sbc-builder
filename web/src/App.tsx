@@ -240,16 +240,7 @@ export default function App({
       try {
         const st = await api.status();
         setLinked((prev) => prev?.map((a) => (a.personaId === activeId && st.account ? st.account : a)) ?? prev);
-        setStatus((prev) => {
-          const syncDone = prev?.running && !st.sync?.running;
-          // an SBC submitted in the web app changed the cached club: refresh quietly
-          const edited = prev && st.sync?.editedAt !== prev.editedAt;
-          if (syncDone || edited) {
-            void loadAccountData();
-            if (setId) void api.challenges(setId).then((r) => setChallenges(r.challenges));
-          }
-          return st.sync;
-        });
+        setStatus(st.sync);
       } catch (e) {
         // the account moved to another user or was disconnected elsewhere: show it now, not on the next click
         if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onApiError(e);
@@ -257,7 +248,21 @@ export default function App({
       }
     }, clubSyncing ? 1500 : 5000);
     return () => clearInterval(t);
-  }, [activeId, setId, loadAccountData, onApiError, clubSyncing]);
+  }, [activeId, onApiError, clubSyncing]);
+
+  // A sync finished, or the web app changed the cache (an SBC opened or submitted there): reload
+  // quietly. Watches the status itself, since the visit and read calls also bring a new one.
+  const seenStatus = useRef<{ id: number; running: string | null; editedAt: number | null } | null>(null);
+  useEffect(() => {
+    if (!activeId || !status) return;
+    const prev = seenStatus.current;
+    seenStatus.current = { id: activeId, running: status.running, editedAt: status.editedAt };
+    if (!prev || prev.id !== activeId) return;
+    if ((prev.running && !status.running) || prev.editedAt !== status.editedAt) {
+      void loadAccountData().catch(() => {});
+      if (setId) void api.challenges(setId).then((r) => setChallenges(r.challenges), () => {});
+    }
+  }, [activeId, status, setId, loadAccountData]);
 
   useEffect(() => {
     // a link straight to /sbc/... loads before the account is picked: wait for its key
