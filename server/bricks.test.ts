@@ -45,15 +45,29 @@ test('chooseLayout: none', () => {
   assert.equal(chooseLayout([], new Set()), null);
 });
 
+test('chooseLayout: untrusted layout needs 3 distinct accounts', () => {
+  const real = [brick(1)];
+  assert.equal(chooseLayout([rep(1, real, 1)], new Set()), null);
+  assert.equal(chooseLayout([rep(1, real, 1), rep(1, real, 2), rep(1, real, 3), rep(2, real, 4)], new Set()), null);
+  assert.deepEqual(chooseLayout([rep(1, real, 1), rep(2, real, 2), rep(3, real, 3)], new Set()), real);
+});
+
 test('chooseLayout: majority of distinct accounts wins', () => {
   const real = [brick(1)], fake = [brick(9)];
-  const pick = chooseLayout([rep(1, fake, 1), rep(1, fake, 2), rep(2, real, 3), rep(3, real, 4)], new Set());
-  assert.deepEqual(pick, real);
+  const fakes = [rep(1, fake, 1), rep(2, fake, 2), rep(3, fake, 3)];
+  const reals = [rep(4, real, 4), rep(5, real, 5), rep(6, real, 6), rep(7, real, 7)];
+  assert.deepEqual(chooseLayout([...fakes, ...reals], new Set()), real);
 });
 
 test('chooseLayout: tie goes to the earliest', () => {
   const a = [brick(1)], b = [brick(2)];
-  assert.deepEqual(chooseLayout([rep(1, b, 20), rep(2, a, 10)], new Set()), a);
+  const reports = [rep(1, b, 20), rep(2, b, 21), rep(3, b, 22), rep(4, a, 10), rep(5, a, 30), rep(6, a, 31)];
+  assert.deepEqual(chooseLayout(reports, new Set()), a);
+});
+
+test('chooseLayout: one trusted report is enough', () => {
+  const a = [brick(1)];
+  assert.deepEqual(chooseLayout([rep(9, a, 1)], new Set([9])), a);
 });
 
 test('chooseLayout: newest trusted report wins over majority', () => {
