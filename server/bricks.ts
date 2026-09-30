@@ -45,7 +45,13 @@ export interface Report {
   capturedAt: number;
 }
 
-/** Newest trusted report wins; otherwise the layout most distinct accounts sent; ties: earliest seen. */
+/** Untrusted accounts that must send the same layout before everyone gets it (one troll is not enough). */
+export const MIN_VOTERS = 3;
+
+/**
+ * Newest trusted report wins; otherwise the layout most distinct accounts sent, once at least
+ * MIN_VOTERS agree; ties: earliest seen.
+ */
 export function chooseLayout(reports: Report[], trusted: Set<number>): BrickSlot[] | null {
   if (!reports.length) return null;
   const fromTrusted = reports.filter((r) => trusted.has(r.personaId)).sort((a, b) => b.capturedAt - a.capturedAt)[0];
@@ -57,5 +63,6 @@ export function chooseLayout(reports: Report[], trusted: Set<number>): BrickSlot
     g.first = Math.min(g.first, r.capturedAt);
     byHash.set(r.hash, g);
   }
-  return [...byHash.values()].sort((a, b) => b.voters.size - a.voters.size || a.first - b.first)[0].bricks;
+  const best = [...byHash.values()].sort((a, b) => b.voters.size - a.voters.size || a.first - b.first)[0];
+  return best.voters.size >= MIN_VOTERS ? best.bricks : null;
 }
