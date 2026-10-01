@@ -1,0 +1,3216 @@
+[
+ {
+  "id": "laliga-rayo-vallecano",
+  "name": "Rayo Vallecano",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    480
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1400,
+   "B": 2200,
+   "A": 3300,
+   "S": 4700
+  },
+  "rewards": {
+   "D": "Rayo Vallecano Badge",
+   "C": "Rayo Vallecano Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-rc-deportivo",
+  "name": "RC Deportivo",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    242
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 3700,
+   "A": 5500,
+   "S": 7800
+  },
+  "rewards": {
+   "D": "RC Deportivo Badge",
+   "C": "RC Deportivo Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-villarreal-cf",
+  "name": "Villarreal CF",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    483
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1900,
+   "B": 3500,
+   "A": 5300,
+   "S": 7500
+  },
+  "rewards": {
+   "D": "Villarreal CF Badge",
+   "C": "Villarreal CF Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-costa-adeje-tenerife",
+  "name": "Costa Adeje Tenerife",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    116332
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 500,
+   "A": 700,
+   "S": 1000
+  },
+  "rewards": {
+   "D": "Costa Adeje Tenerife Badge",
+   "C": "Costa Adeje Tenerife Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-malaga-cf",
+  "name": "Malaga CF",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    573
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 400,
+   "A": 700,
+   "S": 900
+  },
+  "rewards": {
+   "D": "Málaga CF Badge",
+   "C": "Malaga CF Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-deportivo-alaves",
+  "name": "Deportivo Alavés",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    463
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1100,
+   "S": 1600
+  },
+  "rewards": {
+   "D": "Deportivo Alavés Badge",
+   "C": "Deportivo Alavés Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-fc-badalona-women",
+  "name": "FC Badalona Women",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    131125
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 600,
+   "B": 800,
+   "A": 1200,
+   "S": 1800
+  },
+  "rewards": {
+   "D": "FC Badalona Women Badge",
+   "C": "FC Badalona Women Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-logrono-united",
+  "name": "Logroño United",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    132629
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 500,
+   "A": 700,
+   "S": 1000
+  },
+  "rewards": {
+   "D": "Logroño United Badge",
+   "C": "Logroño United Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-real-racing-club",
+  "name": "Real Racing Club",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    456
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 600,
+   "A": 1000,
+   "S": 1500
+  },
+  "rewards": {
+   "D": "Racing de Santander Badge",
+   "C": "Real Racing Club Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-rcd-espanyol",
+  "name": "RCD Espanyol",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    452,
+    131733
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 800,
+   "B": 1500,
+   "A": 2300,
+   "S": 3200
+  },
+  "rewards": {
+   "D": "RCD Espanyol Badge",
+   "C": "RCD Espanyol Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-ca-osasuna",
+  "name": "CA Osasuna",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    479
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1300,
+   "B": 1800,
+   "A": 2800,
+   "S": 4100
+  },
+  "rewards": {
+   "D": "CA Osasuna Badge",
+   "C": "CA Osasuna Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-getafe-cf",
+  "name": "Getafe CF",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1860
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 900,
+   "B": 1300,
+   "A": 2000,
+   "S": 3000
+  },
+  "rewards": {
+   "D": "Getafe CF Badge",
+   "C": "Getafe CF Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-levante-ud",
+  "name": "Levante UD",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1853
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1200,
+   "S": 1700
+  },
+  "rewards": {
+   "D": "Levante UD Badge",
+   "C": "Levante UD Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-valencia-cf",
+  "name": "Valencia CF",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    461
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1300,
+   "B": 1800,
+   "A": 2800,
+   "S": 4100
+  },
+  "rewards": {
+   "D": "Valencia CF Badge",
+   "C": "Valencia CF Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-atletico-de-madrid",
+  "name": "Atlético de Madrid",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    240,
+    116327
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 20000,
+   "B": 400000,
+   "A": 700000,
+   "S": 1300000
+  },
+  "rewards": {
+   "D": "Atlético de Madrid Badge",
+   "C": "Atlético de Madrid Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-fc-barcelona",
+  "name": "FC Barcelona",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    241,
+    116325
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 170000,
+   "B": 1200000,
+   "A": 1800000,
+   "S": 2800000
+  },
+  "rewards": {
+   "D": "FC Barcelona Badge",
+   "C": "FC Barcelona Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-real-madrid",
+  "name": "Real Madrid",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    243,
+    116326
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 70000,
+   "B": 1000000,
+   "A": 1400000,
+   "S": 2100000
+  },
+  "rewards": {
+   "D": "Real Madrid Badge",
+   "C": "Real Madrid Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-athletic-club",
+  "name": "Athletic Club",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    448,
+    116328
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 7000,
+   "B": 52500,
+   "A": 79000,
+   "S": 128000
+  },
+  "rewards": {
+   "D": "Athletic Club de Bilbao Badge",
+   "C": "Athletic Club Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-real-sociedad",
+  "name": "Real Sociedad",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    457,
+    116336
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 3500,
+   "B": 22000,
+   "A": 37000,
+   "S": 65000
+  },
+  "rewards": {
+   "D": "Real Sociedad Badge",
+   "C": "Real Sociedad Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-sevilla-fc",
+  "name": "Sevilla FC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    481,
+    116337
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1500,
+   "B": 4500,
+   "A": 5500,
+   "S": 7000
+  },
+  "rewards": {
+   "D": "Sevilla FC Badge",
+   "C": "Sevilla FC Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-celta-de-vigo",
+  "name": "Celta de Vigo",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    450
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1300,
+   "B": 4600,
+   "A": 7000,
+   "S": 9900
+  },
+  "rewards": {
+   "D": "RC Celta de Vigo Badge",
+   "C": "Celta de Vigo Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-elche-cf",
+  "name": "Elche CF",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    468
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 1400,
+   "A": 2000,
+   "S": 2900
+  },
+  "rewards": {
+   "D": "Elche CF Badge",
+   "C": "Elche CF Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-madrid-cff",
+  "name": "Madrid CFF",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    116334
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 600,
+   "B": 2400,
+   "A": 3600,
+   "S": 5100
+  },
+  "rewards": {
+   "D": "Madrid CFF Badge",
+   "C": "Madrid CFF Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-real-betis-balompie",
+  "name": "Real Betis Balompié",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    449
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1900,
+   "B": 7300,
+   "A": 10900,
+   "S": 15400
+  },
+  "rewards": {
+   "D": "Real Betis Balompié Badge",
+   "C": "Real Betis Balompié Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-granada-cf",
+  "name": "Granada CF",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    131391
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400,
+   "B": 600,
+   "A": 1000,
+   "S": 1400
+  },
+  "rewards": {
+   "D": "Granada CF Badge",
+   "C": "Granada CF Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "laliga-sd-eibar",
+  "name": "SD Eibar",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    116331
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 500,
+   "A": 700,
+   "S": 1000
+  },
+  "rewards": {
+   "D": "SD Eibar Badge",
+   "C": "SD Eibar Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "rarities-totw",
+  "name": "TOTW",
+  "category": "rarity",
+  "size": 20,
+  "filter": {
+   "kinds": [
+    "totw"
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 125000,
+   "B": 175000,
+   "A": 300000,
+   "S": 550000
+  },
+  "rewards": {
+   "D": "5 Gallery Tokens",
+   "C": "15 Gallery Tokens",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "rarities-holographics",
+  "name": "Holographics",
+  "category": "rarity",
+  "size": 5,
+  "filter": {
+   "kinds": [
+    "holo"
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 75000,
+   "B": 150000,
+   "A": 200000,
+   "S": 250000
+  },
+  "rewards": {
+   "D": "5 Gallery Tokens",
+   "C": "15 Gallery Tokens",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "rarities-heroes",
+  "name": "Heroes",
+  "category": "rarity",
+  "size": 5,
+  "filter": {
+   "kinds": [
+    "hero"
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 50000,
+   "B": 75000,
+   "A": 100000,
+   "S": 200000
+  },
+  "rewards": {
+   "D": "5 Gallery Tokens",
+   "C": "15 Gallery Tokens",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "rarities-season-1",
+  "name": "Season 1",
+  "category": "rarity",
+  "size": 10,
+  "filter": {
+   "rarities": [
+    150,
+    22,
+    71
+   ]
+  },
+  "grades": {
+   "D": 1000,
+   "C": 25000,
+   "B": 60000,
+   "A": 100000,
+   "S": 150000
+  },
+  "rewards": {
+   "D": "No reward at this grade",
+   "C": "5 Gallery Tokens",
+   "B": "10 Gallery Tokens",
+   "A": "20 Gallery Tokens",
+   "S": "50 Gallery Tokens"
+  }
+ },
+ {
+  "id": "rarities-squad-foundations",
+  "name": "Squad Foundations",
+  "category": "rarity",
+  "size": 4,
+  "filter": {
+   "rarities": [
+    87
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 750,
+   "A": 1000,
+   "S": 1250
+  },
+  "rewards": {
+   "D": "No reward at this grade",
+   "C": "No reward at this grade",
+   "B": "No reward at this grade",
+   "A": "No reward at this grade",
+   "S": "10 Gallery Tokens"
+  }
+ },
+ {
+  "id": "rarities-starter-set",
+  "name": "Starter Set",
+  "category": "rarity",
+  "size": 5,
+  "filter": {
+   "rarities": [
+    0,
+    1
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 250,
+   "B": 500,
+   "A": 1000,
+   "S": 2000
+  },
+  "rewards": {
+   "D": "No reward at this grade",
+   "C": "No reward at this grade",
+   "B": "No reward at this grade",
+   "A": "No reward at this grade",
+   "S": "5 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-london-city-lionesses",
+  "name": "London City Lionesses",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    132176
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 5000,
+   "B": 25000,
+   "A": 31500,
+   "S": 44000
+  },
+  "rewards": {
+   "D": "London City Lionesses Badge",
+   "C": "London City Lionesses Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-hull-city",
+  "name": "Hull City",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1952
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400,
+   "B": 700,
+   "A": 1100,
+   "S": 1500
+  },
+  "rewards": {
+   "D": "Hull City Badge",
+   "C": "Hull City Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-birmingham-city",
+  "name": "Birmingham City",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    116019
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 500,
+   "A": 700,
+   "S": 1000
+  },
+  "rewards": {
+   "D": "Birmingham City Badge",
+   "C": "Birmingham City Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-brentford",
+  "name": "Brentford",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1925
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1400,
+   "B": 2700,
+   "A": 4000,
+   "S": 5700
+  },
+  "rewards": {
+   "D": "Brentford Badge",
+   "C": "Brentford Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-charlton",
+  "name": "Charlton",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    132867
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 500,
+   "A": 700,
+   "S": 1000
+  },
+  "rewards": {
+   "D": "Charlton Athletic Badge",
+   "C": "Charlton Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-coventry-city",
+  "name": "Coventry City",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1800
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400,
+   "B": 1100,
+   "A": 1700,
+   "S": 2400
+  },
+  "rewards": {
+   "D": "Coventry City Badge",
+   "C": "Coventry City Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-fulham",
+  "name": "Fulham",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    144
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1500,
+   "B": 2700,
+   "A": 4000,
+   "S": 5700
+  },
+  "rewards": {
+   "D": "Fulham Badge",
+   "C": "Fulham Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-ipswich-town",
+  "name": "Ipswich Town",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    94
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 600,
+   "B": 1400,
+   "A": 2100,
+   "S": 3000
+  },
+  "rewards": {
+   "D": "Ipswich Town Badge",
+   "C": "Ipswich Town Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-leeds-united",
+  "name": "Leeds United",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    8
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1100,
+   "B": 2300,
+   "A": 3400,
+   "S": 4800
+  },
+  "rewards": {
+   "D": "Leeds United Badge",
+   "C": "Leeds United Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-west-ham",
+  "name": "West Ham",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    116014
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1400,
+   "B": 2000,
+   "A": 3200,
+   "S": 4600
+  },
+  "rewards": {
+   "D": "West Ham United Badge",
+   "C": "West Ham Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-arsenal",
+  "name": "Arsenal",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    1,
+    116009
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 110000,
+   "B": 700000,
+   "A": 1300000,
+   "S": 2500000
+  },
+  "rewards": {
+   "D": "Arsenal Badge",
+   "C": "Arsenal Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-chelsea",
+  "name": "Chelsea",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    5,
+    116010
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 50000,
+   "B": 600000,
+   "A": 900000,
+   "S": 1500000
+  },
+  "rewards": {
+   "D": "Chelsea Badge",
+   "C": "Chelsea Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-liverpool",
+  "name": "Liverpool",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    9,
+    116343
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 60000,
+   "B": 600000,
+   "A": 1100000,
+   "S": 2000000
+  },
+  "rewards": {
+   "D": "Liverpool Badge",
+   "C": "Liverpool Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-manchester-city",
+  "name": "Manchester City",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    10,
+    116017
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 60000,
+   "B": 700000,
+   "A": 1300000,
+   "S": 2500000
+  },
+  "rewards": {
+   "D": "Manchester City Badge",
+   "C": "Manchester City Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-manchester-united",
+  "name": "Manchester United",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    11,
+    116012
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 20000,
+   "B": 300000,
+   "A": 700000,
+   "S": 1500000
+  },
+  "rewards": {
+   "D": "Manchester United Badge",
+   "C": "Manchester United Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-aston-villa",
+  "name": "Aston Villa",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    2,
+    116015
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 9000,
+   "B": 40000,
+   "A": 80000,
+   "S": 150000
+  },
+  "rewards": {
+   "D": "Aston Villa Badge",
+   "C": "Aston Villa Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-tottenham-hotspur",
+  "name": "Tottenham Hotspur",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    18,
+    116011
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 9000,
+   "B": 40000,
+   "A": 100000,
+   "S": 200000
+  },
+  "rewards": {
+   "D": "Tottenham Hotspur Badge",
+   "C": "Tottenham Hotspur Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-brighton-hove-albion",
+  "name": "Brighton & Hove Albion",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1808,
+    116013
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 4000,
+   "B": 13000,
+   "A": 23500,
+   "S": 42500
+  },
+  "rewards": {
+   "D": "Brighton & Hove Albion Badge",
+   "C": "Brighton & Hove Albion Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-crystal-palace",
+  "name": "Crystal Palace",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1799
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 3000,
+   "B": 27500,
+   "A": 30000,
+   "S": 35000
+  },
+  "rewards": {
+   "D": "Crystal Palace Badge",
+   "C": "Crystal Palace Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-everton",
+  "name": "Everton",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    7,
+    116016
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 3000,
+   "B": 15000,
+   "A": 22500,
+   "S": 36000
+  },
+  "rewards": {
+   "D": "Everton Badge",
+   "C": "Everton Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-newcastle-united",
+  "name": "Newcastle United",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    13
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 11500,
+   "B": 154000,
+   "A": 187500,
+   "S": 250000
+  },
+  "rewards": {
+   "D": "Newcastle United Badge",
+   "C": "Newcastle United Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-sunderland",
+  "name": "Sunderland",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    106
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 2500,
+   "B": 11000,
+   "A": 15000,
+   "S": 22500
+  },
+  "rewards": {
+   "D": "Sunderland Badge",
+   "C": "Sunderland Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-bournemouth",
+  "name": "Bournemouth",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1943
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1600,
+   "B": 2800,
+   "A": 4200,
+   "S": 5900
+  },
+  "rewards": {
+   "D": "AFC Bournemouth Badge",
+   "C": "Bournemouth Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "premier-league-nottingham-forest",
+  "name": "Nottingham Forest",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    14
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 2100,
+   "B": 7200,
+   "A": 10700,
+   "S": 15200
+  },
+  "rewards": {
+   "D": "Nottingham Forest Badge",
+   "C": "Nottingham Forest Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-vfb-stuttgart",
+  "name": "VfB Stuttgart",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    36,
+    132865
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1500,
+   "B": 4700,
+   "A": 7000,
+   "S": 9900
+  },
+  "rewards": {
+   "D": "VfB Stuttgart Badge",
+   "C": "VfB Stuttgart Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-fsv-mainz-05",
+  "name": "FSV Mainz 05",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    169,
+    132866
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1000,
+   "B": 2200,
+   "A": 3400,
+   "S": 4800
+  },
+  "rewards": {
+   "D": "1. FSV Mainz 05 Badge",
+   "C": "FSV Mainz 05 Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-hamburger-sv",
+  "name": "Hamburger SV",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    28,
+    132533
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 1000,
+   "A": 1400,
+   "S": 2000
+  },
+  "rewards": {
+   "D": "Hamburger SV Badge",
+   "C": "Hamburger SV Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-1-fc-nurnberg",
+  "name": "1. FC Nürnberg",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    171,
+    131386
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400,
+   "B": 600,
+   "A": 1000,
+   "S": 1400
+  },
+  "rewards": {
+   "D": "1. FC Nürnberg Badge",
+   "C": "1. FC Nürnberg Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-fc-union-berlin",
+  "name": "FC Union Berlin",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1831,
+    132589
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 900,
+   "B": 1300,
+   "A": 2000,
+   "S": 3000
+  },
+  "rewards": {
+   "D": "1. FC Union Berlin Badge",
+   "C": "FC Union Berlin Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-sc-paderborn-07",
+  "name": "SC Paderborn 07",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    10030
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400,
+   "B": 600,
+   "A": 1000,
+   "S": 1400
+  },
+  "rewards": {
+   "D": "SC Paderborn 07 Badge",
+   "C": "SC Paderborn 07 Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-schalke-04",
+  "name": "Schalke 04",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    34
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400,
+   "B": 600,
+   "A": 1000,
+   "S": 1400
+  },
+  "rewards": {
+   "D": "FC Schalke 04 Badge",
+   "C": "Schalke 04 Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-sv-elversberg",
+  "name": "SV Elversberg",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    580
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400,
+   "B": 600,
+   "A": 1000,
+   "S": 1400
+  },
+  "rewards": {
+   "D": "SV Elversberg Badge",
+   "C": "SV Elversberg Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-fc-bayern-munchen",
+  "name": "FC Bayern München",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    21,
+    115995
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 60000,
+   "B": 700000,
+   "A": 1400000,
+   "S": 2800000
+  },
+  "rewards": {
+   "D": "Bayern München Badge",
+   "C": "FC Bayern München Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-bayer-04-leverkusen",
+  "name": "Bayer 04 Leverkusen",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    32,
+    115996
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 9000,
+   "B": 70000,
+   "A": 160000,
+   "S": 325000
+  },
+  "rewards": {
+   "D": "Bayer 04 Leverkusen Badge",
+   "C": "Bayer 04 Leverkusen Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-borussia-dortmund",
+  "name": "Borussia Dortmund",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    22
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 13000,
+   "B": 150000,
+   "A": 320000,
+   "S": 625000
+  },
+  "rewards": {
+   "D": "Borussia Dortmund Badge",
+   "C": "Borussia Dortmund Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-eintracht-frankfurt",
+  "name": "Eintracht Frankfurt",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1824,
+    115997
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 9000,
+   "B": 40000,
+   "A": 80000,
+   "S": 150000
+  },
+  "rewards": {
+   "D": "Eintracht Frankfurt Badge",
+   "C": "Eintracht Frankfurt Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-rb-leipzig",
+  "name": "RB Leipzig",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    112172,
+    116021
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 7000,
+   "B": 40000,
+   "A": 80000,
+   "S": 175000
+  },
+  "rewards": {
+   "D": "RB Leipzig Badge",
+   "C": "RB Leipzig Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-tsg-hoffenheim",
+  "name": "TSG Hoffenheim",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    10029,
+    115999
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 3000,
+   "B": 10000,
+   "A": 100000,
+   "S": 250000
+  },
+  "rewards": {
+   "D": "TSG 1899 Hoffenheim Badge",
+   "C": "TSG Hoffenheim Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-sc-freiburg",
+  "name": "SC Freiburg",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    25,
+    116002
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 2000,
+   "B": 11500,
+   "A": 18000,
+   "S": 30000
+  },
+  "rewards": {
+   "D": "SC Freiburg Badge",
+   "C": "SC Freiburg Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-vfl-wolfsburg",
+  "name": "VfL Wolfsburg",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    115998
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 4000,
+   "B": 30000,
+   "A": 46000,
+   "S": 75000
+  },
+  "rewards": {
+   "D": "VfL Wolfsburg Badge",
+   "C": "VfL Wolfsburg Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-werder-bremen",
+  "name": "Werder Bremen",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    38,
+    116004
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 2000,
+   "B": 5500,
+   "A": 7500,
+   "S": 11000
+  },
+  "rewards": {
+   "D": "Werder Bremen Badge",
+   "C": "Werder Bremen Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-borussia-monchengladbach",
+  "name": "Borussia Mönchengladbach",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    23
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1100,
+   "B": 2400,
+   "A": 3500,
+   "S": 5000
+  },
+  "rewards": {
+   "D": "Borussia M'gladbach Badge",
+   "C": "Borussia Mönchengladbach Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-fc-augsburg",
+  "name": "FC Augsburg",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    100409
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 800,
+   "B": 1600,
+   "A": 2400,
+   "S": 3500
+  },
+  "rewards": {
+   "D": "FC Augsburg Badge",
+   "C": "FC Augsburg Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "bundesliga-fc-koln",
+  "name": "FC Köln",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    31,
+    116003
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1000,
+   "B": 1700,
+   "A": 2500,
+   "S": 3600
+  },
+  "rewards": {
+   "D": "1. FC Köln Badge",
+   "C": "FC Köln Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-aj-auxerre",
+  "name": "AJ Auxerre",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    57
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1000,
+   "S": 1500
+  },
+  "rewards": {
+   "D": "AJ Auxerre Badge",
+   "C": "AJ Auxerre Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-le-mans-fc",
+  "name": "Le Mans FC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1739
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 500,
+   "A": 700,
+   "S": 1000
+  },
+  "rewards": {
+   "D": "Le Mans FC Badge",
+   "C": "Le Mans FC Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-montpellier-herault-sc",
+  "name": "Montpellier Hérault SC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    116037
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 500,
+   "A": 700,
+   "S": 1000
+  },
+  "rewards": {
+   "D": "Montpellier FC Badge",
+   "C": "Montpellier Hérault SC Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-toulouse-fc",
+  "name": "Toulouse FC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1809,
+    132831
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1100,
+   "S": 1600
+  },
+  "rewards": {
+   "D": "Toulouse FC Badge",
+   "C": "Toulouse FC Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-losc-lille",
+  "name": "LOSC Lille",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    65
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1300,
+   "B": 2500,
+   "A": 3700,
+   "S": 5200
+  },
+  "rewards": {
+   "D": "LOSC Lille Badge",
+   "C": "LOSC Lille Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-angers-sco",
+  "name": "Angers SCO",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1530
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1000,
+   "S": 1500
+  },
+  "rewards": {
+   "D": "Angers SCO Badge",
+   "C": "Angers SCO Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-estac-troyes",
+  "name": "ESTAC Troyes",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    294
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400,
+   "B": 600,
+   "A": 1000,
+   "S": 1400
+  },
+  "rewards": {
+   "D": "ESTAC Troyes Badge",
+   "C": "ESTAC Troyes Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-fc-lorient",
+  "name": "FC Lorient",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    217
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1100,
+   "S": 1600
+  },
+  "rewards": {
+   "D": "FC Lorient Badge",
+   "C": "FC Lorient Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-fc-nantes",
+  "name": "FC Nantes",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    116417
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1200,
+   "S": 1700
+  },
+  "rewards": {
+   "D": "FC Nantes Badge",
+   "C": "FC Nantes Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-le-havre-ac",
+  "name": "Le Havre AC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1738,
+    116416
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1100,
+   "S": 1600
+  },
+  "rewards": {
+   "D": "Le Havre AC Badge",
+   "C": "Le Havre AC Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-stade-brestois-29",
+  "name": "Stade Brestois 29",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    378
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 700,
+   "B": 1000,
+   "A": 1600,
+   "S": 2300
+  },
+  "rewards": {
+   "D": "Stade Brestois 29 Badge",
+   "C": "Stade Brestois 29 Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-paris-saint-germain",
+  "name": "Paris Saint-Germain",
+  "category": "club",
+  "size": 20,
+  "filter": {
+   "clubs": [
+    73,
+    116034
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 80000,
+   "B": 900000,
+   "A": 1700000,
+   "S": 3100000
+  },
+  "rewards": {
+   "D": "Paris Saint-Germain Badge",
+   "C": "Paris Saint-Germain Kit",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-olympique-de-marseille",
+  "name": "Olympique de Marseille",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    219,
+    132370
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 6000,
+   "B": 50000,
+   "A": 80000,
+   "S": 150000
+  },
+  "rewards": {
+   "D": "Olympique de Marseille Badge",
+   "C": "Olympique de Marseille Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-olympique-lyonnais",
+  "name": "Olympique Lyonnais",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    66,
+    116033
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 58000,
+   "B": 170000,
+   "A": 400000,
+   "S": 800000
+  },
+  "rewards": {
+   "D": "Olympique Lyonnais Badge",
+   "C": "Olympique Lyonnais Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-paris-fc",
+  "name": "Paris FC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    111817,
+    116035
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 5000,
+   "B": 20000,
+   "A": 60000,
+   "S": 125000
+  },
+  "rewards": {
+   "D": "Paris FC Badge",
+   "C": "Paris FC Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-rc-strasbourg",
+  "name": "RC Strasbourg",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    76,
+    131724
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1500,
+   "B": 5000,
+   "A": 6500,
+   "S": 9500
+  },
+  "rewards": {
+   "D": "RC Strasbourg Badge",
+   "C": "RC Strasbourg Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-rc-lens",
+  "name": "RC Lens",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    64
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1000,
+   "B": 22500,
+   "A": 38000,
+   "S": 67000
+  },
+  "rewards": {
+   "D": "RC Lens Badge",
+   "C": "RC Lens Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-as-monaco",
+  "name": "AS Monaco",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    69
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1700,
+   "B": 3100,
+   "A": 4700,
+   "S": 6600
+  },
+  "rewards": {
+   "D": "AS Monaco Badge",
+   "C": "AS Monaco Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-ogc-nice",
+  "name": "OGC Nice",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    72
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1200,
+   "B": 2000,
+   "A": 3000,
+   "S": 4200
+  },
+  "rewards": {
+   "D": "OGC Nice Badge",
+   "C": "OGC Nice Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-stade-rennais-fc",
+  "name": "Stade Rennais FC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    74
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1100,
+   "B": 4700,
+   "A": 7000,
+   "S": 9900
+  },
+  "rewards": {
+   "D": "Stade Rennais Badge",
+   "C": "Stade Rennais FC Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-fc-fleury-91",
+  "name": "FC Fleury 91",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    116036
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1300,
+   "B": 1900,
+   "A": 3000,
+   "S": 4300
+  },
+  "rewards": {
+   "D": "FC Fleury 91 Badge",
+   "C": "FC Fleury 91 Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "ligue-1-us-saint-malo",
+  "name": "US Saint-Malo",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    132861
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 300,
+   "B": 500,
+   "A": 700,
+   "S": 1000
+  },
+  "rewards": {
+   "D": "US Saint-Malo Badge",
+   "C": "US Saint-Malo Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-frosinone",
+  "name": "Frosinone",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    111657
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 200,
+   "B": 320,
+   "A": 480,
+   "S": 720
+  },
+  "rewards": {
+   "D": "Frosinone Badge",
+   "C": "Frosinone Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-bergamo-calcio",
+  "name": "Bergamo Calcio",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    115845
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 2200,
+   "B": 3600,
+   "A": 5400,
+   "S": 7600
+  },
+  "rewards": {
+   "D": "Bergamo Calcio Badge",
+   "C": "Bergamo Calcio Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-lecce",
+  "name": "Lecce",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    347
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 800,
+   "A": 1200,
+   "S": 1700
+  },
+  "rewards": {
+   "D": "Lecce Badge",
+   "C": "Lecce Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-venezia",
+  "name": "Venezia",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    205
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 600,
+   "A": 1000,
+   "S": 1500
+  },
+  "rewards": {
+   "D": "Venezia Badge",
+   "C": "Venezia Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-ss-lazio",
+  "name": "SS Lazio",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    115841
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 2000,
+   "B": 3400,
+   "A": 5100,
+   "S": 7200
+  },
+  "rewards": {
+   "D": "Lazio Badge",
+   "C": "SS Lazio Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-cagliari",
+  "name": "Cagliari",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1842
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 700,
+   "B": 1000,
+   "A": 1500,
+   "S": 2200
+  },
+  "rewards": {
+   "D": "Cagliari Badge",
+   "C": "Cagliari Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-genoa",
+  "name": "Genoa",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    110556
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 600,
+   "B": 900,
+   "A": 1400,
+   "S": 2000
+  },
+  "rewards": {
+   "D": "Genoa Badge",
+   "C": "Genoa Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-monza",
+  "name": "Monza",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    111811
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1100,
+   "S": 1700
+  },
+  "rewards": {
+   "D": "Monza Badge",
+   "C": "Monza Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-parma",
+  "name": "Parma",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    50
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1100,
+   "S": 1600
+  },
+  "rewards": {
+   "D": "Parma Badge",
+   "C": "Parma Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-udinese",
+  "name": "Udinese",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    55
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 500,
+   "B": 700,
+   "A": 1200,
+   "S": 1700
+  },
+  "rewards": {
+   "D": "Udinese Badge",
+   "C": "Udinese Kit",
+   "B": "5 Gallery Tokens",
+   "A": "8 Gallery Tokens",
+   "S": "15 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-juventus",
+  "name": "Juventus",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    45
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 12000,
+   "B": 60000,
+   "A": 180000,
+   "S": 375000
+  },
+  "rewards": {
+   "D": "Juventus Badge",
+   "C": "Juventus Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-lombardia-fc",
+  "name": "Lombardia FC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    131682
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 41000,
+   "B": 220000,
+   "A": 440000,
+   "S": 825000
+  },
+  "rewards": {
+   "D": "Lombardia FC Badge",
+   "C": "Lombardia FC Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-milano-fc",
+  "name": "Milano FC",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    131681
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 10000,
+   "B": 180000,
+   "A": 400000,
+   "S": 825000
+  },
+  "rewards": {
+   "D": "Milano FC Badge",
+   "C": "Milano FC Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-napoli",
+  "name": "Napoli",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    48
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 13000,
+   "B": 180000,
+   "A": 280000,
+   "S": 450000
+  },
+  "rewards": {
+   "D": "Napoli Badge",
+   "C": "Napoli Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-roma",
+  "name": "Roma",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    52
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 10000,
+   "B": 80000,
+   "A": 160000,
+   "S": 300000
+  },
+  "rewards": {
+   "D": "Roma Badge",
+   "C": "Roma Kit",
+   "B": "30 Gallery Tokens",
+   "A": "50 Gallery Tokens",
+   "S": "75 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-como",
+  "name": "Como",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    1745
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 2000,
+   "B": 13000,
+   "A": 15500,
+   "S": 19500
+  },
+  "rewards": {
+   "D": "Como Badge",
+   "C": "Como Kit",
+   "B": "15 Gallery Tokens",
+   "A": "25 Gallery Tokens",
+   "S": "40 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-bologna",
+  "name": "Bologna",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    189
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1300,
+   "B": 2800,
+   "A": 4100,
+   "S": 5900
+  },
+  "rewards": {
+   "D": "Bologna Badge",
+   "C": "Bologna Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-fiorentina",
+  "name": "Fiorentina",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    110374
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1900,
+   "B": 5600,
+   "A": 8400,
+   "S": 11800
+  },
+  "rewards": {
+   "D": "Fiorentina Badge",
+   "C": "Fiorentina Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-sassuolo",
+  "name": "Sassuolo",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    111974
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 600,
+   "B": 5100,
+   "A": 7300,
+   "S": 9565
+  },
+  "rewards": {
+   "D": "Sassuolo Badge",
+   "C": "Sassuolo Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "serie-a-torino",
+  "name": "Torino",
+  "category": "club",
+  "size": 15,
+  "filter": {
+   "clubs": [
+    54
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 1100,
+   "B": 1800,
+   "A": 2700,
+   "S": 3900
+  },
+  "rewards": {
+   "D": "Torino Badge",
+   "C": "Torino Kit",
+   "B": "8 Gallery Tokens",
+   "A": "10 Gallery Tokens",
+   "S": "20 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-ligue-1-mcdonald-s",
+  "name": "Ligue 1 McDonald's",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    16
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 75000,
+   "B": 275000,
+   "A": 1600000,
+   "S": 4000000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-serie-a-enilive",
+  "name": "Serie A Enilive",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    31
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 100000,
+   "B": 425000,
+   "A": 1500000,
+   "S": 3500000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-bundesliga",
+  "name": "Bundesliga",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    19
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 100000,
+   "B": 400000,
+   "A": 1500000,
+   "S": 3500000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-frauen-bundesliga",
+  "name": "Frauen-Bundesliga",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    2215
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 50000,
+   "B": 200000,
+   "A": 1400000,
+   "S": 3500000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-premier-league",
+  "name": "Premier League",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    13
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 400000,
+   "B": 800000,
+   "A": 1900000,
+   "S": 4000000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-barclays-wsl",
+  "name": "Barclays WSL",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    2216
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 200000,
+   "B": 725000,
+   "A": 1900000,
+   "S": 4000000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-arkema-pl",
+  "name": "Arkema PL",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    2218
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 75000,
+   "B": 575000,
+   "A": 1800000,
+   "S": 4000000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-laliga-ea-sports",
+  "name": "LALIGA EA SPORTS",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    53
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 275000,
+   "B": 725000,
+   "A": 1900000,
+   "S": 4000000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ },
+ {
+  "id": "leagues-liga-f-moeve",
+  "name": "Liga F Moeve",
+  "category": "league",
+  "size": 30,
+  "filter": {
+   "leagues": [
+    2222
+   ]
+  },
+  "grades": {
+   "D": 10,
+   "C": 125000,
+   "B": 625000,
+   "A": 1800000,
+   "S": 4000000
+  },
+  "rewards": {
+   "D": "10 Gallery Tokens",
+   "C": "35 Gallery Tokens",
+   "B": "50 Gallery Tokens",
+   "A": "70 Gallery Tokens",
+   "S": "100 Gallery Tokens"
+  }
+ }
+]

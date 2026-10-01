@@ -881,7 +881,7 @@ git commit -m "feat(gallery): collected-items ledger fed from cache writes"
 
 This task needs the browser (Claude in Chrome): fut.gg answers 403 to plain fetches.
 
-- [ ] **Step 1: Dump fut.gg in the browser**
+- [x] **Step 1: Dump fut.gg in the browser**
 
 Open `https://www.fut.gg/fut-gallery/` in a new Chrome tab. Click "Show more sets" until all 127 sets show, or collect set URLs from the 7 category pages (`/fut-gallery/premier-league/`, `/fut-gallery/laliga/`, `/fut-gallery/rarities/`, …, links from the main page). Then run this in the page (same origin, so fetch works) to dump every set page:
 
@@ -909,11 +909,11 @@ JSON.stringify(out);
 
 Save the JSON to `server/gallery/fut-gg-dump.json`.
 
-- [ ] **Step 2: Record eligibility for club sets with mixed `teamid`**
+- [x] **Step 2: Record eligibility for club sets with mixed `teamid`**
 
 On the Arsenal set page, open the cheapest lineup ("Open in builder") and note which cards are not plain Arsenal club cards (Icons / Heroes / other). Write down what makes them eligible (their real club = Arsenal). Decide and note in `scripts/gallery-catalogue.ts` header: club sets use `clubs: [men, women club ids]` plus `assetIds` for Icons / Heroes whose fut.gg page lists that club. If fut.gg's set page lists eligible special players, collect their asset ids from the card links (`/players/<assetId>-<slug>/`) into the dump as `extraAssetIds`.
 
-- [ ] **Step 3: Write the catalogue script**
+- [x] **Step 3: Write the catalogue script**
 
 `scripts/gallery-catalogue.ts` reads `server/gallery/fut-gg-dump.json` and `data/static.json`, resolves names to EA ids and writes `server/gallery/sets.json`:
 
@@ -970,12 +970,12 @@ console.log(`${out.length} sets written, ${unresolved.length} need an override:\
 
 Club names in `loc` can collide (e.g. "England" is also a team): for club sets prefer the id whose league matches the category page the set came from (Premier League page → league 13). Resolve collisions with `OVERRIDES` entries. Women's club sets ("Arsenal Mens or Womens") need both club ids: add the women's club id in `OVERRIDES` when the lookup finds only one.
 
-- [ ] **Step 4: Run it until nothing is unresolved**
+- [x] **Step 4: Run it until nothing is unresolved**
 
 Run: `node --import tsx scripts/gallery-catalogue.ts`
 Expected: `127 sets written, 0 need an override`. Iterate on `OVERRIDES` (rarity / campaign sets map to `rarities` or `kinds`, e.g. TOTW → `{ kinds: ['totw'] }`, Heroes → `{ kinds: ['hero'] }`, Holographics → `{ kinds: ['holo'] }`, Bronze/Silver sets → `{ rarities: [...], minRating }` as the set's "Requires" text says).
 
-- [ ] **Step 5: Write the loader test**
+- [x] **Step 5: Write the loader test**
 
 `server/gallery/catalogue.test.ts`:
 
@@ -1002,7 +1002,7 @@ test('catalogue is complete and well-formed', () => {
 });
 ```
 
-- [ ] **Step 6: Implement the loader**
+- [x] **Step 6: Implement the loader**
 
 `server/gallery/catalogue.ts`:
 
@@ -1021,7 +1021,7 @@ export function loadCatalogue(): GallerySet[] {
 }
 ```
 
-- [ ] **Step 7: Run tests, commit**
+- [x] **Step 7: Run tests, commit**
 
 Run: `node --import tsx --test server/gallery/catalogue.test.ts` → PASS.
 
