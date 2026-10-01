@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, Crown, GearSix, List, Prohibit, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, GearSix, List, Prohibit, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
-  type Account, type Challenge, type Meta, type Player, type PlanInfo, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
+  type Account, type Challenge, type Meta, type Player, type PlanInfo, type Prefs, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
 } from './api';
 import { Pitch, ReqTick } from './components/Pitch';
 import { PointsArea } from './components/PointsArea';
@@ -25,6 +25,8 @@ import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
+import { EvosView } from './components/EvosView';
+import { EmailAlertsCard } from './components/EmailAlertsCard';
 import { QuotaMeter } from './components/QuotaMeter';
 import { ClubSyncModal } from './components/ClubSyncModal';
 import { useClerk } from '@clerk/react';
@@ -74,6 +76,8 @@ export default function App({
   const [me, setMe] = useState<{ id: string; email: string } | null>(null);
   const [admin, setAdmin] = useState(false);
   const [plan, setPlan] = useState<PlanInfo | null>(null);
+  const [prefs, setPrefs] = useState<Prefs | null>(null);
+  const [dataVersion, setDataVersion] = useState(0); // bumps when the cache changed (see the status effect)
   const [takenOver, setTakenOver] = useState(false);
   const { signOut } = useClerk();
   const [status, setStatus] = useState<SyncStatus | null>(null);
@@ -184,10 +188,11 @@ export default function App({
 
   // Boot (and after the extension links a new EA account): who am I, which personas are mine.
   const loadMe = useCallback(async () => {
-    const { user, personas, admin, plan: p } = await api.me();
+    const { user, personas, admin, plan: p, prefs: pr } = await api.me();
     setMe(user);
     setAdmin(admin);
     setPlan(p);
+    setPrefs(pr);
     setLinked(personas);
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
@@ -260,6 +265,7 @@ export default function App({
     if (!prev || prev.id !== activeId) return;
     if ((prev.running && !status.running) || prev.editedAt !== status.editedAt) {
       void loadAccountData().catch(() => {});
+      setDataVersion((v) => v + 1);
       if (setId) void api.challenges(setId).then((r) => setChallenges(r.challenges), () => {});
     }
   }, [activeId, status, setId, loadAccountData]);
@@ -282,10 +288,21 @@ export default function App({
     navigate({ view: 'sbcs', setId: route.setId, challengeId: first.challengeId }, true);
   }, [route, challenges, navigate]);
 
+  // The server keeps the site language for emails; the UI language wins. Sends it once after
+  // sign-in when it differs from the saved one, then on every change (errors don't matter).
+  const savedLang = useRef<string | null>(null);
+  useEffect(() => {
+    if (!prefs) return;
+    savedLang.current ??= prefs.lang;
+    if (savedLang.current === lang) return;
+    savedLang.current = lang;
+    api.prefs({ lang }).catch(() => {});
+  }, [prefs, lang]);
+
   // the tab title follows the screen
   useEffect(() => {
     const name =
-      view === 'club' ? 'Club' : view === 'settings' ? 'Settings' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin'
+      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin'
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
@@ -667,6 +684,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <span>{t('nav.club')}</span>
             <small>{club.length}</small>
           </button>
+          <button type="button" className="nav-item" aria-current={view === 'evolutions' && !showGuide ? 'page' : undefined} onClick={() => go('evolutions')}>
+            <Barbell weight="bold" aria-hidden="true" />
+            <span>{t('nav.evolutions')}</span>
+          </button>
           <button type="button" className="nav-item" aria-current={view === 'settings' && !showGuide ? 'page' : undefined} onClick={() => go('settings')}>
             <GearSix weight="bold" aria-hidden="true" />
             <span>{t('nav.settings')}</span>
@@ -749,6 +770,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <ClubView club={club} storage={storage} meta={meta} squad={squad} excludeIds={globalOptions.excludeIds} onToggleExclude={premium ? toggleGlobalExclude : undefined} />
           )}
 
+          {!showGuide && view === 'evolutions' && meta && plan && (
+            <EvosView premium={premium} meta={meta} reload={dataVersion} onUpgrade={() => go('settings')} onSettings={() => go('settings')} />
+          )}
+
           {!showGuide && view === 'settings' && meta && (
             <section className="settings-page">
               <header className="page-head">
@@ -770,6 +795,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                 </div>
                 <div className="settings-side">
                 <PlanCard plan={effectivePlan} now={now} />
+                {prefs && <EmailAlertsCard premium={premium} prefs={prefs} onChange={setPrefs} />}
                 <AccountCard email={me?.email ?? ''} personas={linked} onUnlink={unlink} onSignOut={doSignOut} />
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
                 <aside className="settings-card">
