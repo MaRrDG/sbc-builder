@@ -81,7 +81,7 @@
   - `tags.ts`: `type TagId`, `TAGS: Tag[]`, `rarityKinds(names: Record<string, string>): Record<number, RarityKind>`
   - `score.ts`: `matchesFilter(f: SetFilter, i: GalleryItem): boolean`, `scoreSet(set: GallerySet, items: GalleryItem[]): ScoredSet`, `gradeFor(set: GallerySet, total: number): Grade | null`, `nextGrade(set: GallerySet, total: number): { grade: Grade; need: number } | null`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `server/gallery/score.test.ts`:
 
@@ -192,12 +192,12 @@ test('matchesFilter: OR inside a key, AND between keys, assetIds widen clubs', (
 });
 ```
 
-- [ ] **Step 2: Run to verify they fail**
+- [x] **Step 2: Run to verify they fail**
 
 Run: `node --import tsx --test server/gallery/score.test.ts`
 Expected: FAIL, `Cannot find module './score.js'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `server/gallery/types.ts`:
 
@@ -404,12 +404,12 @@ export function scoreSet(set: GallerySet, items: GalleryItem[]): ScoredSet {
 
 Add `gender?: number;` after `gradingScore` in `ClubItem` (`server/ea.ts`), comment `// 0 men, 1 women`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `node --import tsx --test server/gallery/score.test.ts`
 Expected: all PASS. If `nextGrade(set(), 5000)` fails, check `GRADES.find` uses ascending order.
 
-- [ ] **Step 5: Typecheck and commit**
+- [x] **Step 5: Typecheck and commit**
 
 Run: `npm run typecheck` → no errors.
 

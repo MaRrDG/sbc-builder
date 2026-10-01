@@ -36,6 +36,7 @@ export interface ClubItem {
   weakfootabilitytypecode?: number;
   preferredfoot?: number;
   gradingScore?: number; // what the card is worth in a points SBC
+  gender?: number; // 0 men, 1 women
 }
 
 export interface EligibilityReq {
