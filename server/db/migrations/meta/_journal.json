@@ -43,6 +43,13 @@
       "when": 1790685720075,
       "tag": "0005_charming_hydra",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790854982407,
+      "tag": "0006_magical_meltdown",
+      "breakpoints": true
     }
   ]
 }
