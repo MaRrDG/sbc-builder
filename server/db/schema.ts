@@ -1,5 +1,5 @@
 // Shared, account-independent data. Per-account data (club, squad, progress) stays in data/accounts/.
-import { bigint, index, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, boolean, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 import type { BrickSlot } from '../layout.js';
 
 const seen = () => ({
@@ -70,6 +70,8 @@ export const users = pgTable('users', {
   // account, and which persona earned it (one persona earns one spot, however often it moves)
   founderAt: timestamp('founder_at', { withTimezone: true }),
   founderPersona: bigint('founder_persona', { mode: 'number' }),
+  lang: text('lang').notNull().default('en'), // 'en' | 'ro' | 'it', for emails; the site saves it on change
+  evoEmails: boolean('evo_emails').notNull().default(true), // evolution training emails (Premium)
 }, (t) => [uniqueIndex('users_founder_persona').on(t.founderPersona)]); // one spot per EA account, even without the lock
 
 /** Which user owns an EA persona. One owner per persona; a takeover remembers the previous one. */
@@ -104,4 +106,25 @@ export const events = pgTable(
     data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
   },
   (t) => [index('events_type_at').on(t.type, t.at), index('events_user_at').on(t.userId, t.at)],
+);
+
+/** Timed evolution training per EA persona (server/evos.ts); one email per level (server/evo-alerts.ts). */
+export const evoTrainings = pgTable(
+  'evo_trainings',
+  {
+    personaId: bigint('persona_id', { mode: 'number' }).notNull(),
+    slotId: integer('slot_id').notNull(),
+    level: integer('level').notNull(),
+    levelCount: integer('level_count').notNull(),
+    slotName: text('slot_name').notNull().default(''),
+    itemId: bigint('item_id', { mode: 'number' }),
+    player: jsonb('player').$type<Record<string, unknown>>(),
+    startedAt: timestamp('started_at', { withTimezone: true }),
+    endsAt: timestamp('ends_at', { withTimezone: true }),
+    ready: boolean('ready').notNull().default(false),
+    notifiedAt: timestamp('notified_at', { withTimezone: true }),
+    tries: integer('tries').notNull().default(0),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.personaId, t.slotId, t.level] }), index('evo_trainings_due').on(t.endsAt)],
 );
