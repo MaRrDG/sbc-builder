@@ -31,8 +31,8 @@ import {
 } from './db/users.js';
 import { eq } from 'drizzle-orm';
 import { checkEvoAlerts, emailSecret } from './evo-alerts.js';
-import { checkUnsub } from './evo-rules.js';
-import { prefsOf, setPrefs } from './db/evos.js';
+import { asLang, checkUnsub } from './evo-rules.js';
+import { prefsOf, setPrefs, trainingsOf } from './db/evos.js';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 import { analyticsOrigins, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
@@ -184,7 +184,40 @@ app.get('/api/me', async (req) => {
     const a = accountById(id);
     return a ? [a.toJSON()] : [];
   });
-  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId) };
+  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId), prefs: await prefsOf(userId) };
+});
+
+const MAIL_LANGS = ['en', 'ro', 'it'];
+
+/** Email preferences. An unknown language is ignored (not coerced), a non-boolean flag too. */
+app.put<{ Body: { lang?: unknown; evoEmails?: unknown } }>('/api/me/prefs', async (req) => {
+  const userId = await siteUser(req);
+  const b = req.body ?? {};
+  await setPrefs(userId, {
+    lang: typeof b.lang === 'string' && MAIL_LANGS.includes(b.lang) ? asLang(b.lang) : undefined,
+    evoEmails: typeof b.evoEmails === 'boolean' ? b.evoEmails : undefined,
+  });
+  return { ok: true };
+});
+
+/** Tracked evolution trainings of the active persona (Premium). Reads the DB only, never EA. */
+app.get('/api/evos', async (req) => {
+  const { userId, acc } = await siteContext(req);
+  if ((await planFor(userId)).tier !== 'premium') throw new SessionError('Evolution alerts are a Premium feature.', 403, 'premiumOnly');
+  const meta = await metaFor(acc);
+  const last = await readCache(acc.key('academy'));
+  const ms = (d: Date | null) => d?.getTime() ?? null;
+  const evos = (await trainingsOf(acc.id)).map((r) => ({
+    slotId: r.slotId,
+    level: r.level,
+    levelCount: r.levelCount,
+    slotName: r.slotName,
+    player: r.player ? toPlayer(r.player as unknown as ClubItem, meta) : null,
+    startedAt: ms(r.startedAt),
+    endsAt: ms(r.endsAt),
+    ready: r.ready || (!!r.endsAt && r.endsAt.getTime() <= Date.now()),
+  }));
+  return { fetchedAt: last?.fetchedAt ?? null, evos };
 });
 
 /** One-time migration of solver settings saved under old browser keys: key prefix -> persona, own personas only. */
