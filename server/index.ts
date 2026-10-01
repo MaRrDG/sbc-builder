@@ -207,12 +207,21 @@ app.get('/api/evos', async (req) => {
   const meta = await metaFor(acc);
   const last = await readCache(acc.key('academy'));
   const ms = (d: Date | null) => d?.getTime() ?? null;
+  // a partial stored player must not break the whole list
+  const playerOf = (raw: unknown) => {
+    if (!raw) return null;
+    try {
+      return toPlayer(raw as ClubItem, meta);
+    } catch {
+      return null;
+    }
+  };
   const evos = (await trainingsOf(acc.id)).map((r) => ({
     slotId: r.slotId,
     level: r.level,
     levelCount: r.levelCount,
     slotName: r.slotName,
-    player: r.player ? toPlayer(r.player as unknown as ClubItem, meta) : null,
+    player: playerOf(r.player),
     startedAt: ms(r.startedAt),
     endsAt: ms(r.endsAt),
     ready: r.ready || (!!r.endsAt && r.endsAt.getTime() <= Date.now()),
