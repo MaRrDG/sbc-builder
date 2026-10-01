@@ -48,14 +48,61 @@ export function tagMatches(tag: Tag, items: GalleryItem[]): GalleryItem[] {
   const r = tag.rule;
   if (r.kind === 'filter') return items.filter(r.test);
   const groups = new Map<number | string, GalleryItem[]>();
-  for (const i of items) groups.set(r.key(i), [...(groups.get(r.key(i)) ?? []), i]);
+  for (const i of items) {
+    const k = r.key(i);
+    const g = groups.get(k);
+    if (g) g.push(i);
+    else groups.set(k, [i]);
+  }
   if (r.kind === 'different') return [...groups.values()].map((g) => g.reduce((a, b) => (b.score > a.score ? b : a)));
   let best: GalleryItem[] = [];
+  let bestSum = -1;
   for (const g of groups.values()) {
-    const sum = (xs: GalleryItem[]) => xs.reduce((s, i) => s + i.score, 0);
-    if (g.length > best.length || (g.length === best.length && sum(g) > sum(best))) best = g;
+    if (g.length < best.length) continue;
+    const sum = g.reduce((s, i) => s + i.score, 0);
+    if (g.length > best.length || sum > bestSum) {
+      best = g;
+      bestSum = sum;
+    }
   }
   return best;
+}
+
+const SCRATCH_N = new Map<number | string, number>(); // reused by tagStats (single-threaded, not re-entrant)
+const SCRATCH_S = new Map<number | string, number>();
+
+/** How many items a tag counts and their score sum; same result as tagMatches without building arrays. */
+export function tagStats(tag: Tag, items: GalleryItem[]): { count: number; sum: number } {
+  const r = tag.rule;
+  let count = 0;
+  let sum = 0;
+  if (r.kind === 'filter') {
+    for (const i of items) if (r.test(i)) { count++; sum += i.score; }
+    return { count, sum };
+  }
+  const cnt = SCRATCH_N;
+  const tot = SCRATCH_S;
+  cnt.clear();
+  tot.clear();
+  if (r.kind === 'different') {
+    for (const i of items) {
+      const k = r.key(i);
+      const o = tot.get(k);
+      if (o === undefined || i.score > o) tot.set(k, i.score);
+    }
+    for (const v of tot.values()) { count++; sum += v; }
+    return { count, sum };
+  }
+  for (const i of items) {
+    const k = r.key(i);
+    cnt.set(k, (cnt.get(k) ?? 0) + 1);
+    tot.set(k, (tot.get(k) ?? 0) + i.score);
+  }
+  for (const [k, n] of cnt) {
+    const s = tot.get(k)!;
+    if (n > count || (n === count && s > sum)) { count = n; sum = s; }
+  }
+  return { count, sum };
 }
 
 /** The tier percent for `count` matched items, 0 under the first tier. */

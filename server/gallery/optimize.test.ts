@@ -63,3 +63,48 @@ test('never worse than greedy', () => {
     assert.ok(total(s, bestLineup(s, pool)) >= total(s, greedy(s, pool)), `seed ${seed}`);
   }
 });
+
+test('both versions of one player are kept when Multiples pays', () => {
+  // two copies of assetId 9 (different ids) at 1000 beat the singles 1050 / 1040: 2000 + 10% > 2090
+  const pool = [item({ score: 1050 }), item({ score: 1040 }), item({ assetId: 9, score: 1000 }), item({ assetId: 9, score: 1000 }), item({ score: 100 })];
+  const s = set({ size: 2 });
+  const pick = bestLineup(s, pool);
+  assert.equal(pick.filter((i) => i.assetId === 9).length, 2);
+  assert.equal(new Set(pick.map((i) => i.id)).size, 2);
+});
+
+test('same-tag push completes the lineup group, not the pool-wide largest group', () => {
+  // league 1 is the pool's largest group (12 cheap cards). Greedy holds 3 league-2 cards; getting league 2 to 5
+  // needs two swaps at once (+1% on 5 cards beats losing 80), and no single swap pays.
+  const mk = (league: number, score: number) => item({ league, score, position: 'CF' });
+  const l1 = [...Array(12)].map(() => mk(1, 10));
+  const l2 = [2000, 1900, 1800, 1690, 1680].map((x) => mk(2, x));
+  const other = [1750, 1700].map((x) => mk(3, x));
+  const pool = [...l1, ...l2, ...other];
+  const s = set({ size: 5 });
+  const pick = bestLineup(s, pool);
+  assert.equal(pick.filter((i) => i.league === 2).length, 5);
+  assert.ok(total(s, pick) > total(s, greedy(s, pool)));
+});
+
+test('fast on a ~2000 item pool', () => {
+  const pool = [...Array(2000)].map((_, k) => item({
+    score: ((k * 7919) % 9000) + 20,
+    rating: 55 + (k % 40),
+    league: k % 17, nation: k % 29, club: k % 61,
+    assetId: 1000 + (k % 700),
+    firstOwner: k % 5 === 0,
+    kind: k % 50 === 0 ? 'icon' : k % 37 === 0 ? 'hero' : null,
+    position: ['GK', 'CB', 'LB', 'CM', 'CAM', 'ST', 'RW'][k % 7],
+    weakFoot: 1 + (k % 5), skillMoves: k % 5,
+  }));
+  const sets = [0, 1, 2, 3, 4].map((x) => set({ size: 20, filter: x ? { leagues: [x, x + 1, x + 2] } : {} }));
+  const t0 = performance.now();
+  const picks = sets.map((s) => bestLineup(s, pool));
+  const avg = (performance.now() - t0) / sets.length;
+  sets.forEach((s, k) => {
+    const elig = pool.filter((i) => !s.filter.leagues || s.filter.leagues.includes(i.league));
+    assert.ok(total(s, picks[k]) >= total(s, greedy(s, elig)));
+  });
+  assert.ok(avg < 20, `avg ${avg.toFixed(1)} ms per set`);
+});
