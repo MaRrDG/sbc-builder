@@ -8,15 +8,20 @@ import { errorText } from '../messages';
 export function EmailAlertsCard({ premium, prefs, onChange }: { premium: boolean; prefs: Prefs; onChange: (p: Prefs) => void }) {
   const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
   const toggle = () => {
     const before = prefs;
     const evoEmails = !prefs.evoEmails;
     onChange({ ...prefs, evoEmails });
     setError(null);
-    api.prefs({ evoEmails }).catch((e) => {
-      onChange(before);
-      setError(errorText(e, t));
-    });
+    setSaving(true);
+    api
+      .prefs({ evoEmails })
+      .catch((e) => {
+        onChange(before);
+        setError(errorText(e, t));
+      })
+      .finally(() => setSaving(false));
   };
   return (
     <section className={`settings-card${premium ? '' : ' locked'}`}>
@@ -28,7 +33,7 @@ export function EmailAlertsCard({ premium, prefs, onChange }: { premium: boolean
       )}
       <fieldset disabled={!premium} className="plain">
         <label className="switch">
-          <input type="checkbox" checked={premium && prefs.evoEmails} onChange={toggle} />
+          <input type="checkbox" checked={premium && prefs.evoEmails} onChange={toggle} disabled={saving} />
           <span>{t('evos.emailToggle')}</span>
         </label>
       </fieldset>

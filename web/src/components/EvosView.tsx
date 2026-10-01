@@ -85,7 +85,7 @@ export function EvosView({ premium, meta, reload, onUpgrade, onSettings }: {
           <p className="muted evo-foot">
             {t('evos.emailNote')}{' '}
             <button type="button" className="text" onClick={onSettings}>
-              {t('nav.settings')}
+              {t('evos.emailSettings')}
             </button>
           </p>
         </>
@@ -112,7 +112,7 @@ function EvoItem({ evo: e, meta, now }: { evo: Evo; meta: Meta; now: number }) {
       <div className="evo-info">
         <h3>{e.slotName}</h3>
         <p className="muted">{t('evos.level', { level: e.level, count: e.levelCount })}</p>
-        <p className={`evo-status${ready ? ' ready' : ''}`} aria-label={status}>
+        <p className={`evo-status${ready ? ' ready' : ''}`}>
           {ready ? <CheckCircle weight="fill" aria-hidden="true" /> : <Timer weight="bold" aria-hidden="true" />}
           <span>{status}</span>
         </p>

@@ -771,7 +771,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           )}
 
           {!showGuide && view === 'evolutions' && meta && plan && (
-            <EvosView premium={premium} meta={meta} reload={dataVersion} onUpgrade={() => go('settings')} onSettings={() => go('settings')} />
+            <EvosView key={activeId ?? 0} premium={premium} meta={meta} reload={dataVersion} onUpgrade={() => go('settings')} onSettings={() => go('settings')} />
           )}
 
           {!showGuide && view === 'settings' && meta && (
