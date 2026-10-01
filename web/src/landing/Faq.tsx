@@ -3,7 +3,7 @@ import { CaretDown } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
 import { Backdrop } from './Backdrop';
 
-const ITEMS = ['ban', 'data', 'ext', 'coins'] as const;
+const ITEMS = ['ban', 'data', 'ext', 'coins', 'evos'] as const;
 
 export function Faq() {
   const { t } = useI18n();
