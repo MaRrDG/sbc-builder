@@ -607,7 +607,7 @@ git commit -m "feat(gallery): lineup optimizer"
   - `installLedger(): void`
   - `LEDGER_KEY(personaId)` = `accounts/<id>/gallery`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `server/gallery/ledger.test.ts`:
 
@@ -685,12 +685,12 @@ test('concurrent recordItems calls lose nothing', async () => {
 
 This needs `server/store.ts` to honor an override of the data dir. Change `export const DATA_DIR = join(ROOT, 'data');` to `export const DATA_DIR = process.env.SBC_DATA_DIR ?? join(ROOT, 'data');` (Step 3). Since `DATA_DIR` is read at import time, the env var must be set before `store.ts` is first imported in this test process: put this test in its own file `server/gallery/ledger-io.test.ts` with the env assignment at the very top, before any import of `./ledger.js` (use a dynamic `await import(...)` as shown).
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `node --import tsx --test server/gallery/ledger.test.ts server/gallery/ledger-io.test.ts`
 Expected: FAIL, module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `server/store.ts`: replace `DATA_DIR` as above and add the hook:
 
@@ -838,7 +838,7 @@ Move the three dynamic imports in `readSquadCaches` to static top-level imports 
 
 `server/index.ts`: import `installLedger` from `./gallery/ledger.js` and call `installLedger();` once near the other startup code (before `app.listen`).
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `node --import tsx --test server/gallery/ledger.test.ts server/gallery/ledger-io.test.ts && npm test`
 Expected: all PASS (existing tests still green).
@@ -860,7 +860,7 @@ import('./server/gallery/ledger.ts').then(async (m) => {
 
 Expected: runs without error (0 entries before the first `readLedger`). Do not call `readLedger` on the real `data/` here: it writes `gallery.json`, which is fine in dev but should happen through the API in Task 5.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add server/gallery/ledger.ts server/gallery/ledger.test.ts server/gallery/ledger-io.test.ts server/store.ts server/index.ts
