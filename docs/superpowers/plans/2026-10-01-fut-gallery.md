@@ -430,7 +430,7 @@ git commit -m "feat(gallery): set scoring and bonus tags"
 - Consumes: `matchesFilter`, `scoreSet` (Task 1), `TAGS`, `tagMatches`, `tierPct` (Task 1), `GallerySet`, `GalleryItem`.
 - Produces: `bestLineup(set: GallerySet, pool: GalleryItem[]): GalleryItem[]` (at most `set.size` items, all matching the filter; fewer when the pool is short).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `server/gallery/optimize.test.ts`:
 
@@ -502,12 +502,12 @@ test('never worse than greedy', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `node --import tsx --test server/gallery/optimize.test.ts`
 Expected: FAIL, module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `server/gallery/optimize.ts`:
 
@@ -572,12 +572,12 @@ export function bestLineup(set: GallerySet, pool: GalleryItem[]): GalleryItem[] 
 }
 ```
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `node --import tsx --test server/gallery/optimize.test.ts`
 Expected: all PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add server/gallery/optimize.ts server/gallery/optimize.test.ts
