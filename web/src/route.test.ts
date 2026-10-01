@@ -48,6 +48,14 @@ test('extension links on / open the app, not the landing page', () => {
   assert.deepEqual(parseRoute('/', '?foo=1'), { view: 'landing' });
 });
 
+test('gallery routes', () => {
+  assert.deepEqual(parseRoute('/dashboard/gallery'), { view: 'gallery', setId: null });
+  assert.deepEqual(parseRoute('/dashboard/gallery/premier-league-arsenal'), { view: 'gallery', setId: 'premier-league-arsenal' });
+  assert.deepEqual(parseRoute('/dashboard/gallery/<bad>'), { view: 'gallery', setId: null });
+  assert.equal(routePath({ view: 'gallery', setId: null }), '/dashboard/gallery');
+  assert.equal(routePath({ view: 'gallery', setId: 'a-b' }), '/dashboard/gallery/a-b');
+});
+
 test('admin sub-routes keep their query', () => {
   assert.deepEqual(parseRoute('/dashboard/admin'), adminRoute('overview'));
   assert.deepEqual(parseRoute('/dashboard/admin/users', '?plan=premium&page=2'), adminRoute('users', { query: 'plan=premium&page=2' }));

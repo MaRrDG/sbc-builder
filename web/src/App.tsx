@@ -285,7 +285,7 @@ export default function App({
   // the tab title follows the screen
   useEffect(() => {
     const name =
-      view === 'club' ? 'Club' : view === 'settings' ? 'Settings' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin'
+      view === 'club' ? 'Club' : view === 'settings' ? 'Settings' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery'
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
@@ -452,7 +452,15 @@ export default function App({
     setShowOptions(false);
     setMenuOpen(false);
     // pressing SBCs again goes back to the list
-    navigate(v === 'sbcs' ? { view: 'sbcs', setId: null, challengeId: null } : v === 'admin' ? adminRoute('overview') : { view: v });
+    navigate(
+      v === 'sbcs'
+        ? { view: 'sbcs', setId: null, challengeId: null }
+        : v === 'admin'
+          ? adminRoute('overview')
+          : v === 'gallery'
+            ? { view: 'gallery', setId: null }
+            : { view: v }
+    );
     setError(null);
   };
 

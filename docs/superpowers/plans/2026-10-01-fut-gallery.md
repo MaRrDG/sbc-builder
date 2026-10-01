@@ -1209,7 +1209,7 @@ git commit -m "feat(gallery): GET /api/gallery for Premium"
   - `api.gallery(): Promise<GalleryResponse>`; exported types `GalleryResponse`, `GallerySetResult`, `GalleryGrade`
   - `gallery.ts`: `type GallerySort = 'score' | 'progress' | 'grade' | 'name'`, `interface GalleryFilter { category: 'all' | GallerySetResult['category']; state: 'all' | 'complete' | 'incomplete'; minGrade: GalleryGrade | null }`, `progress(s): number` (0..1 to the next grade, 1 when S), `filterSort(sets, filter, sort): GallerySetResult[]`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Append to `web/src/route.test.ts` (follow its existing style):
 
@@ -1258,11 +1258,11 @@ test('filters and sorts', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `node --import tsx --test web/src/route.test.ts web/src/components/gallery/gallery.test.ts` → FAIL.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `web/src/route.ts`: add `| { view: 'gallery'; setId: string | null }` to `Route`; in `parseRoute` after the `settings` line:
 
@@ -1326,11 +1326,11 @@ export function filterSort(sets: GallerySetResult[], f: GalleryFilter, sort: Gal
 
 Fix every `switch (r.view)` / exhaustive check in the web app that TypeScript now flags (e.g. `App.tsx:288` title mapping) by adding the `gallery` case.
 
-- [ ] **Step 4: Run tests + typecheck**
+- [x] **Step 4: Run tests + typecheck**
 
 Run: `npm test && npm run typecheck` → PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add web/src/route.ts web/src/route.test.ts web/src/api.ts web/src/components/gallery
