@@ -51,6 +51,8 @@ export interface GallerySetResult {
   grades: Record<GalleryGrade, number>;
   rewards: Partial<Record<GalleryGrade, string>>;
   tags: GalleryTag[];
+  /** The set's crest: a club / league crest or a rarity's card art; null when nothing fits. */
+  badge: { kind: 'club' | 'league' | 'rarity'; id: number } | null;
   lineup: (Player & { inClub: boolean; firstOwner: boolean; score: number })[];
 }
 

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { buildGallery } from './compute.js';
+import { badgeFor, buildGallery } from './compute.js';
 import { mergeLedger } from './ledger.js';
 import type { ClubItem } from '../ea.js';
 import type { GallerySet } from './types.js';
@@ -27,4 +27,14 @@ test('lineup marks in-club vs owned-before and carries the score', () => {
   assert.equal(r.filled, 2);
   assert.equal(r.grade, 'B'); // 2930 + Multiples 10% (same assetId) = 3223
   assert.deepEqual(r.lineup.map((p) => [p.id, p.inClub, p.score]).sort(), [[1, true, 830], [2, false, 2100]]);
+});
+
+test('badge: club, then league, then rarity; rarity kinds map to their lowest rareflag', () => {
+  const base = { ...set, filter: {} };
+  assert.deepEqual(buildGallery([set], {}, new Set(), meta)[0].badge, { kind: 'club', id: 1 });
+  assert.deepEqual(badgeFor({ ...base, filter: { leagues: [13], nations: [14] } }, {}), { kind: 'league', id: 13 });
+  assert.deepEqual(badgeFor({ ...base, filter: { rarities: [87, 3] } }, {}), { kind: 'rarity', id: 87 });
+  assert.deepEqual(badgeFor({ ...base, filter: { kinds: ['hero'] } }, { 12: 'icon', 72: 'hero', 70: 'hero' }), { kind: 'rarity', id: 70 });
+  assert.equal(badgeFor({ ...base, filter: { kinds: ['totw'] } }, { 12: 'icon' }), null);
+  assert.equal(badgeFor({ ...base, filter: { nations: [14] } }, {}), null);
 });

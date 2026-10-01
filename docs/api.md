@@ -285,12 +285,13 @@ FUT Gallery planner: for every set of the catalogue, the best lineup the account
     "grade": "B", "next": { "grade": "A", "need": 1160 },
     "grades": { "D": 500, "C": 2000, "B": 6000, "A": 9000, "S": 12000 }, "rewards": { "B": "..." },
     "tags": [{ "...": "..." }],
+    "badge": { "kind": "club", "id": 171 },
     "lineup": [{ "id": 943996158675, "name": "Hazard", "...": "Player fields as in /api/club", "inClub": true, "firstOwner": true, "score": 830 }]
   }]
 }
 ```
 
-`inClub`: the item is still owned (club, storage or unassigned); otherwise it was owned before. The answer is cached per account until the ledger or the club cache changes.
+`inClub`: the item is still owned (club, storage or unassigned); otherwise it was owned before. `badge` is what the set's crest shows, taken from its filter: the first club, else the league, else the rarity (`id` = rareflag; a rarity kind such as TOTW or Heroes maps to its lowest rareflag); `null` when nothing fits (the site shows an icon). The answer is cached per account until the ledger or the club cache changes.
 
 ### `GET /api/sets` (site)
 
