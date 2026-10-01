@@ -1,4 +1,7 @@
 {
+  "0.8.9": [
+    "Reads your Evolutions, so FC Solver Premium can email you when a player's training is over"
+  ],
   "0.8.8": [
     "Syncs wait until you are logged in to EA in the web app, instead of failing and getting stuck"
   ],

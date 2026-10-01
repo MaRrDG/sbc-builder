@@ -7,7 +7,7 @@
 (() => {
   const SRC = 'sbc-builder-hook';
   const UTAS = /^(https:\/\/utas\.[^/]+\/ut\/game\/fc27)(\/[^?]*)/;
-  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile)$/;
+  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*)$/;
   // Our requests go through one queue, one at a time, with a short random pause between them,
   // and only once the web app itself has been quiet for a moment, so they never pile up on its own.
   const GAP_MIN_MS = 1500;
@@ -210,6 +210,10 @@
     // POST that starts it, which FC Solver never does
     async challengeSquad(c, job) {
       if (Number.isInteger(job.challengeId)) await c('GET', `/sbs/challenge/${job.challengeId}/squad`);
+    },
+    // timed evolutions (Training Camp): the list the web app's Evolutions screen loads, read only
+    async academy(c) {
+      await c('GET', '/academy/hub/v2?offset=0&count=20&sortOrder=asc&slotStatus=STARTED');
     },
   };
 

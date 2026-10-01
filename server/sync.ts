@@ -5,6 +5,8 @@ import { SessionError } from './ea.js';
 import { readCache, writeCache, type Cached } from './store.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
+import { planFor } from './plans.js';
+import { personaRow } from './db/users.js';
 import { clubCalledAt, enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
 import { softly } from './db/index.js';
 import { logEvent } from './db/events.js';
@@ -328,6 +330,18 @@ export async function refreshOnVisit(acc: Account, { sbcs = true }: { sbcs?: boo
 // (the extension queue also waits for the web app to go quiet before each request).
 const SESSION_GRACE_MS = 20 * 1000;
 
+async function academyDue(acc: Account): Promise<boolean> {
+  const last = await readCache(acc.key('academy'));
+  if (last && last.fetchedAt >= lastSbcDrop()) return false;
+  try {
+    const owner = await personaRow(acc.id);
+    return !!owner && (await planFor(owner.userId)).tier === 'premium';
+  } catch (e) {
+    console.error(`[db] academy owner failed: ${(e as Error).message}`); // not due; the next tick tries again
+    return false;
+  }
+}
+
 export async function autoSync(acc: Account): Promise<void> {
   if (!acc.hasSession || running.has(acc.id)) return;
   if (Date.now() - acc.info.sidUpdatedAt < SESSION_GRACE_MS) return;
@@ -350,6 +364,8 @@ export async function autoSync(acc: Account): Promise<void> {
         return;
       }
       if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
+      // timed evolutions: one read a day, only where someone gets the email (Premium)
+      if (!jobStatus(acc).running && !hasPending(acc, 'academy') && (await academyDue(acc))) await enqueue(acc, 'academy');
       return;
     }
     if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
