@@ -14,8 +14,8 @@
 //   Same-name EA teams that are NOT the set's club are left out on purpose: Arsenal 110394 (Arsenal de Sarandí),
 //   Everton 112584 (Everton de Viña del Mar), the "… XI" teams (Chelsea 132706, Liverpool 132703, Real Madrid 132704,
 //   Bayern 132705, Juventus 132702), Union Berlin 111716 (Unión).
-// - "1. FC Nürnberg": fut.gg's requires text is cut at "1." (the dump regex stops at a dot); treated as
-//   "Mens or Womens" like the other Bundesliga clubs with a women's team in the game.
+// - "1. FC Nürnberg": the dump regex cut its requires text at "1."; restored by hand from the set page
+//   ("… 1. FC Nürnberg Women's players …"), so it is women only.
 // - "Bergamo Calcio" requires no gender ("Bergamo Calcio players"): the one club id fut.gg gives.
 // - Rarity sets (category 'rarity', as on fut.gg; Season 1 is a promo mix but fut.gg files it under Rarities too):
 //   TOTW / Holographics / Heroes by kind; Season 1 = rareflags of "Ones to Watch" (150), "Destined for Glory" (22),
@@ -104,7 +104,6 @@ const MEN: Record<string, number> = {
 };
 /** Gender words the requires text lacks or lost. */
 const GENDER: Record<string, 'men' | 'women' | 'both'> = {
-  'bundesliga-1-fc-nurnberg': 'both',
   'serie-a-bergamo-calcio': 'men',
 };
 /** Sets the name lookup cannot resolve: rarity sets. */
