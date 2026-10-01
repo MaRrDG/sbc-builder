@@ -44,11 +44,13 @@ export interface GalleryItem {
   firstOwner: boolean;
 }
 
+/** One bonus tag on a lineup. Unmet tags (pct 0, bonus 0) are listed too, with the tier they need. */
 export interface TagResult {
   id: string;
   count: number;
-  pct: number;
+  pct: number; // current tier percent, 0 under the first tier
   bonus: number;
+  next: { min: number; pct: number } | null; // the next tier up; null at the top tier
 }
 
 export interface ScoredSet {
