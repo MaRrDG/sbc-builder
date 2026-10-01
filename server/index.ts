@@ -35,6 +35,7 @@ import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 import { analyticsOrigins, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
+import { installLedger } from './gallery/ledger.js';
 import { db, initDb } from './db/index.js';
 import { logEvent, pruneEvents } from './db/events.js';
 import { isPointsChallenge, pointsTarget, usablePoints } from './points.js';
@@ -615,6 +616,7 @@ try {
   console.error(`[startup] cannot start: ${(e as Error).message}`);
   process.exit(1);
 }
+installLedger();
 void pruneEvents();
 void backfillFounders().catch((e) => console.error(`[founders] backfill failed: ${(e as Error).message}`));
 setInterval(() => void pruneEvents(), 24 * 60 * 60 * 1000).unref();

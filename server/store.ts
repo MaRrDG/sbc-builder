@@ -3,11 +3,19 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-export const DATA_DIR = join(ROOT, 'data');
+export const DATA_DIR = process.env.SBC_DATA_DIR ?? join(ROOT, 'data');
 
 export interface Cached<T> {
   fetchedAt: number;
   data: T;
+}
+
+type WriteListener = (key: string, data: unknown) => void;
+const listeners: WriteListener[] = [];
+
+/** Called after every cache write (the gallery ledger listens for club / storage / unassigned). */
+export function onCacheWrite(fn: WriteListener) {
+  listeners.push(fn);
 }
 
 const file = (key: string) => join(DATA_DIR, `${key}.json`);
@@ -28,6 +36,7 @@ export async function writeCache<T>(key: string, data: T, fetchedAt = Date.now()
   // write-then-rename so a crash never leaves a half-written cache file
   await writeFile(path + '.tmp', JSON.stringify(entry));
   await rename(path + '.tmp', path);
+  for (const fn of listeners) fn(key, data);
   return entry;
 }
 
