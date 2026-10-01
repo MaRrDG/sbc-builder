@@ -9,7 +9,8 @@
 //    (pages of a club sync job carry its id and are put together per job, see club-pages.ts);
 //  - GET /squad/list + /squad/{id} (or /squad/active) -> active squad;
 //  - GET /chemistry/profiles -> promo chemistry profiles;
-//  - GET /storagepile -> the SBC storage (players the solver may use on request).
+//  - GET /storagepile -> the SBC storage (players the solver may use on request);
+//  - academy responses (Evolutions) -> timed training rows (server/evos.ts).
 import type { ClubItem, Challenge, ChemProfilesResponse } from './ea.js';
 import type { Account } from './accounts.js';
 import { readCache, writeCache } from './store.js';
@@ -19,11 +20,13 @@ import { parseLayout } from './layout.js';
 import { softly } from './db/index.js';
 import { reportBricks, saveChallenges, saveSets } from './db/sbcs.js';
 import { findJob } from './jobs.js';
+import { parseAcademy, isFullList } from './evos.js';
+import { saveTrainings } from './db/evos.js';
 import { addClubPage, assembleClub, loadedPlayers } from './club-pages.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const WATCHED_PATH =
-  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile)$/;
+  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*)$/;
 
 export interface WebAppEvent {
   method: string;
@@ -194,6 +197,14 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
     await writeCache<ChemProfilesResponse>(acc.key('chemProfiles'), res as unknown as ChemProfilesResponse);
     invalidateMeta(acc.key('chemProfiles'));
     return null;
+  }
+  if (ev.path.startsWith('/academy/')) {
+    if (!Array.isArray(res.slots)) return null;
+    const list = parseAcademy(res, Math.floor(Date.now() / 1000));
+    const full = isFullList(ev.path, ev.query ?? '', res.slots.length);
+    await softly('save evolutions', () => saveTrainings(acc.id, list, full));
+    if (full) await writeCache(acc.key('academy'), { slots: res.slots.length });
+    return list.length || full ? 'Evolutions updated from the web app' : null;
   }
   return undefined; // not a data load: fall through to item moves
 }

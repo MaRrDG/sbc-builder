@@ -7,6 +7,7 @@ test('root is the landing page, the app lives under /dashboard', () => {
   assert.deepEqual(parseRoute('/dashboard'), { view: 'sbcs', setId: null, challengeId: null });
   assert.deepEqual(parseRoute('/dashboard/sbc/16/39'), { view: 'sbcs', setId: 16, challengeId: 39 });
   assert.deepEqual(parseRoute('/dashboard/club'), { view: 'club' });
+  assert.deepEqual(parseRoute('/dashboard/evolutions'), { view: 'evolutions' });
   assert.deepEqual(parseRoute('/dashboard/admin'), adminRoute('overview'));
 });
 
@@ -22,7 +23,7 @@ test('routePath round-trips', () => {
     { view: 'sbcs', setId: null, challengeId: null },
     { view: 'sbcs', setId: 16, challengeId: null },
     { view: 'sbcs', setId: 16, challengeId: 39 },
-    { view: 'club' }, { view: 'settings' }, adminRoute('overview'), { view: 'setup' }, { view: 'guide' },
+    { view: 'club' }, { view: 'evolutions' }, { view: 'settings' }, adminRoute('overview'), { view: 'setup' }, { view: 'guide' },
   ];
   for (const r of routes) assert.deepEqual(parseRoute(routePath(r)), r, routePath(r));
   assert.equal(routePath({ view: 'sbcs', setId: 16, challengeId: 39 }), '/dashboard/sbc/16/39');

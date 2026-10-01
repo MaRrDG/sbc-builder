@@ -3,6 +3,7 @@
 //   /                     landing page (public)
 //   /dashboard            SBC list          /dashboard/sbc/16      a set (first open challenge)
 //   /dashboard/sbc/16/39  a challenge       /dashboard/club        club
+//   /dashboard/evolutions evolutions
 //   /dashboard/gallery    gallery list      /dashboard/gallery/<set>  a gallery set
 //   /dashboard/settings   settings          /dashboard/admin[/users[/:id]|/accounts][?filters]   admin panel (admins only)
 //   /setup                extension setup   /guide                 how it works
@@ -18,6 +19,7 @@ export type Route =
   | { view: 'landing' }
   | { view: 'sbcs'; setId: number | null; challengeId: number | null }
   | { view: 'club' }
+  | { view: 'evolutions' }
   | { view: 'settings' }
   | { view: 'setup' }
   | { view: 'guide' }
@@ -58,6 +60,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (a === 'terms' || a === 'privacy' || a === 'cookies') return { view: 'legal', doc: a };
   const [x, y, z] = a === 'dashboard' ? parts.slice(1) : parts;
   if (x === 'club') return { view: 'club' };
+  if (x === 'evolutions') return { view: 'evolutions' };
   if (x === 'settings') return { view: 'settings' };
   if (x === 'gallery') return { view: 'gallery', setId: y && /^[a-z0-9-]+$/.test(y) ? y : null };
   if (x === 'admin') {
@@ -93,6 +96,7 @@ export function routePath(r: Route): string {
     case 'guide':
       return `/${r.view}`;
     case 'club':
+    case 'evolutions':
     case 'settings':
       return `/dashboard/${r.view}`;
     case 'gallery':

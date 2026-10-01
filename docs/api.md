@@ -41,7 +41,7 @@ Returns `{ ok, account, accessKey, linked, linkRejected, clubQueued }` and switc
 
 ### `GET /api/jobs/next` (extension)
 
-The web app tab asks for work: `{ "job": { "id": "9f…", "kind": "club" | "sbc" | "challenges", "setIds": [16] } }` or `{ "job": null }`. One job runs at a time; nothing is handed out when today's budget is used or the account is paused. Calling this marks the web app as open (`session: true` for 30 s). `?visible=1|0` (extension 0.8.4+): whether the tab is in front. `?ready=0` (extension 0.8.8+): the tab has no EA session yet (not logged in); it still counts as open but gets no job, so queued jobs wait for the login. A job handed out that makes no EA request within 60 s fails (`errorCode: "notStarted"` in the sync status), as does a queued job whose tab stopped polling; neither starts the club cooldown, which counts from a club job's first EA request. When the web app was closed, or the tab was hidden and is now in front, the SBC list refresh of `POST /api/sync/visit` is queued (same 30 min cooldown); it is handed out on the next poll. That same transition on `/api/jobs/next` also triggers the visit refresh (club + SBC list, same rules as `POST /api/sync/visit`).
+The web app tab asks for work: `{ "job": { "id": "9f…", "kind": "club" | "sbc" | "challenges" | "academy", "setIds": [16] } }` or `{ "job": null }` (`academy` needs extension 0.8.9+; older ones are never given it). One job runs at a time; nothing is handed out when today's budget is used or the account is paused. Calling this marks the web app as open (`session: true` for 30 s). `?visible=1|0` (extension 0.8.4+): whether the tab is in front. `?ready=0` (extension 0.8.8+): the tab has no EA session yet (not logged in); it still counts as open but gets no job, so queued jobs wait for the login. A job handed out that makes no EA request within 60 s fails (`errorCode: "notStarted"` in the sync status), as does a queued job whose tab stopped polling; neither starts the club cooldown, which counts from a club job's first EA request. When the web app was closed, or the tab was hidden and is now in front, the SBC list refresh of `POST /api/sync/visit` is queued (same 30 min cooldown); it is handed out on the next poll. That same transition on `/api/jobs/next` also triggers the visit refresh (club + SBC list, same rules as `POST /api/sync/visit`).
 
 ### `POST /api/jobs/:id/call` (extension)
 
@@ -79,7 +79,19 @@ Signed in with Clerk; only the `Authorization` header is needed.
 { "user": { "id": "user_2Rf…", "email": "you@example.com" }, "personas": [{ "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true }] }
 ```
 
-The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null }` (`server/plan.ts`). `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium.
+The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null }` (`server/plan.ts`). `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium. Also `"prefs": { "lang": "en"|"ro"|"it", "evoEmails": true|false }`, the email language and whether evolution emails are on.
+
+### `PUT /api/me/prefs`
+
+`{ "lang"?: "en"|"ro"|"it", "evoEmails"?: boolean }` → `{ "ok": true }`. Only the fields sent are changed; an unknown `lang` or a non-boolean `evoEmails` is ignored.
+
+### `GET /api/evos` (site, Premium)
+
+```json
+{ "fetchedAt": 1790000000000, "evos": [{ "slotId": 2736, "level": 1, "levelCount": 3, "slotName": "Evolution name", "player": { "...": "Player as in /api/club" }, "startedAt": 1789900000000, "endsAt": 1790100000000, "ready": false }] }
+```
+
+The tracked timed trainings of the active persona (`X-Persona`), soonest `endsAt` first; times in ms, `player` is `null` when the item is unknown. `ready` is true once the training finished (stored flag or `endsAt` passed). `fetchedAt` is when the last full academy list arrived (`null` if never). Free users get `403` with `code: "premiumOnly"`. Reads the database only, no EA call.
 
 ### `POST /api/me/legacy-keys`
 
@@ -121,6 +133,9 @@ Body `{ "sbcs": true }` (optional, default `true`). The site calls it on every s
 When an `sbc` job finds set progress higher than cached (an SBC done on a console or in the companion app, not seen by the extension), it also queues a club sync (scheduled, so within the daily club cap).
 
 ---
+
+### `GET|POST /api/evos/unsubscribe?u=&t=` (public)
+Link in every evolution email (and its `List-Unsubscribe` header, RFC 8058 one-click POST). No sign-in: `t` is an HMAC of the user id `u` (`EMAIL_SECRET`). GET only shows a small confirm page (in the user's language) with a button that POSTs to the same URL, so mail link scanners can't unsubscribe anyone. POST (the button, or the one-click header) sets `users.evo_emails = false` and answers a short plain-text message in the user's language. Invalid: `400 Invalid link.`
 
 ## Admin (site)
 
@@ -427,6 +442,7 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 | `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club. With `jobId` (a club sync job's page): collected per job in any order, nothing upserted, and the club is replaced once page 0 through the short last page are all in |
 | `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (other saved squads are ignored) |
 | `GET /chemistry/profiles` | replaces the promo chemistry profiles |
+| `GET /academy/*` (Evolutions) | timed trainings saved per slot and level; a full unfiltered `/academy/hub/v2` list (first page, short) also replaces the tracked set and stamps `fetchedAt` |
 | `GET /storagepile` | replaces the cached SBC storage (players from `itemData`) |
 | `POST /sbs/challenge/:id`, `GET/PUT /sbs/challenge/:id/squad` | the challenge's squad: locked slots and players already placed (last 6 kept raw in `challengeSquads/{id}`) |
 

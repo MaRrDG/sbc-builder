@@ -78,7 +78,7 @@ async function refreshBadge() {
   await chrome.action.setTitle({ title: `FC Solver: ${state}` });
 }
 
-const JOB_LABEL = { club: 'Syncing club', sbc: 'Syncing SBC list', challenges: 'Syncing SBC challenges', challengeSquad: 'Reading SBC squad' };
+const JOB_LABEL = { club: 'Syncing club', sbc: 'Syncing SBC list', challenges: 'Syncing SBC challenges', challengeSquad: 'Reading SBC squad', academy: 'Reading Evolutions' };
 
 // the service worker sleeps; alarms turn the dot red when polls stop (a crashed tab, a lost message)
 chrome.alarms.onAlarm.addListener((a) => (a.name === 'badge' || a.name === 'badge-expire') && refreshBadge());

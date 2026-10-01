@@ -230,6 +230,24 @@ export class ApiError extends Error {
   }
 }
 
+/** The user's saved preferences: site language (for emails) and evolution email alerts. */
+export interface Prefs {
+  lang: string;
+  evoEmails: boolean;
+}
+
+/** A timed evolution slot; times are epoch ms. */
+export interface Evo {
+  slotId: number;
+  level: number;
+  levelCount: number;
+  slotName: string;
+  player: Player | null;
+  startedAt: number | null;
+  endsAt: number | null;
+  ready: boolean;
+}
+
 /** Why the solver found no squad: a code the UI translates, plus the values to fill in. */
 export interface Reason {
   code: 'pool' | 'count' | 'sameGroup' | 'distinct' | 'rating' | 'combo' | 'points';
@@ -278,7 +296,9 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
 }
 
 export const api = {
-  me: () => req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo }>('/api/me'),
+  me: () =>
+    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs }>('/api/me'),
+  prefs: (p: { lang?: string; evoEmails?: boolean }) => req<{ ok: true }>('/api/me/prefs', { method: 'PUT', body: p }),
   legacyKeys: (keys: string[]) => req<{ map: Record<string, number> }>('/api/me/legacy-keys', { method: 'POST', body: { keys } }),
   linkToken: () => req<{ token: string; expiresIn: number }>('/api/link-token', { method: 'POST' }),
   unlinkPersona: (personaId: number) => req<{ ok: true }>(`/api/personas/${personaId}`, { method: 'DELETE' }),
@@ -291,6 +311,7 @@ export const api = {
     req<{ fetchedAt: number | null; players: Player[]; storage: Player[]; storageAt: number | null; squad: { starters: number[]; bench: number[] } | null }>(
       '/api/club',
     ),
+  evos: () => req<{ fetchedAt: number | null; evos: Evo[] }>('/api/evos'),
   sets: () => req<{ fetchedAt: number | null; categories: { categoryId: number; name: string; sets: SbcSet[] }[] }>('/api/sets'),
   challenges: (setId: number, refresh = false) =>
     req<{ fetchedAt: number | null; challenges: Challenge[] }>(`/api/sets/${setId}/challenges${refresh ? '?refresh=1' : ''}`),
