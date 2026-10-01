@@ -112,14 +112,16 @@ export function tierPct(tag: Tag, count: number): number {
   return pct;
 }
 
-/** rareflag → kind, from EA's rarity names (meta.names.rarity). */
+/** rareflag → kind, from EA's rarity names (meta.names.rarity). Checked against data/static.json
+ * (1 Oct 2026): icons are "Base Icon", "… ICON"; heroes "Base Hero", "… Hero", "UEFA Heroes (Mens)";
+ * TOTW is "Team of the Week" (3). No name says "holo" yet, so Holographics stays empty until EA names it. */
 export function rarityKinds(names: Record<string, string>): Record<number, RarityKind> {
   const out: Record<number, RarityKind> = {};
   for (const [id, name] of Object.entries(names)) {
     const kind: RarityKind | null = /holo/i.test(name) ? 'holo'
-      : /\bicon\b/i.test(name) ? 'icon'
-      : /\bhero\b/i.test(name) ? 'hero'
-      : /team of the week/i.test(name) ? 'totw'
+      : /\bicons?\b/i.test(name) ? 'icon'
+      : /\bhero(es)?\b/i.test(name) ? 'hero'
+      : /team of the week|\btotw\b/i.test(name) ? 'totw'
       : null;
     if (kind) out[Number(id)] = kind;
   }
