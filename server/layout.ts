@@ -39,6 +39,16 @@ type Obj = Record<string, unknown>;
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
 
 export function parseLayout(response: unknown, capturedAt: number): ChallengeLayout | null {
+  const parsed = parseSquad(response, capturedAt);
+  return parsed && { bricks: parsed.bricks, placed: parsed.placed, capturedAt };
+}
+
+/** The raw itemData of every player the user placed (field slots, no bricks, no dream / concept items). */
+export function placedItems(response: unknown): Obj[] {
+  return parseSquad(response, 0)?.items ?? [];
+}
+
+function parseSquad(response: unknown, capturedAt: number): (ChallengeLayout & { items: Obj[] }) | null {
   const r = (response ?? {}) as Obj;
   const squad = (r.squad ?? null) as Obj | null;
   if (!squad || !Array.isArray(squad.players)) return null;
@@ -49,6 +59,7 @@ export function parseLayout(response: unknown, capturedAt: number): ChallengeLay
 
   const bricks: BrickSlot[] = [];
   const placed: ChallengeLayout['placed'] = [];
+  const items: Obj[] = [];
   for (const p of squad.players as Obj[]) {
     const index = num(p.index);
     if (index >= 11) continue; // only the 11 field slots matter in an SBC
@@ -70,9 +81,12 @@ export function parseLayout(response: unknown, capturedAt: number): ChallengeLay
       continue;
     }
     const id = num(item.id);
-    if (id > 0 && !item.dream && !item.concept) placed.push({ index, itemId: id });
+    if (id > 0 && !item.dream && !item.concept) {
+      placed.push({ index, itemId: id });
+      items.push(item);
+    }
   }
-  return { bricks: bricks.sort((a, b) => a.index - b.index), placed, capturedAt };
+  return { bricks: bricks.sort((a, b) => a.index - b.index), placed, capturedAt, items };
 }
 
 /**

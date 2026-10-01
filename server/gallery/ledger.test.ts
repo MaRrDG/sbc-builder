@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { collectItems, mergeLedger, toGalleryItem, type Ledger } from './ledger.js';
+import { collectSquadItems, mergeLedger, toGalleryItem, type Ledger } from './ledger.js';
 import type { ClubItem } from '../ea.js';
 
 const ci = (p: Partial<ClubItem> = {}): ClubItem => ({
@@ -14,6 +14,11 @@ test('new items enter with firstOwner from owners', () => {
   assert.equal(ledger['1'].firstOwner, true);
   assert.equal(ledger['2'].firstOwner, false);
   assert.equal(ledger['1'].firstSeen, 1000);
+});
+
+test('unknown owners is not first owner', () => {
+  const { ledger } = mergeLedger({}, [ci({ id: 1, owners: undefined })], 1);
+  assert.equal(ledger['1'].firstOwner, false);
 });
 
 test('firstOwner never flips back; data refreshes; unchanged = no write', () => {
@@ -32,14 +37,46 @@ test('items not in the batch stay (sold items keep counting)', () => {
   assert.deepEqual(Object.keys(b).sort(), ['1', '2']);
 });
 
-test('loans are skipped', () => {
-  const { ledger } = mergeLedger({}, [ci({ id: 1, loansInfo: { loanType: 'x', loanValue: 5 } })], 1);
+test('loans and malformed items are skipped', () => {
+  const { ledger } = mergeLedger({}, [
+    ci({ id: 1, loansInfo: { loanType: 'x', loanValue: 5 } }),
+    { ...ci({ id: 2 }), possiblePositions: undefined } as unknown as ClubItem,
+    { ...ci({ id: 3 }), teamid: undefined } as unknown as ClubItem,
+  ], 1);
   assert.deepEqual(ledger, {} as Ledger);
 });
 
-test('collectItems finds player items anywhere in a raw response', () => {
-  const raw = { squad: { players: [{ index: 0, itemData: ci({ id: 7 }) }, { index: 1, itemData: { id: 0 } }] }, x: [ci({ id: 8 })] };
-  assert.deepEqual(collectItems(raw).map((i) => i.id).sort(), [7, 8]);
+test('stored records are slim: only the fields scoring and the card use', () => {
+  const full = { ...ci({ id: 5, guidAssetId: 'g', skillmoves: 3 }), attributeArray: [1, 2], statsArray: [9], contract: 7, marketAverage: 900 };
+  const { ledger } = mergeLedger({}, [full as ClubItem], 1);
+  assert.deepEqual(Object.keys(ledger['5'].item).sort(), [
+    'assetId', 'gradingScore', 'guidAssetId', 'id', 'leagueId', 'nation', 'possiblePositions', 'preferredPosition', 'rareflag',
+    'rating', 'resourceId', 'skillmoves', 'teamid', 'untradeable',
+  ]);
+});
+
+test('collectSquadItems: placed field players only; no bricks, bench, dream, concept or non-players', () => {
+  const sq = (index: number, item: object) => ({ index, itemData: item });
+  const p = (id: number, extra: object = {}) => ({ ...ci({ id }), itemType: 'player', ...extra });
+  const response = {
+    squad: {
+      players: [
+        sq(0, p(1)),
+        sq(1, p(2)), // brick slot
+        sq(2, p(3)), // custom brick slot
+        sq(3, p(4, { dream: true })),
+        sq(4, p(5, { concept: true })),
+        sq(5, p(6, { itemType: 'training' })),
+        sq(6, { ...p(7), possiblePositions: undefined }),
+        sq(7, { id: 0 }),
+        sq(11, p(8)), // bench / manager slot
+      ],
+    },
+    playerRequirements: [{ index: 1, playerType: 'BRICK' }, { index: 2, playerType: 'CUSTOM_BRICK' }],
+  };
+  const caps = [{ method: 'GET', path: '/x', request: { players: [p(9)] }, response, at: 1 }];
+  assert.deepEqual(collectSquadItems(caps).map((i) => i.id), [1]);
+  assert.deepEqual(collectSquadItems(null), []);
 });
 
 test('toGalleryItem maps fields', () => {

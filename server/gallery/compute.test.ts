@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { badgeFor, buildGallery } from './compute.js';
-import { mergeLedger } from './ledger.js';
+import { mergeLedger, type Ledger } from './ledger.js';
 import type { ClubItem } from '../ea.js';
 import type { GallerySet } from './types.js';
 import type { Meta } from '../meta.js';
@@ -27,6 +27,13 @@ test('lineup marks in-club vs owned-before and carries the score', () => {
   assert.equal(r.filled, 2);
   assert.equal(r.grade, 'B'); // 2930 + Multiples 10% (same assetId) = 3223
   assert.deepEqual(r.lineup.map((p) => [p.id, p.inClub, p.score]).sort(), [[1, true, 830], [2, false, 2100]]);
+});
+
+test('a malformed ledger entry is skipped, never a failed answer', () => {
+  const { ledger } = mergeLedger({}, [ci({ id: 1 })], 1);
+  const bad = { ...ledger, '9': { item: { id: 9, assetId: 10, rating: 90, rareflag: 1, teamid: 1 }, firstOwner: true, firstSeen: 1 } } as unknown as Ledger;
+  const [r] = buildGallery([set], bad, new Set(), meta);
+  assert.deepEqual(r.lineup.map((p) => p.id), [1]);
 });
 
 test('badge: club, then league, then rarity; rarity kinds map to their lowest rareflag', () => {
