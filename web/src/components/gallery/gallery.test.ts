@@ -5,7 +5,7 @@ import type { GallerySetResult } from '../../api.js';
 
 const s = (p: Partial<GallerySetResult>): GallerySetResult => ({
   id: 'x', name: 'X', category: 'club', size: 20, filled: 20, missing: 0, base: 0, bonus: 0, score: 0,
-  grade: 'C', next: { grade: 'B', need: 500 }, grades: { D: 10, C: 1000, B: 2000, A: 3000, S: 4000 }, rewards: {}, tags: [], lineup: [], ...p,
+  grade: 'C', next: { grade: 'B', need: 500 }, grades: { D: 10, C: 1000, B: 2000, A: 3000, S: 4000 }, rewards: {}, tags: [], badge: null, lineup: [], ...p,
 });
 const all = { category: 'all', state: 'all', minGrade: null } as const;
 

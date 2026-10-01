@@ -1351,7 +1351,7 @@ git commit -m "feat(gallery): web route, api helper, list sort and filters"
 
 Read `DESIGN.md` and look at `SetList.tsx` / `ClubView.tsx` / the Settings locked card (`App.tsx:761-767`, `.locked-note` with `Crown`) before writing markup, and reuse their classes and patterns.
 
-- [ ] **Step 1: i18n keys**
+- [x] **Step 1: i18n keys**
 
 Add to `en.ts` (and the same keys translated in `ro.ts` and `it.ts`; Romanian plurals `_one`/`_few`/`_other`, Italian `_one`/`_other`):
 
@@ -1425,7 +1425,7 @@ Add to `en.ts` (and the same keys translated in `ro.ts` and `it.ts`; Romanian pl
 
 Check how existing plural keys are written in `en.ts` (e.g. search `_one`) and follow that exact convention; check if `err.premiumOnly` or an equivalent already exists and reuse it. Set names and reward texts are EA-originated: shown as they are, not translated.
 
-- [ ] **Step 2: `GalleryList.tsx`**
+- [x] **Step 2: `GalleryList.tsx`**
 
 Header (h1 `gallery.title`, lede, `gallery.seen` count, history note), a toolbar with three `<select>`s (category, state, min grade) and a sort `<select>`, all labelled. Rows are buttons (`onOpen(set.id)`):
 
@@ -1445,7 +1445,7 @@ Header (h1 `gallery.title`, lede, `gallery.seen` count, history note), a toolbar
 
 `GradeBar` (export it from `GalleryList.tsx`; `GallerySet.tsx` uses it too): a `<div role="img" aria-label="…score / threshold…">` with five segments D–S, each filled to the share reached; segment labels as letters under it; filled segments use `--go` only when that grade is met. Format numbers with `toLocaleString(lang)`. Keep filter + sort state in component state (not the URL), defaults: all / all / none / score.
 
-- [ ] **Step 3: `GallerySet.tsx`**
+- [x] **Step 3: `GallerySet.tsx`**
 
 Back link (`gallery.back`) to the list, h1 = set name, score line (`gallery.score` total, `base` + `bonus`), `GradeBar`, the grade pill, thresholds table (grade, score required, reward text, met ✓ with text, not color only), lineup grid:
 
@@ -1468,24 +1468,24 @@ Back link (`gallery.back`) to the list, h1 = set name, score line (`gallery.scor
 
 Tag list: one row per `set.tags` entry, `t('gallery.tag.' + tag.id)`, `t('gallery.tagLine', { count, pct })`, `+bonus`; `gallery.noTags` when empty. Unknown `setId` (not in data) → render the list instead (navigate replace to `/dashboard/gallery`).
 
-- [ ] **Step 4: Wire into `App.tsx`**
+- [x] **Step 4: Wire into `App.tsx`**
 
 - Sidebar button between Club and Settings, same markup as the Club item, icon `FrameCorners` from `@phosphor-icons/react`, label `t('nav.gallery')`, `aria-current` when `view === 'gallery'`, `onClick={() => go('gallery')}` (extend `go`'s accepted views the way `club` is handled).
 - Data: `const [gallery, setGallery] = useState<GalleryResponse | null>(null)`; load with `api.gallery()` when `view === 'gallery' && premium`, and reload when the existing "cache edited" signal fires (the same trigger that reloads the club; see commit `6482bfc` "reload when the web app fills the cache").
 - Render: if `!premium`, the locked note (`.locked-note` with `Crown`, `t('gallery.locked')`) plus `<PlanCard … />`; else `route.setId` → `<GallerySet>` for the matching set, otherwise `<GalleryList>`. Navigation via `navigate({ view: 'gallery', setId })`.
 - Title mapping (~line 288): `view === 'gallery' ? 'Gallery'`.
 
-- [ ] **Step 5: Styles**
+- [x] **Step 5: Styles**
 
 In `web/src/styles.css`, using the existing tokens only (no new colors): `.gallery-row` (grid: name / category / bar / pill / note; containers 14px radius), `.grade-bar` segments, `.grade-pill` (`.met` uses `--go`), `.gallery-lineup` (grid `repeat(auto-fill, minmax(120px, 1fr))`, gap), `.own-tag`, `.fo-badge`. Under `@media (max-width: 860px)` rows stack into single-column cards; under 480px `.gallery-lineup` is 2 columns. Any transition wrapped so `@media (prefers-reduced-motion: reduce)` disables it.
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run: `npm run typecheck && npm run build && npm run i18n:check && npm test` → all pass.
 
 In the browser (dev server running; do not stop it): as a Premium/admin user open `/dashboard/gallery` — list shows 127 sets, filters and sort work, a set page shows lineup cards with the in-club / owned-before tags, tag bonuses and thresholds. Switch language to RO and IT: no missing keys. Resize to 390px: hamburger menu has "Gallery", rows stack, lineup grid 2 columns, no horizontal scroll. As a free user: locked note, no data request succeeds (403 handled, no error toast loop). Check keyboard focus on rows and selects.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add web/src

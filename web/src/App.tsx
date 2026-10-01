@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, Crown, GearSix, List, Prohibit, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, List, Prohibit, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
-  type Account, type Challenge, type Meta, type Player, type PlanInfo, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
+  type Account, type Challenge, type GalleryResponse, type Meta, type Player, type PlanInfo, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
 } from './api';
 import { Pitch, ReqTick } from './components/Pitch';
 import { PointsArea } from './components/PointsArea';
@@ -10,6 +10,8 @@ import { SolverOptions, DEFAULT_OPTIONS, exclusionCount } from './components/Sol
 import { LocalOptions } from './components/LocalOptions';
 import { SetList } from './components/SetList';
 import { ClubView } from './components/ClubView';
+import { GalleryList } from './components/gallery/GalleryList';
+import { GallerySet } from './components/gallery/GallerySet';
 import { LegalLinks } from './legal/LegalPage';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { repeatLine } from './components/SetBadge';
@@ -81,6 +83,7 @@ export default function App({
   const [club, setClub] = useState<Player[]>([]);
   const [storage, setStorage] = useState<Player[]>([]); // SBC storage: solved with only when asked
   const [categories, setCategories] = useState<{ categoryId: number; name: string; sets: SbcSet[] }[]>([]);
+  const [gallery, setGallery] = useState<GalleryResponse | null>(null);
   const { t, lang, setLang } = useI18n();
   const ago = useAgo();
   // which screen is open lives in the URL (see route.ts), so browser Back works
@@ -261,8 +264,31 @@ export default function App({
     if ((prev.running && !status.running) || prev.editedAt !== status.editedAt) {
       void loadAccountData().catch(() => {});
       if (setId) void api.challenges(setId).then((r) => setChallenges(r.challenges), () => {});
+      if (view === 'gallery' && premium) void api.gallery().then(setGallery, () => {});
     }
-  }, [activeId, status, setId, loadAccountData]);
+  }, [activeId, status, setId, loadAccountData, view, premium]);
+
+  // FUT Gallery (Premium): loaded when its screen opens, per account
+  useEffect(() => {
+    setGallery(null);
+  }, [activeId]);
+  useEffect(() => {
+    if (view !== 'gallery' || !premium || !activeId) return;
+    api
+      .gallery()
+      .then(setGallery)
+      .catch((e) => {
+        // the plan changed under us: the screen shows the locked note, no error banner
+        if (e instanceof ApiError && e.code === 'premiumOnly') void api.me().then((m) => setPlan(m.plan), () => {});
+        else onApiError(e);
+      });
+  }, [view, premium, activeId, onApiError]);
+  const gallerySetId = route.view === 'gallery' ? route.setId : null;
+  const gallerySet = (gallerySetId && gallery?.sets.find((s) => s.id === gallerySetId)) || null;
+  // a set id that is not in the Gallery (renamed, typo): back to the list
+  useEffect(() => {
+    if (gallerySetId && gallery && !gallerySet) navigate({ view: 'gallery', setId: null }, true);
+  }, [gallerySetId, gallery, gallerySet, navigate]);
 
   useEffect(() => {
     // a link straight to /sbc/... loads before the account is picked: wait for its key
@@ -675,6 +701,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <span>{t('nav.club')}</span>
             <small>{club.length}</small>
           </button>
+          <button type="button" className="nav-item" aria-current={view === 'gallery' && !showGuide ? 'page' : undefined} onClick={() => go('gallery')}>
+            <FrameCorners weight="bold" aria-hidden="true" />
+            <span>{t('nav.gallery')}</span>
+          </button>
           <button type="button" className="nav-item" aria-current={view === 'settings' && !showGuide ? 'page' : undefined} onClick={() => go('settings')}>
             <GearSix weight="bold" aria-hidden="true" />
             <span>{t('nav.settings')}</span>
@@ -755,6 +785,29 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
 
           {!showGuide && view === 'club' && meta && (
             <ClubView club={club} storage={storage} meta={meta} squad={squad} excludeIds={globalOptions.excludeIds} onToggleExclude={premium ? toggleGlobalExclude : undefined} />
+          )}
+
+          {!showGuide && view === 'gallery' && meta && (
+            !premium ? (
+              <section className="gallery-view gallery-locked">
+                <header className="page-head">
+                  <div>
+                    <h1>{t('gallery.title')}</h1>
+                    <p className="muted">{t('gallery.lede')}</p>
+                  </div>
+                </header>
+                <p className="locked-note">
+                  <Crown weight="fill" aria-hidden="true" /> {t('gallery.locked')}
+                </p>
+                <PlanCard plan={effectivePlan} now={now} />
+              </section>
+            ) : !gallery ? (
+              <p className="muted" role="status">{t('admin.loading')}</p>
+            ) : gallerySet ? (
+              <GallerySet set={gallerySet} meta={meta} onBack={() => navigate({ view: 'gallery', setId: null })} />
+            ) : (
+              <GalleryList data={gallery} meta={meta} onOpen={(id) => navigate({ view: 'gallery', setId: id })} />
+            )
           )}
 
           {!showGuide && view === 'settings' && meta && (
