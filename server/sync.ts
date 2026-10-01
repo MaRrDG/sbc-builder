@@ -5,6 +5,9 @@ import { SessionError } from './ea.js';
 import { readCache, writeCache, type Cached } from './store.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
+import { versionLess } from './admin/query.js';
+import { planFor } from './plans.js';
+import { personaRow } from './db/users.js';
 import { clubCalledAt, enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
 import { softly } from './db/index.js';
 import { logEvent } from './db/events.js';
@@ -328,6 +331,22 @@ export async function refreshOnVisit(acc: Account, { sbcs = true }: { sbcs?: boo
 // (the extension queue also waits for the web app to go quiet before each request).
 const SESSION_GRACE_MS = 20 * 1000;
 
+async function academyDue(acc: Account): Promise<boolean> {
+  // one read per daily drop, whatever the outcome: either a full list came back ('academy') or we asked ('academyAsked')
+  const drop = lastSbcDrop();
+  const [last, asked] = await Promise.all([readCache(acc.key('academy')), readCache(acc.key('academyAsked'))]);
+  if ((last && last.fetchedAt >= drop) || (asked && asked.fetchedAt >= drop)) return false;
+  // extensions before 0.8.9 don't know the 'academy' job: it would hang until the start timeout
+  if (!acc.info.extVersion || versionLess(acc.info.extVersion, '0.8.9')) return false;
+  try {
+    const owner = await personaRow(acc.id);
+    return !!owner && (await planFor(owner.userId)).tier === 'premium';
+  } catch (e) {
+    console.error(`[db] academy owner failed: ${(e as Error).message}`); // not due; the next tick tries again
+    return false;
+  }
+}
+
 export async function autoSync(acc: Account): Promise<void> {
   if (!acc.hasSession || running.has(acc.id)) return;
   if (Date.now() - acc.info.sidUpdatedAt < SESSION_GRACE_MS) return;
@@ -350,6 +369,11 @@ export async function autoSync(acc: Account): Promise<void> {
         return;
       }
       if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
+      // timed evolutions: one read a day, only where someone gets the email (Premium)
+      if (!jobStatus(acc).running && !hasPending(acc, 'academy') && (await academyDue(acc))) {
+        await writeCache(acc.key('academyAsked'), { at: Date.now() });
+        await enqueue(acc, 'academy');
+      }
       return;
     }
     if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);

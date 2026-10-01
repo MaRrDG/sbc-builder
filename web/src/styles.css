@@ -1455,6 +1455,64 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 }
 .plan-card h2 { display: flex; align-items: center; gap: 8px; }
 
+/* ---------- evolutions ---------- */
+.evo-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin: 8px 0 20px;
+  padding: 0;
+  list-style: none;
+}
+.evo-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  background: var(--surface);
+}
+.evo-card .card { flex: none; }
+.evo-info { flex: 1; min-width: 0; }
+.evo-info h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.evo-info p { margin: 0; }
+.evo-info .evo-level { margin-top: 4px; font-size: 13px; }
+.evo-state {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.evo-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.evo-status svg { flex: none; }
+.evo-status.ready { color: var(--go); }
+.evo-info .evo-left {
+  margin-top: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.evo-info .evo-ends { margin-top: 2px; font-size: 13px; }
+.evo-locked { max-width: 560px; }
+.evo-foot { font-size: 13px; }
+@media (max-width: 860px) {
+  .evo-list { grid-template-columns: minmax(0, 1fr); }
+}
+
 .local-list {
   margin: 0;
   padding: 0;
