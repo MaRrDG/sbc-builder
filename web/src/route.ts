@@ -3,6 +3,7 @@
 //   /                     landing page (public)
 //   /dashboard            SBC list          /dashboard/sbc/16      a set (first open challenge)
 //   /dashboard/sbc/16/39  a challenge       /dashboard/club        club
+//   /dashboard/gallery    gallery list      /dashboard/gallery/<set>  a gallery set
 //   /dashboard/settings   settings          /dashboard/admin[/users[/:id]|/accounts][?filters]   admin panel (admins only)
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
@@ -20,6 +21,7 @@ export type Route =
   | { view: 'settings' }
   | { view: 'setup' }
   | { view: 'guide' }
+  | { view: 'gallery'; setId: string | null }
   | { view: 'admin'; page: AdminPage; userId: string | null; query: string }
   | { view: 'legal'; doc: LegalDoc }
   | { view: 'signin'; next: string }
@@ -57,6 +59,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   const [x, y, z] = a === 'dashboard' ? parts.slice(1) : parts;
   if (x === 'club') return { view: 'club' };
   if (x === 'settings') return { view: 'settings' };
+  if (x === 'gallery') return { view: 'gallery', setId: y && /^[a-z0-9-]+$/.test(y) ? y : null };
   if (x === 'admin') {
     const query = search.replace(/^\?/, '');
     if (y === 'users' && z) {
@@ -92,6 +95,8 @@ export function routePath(r: Route): string {
     case 'club':
     case 'settings':
       return `/dashboard/${r.view}`;
+    case 'gallery':
+      return r.setId ? `/dashboard/gallery/${r.setId}` : '/dashboard/gallery';
     case 'admin': {
       const base = r.page === 'overview' ? '/dashboard/admin' : r.page === 'user' ? `/dashboard/admin/users/${encodeURIComponent(r.userId ?? '')}` : `/dashboard/admin/${r.page}`;
       return r.query ? `${base}?${r.query}` : base;

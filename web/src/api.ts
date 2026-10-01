@@ -27,6 +27,39 @@ export interface Player {
   points?: number; // what a points SBC counts for this card
 }
 
+export type GalleryGrade = 'D' | 'C' | 'B' | 'A' | 'S';
+
+export interface GalleryTag {
+  id: string;
+  count: number;
+  pct: number;
+  bonus: number;
+}
+
+export interface GallerySetResult {
+  id: string;
+  name: string;
+  category: 'league' | 'club' | 'nation' | 'rarity' | 'campaign';
+  size: number;
+  filled: number;
+  missing: number;
+  base: number;
+  bonus: number;
+  score: number;
+  grade: GalleryGrade | null;
+  next: { grade: GalleryGrade; need: number } | null;
+  grades: Record<GalleryGrade, number>;
+  rewards: Partial<Record<GalleryGrade, string>>;
+  tags: GalleryTag[];
+  lineup: (Player & { inClub: boolean; firstOwner: boolean; score: number })[];
+}
+
+export interface GalleryResponse {
+  fetchedAt: number;
+  ledgerSize: number;
+  sets: GallerySetResult[];
+}
+
 export interface Account {
   personaId: number;
   personaName: string;
@@ -260,6 +293,7 @@ export const api = {
   readChallenge: (challengeId: number) => req<SyncStatus>(`/api/challenges/${challengeId}/read`, { method: 'POST' }),
   solve: (setId: number, challengeId: number, options: SolveOptions, deep = false, useStorage = true) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep, useStorage } }),
+  gallery: () => req<GalleryResponse>('/api/gallery'),
   adminOverview: (range: 7 | 30) => req<AdminOverview>(`/api/admin/overview?range=${range}`),
   adminUsers: (query: string) => req<Paged<AdminUserRow>>(`/api/admin/users${query ? `?${query}` : ''}`),
   adminUser: (id: string) => req<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(id)}`),
