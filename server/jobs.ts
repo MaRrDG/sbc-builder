@@ -12,7 +12,7 @@ import { logEvent } from './db/events.js';
 import { lastSbcDrop, type SetsData } from './sync.js';
 import type { ClubPages } from './club-pages.js';
 
-export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad';
+export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
 
 export interface Job {
   id: string;
