@@ -31,11 +31,15 @@ import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
 import { QuotaMeter } from './components/QuotaMeter';
 import { ClubSyncModal } from './components/ClubSyncModal';
+import { GalleryInfo } from './components/gallery/GalleryInfo';
+import { PremiumPreview } from './components/PremiumPreview';
+import { DEMO_GALLERY, DEMO_META } from './components/premiumDemo';
 import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
 import { unlinkExtension, useExtensionLink } from './link';
 
 const ACTIVE = 'sbc-active-persona';
+const GALLERY_INFO_SEEN = 'sbc-gallery-info-seen';
 
 function readLocal<T>(key: string, fallback: T): T {
   try {
@@ -304,6 +308,15 @@ export default function App({
       alive = false;
     };
   }, [view, premium, activeId, galleryTry]);
+  // the "how players are recorded" note opens by itself the first time the Gallery shows
+  const [galleryInfo, setGalleryInfo] = useState(false);
+  useEffect(() => {
+    if (view === 'gallery' && gallery && !readLocal(GALLERY_INFO_SEEN, false)) setGalleryInfo(true);
+  }, [view, gallery]);
+  const closeGalleryInfo = useCallback(() => {
+    writeLocal(GALLERY_INFO_SEEN, true);
+    setGalleryInfo(false);
+  }, []);
   const gallerySetId = route.view === 'gallery' ? route.setId : null;
   const gallerySet = (gallerySetId && gallery?.sets.find((s) => s.id === gallerySetId)) || null;
   // a set id that is not in the Gallery (renamed, typo): back to the list
@@ -644,6 +657,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
   return (
     <div className="app">
       <ClubSyncModal status={status} players={club.length} />
+      <GalleryInfo open={galleryInfo} onClose={closeGalleryInfo} />
       <header className="topbar">
         <a className="brand" href="/dashboard" aria-label={t('top.home')}>
           {/* the wordmark needs ~120px; narrow phones get the square icon */}
@@ -824,22 +838,21 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           )}
 
           {!showGuide && view === 'evolutions' && meta && plan && (
-            <EvosView key={activeId ?? 0} premium={premium} meta={meta} reload={dataVersion} onUpgrade={() => go('settings')} onSettings={() => go('settings')} />
+            <EvosView key={activeId ?? 0} premium={premium} meta={meta} reload={dataVersion} onSettings={() => go('settings')} />
           )}
 
           {!showGuide && view === 'gallery' && meta && (
             !premium ? (
-              <section className="gallery-view gallery-locked">
+              <section className="gallery-view">
                 <header className="page-head">
                   <div>
                     <h1>{t('gallery.title')}</h1>
                     <p className="muted">{t('gallery.lede')}</p>
                   </div>
                 </header>
-                <p className="locked-note">
-                  <Crown weight="fill" aria-hidden="true" /> {t('gallery.locked')}
-                </p>
-                <PlanCard plan={effectivePlan} now={now} />
+                <PremiumPreview title={t('gallery.lockedTitle')} body={t('gallery.lockedBody')}>
+                  <GalleryList data={DEMO_GALLERY} meta={DEMO_META} onOpen={() => {}} head={false} />
+                </PremiumPreview>
               </section>
             ) : !gallery && galleryError !== null ? (
               <div className="gallery-error" role="alert">
@@ -853,7 +866,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             ) : gallerySet ? (
               <GallerySet set={gallerySet} meta={meta} onBack={() => navigate({ view: 'gallery', setId: null })} />
             ) : (
-              <GalleryList data={gallery} meta={meta} onOpen={(id) => navigate({ view: 'gallery', setId: id })} />
+              <GalleryList data={gallery} meta={meta} onOpen={(id) => navigate({ view: 'gallery', setId: id })} onInfo={() => setGalleryInfo(true)} />
             )
           )}
 

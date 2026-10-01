@@ -1354,9 +1354,67 @@ h3 {
   font-weight: 700;
 }
 
-.gallery-locked .locked-note,
-.gallery-locked .settings-card {
-  max-width: 520px;
+.gallery-info-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+.gallery-info p { text-align: left; }
+
+/* ---------- Premium preview (Free accounts) ---------- */
+.premium-preview {
+  position: relative;
+  min-height: 420px;
+}
+.premium-preview-demo {
+  filter: blur(6px) saturate(0.8);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+  max-height: 640px;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, #000 60%, transparent);
+}
+.premium-preview-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(420px, calc(100% - 16px));
+  padding: 24px 22px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  background: var(--bg-0);
+  text-align: center;
+  box-shadow: 0 24px 60px oklch(0 0 0 / 0.5);
+}
+.premium-preview-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.premium-preview-card h2 { margin: 12px 0 6px; font-size: 1.2rem; }
+.premium-preview-card p { margin: 0 0 16px; color: var(--ink-2); line-height: 1.45; }
+.premium-preview-buy {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: var(--go);
+  color: var(--go-ink);
+  font: inherit;
+  font-weight: 700;
+}
+.premium-preview-buy:disabled { opacity: 0.55; cursor: not-allowed; }
+.premium-preview-card .premium-preview-soon { margin: 8px 0 0; font-size: 13px; color: var(--ink-3); }
+@media (max-width: 860px) {
+  .premium-preview-card { top: 160px; transform: translateX(-50%); }
 }
 
 @media (max-width: 1100px) {
@@ -1507,7 +1565,6 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
   font-variant-numeric: tabular-nums;
 }
 .evo-info .evo-ends { margin-top: 2px; font-size: 13px; }
-.evo-locked { max-width: 560px; }
 .evo-foot { font-size: 13px; }
 @media (max-width: 860px) {
   .evo-list { grid-template-columns: minmax(0, 1fr); }
