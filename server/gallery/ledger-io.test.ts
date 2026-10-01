@@ -26,3 +26,34 @@ test('first recordItems backfills cached storage when no ledger exists yet', asy
   const { ledger } = await readLedger(555);
   assert.deepEqual(Object.keys(ledger).sort(), ['900', '901']);
 });
+
+test('an old-format ledger (full DTOs, no version) is discarded and rebuilt from the cache', async () => {
+  const { readLedger, readLedgerRaw, LEDGER_KEY, LEDGER_VERSION } = await import('./ledger.js');
+  const { writeCache, readCache } = await import('../store.js');
+  await writeCache('accounts/777/club', [{ ...ci({ id: 50 }), attributeArray: [1, 2, 3] }]);
+  // v1: { [id]: { item: ClubItem, firstOwner, firstSeen } } straight in data, with an item the cache no longer holds
+  await writeCache(LEDGER_KEY(777), { '49': { item: ci({ id: 49 }), firstOwner: true, firstSeen: 1 } });
+  const { ledger } = await readLedger(777);
+  assert.deepEqual(Object.keys(ledger), ['50']);
+  const file = await readCache<{ v: number; entries: Record<string, { item: object }> }>(LEDGER_KEY(777));
+  assert.equal(file?.data.v, LEDGER_VERSION);
+  assert.equal('attributeArray' in file!.data.entries['50'].item, false);
+  assert.deepEqual(Object.keys(await readLedgerRaw(777)), ['50']);
+});
+
+test('a current-version ledger is read from disk once, then served from memory; bad entries skipped', async () => {
+  const { readLedger, recordItems, forgetLedgers, LEDGER_KEY, LEDGER_VERSION } = await import('./ledger.js');
+  const { writeCache } = await import('../store.js');
+  const good = { item: ci({ id: 60 }), firstOwner: false, firstSeen: 1 };
+  const bad = { item: { id: 61, assetId: 1 }, firstOwner: true, firstSeen: 1 };
+  await writeCache(LEDGER_KEY(888), { v: LEDGER_VERSION, entries: { '60': good, '61': bad } });
+  forgetLedgers();
+  const a = await readLedger(888);
+  assert.deepEqual(Object.keys(a.ledger), ['60']);
+  const b = await readLedger(888);
+  assert.equal(b.rev, a.rev); // no write in between: same in-memory copy
+  await recordItems(888, [ci({ id: 62 })]);
+  const c = await readLedger(888);
+  assert.notEqual(c.rev, a.rev);
+  assert.deepEqual(Object.keys(c.ledger).sort(), ['60', '62']);
+});

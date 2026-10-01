@@ -3,9 +3,9 @@ import type { Account } from '../accounts.js';
 import type { ClubItem } from '../ea.js';
 import type { Meta } from '../meta.js';
 import { toPlayer, type Player } from '../squad.js';
-import { readCache } from '../store.js';
+import { cacheMtime, readCache } from '../store.js';
 import { loadCatalogue } from './catalogue.js';
-import { readLedger, toGalleryItem, type Ledger } from './ledger.js';
+import { isLedgerItem, readLedger, toGalleryItem, type Ledger, type LedgerEntry } from './ledger.js';
 import { bestLineup } from './optimize.js';
 import { nextGrade, scoreSet } from './score.js';
 import { rarityKinds } from './tags.js';
@@ -39,9 +39,17 @@ export function badgeFor(set: GallerySet, kinds: Record<number, RarityKind>): Ga
 
 export function buildGallery(sets: GallerySet[], ledger: Ledger, inClub: Set<number>, meta: Meta): GallerySetResult[] {
   const kinds = rarityKinds(meta.names.rarity);
-  const entries = Object.values(ledger);
-  const pool = entries.map((e) => toGalleryItem(e, kinds));
-  const byId = new Map(entries.map((e) => [e.item.id, e]));
+  // a malformed entry is skipped, never a failed answer
+  const byId = new Map<number, { e: LedgerEntry; player: Player }>();
+  for (const e of Object.values(ledger)) {
+    if (!e || !isLedgerItem(e.item)) continue;
+    try {
+      byId.set(e.item.id, { e, player: toPlayer({ ...e.item, itemState: '' }, meta) });
+    } catch {
+      /* skip */
+    }
+  }
+  const pool = [...byId.values()].map(({ e }) => toGalleryItem(e, kinds));
   return sets.map((set) => {
     const lineup = bestLineup(set, pool);
     const s = scoreSet(set, lineup);
@@ -51,8 +59,8 @@ export function buildGallery(sets: GallerySet[], ledger: Ledger, inClub: Set<num
       grade: s.grade, next: nextGrade(set, s.total), grades: set.grades, rewards: set.rewards ?? {}, tags: s.tags,
       badge: badgeFor(set, kinds),
       lineup: lineup.map((g) => {
-        const e = byId.get(g.id)!;
-        return { ...toPlayer(e.item, meta), inClub: inClub.has(g.id), firstOwner: e.firstOwner, score: g.score };
+        const { e, player } = byId.get(g.id)!;
+        return { ...player, inClub: inClub.has(g.id), firstOwner: e.firstOwner, score: g.score };
       }),
     };
   });
@@ -62,12 +70,14 @@ export function buildGallery(sets: GallerySet[], ledger: Ledger, inClub: Set<num
 const memo = new Map<number, { key: string; value: GalleryResponse }>();
 
 export async function galleryFor(acc: Account, meta: Meta): Promise<GalleryResponse> {
-  const { ledger, at } = await readLedger(acc.id);
-  const lists = await Promise.all(['club', 'storage', 'unassigned'].map((n) => readCache<ClubItem[]>(acc.key(n))));
-  const key = `${at}:${lists.map((l) => l?.fetchedAt ?? 0).join(':')}:${lists.map((l) => l?.data.length ?? 0).join(':')}`;
+  const { ledger, at, rev } = await readLedger(acc.id); // in memory after the first read
+  const names = ['club', 'storage', 'unassigned'];
+  // file times, not contents: the club lists are parsed only when the answer is rebuilt
+  const key = `${rev}:${(await Promise.all(names.map((n) => cacheMtime(acc.key(n))))).join(':')}`;
   const hit = memo.get(acc.id);
   if (hit?.key === key) return hit.value;
-  const inClub = new Set(lists.flatMap((l) => l?.data.map((i) => i.id) ?? []));
+  const lists = await Promise.all(names.map((n) => readCache<ClubItem[]>(acc.key(n))));
+  const inClub = new Set(lists.flatMap((l) => (Array.isArray(l?.data) ? l.data.map((i) => i.id) : [])));
   const t0 = performance.now();
   const sets = buildGallery(loadCatalogue(), ledger, inClub, meta);
   console.log(`[gallery] built ${sets.length} sets in ${Math.round(performance.now() - t0)} ms`);
