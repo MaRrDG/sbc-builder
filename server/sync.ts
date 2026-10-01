@@ -331,8 +331,10 @@ export async function refreshOnVisit(acc: Account, { sbcs = true }: { sbcs?: boo
 const SESSION_GRACE_MS = 20 * 1000;
 
 async function academyDue(acc: Account): Promise<boolean> {
-  const last = await readCache(acc.key('academy'));
-  if (last && last.fetchedAt >= lastSbcDrop()) return false;
+  // one read per daily drop, whatever the outcome: either a full list came back ('academy') or we asked ('academyAsked')
+  const drop = lastSbcDrop();
+  const [last, asked] = await Promise.all([readCache(acc.key('academy')), readCache(acc.key('academyAsked'))]);
+  if ((last && last.fetchedAt >= drop) || (asked && asked.fetchedAt >= drop)) return false;
   try {
     const owner = await personaRow(acc.id);
     return !!owner && (await planFor(owner.userId)).tier === 'premium';
@@ -365,7 +367,10 @@ export async function autoSync(acc: Account): Promise<void> {
       }
       if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
       // timed evolutions: one read a day, only where someone gets the email (Premium)
-      if (!jobStatus(acc).running && !hasPending(acc, 'academy') && (await academyDue(acc))) await enqueue(acc, 'academy');
+      if (!jobStatus(acc).running && !hasPending(acc, 'academy') && (await academyDue(acc))) {
+        await writeCache(acc.key('academyAsked'), { at: Date.now() });
+        await enqueue(acc, 'academy');
+      }
       return;
     }
     if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
