@@ -108,7 +108,7 @@ On top of that, the extension reports what the user does in the web app so the c
 
 ## FUT Gallery ledger
 
-The Gallery planner needs items the club no longer holds, so `server/gallery/ledger.ts` keeps a per-account ledger (`accounts/<personaId>/gallery`). It is fed by `onCacheWrite` for the club, storage and unassigned caches, backfilled from those caches plus `challengeSquads` on first read, keeps sold items and skips loans. `GET /api/gallery` (Premium) runs the optimizer over the ledger for each catalogue set (`server/gallery/compute.ts`) without calling EA.
+The Gallery planner needs items the club no longer holds, so `server/gallery/ledger.ts` keeps a per-account ledger (`accounts/<personaId>/gallery`, `{ v, entries }`). It is fed by `onCacheWrite` for the club, storage and unassigned caches and backfilled on the first read or write from those caches plus the players placed in `challengeSquads` captures (field slots only; bricks, dream and concept items skipped). It keeps sold items and skips loans. Entries are slim (only what scoring and the lineup card need) and the ledger stays in memory once loaded; a file with another `v` (e.g. the first format with full item DTOs) is discarded and rebuilt from the cache. Items with unknown `owners` are not counted as first owner. `GET /api/gallery` (Premium) runs the optimizer over the ledger for each catalogue set (`server/gallery/compute.ts`) without calling EA; malformed entries are skipped.
 
 ## Points challenges
 
