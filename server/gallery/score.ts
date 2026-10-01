@@ -33,10 +33,14 @@ export function scoreSet(set: GallerySet, items: GalleryItem[]): ScoredSet {
   const tags: TagResult[] = [];
   for (const tag of TAGS) {
     const { count, sum } = tagStats(tag, items);
+    if (!count) continue;
     const pct = tierPct(tag, count);
-    if (!pct) continue;
-    tags.push({ id: tag.id, count, pct, bonus: Math.floor((sum * pct) / 100) });
+    const up = tag.tiers.find(([min]) => count < min);
+    tags.push({ id: tag.id, count, pct, bonus: Math.floor((sum * pct) / 100), next: up ? { min: up[0], pct: up[1] } : null });
   }
+  // paying tags first (largest bonus first), then the unmet ones closest to their first tier
+  const gap = (t: TagResult) => (t.next ? t.next.min - t.count : 0);
+  tags.sort((a, b) => Number(b.pct > 0) - Number(a.pct > 0) || b.bonus - a.bonus || gap(a) - gap(b));
   const bonus = tags.reduce((s, t) => s + t.bonus, 0);
   const total = base + bonus;
   const filled = items.length;

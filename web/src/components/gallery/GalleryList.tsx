@@ -51,10 +51,23 @@ export function GradeBadges({ set }: { set: GallerySetResult }) {
   );
 }
 
-/** Score toward the next grade (or S): big score, "/ threshold" and a thin bar; green once a grade is reached. */
+/** Score toward the next grade (or S): big score, "/ threshold" and a thin bar; green once a grade is reached.
+ * A set still missing players shows its slots instead ("9 / 11 players"): no grade counts until it is full. */
 export function GradeBar({ set }: { set: GallerySetResult }) {
   const { t, lang } = useI18n();
   const fmt = (n: number) => n.toLocaleString(lang);
+  if (set.missing > 0)
+    return (
+      <span className="grade-progress">
+        <span className="grade-score">
+          <strong>{fmt(set.filled)}</strong>
+          <span>/ {t('gallery.slotsOf', { count: set.size })}</span>
+        </span>
+        <span className="grade-track" aria-hidden="true">
+          <span className="grade-fill" style={{ width: `${set.size > 0 ? (set.filled / set.size) * 100 : 0}%` }} />
+        </span>
+      </span>
+    );
   const target = set.next ? set.grades[set.next.grade] : set.grades.S;
   const share = target > 0 ? Math.min(1, set.score / target) : 1;
   return (
@@ -78,7 +91,7 @@ export function GradePill({ grade }: { grade: GalleryGrade | null }) {
 
 /** What the set still needs, in words. */
 export function setNote(set: GallerySetResult, t: (k: string, p?: Record<string, string | number>) => string, lang: string) {
-  if (set.missing) return `${t('gallery.slots', { filled: set.filled, size: set.size })} · ${t('gallery.missing', { count: set.missing })}`;
+  if (set.missing) return `${t('gallery.missing', { count: set.missing })} · ${t('gallery.score')} ${set.score.toLocaleString(lang)}`;
   if (set.next) return t('gallery.toNext', { need: set.next.need.toLocaleString(lang), g: set.next.grade });
   return t('gallery.best');
 }

@@ -101,15 +101,29 @@ export function GallerySet({ set, meta, onBack }: { set: GallerySetResult; meta:
               <p className="muted">{t('gallery.noTags')}</p>
             ) : (
               <ul className="gallery-tags">
-                {set.tags.map((tag) => (
-                  <li key={tag.id}>
-                    <span>
-                      <strong>{t(`gallery.tag.${tag.id}`)}</strong>
-                      <span className="muted">{t('gallery.tagLine', { count: tag.count, pct: tag.pct })}</span>
-                    </span>
-                    <span className="num">+{fmt(tag.bonus)}</span>
-                  </li>
-                ))}
+                {/* met first (server order), then the unmet ones with the tier they need */}
+                {set.tags.map((tag) => {
+                  const met = tag.pct > 0;
+                  return (
+                    <li key={tag.id} className={met ? 'met' : 'unmet'}>
+                      {met ? (
+                        <CheckCircle weight="fill" aria-hidden="true" />
+                      ) : (
+                        <Circle weight="bold" aria-hidden="true" />
+                      )}
+                      <span>
+                        <strong>{t(`gallery.tag.${tag.id}`)}</strong>
+                        <span className="muted">
+                          <span className="sr-only">{met ? t('gallery.tagMet') : t('gallery.tagUnmet')}: </span>
+                          {met
+                            ? t('gallery.tagLine', { count: tag.count, pct: tag.pct })
+                            : tag.next && t('gallery.tagNext', { count: tag.count, min: tag.next.min, pct: tag.next.pct })}
+                        </span>
+                      </span>
+                      <span className="num">+{fmt(tag.bonus)}</span>
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </section>

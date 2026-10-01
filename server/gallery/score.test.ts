@@ -37,29 +37,34 @@ test('incomplete set has no grade', () => {
 test('Silver tier: 5 silver items +15%, floored', () => {
   const items = [101, 101, 101, 101, 101].map((score) => item({ score, rating: 70 }));
   const r = scoreSet(set(), items);
-  assert.deepEqual(tag(r, 'silver'), { id: 'silver', count: 5, pct: 15, bonus: 75 }); // floor(505 * .15) = 75
+  assert.deepEqual(tag(r, 'silver'), { id: 'silver', count: 5, pct: 15, bonus: 75, next: { min: 10, pct: 30 } }); // floor(505 * .15) = 75
 });
 
-test('below the first tier a tag pays nothing and is not listed', () => {
+test('below the first tier a tag pays nothing but is listed with the tier it needs, after the paying ones', () => {
   const r = scoreSet(set(), [70, 70, 70, 70, 90].map((rating) => item({ rating, score: 100 })));
-  assert.equal(tag(r, 'silver'), undefined); // 4 silver < 5
+  assert.deepEqual(tag(r, 'silver'), { id: 'silver', count: 4, pct: 0, bonus: 0, next: { min: 5, pct: 15 } }); // 4 silver < 5
+  assert.equal(tag(r, 'bronze'), undefined); // count 0: not listed
+  assert.equal(r.bonus, r.tags.reduce((s, t) => s + t.bonus, 0));
+  const firstUnmet = r.tags.findIndex((t) => t.pct === 0);
+  assert.ok(firstUnmet > 0 && r.tags.slice(firstUnmet).every((t) => t.pct === 0), 'met tags come first');
+  assert.equal(tag(scoreSet(set({ size: 20 }), [...Array(20)].map(() => item({ score: 10 }))), 'golden')?.next, null); // top tier
 });
 
 test('Same League pays on the largest group only', () => {
   const items = [...Array(5)].map(() => item({ league: 13, score: 1000 })).concat([item({ league: 53, score: 9999 })]);
   const r = scoreSet(set({ size: 6 }), items);
-  assert.deepEqual(tag(r, 'sameLeague'), { id: 'sameLeague', count: 5, pct: 1, bonus: 50 });
+  assert.deepEqual(tag(r, 'sameLeague'), { id: 'sameLeague', count: 5, pct: 1, bonus: 50, next: { min: 10, pct: 2 } });
 });
 
 test('Different Nation counts distinct nations, best item per nation', () => {
   const items = [1, 2, 3, 4, 5].map((nation) => item({ nation, score: 1000 })).concat([item({ nation: 1, score: 50 })]);
   const r = scoreSet(set({ size: 6 }), items);
-  assert.deepEqual(tag(r, 'differentNation'), { id: 'differentNation', count: 5, pct: 1, bonus: 50 });
+  assert.deepEqual(tag(r, 'differentNation'), { id: 'differentNation', count: 5, pct: 1, bonus: 50, next: { min: 10, pct: 2 } });
 });
 
 test('Multiples counts two versions of the same player (Arsenal: 6875 + 4100 → 1097)', () => {
   const r = scoreSet(set({ size: 2 }), [item({ assetId: 7, score: 6875 }), item({ assetId: 7, score: 4100 })]);
-  assert.deepEqual(tag(r, 'multiples'), { id: 'multiples', count: 2, pct: 10, bonus: 1097 });
+  assert.deepEqual(tag(r, 'multiples'), { id: 'multiples', count: 2, pct: 10, bonus: 1097, next: { min: 3, pct: 15 } });
 });
 
 test('Golden 20 items +4% matches fut.gg Arsenal (base 92,790 → 3,711)', () => {
@@ -71,14 +76,22 @@ test('Golden 20 items +4% matches fut.gg Arsenal (base 92,790 → 3,711)', () =>
 
 test('First Owner 5 items +150%', () => {
   const r = scoreSet(set(), [...Array(5)].map(() => item({ firstOwner: true, score: 100 })));
-  assert.deepEqual(tag(r, 'firstOwner'), { id: 'firstOwner', count: 5, pct: 150, bonus: 750 });
+  assert.deepEqual(tag(r, 'firstOwner'), { id: 'firstOwner', count: 5, pct: 150, bonus: 750, next: { min: 10, pct: 300 } });
 });
 
 test('Iconic 2 items +10%, kind from rarity names', () => {
   const kinds = rarityKinds({ '3': 'Team of the Week', '12': 'Base Icon', '72': 'Base Hero', '1': 'Rare', '200': 'Holographic' });
   assert.deepEqual(kinds, { 3: 'totw', 12: 'icon', 72: 'hero', 200: 'holo' });
+  // real EA names (data/static.json item.raretype*): plurals, upper case, abbreviations
+  assert.deepEqual(
+    rarityKinds({
+      '155': 'Team of the Year ICON', '171': 'UEFA Heroes (Mens)', '172': 'UEFA Heroes (Womens)', '77': 'Trophy Titans Hero',
+      '21': 'Prime Hero', '9': 'Base Hall of FUT', '5': 'Team of the Year', '0': 'Common', '150': 'Ones to Watch', '300': 'TOTW Moments',
+    }),
+    { 155: 'icon', 171: 'hero', 172: 'hero', 77: 'hero', 21: 'hero', 300: 'totw' },
+  );
   const r = scoreSet(set({ size: 2 }), [item({ kind: 'icon', score: 1000 }), item({ kind: 'icon', score: 1000 })]);
-  assert.deepEqual(tag(r, 'iconic'), { id: 'iconic', count: 2, pct: 10, bonus: 200 });
+  assert.deepEqual(tag(r, 'iconic'), { id: 'iconic', count: 2, pct: 10, bonus: 200, next: { min: 4, pct: 15 } });
 });
 
 test('position, weak foot and skill tags', () => {

@@ -975,7 +975,7 @@ h3 {
 }
 
 .gallery-tile:hover {
-  border-color: color-mix(in oklch, var(--go) 50%, transparent);
+  border-color: var(--ink-3);
 }
 
 .gallery-tile > :not(.crest-mark),
@@ -1327,8 +1327,25 @@ h3 {
   font-size: 13px;
 }
 
-.gallery-tags li > span:first-child {
+.gallery-tags li > svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.gallery-tags li.met > svg {
+  color: var(--go);
+}
+
+.gallery-tags li.unmet > svg,
+.gallery-tags li.unmet .num {
+  color: var(--ink-3);
+}
+
+.gallery-tags li > span:first-of-type {
   display: grid;
+  flex: 1;
+  min-width: 0;
 }
 
 .gallery-tags .num {

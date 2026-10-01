@@ -29,11 +29,13 @@ export interface Player {
 
 export type GalleryGrade = 'D' | 'C' | 'B' | 'A' | 'S';
 
+/** A bonus tag on the lineup; unmet ones (pct 0, bonus 0) are listed too, with the tier they need. */
 export interface GalleryTag {
   id: string;
   count: number;
   pct: number;
   bonus: number;
+  next: { min: number; pct: number } | null;
 }
 
 export interface GallerySetResult {

@@ -280,16 +280,19 @@ FUT Gallery planner: for every set of the catalogue, the best lineup the account
   "fetchedAt": 1790064472801,
   "ledgerSize": 5120,
   "sets": [{
-    "id": "club-nurnberg", "name": "1. FC Nürnberg", "category": "club", "size": 11,
-    "filled": 9, "missing": 2, "base": 7200, "bonus": 640, "score": 7840,
-    "grade": "B", "next": { "grade": "A", "need": 1160 },
-    "grades": { "D": 500, "C": 2000, "B": 6000, "A": 9000, "S": 12000 }, "rewards": { "B": "..." },
-    "tags": [{ "...": "..." }],
-    "badge": { "kind": "club", "id": 171 },
+    "id": "premier-league-arsenal", "name": "Arsenal", "category": "club", "size": 20,
+    "filled": 20, "missing": 0, "base": 92790, "bonus": 17228, "score": 110018,
+    "grade": "C", "next": { "grade": "B", "need": 589982 },
+    "grades": { "D": 10, "C": 110000, "B": 700000, "A": 1300000, "S": 2500000 }, "rewards": { "C": "Arsenal Kit", "...": "..." },
+    "tags": [{ "id": "golden", "count": 20, "pct": 4, "bonus": 3711, "next": null },
+             { "id": "firstOwner", "count": 4, "pct": 0, "bonus": 0, "next": { "min": 5, "pct": 150 } }],
+    "badge": { "kind": "club", "id": 1 },
     "lineup": [{ "id": 943996158675, "name": "Hazard", "...": "Player fields as in /api/club", "inClub": true, "firstOwner": true, "score": 830 }]
   }]
 }
 ```
+
+`tags`: every bonus tag that counts at least one lineup item. Met ones (`pct` > 0) come first, largest `bonus` first; unmet ones have `pct` 0 and `bonus` 0. `next` is the next tier up (`min` items for `pct`%), `null` at the top tier. `score` = `base` + the sum of tag bonuses. `grade` is `null` while players are missing.
 
 `inClub`: the item is still owned (club, storage or unassigned); otherwise it was owned before. `badge` is what the set's crest shows, taken from its filter: the first club, else the league, else the rarity (`id` = rareflag; a rarity kind such as TOTW or Heroes maps to its lowest rareflag); `null` when nothing fits (the site shows an icon). The answer is cached per account until the ledger or the club cache changes.
 
