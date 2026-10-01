@@ -1060,7 +1060,7 @@ export interface GallerySetResult {
 export interface GalleryResponse { fetchedAt: number; ledgerSize: number; sets: GallerySetResult[] }
 ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 `server/gallery/compute.test.ts`:
 
@@ -1097,11 +1097,11 @@ test('lineup marks in-club vs owned-before and carries the score', () => {
 });
 ```
 
-- [ ] **Step 2: Run to verify failure**
+- [x] **Step 2: Run to verify failure**
 
 Run: `node --import tsx --test server/gallery/compute.test.ts` → FAIL, module not found.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `server/gallery/compute.ts`:
 
@@ -1175,7 +1175,7 @@ Check `metaFor` is the function `/api/solve` uses (`server/index.ts`, `const met
 
 `docs/api.md`: add a `GET /api/gallery` section (auth like `/api/club`, Premium only → 403 `premiumOnly`, response shape above, "never calls EA; reads the ledger"). `docs/architecture.md`: a short "FUT Gallery ledger" paragraph (fed by `onCacheWrite` for club / storage / unassigned, backfilled from cache + `challengeSquads` on first read, keeps sold items, skips loans).
 
-- [ ] **Step 4: Tests + live check**
+- [x] **Step 4: Tests + live check**
 
 Run: `node --import tsx --test server/gallery/compute.test.ts && npm test && npm run typecheck` → PASS.
 
@@ -1187,7 +1187,7 @@ await (await fetch('/api/gallery', { headers: { Authorization: `Bearer ${await w
 
 (Use the real persona header key from `web/src/api.ts` if `sbc-persona` differs.) Expected: 127 sets, `ledgerSize` ≈ club + storage size, lineups only from eligible items, response in < 1 s. Spot-check one club set's lineup against the club view.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add server/gallery/compute.ts server/gallery/compute.test.ts server/index.ts docs/api.md docs/architecture.md
