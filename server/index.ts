@@ -159,14 +159,31 @@ app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('
 });
 
 // ---- users (site, Clerk session) --------------------------------------------------
-/** One click from an evolution email: no sign-in, the HMAC proves the link came from us. */
+/**
+ * From an evolution email: no sign-in, the HMAC proves the link came from us. GET only asks (mail link
+ * scanners open links on their own); the POST, from the button or the RFC 8058 one-click header, turns emails off.
+ */
+const UNSUB_TEXT = {
+  en: { ask: 'Stop the emails about evolution training?', button: 'Stop the emails', done: 'Done: no more evolution emails. You can turn them back on in FC Solver settings.' },
+  ro: { ask: 'Nu mai vrei emailuri despre antrenamentele evoluțiilor?', button: 'Oprește emailurile', done: 'Gata: nu mai primești emailuri despre evoluții. Le poți reporni din setările FC Solver.' },
+  it: { ask: 'Smettere di ricevere email sugli allenamenti delle evoluzioni?', button: 'Interrompi le email', done: 'Fatto: niente più email sulle evoluzioni. Puoi riattivarle nelle impostazioni di FC Solver.' },
+};
 const unsubscribe = async (req: FastifyRequest<{ Querystring: { u?: string; t?: string } }>, reply: FastifyReply) => {
   const { u = '', t = '' } = req.query ?? {};
   if (!u || !checkUnsub(u, t, emailSecret())) return reply.code(400).type('text/plain').send('Invalid link.');
-  await setPrefs(u, { evoEmails: false });
-  const lang = (await prefsOf(u)).lang;
-  const msg = { en: 'Done: no more evolution emails. You can turn them back on in FC Solver settings.', ro: 'Gata: nu mai primești emailuri despre evoluții. Le poți reporni din setările FC Solver.', it: 'Fatto: niente più email sulle evoluzioni. Puoi riattivarle nelle impostazioni di FC Solver.' }[lang];
-  return reply.type('text/plain; charset=utf-8').send(msg);
+  const text = UNSUB_TEXT[(await prefsOf(u)).lang];
+  if (req.method === 'POST') {
+    await setPrefs(u, { evoEmails: false });
+    return reply.type('text/plain; charset=utf-8').send(text.done);
+  }
+  const action = `/api/evos/unsubscribe?u=${encodeURIComponent(u)}&t=${encodeURIComponent(t)}`.replace(/&/g, '&amp;');
+  return reply
+    .type('text/html; charset=utf-8')
+    .send(
+      `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">` +
+        `<title>FC Solver</title><body style="font:16px system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:0 16px">` +
+        `<p>${text.ask}</p><form method="post" action="${action}"><button type="submit">${text.button}</button></form></body>`,
+    );
 };
 // Encapsulated: mail clients one-click unsubscribe (RFC 8058) with a form body that is ignored (u/t are in the
 // query); the parser must not change how other routes treat form bodies. Root hooks (limits, headers) still apply.
