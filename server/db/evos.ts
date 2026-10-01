@@ -1,7 +1,7 @@
 // Timed evolution training rows (server/evos.ts parses them) and the user prefs the emails need.
-import { and, eq, gt, isNotNull, isNull, lt, lte, notInArray, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, isNotNull, isNull, lt, lte, notInArray, sql } from 'drizzle-orm';
 import type { EvoTraining } from '../evos.js';
-import { asLang, MAX_TRIES, STALE_MS, type MailLang } from '../evo-rules.js';
+import { asLang, chunk, MAX_TRIES, STALE_MS, type AlertKey, type MailLang } from '../evo-rules.js';
 import { db } from './index.js';
 import { evoTrainings, personas, users } from './schema.js';
 
@@ -37,21 +37,36 @@ export async function saveTrainings(personaId: number, list: EvoTraining[], full
 export const trainingsOf = (personaId: number) =>
   db.select().from(evoTrainings).where(eq(evoTrainings.personaId, personaId)).orderBy(evoTrainings.endsAt);
 
-/** Mirrors isDue() in server/evo-rules.ts. */
-export const dueTrainings = (now: Date) =>
+/** Mirrors isDue() in server/evo-rules.ts; oldest first, at most `limit` (one tick's worth). */
+export const dueTrainings = (now: Date, limit: number) =>
   db.select().from(evoTrainings).where(and(
     isNotNull(evoTrainings.endsAt), lte(evoTrainings.endsAt, now), gt(evoTrainings.endsAt, new Date(now.getTime() - STALE_MS)),
     isNull(evoTrainings.notifiedAt), lt(evoTrainings.tries, MAX_TRIES),
-  ));
+  )).orderBy(evoTrainings.endsAt, evoTrainings.personaId, evoTrainings.slotId, evoTrainings.level).limit(limit);
 
-const key = (p: number, s: number, l: number) => and(eq(evoTrainings.personaId, p), eq(evoTrainings.slotId, s), eq(evoTrainings.level, l));
-export async function markNotified(p: number, s: number, l: number) { await db.update(evoTrainings).set({ notifiedAt: sql`now()` }).where(key(p, s, l)); }
-export async function failedTry(p: number, s: number, l: number) { await db.update(evoTrainings).set({ tries: sql`${evoTrainings.tries} + 1` }).where(key(p, s, l)); }
+const keysIn = (keys: AlertKey[]) =>
+  sql`(${evoTrainings.personaId}, ${evoTrainings.slotId}, ${evoTrainings.level}) in (${sql.join(keys.map((k) => sql`(${k.personaId}, ${k.slotId}, ${k.level})`), sql`, `)})`;
 
-export async function ownerOf(personaId: number) {
-  const [r] = await db.select({ userId: users.id, email: users.email, lang: users.lang, evoEmails: users.evoEmails })
-    .from(personas).innerJoin(users, eq(users.id, personas.userId)).where(eq(personas.personaId, personaId));
-  return r ? { ...r, lang: asLang(r.lang) } : null;
+/** Closes rows (mailed or skipped); a row already closed keeps its first time. */
+export async function markNotified(keys: AlertKey[]): Promise<void> {
+  for (const part of chunk(keys, 500))
+    await db.update(evoTrainings).set({ notifiedAt: sql`now()` }).where(and(isNull(evoTrainings.notifiedAt), keysIn(part)));
+}
+
+export async function failedTry(keys: AlertKey[]): Promise<void> {
+  for (const part of chunk(keys, 500))
+    await db.update(evoTrainings).set({ tries: sql`${evoTrainings.tries} + 1` }).where(keysIn(part));
+}
+
+/** Owner of each persona (personas without an owner are missing from the map). */
+export async function ownersOf(personaIds: number[]) {
+  const out = new Map<number, { userId: string; email: string; lang: MailLang; evoEmails: boolean }>();
+  for (const part of chunk(personaIds, 500)) {
+    const rows = await db.select({ personaId: personas.personaId, userId: users.id, email: users.email, lang: users.lang, evoEmails: users.evoEmails })
+      .from(personas).innerJoin(users, eq(users.id, personas.userId)).where(inArray(personas.personaId, part));
+    for (const { personaId, ...r } of rows) out.set(personaId, { ...r, lang: asLang(r.lang) });
+  }
+  return out;
 }
 
 export async function prefsOf(userId: string): Promise<{ lang: MailLang; evoEmails: boolean }> {
