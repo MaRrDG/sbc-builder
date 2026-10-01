@@ -122,6 +122,9 @@ When an `sbc` job finds set progress higher than cached (an SBC done on a consol
 
 ---
 
+### `GET|POST /api/evos/unsubscribe?u=&t=` (public)
+Link in every evolution email (and its `List-Unsubscribe` header, RFC 8058 one-click POST). No sign-in: `t` is an HMAC of the user id `u` (`EMAIL_SECRET`). Valid: sets `users.evo_emails = false`, answers a short plain-text message in the user's language. Invalid: `400 Invalid link.`
+
 ## Admin (site)
 
 Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated, default `dragutmariotheodor1@gmail.com`); anyone else gets `403` `adminOnly` (`401` `signIn` when not signed in). The POSTs below are actions; after a successful one the next admin read is fresh (account rows are memoized 5 s otherwise).

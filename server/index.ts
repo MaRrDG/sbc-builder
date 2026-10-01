@@ -30,6 +30,9 @@ import {
   unlinkPersona,
 } from './db/users.js';
 import { eq } from 'drizzle-orm';
+import { checkEvoAlerts, emailSecret } from './evo-alerts.js';
+import { checkUnsub } from './evo-rules.js';
+import { prefsOf, setPrefs } from './db/evos.js';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 import { analyticsOrigins, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
@@ -118,6 +121,8 @@ app.addContentTypeParser(['application/csp-report', 'application/reports+json'],
     done(null, null);
   }
 });
+// Mail clients one-click unsubscribe (RFC 8058) with a form body; u/t come from the query, so the body is ignored.
+app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string', bodyLimit: 1024 }, (_req, _body, done) => done(null, null));
 app.post('/api/csp-report', async (req, reply) => {
   if (reportLimit(req.ip)) {
     const r = (req.body as { 'csp-report'?: Record<string, unknown> } | null)?.['csp-report'] ?? req.body;
@@ -157,6 +162,18 @@ app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('
 
 // ---- users (site, Clerk session) --------------------------------------------------
 /** Who is signed in and which EA personas they own. */
+/** One click from an evolution email: no sign-in, the HMAC proves the link came from us. */
+const unsubscribe = async (req: FastifyRequest<{ Querystring: { u?: string; t?: string } }>, reply: FastifyReply) => {
+  const { u = '', t = '' } = req.query ?? {};
+  if (!u || !checkUnsub(u, t, emailSecret())) return reply.code(400).type('text/plain').send('Invalid link.');
+  await setPrefs(u, { evoEmails: false });
+  const lang = (await prefsOf(u)).lang;
+  const msg = { en: 'Done: no more evolution emails. You can turn them back on in FC Solver settings.', ro: 'Gata: nu mai primești emailuri despre evoluții. Le poți reporni din setările FC Solver.', it: 'Fatto: niente più email sulle evoluzioni. Puoi riattivarle nelle impostazioni di FC Solver.' }[lang];
+  return reply.type('text/plain; charset=utf-8').send(msg);
+};
+app.get('/api/evos/unsubscribe', unsubscribe);
+app.post('/api/evos/unsubscribe', unsubscribe); // RFC 8058 one-click
+
 app.get('/api/me', async (req) => {
   const userId = await siteUser(req);
   const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
@@ -623,3 +640,4 @@ console.log(`FC Solver API on http://localhost:${PORT}`);
 
 void autoSyncAll();
 setInterval(() => void autoSyncAll(), 60 * 1000);
+setInterval(() => void checkEvoAlerts(), 60 * 1000);
