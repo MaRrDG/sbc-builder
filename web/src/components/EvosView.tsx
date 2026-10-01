@@ -1,19 +1,20 @@
 // Evolutions screen: timed evolution trainings from the cache, with how long each one has left.
-// Premium only: a Free user sees the locked panel and the page never asks the server.
+// Premium only: a Free user sees example evolutions behind the Premium offer and the page never asks the server.
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Crown, Timer } from '@phosphor-icons/react';
+import { CheckCircle, Timer } from '@phosphor-icons/react';
 import { api, type Evo, type Meta } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
 import { timeLeft } from '../evos';
 import { Card } from './Card';
+import { PremiumPreview } from './PremiumPreview';
+import { DEMO_EVOS, DEMO_META } from './premiumDemo';
 
-export function EvosView({ premium, meta, reload, onUpgrade, onSettings }: {
+export function EvosView({ premium, meta, reload, onSettings }: {
   premium: boolean;
   meta: Meta;
   /** Bumps when a sync ends or the web app changes the cache (same moments the club reloads). */
   reload: number;
-  onUpgrade: () => void;
   onSettings: () => void;
 }) {
   const { t } = useI18n();
@@ -61,15 +62,13 @@ export function EvosView({ premium, meta, reload, onUpgrade, onSettings }: {
       </header>
 
       {!premium ? (
-        <div className="settings-card locked evo-locked">
-          <h2>{t('evos.lockedTitle')}</h2>
-          <p className="locked-note">
-            <Crown weight="fill" aria-hidden="true" /> {t('evos.lockedBody')}
-          </p>
-          <button type="button" className="ghost" onClick={onUpgrade}>
-            {t('evos.seePlan')}
-          </button>
-        </div>
+        <PremiumPreview title={t('evos.lockedTitle')} body={t('evos.lockedBody')}>
+          <ul className="evo-list">
+            {DEMO_EVOS.map((e) => (
+              <EvoItem key={e.slotId} evo={e} meta={DEMO_META} now={now} />
+            ))}
+          </ul>
+        </PremiumPreview>
       ) : (
         <>
           {error && <div className="banner" role="alert">{error}</div>}

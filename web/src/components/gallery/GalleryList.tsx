@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Flag, Medal, ShieldStar, Sparkle, Trophy } from '@phosphor-icons/react';
+import { CheckCircle, Flag, Info, Medal, ShieldStar, Sparkle, Trophy } from '@phosphor-icons/react';
 import type { GalleryGrade, GalleryResponse, GallerySetResult, Meta } from '../../api';
 import { useI18n } from '../../i18n';
 import { GRADE_ORDER, filterSort, type GalleryFilter, type GallerySort } from './gallery';
@@ -97,7 +97,15 @@ export function setNote(set: GallerySetResult, t: (k: string, p?: Record<string,
 }
 
 /** Every Gallery set as a tile with its crest and the best grade the recorded players reach. */
-export function GalleryList({ data, meta, onOpen }: { data: GalleryResponse; meta: Meta; onOpen: (setId: string) => void }) {
+export function GalleryList({ data, meta, onOpen, onInfo, head = true }: {
+  data: GalleryResponse;
+  meta: Meta;
+  onOpen: (setId: string) => void;
+  /** Opens the "how players are recorded" note. */
+  onInfo?: () => void;
+  /** False for the Free preview, which shows the page head outside the blur. */
+  head?: boolean;
+}) {
   const { t, lang } = useI18n();
   const [filter, setFilter] = useState<GalleryFilter>(kept.filter);
   const [sort, setSort] = useState<GallerySort>(kept.sort);
@@ -116,15 +124,22 @@ export function GalleryList({ data, meta, onOpen }: { data: GalleryResponse; met
   const shown = useMemo(() => filterSort(data.sets, filter, sort), [data.sets, filter, sort]);
   return (
     <div className="gallery-view">
-      <header className="page-head">
-        <div>
-          <h1>{t('gallery.title')}</h1>
-          <p className="muted">{t('gallery.lede')}</p>
-        </div>
-      </header>
+      {head && (
+        <header className="page-head">
+          <div>
+            <h1>{t('gallery.title')}</h1>
+            <p className="muted">{t('gallery.lede')}</p>
+          </div>
+        </header>
+      )}
       <p className="gallery-history">
         <strong>{t('gallery.seen', { count: data.ledgerSize })}</strong>
         <span className="muted">{t('gallery.historyNote')}</span>
+        {onInfo && (
+          <button type="button" className="text gallery-info-open" onClick={onInfo}>
+            <Info weight="bold" aria-hidden="true" /> {t('gallery.info.open')}
+          </button>
+        )}
       </p>
 
       <div className="gallery-tools">
