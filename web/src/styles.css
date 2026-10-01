@@ -951,128 +951,117 @@ h3 {
   display: grid;
 }
 
-.gallery-tile {
-  display: grid;
-  align-content: start;
-  gap: 12px;
-  width: 100%;
-  padding: 14px 16px 12px;
+/* tile: diagonal surface gradient, the set's crest as a tilted watermark bleeding off the top right */
+.gallery-tile,
+.gallery-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border: 1px solid var(--line);
   border-radius: var(--r-box);
-  background: var(--surface);
+  background: linear-gradient(135deg, color-mix(in oklch, var(--surface-2) 70%, var(--bg-0)) 0%, color-mix(in oklch, var(--surface) 85%, var(--bg-0)) 100%);
   color: var(--ink);
+}
+
+.gallery-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  min-height: 260px;
+  padding: 18px;
   text-align: left;
-  transition: border-color 160ms var(--ease), background 160ms var(--ease), transform 160ms var(--ease);
+  transition: border-color 250ms var(--ease);
 }
 
 .gallery-tile:hover {
-  border-color: oklch(0.84 0.17 163 / 0.55);
-  background: oklch(0.25 0.03 218);
+  border-color: color-mix(in oklch, var(--go) 50%, transparent);
 }
 
-.gallery-tile:active {
-  transform: translateY(1px);
+.gallery-tile > :not(.crest-mark),
+.gallery-hero > :not(.crest-mark) {
+  position: relative;
+  z-index: 1;
 }
 
-.gallery-tile-top {
+.crest-mark {
+  position: absolute;
+  top: -30px;
+  right: -60px;
+  z-index: 0;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
+  place-items: center;
+  width: 220px;
+  height: 220px;
+  color: var(--ink-2);
+  opacity: 0.18;
+  pointer-events: none;
+  transform: rotate(-8deg);
+  transition: transform 400ms var(--ease), opacity 400ms var(--ease);
 }
 
-.gallery-tile-title {
-  display: grid;
-  gap: 2px;
+.crest-mark img,
+.crest-mark svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.gallery-tile:hover .crest-mark {
+  opacity: 0.3;
+  transform: rotate(-8deg) scale(1.06);
+}
+
+.crest-mark-lg {
+  top: -70px;
+  right: -60px;
+  width: 340px;
+  height: 340px;
+}
+
+.gallery-tile-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
-}
-
-.gallery-name {
-  display: -webkit-box;
-  overflow: hidden;
-  font-family: var(--font-num);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1.15;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow-wrap: anywhere;
+  padding-right: 64px;
 }
 
 .gallery-cat {
-  font-size: 12px;
+  color: var(--ink-2);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.gallery-done {
+.gallery-name {
+  overflow: hidden;
+  font-size: 18px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gallery-tile .gallery-done {
+  position: absolute;
+  top: 16px;
+  right: 16px;
   width: 22px;
   height: 22px;
   color: var(--go);
 }
 
-.gallery-done.ring {
-  border: 2px solid var(--surface-3);
-  border-radius: 999px;
+.gallery-tile-fill {
+  flex-grow: 1;
 }
 
 .gallery-note {
   margin: 0;
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: 12px;
 }
 
-/* set crest: EA art inside a corner-bracket frame */
-.set-crest {
-  --crest: 48px;
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: var(--crest);
-  height: var(--crest);
-  flex: none;
-  border-radius: var(--r-ctl);
-  background: var(--surface-2);
-  color: var(--ink-3);
-}
-
-.set-crest::before {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background:
-    linear-gradient(var(--ink-3), var(--ink-3)) top left / 10px 2px,
-    linear-gradient(var(--ink-3), var(--ink-3)) top left / 2px 10px,
-    linear-gradient(var(--ink-3), var(--ink-3)) top right / 10px 2px,
-    linear-gradient(var(--ink-3), var(--ink-3)) top right / 2px 10px,
-    linear-gradient(var(--ink-3), var(--ink-3)) bottom left / 10px 2px,
-    linear-gradient(var(--ink-3), var(--ink-3)) bottom left / 2px 10px,
-    linear-gradient(var(--ink-3), var(--ink-3)) bottom right / 10px 2px,
-    linear-gradient(var(--ink-3), var(--ink-3)) bottom right / 2px 10px;
-  background-repeat: no-repeat;
-  content: '';
-  opacity: 0.7;
-}
-
-.set-crest img {
-  width: 72%;
-  height: 72%;
-  object-fit: contain;
-}
-
-.set-crest.is-card img {
-  height: 86%;
-}
-
-.set-crest svg {
-  width: 55%;
-  height: 55%;
-}
-
-.set-crest-lg {
-  --crest: 72px;
-}
-
-/* grade badges D..S: letter always visible; reached tinted, current solid green, the rest dimmed */
+/* grade hexes D..S: letter always shown; current solid green, earlier reached dark green, the rest dim */
 .grade-badges {
   display: flex;
   gap: 6px;
@@ -1082,17 +1071,17 @@ h3 {
   display: grid;
   place-items: center;
   width: 30px;
-  height: 34px;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  background: var(--surface-2);
-  color: var(--ink-3);
-  font-family: var(--font-num);
-  font-size: 15px;
+  height: 30px;
+  clip-path: polygon(25% 4%, 75% 4%, 100% 50%, 75% 96%, 25% 96%, 0 50%);
+  background: color-mix(in oklch, var(--ink) 8%, transparent);
+  /* between ink-2 and ink-3: dim, still over 4.5:1 on the tile */
+  color: color-mix(in oklch, var(--ink-2) 50%, var(--ink-3));
+  font-size: 13px;
   font-weight: 700;
 }
 
 .grade-hex.met {
-  background: oklch(0.84 0.17 163 / 0.22);
+  background: var(--bg-2);
   color: var(--ink);
 }
 
@@ -1103,33 +1092,32 @@ h3 {
 
 .grade-progress {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .grade-score {
   display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--ink-3);
-  font-size: 13px;
-  font-variant-numeric: tabular-nums;
-}
-
-.grade-score svg {
+  align-items: baseline;
+  gap: 6px;
   color: var(--ink-2);
+  font-family: var(--font-num);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
 }
 
 .grade-score strong {
   color: var(--ink);
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .grade-track {
   display: block;
   height: 6px;
   overflow: hidden;
-  border-radius: 999px;
-  background: var(--surface-3);
+  border-radius: 3px;
+  background: color-mix(in oklch, var(--ink) 10%, transparent);
 }
 
 .grade-fill {
@@ -1139,7 +1127,7 @@ h3 {
   background: var(--ink-2);
 }
 
-.grade-track.done .grade-fill {
+.grade-track.met .grade-fill {
   background: var(--go);
 }
 
@@ -1163,50 +1151,57 @@ h3 {
   color: var(--go-ink);
 }
 
-/* set page */
-.gallery-set-head {
-  align-items: center;
-}
-
-.gallery-set-title {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-width: 0;
-}
-
-.gallery-summary {
+.gallery-error {
   display: grid;
-  grid-template-columns: minmax(0, 420px) auto;
-  align-items: end;
-  justify-content: space-between;
-  gap: 16px 32px;
-  margin-bottom: 24px;
-  padding: 16px 18px;
-  border: 1px solid var(--line);
-  border-radius: var(--r-box);
-  background: var(--surface);
-}
-
-.gallery-summary-grades {
-  display: grid;
+  justify-items: start;
   gap: 10px;
 }
 
-.gallery-score {
-  display: grid;
-  justify-items: end;
-  gap: 2px;
-  margin: 0;
-  font-size: 13px;
-  text-align: right;
+.gallery-error button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.gallery-score strong {
+/* set page: the same watermark header, larger */
+.gallery-hero {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 22px 24px;
+}
+
+.gallery-hero-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+}
+
+.gallery-hero-title {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.gallery-hero h1 {
   font-family: var(--font-num);
   font-size: 32px;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.05;
+}
+
+.gallery-hero-grades {
+  display: grid;
+  gap: 10px;
+  max-width: 460px;
+}
+
+.gallery-breakdown {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: 13px;
 }
 
 .gallery-set-body {
@@ -1357,20 +1352,15 @@ h3 {
   .gallery-sort {
     margin-left: 0;
   }
-
-  .gallery-summary {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .gallery-score {
-    justify-items: start;
-    text-align: left;
-  }
 }
 
 @media (max-width: 480px) {
   .gallery-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .gallery-tile {
+    min-height: 210px;
   }
 
   .gallery-lineup {
@@ -1387,8 +1377,13 @@ h3 {
     min-width: 0;
   }
 
-  .set-crest-lg {
-    --crest: 56px;
+  .crest-mark-lg {
+    width: 240px;
+    height: 240px;
+  }
+
+  .gallery-hero {
+    padding: 18px;
   }
 
   .gallery-grades .reward {
@@ -1397,12 +1392,13 @@ h3 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .gallery-tile {
+  .gallery-tile,
+  .crest-mark {
     transition: none;
   }
 
-  .gallery-tile:active {
-    transform: none;
+  .gallery-tile:hover .crest-mark {
+    transform: rotate(-8deg);
   }
 }
 

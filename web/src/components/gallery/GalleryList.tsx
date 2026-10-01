@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Diamond, Flag, Medal, ShieldStar, Sparkle, Trophy } from '@phosphor-icons/react';
+import { CheckCircle, Flag, Medal, ShieldStar, Sparkle, Trophy } from '@phosphor-icons/react';
 import type { GalleryGrade, GalleryResponse, GallerySetResult, Meta } from '../../api';
 import { useI18n } from '../../i18n';
 import { GRADE_ORDER, filterSort, type GalleryFilter, type GallerySort } from './gallery';
@@ -16,7 +16,7 @@ let kept: { filter: GalleryFilter; sort: GallerySort; scroll: number } = {
   scroll: 0,
 };
 
-/** The set's crest in a bracket frame: club / league crest or rarity card art from EA, else an icon. */
+/** The set's crest as a large tilted watermark: club / league crest or rarity card art from EA, else an icon. */
 export function SetCrest({ set, meta, size = 'md' }: { set: GallerySetResult; meta: Meta; size?: 'md' | 'lg' }) {
   const [failed, setFailed] = useState(false);
   const base = `${meta.contentBase}/items/images`;
@@ -30,7 +30,7 @@ export function SetCrest({ set, meta, size = 'md' }: { set: GallerySetResult; me
     : null;
   const Icon = CATEGORY_ICON[set.category];
   return (
-    <span className={`set-crest set-crest-${size}${b?.kind === 'rarity' ? ' is-card' : ''}`} aria-hidden="true">
+    <span className={`crest-mark crest-mark-${size}`} aria-hidden="true">
       {src ? <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} /> : <Icon weight="duotone" />}
     </span>
   );
@@ -51,21 +51,20 @@ export function GradeBadges({ set }: { set: GallerySetResult }) {
   );
 }
 
-/** Score toward the next grade (or S): "score / threshold" and a bar; green only once S is reached. */
+/** Score toward the next grade (or S): big score, "/ threshold" and a thin bar; green once a grade is reached. */
 export function GradeBar({ set }: { set: GallerySetResult }) {
   const { t, lang } = useI18n();
   const fmt = (n: number) => n.toLocaleString(lang);
   const target = set.next ? set.grades[set.next.grade] : set.grades.S;
   const share = target > 0 ? Math.min(1, set.score / target) : 1;
-  const done = set.missing === 0 && !set.next;
   return (
     <span className="grade-progress">
       <span className="grade-score">
         <span className="sr-only">{t('gallery.score')} </span>
-        <Diamond weight="fill" aria-hidden="true" />
-        <strong>{fmt(set.score)}</strong> / {fmt(target)}
+        <strong>{fmt(set.score)}</strong>
+        <span>/ {fmt(target)}</span>
       </span>
-      <span className={`grade-track${done ? ' done' : ''}`} aria-hidden="true">
+      <span className={`grade-track${set.grade ? ' met' : ''}`} aria-hidden="true">
         <span className="grade-fill" style={{ width: `${share * 100}%` }} />
       </span>
     </span>
@@ -93,7 +92,9 @@ export function GalleryList({ data, meta, onOpen }: { data: GalleryResponse; met
     kept = { ...kept, filter, sort };
   }, [filter, sort]);
   useEffect(() => {
-    window.scrollTo({ top: kept.scroll });
+    // back from a set: return to where the list was, once
+    if (kept.scroll) window.scrollTo({ top: kept.scroll });
+    kept = { ...kept, scroll: 0 };
   }, []);
   const open = (id: string) => {
     kept = { ...kept, scroll: window.scrollY };
@@ -160,19 +161,14 @@ export function GalleryList({ data, meta, onOpen }: { data: GalleryResponse; met
             const done = s.missing === 0 && !s.next;
             return (
               <li key={s.id}>
-                <button type="button" className={`gallery-tile${s.missing ? ' incomplete' : ''}`} onClick={() => open(s.id)}>
-                  <span className="gallery-tile-top">
-                    <SetCrest set={s} meta={meta} />
-                    <span className="gallery-tile-title">
-                      <span className="gallery-name">{s.name}</span>
-                      <span className="gallery-cat muted">{t(`gallery.cat.${s.category}`)}</span>
-                    </span>
-                    {done ? (
-                      <CheckCircle className="gallery-done" weight="fill" aria-hidden="true" />
-                    ) : (
-                      <span className="gallery-done ring" aria-hidden="true" />
-                    )}
+                <button type="button" className="gallery-tile" onClick={() => open(s.id)}>
+                  <SetCrest set={s} meta={meta} />
+                  <span className="gallery-tile-head">
+                    <span className="gallery-cat">{t(`gallery.cat.${s.category}`)}</span>
+                    <span className="gallery-name">{s.name}</span>
                   </span>
+                  {done && <CheckCircle className="gallery-done" weight="fill" aria-hidden="true" />}
+                  <span className="gallery-tile-fill" />
                   <GradeBadges set={s} />
                   <GradeBar set={s} />
                   <span className="gallery-note">{setNote(s, t, lang)}</span>
