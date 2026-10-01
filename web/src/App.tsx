@@ -264,7 +264,10 @@ export default function App({
     if ((prev.running && !status.running) || prev.editedAt !== status.editedAt) {
       void loadAccountData().catch(() => {});
       if (setId) void api.challenges(setId).then((r) => setChallenges(r.challenges), () => {});
-      if (view === 'gallery' && premium) void api.gallery().then(setGallery, () => {});
+      if (view === 'gallery' && premium) {
+        const id = activeId; // an answer for an account the user has left is dropped
+        void api.gallery().then((g) => activeIdRef.current === id && setGallery(g), () => {});
+      }
     }
   }, [activeId, status, setId, loadAccountData, view, premium]);
 
@@ -280,15 +283,20 @@ export default function App({
   useEffect(() => {
     if (view !== 'gallery' || !premium || !activeId) return;
     setGalleryError(null);
+    let alive = true; // a late answer for the previous account (or screen) is dropped
     api
       .gallery()
-      .then(setGallery)
+      .then((g) => alive && setGallery(g))
       .catch((e) => {
+        if (!alive) return;
         // the plan changed under us: the screen shows the locked note, no error banner
         if (e instanceof ApiError && e.code === 'premiumOnly') void api.me().then((m) => setPlan(m.plan), () => {});
         else if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onApiErrorRef.current(e);
         else setGalleryError(e); // shown in place with "Try again", not as a banner
       });
+    return () => {
+      alive = false;
+    };
   }, [view, premium, activeId, galleryTry]);
   const gallerySetId = route.view === 'gallery' ? route.setId : null;
   const gallerySet = (gallerySetId && gallery?.sets.find((s) => s.id === gallerySetId)) || null;
