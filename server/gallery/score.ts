@@ -1,5 +1,5 @@
 // The one place a Gallery set's score and grade are computed. Pure.
-import { TAGS, tagMatches, tierPct } from './tags.js';
+import { TAGS, tagStats, tierPct } from './tags.js';
 import { GRADES, type GalleryItem, type GallerySet, type Grade, type ScoredSet, type SetFilter, type TagResult } from './types.js';
 
 const any = <T>(list: T[] | undefined, v: T) => !list || list.includes(v);
@@ -32,11 +32,10 @@ export function scoreSet(set: GallerySet, items: GalleryItem[]): ScoredSet {
   const base = items.reduce((s, i) => s + i.score, 0);
   const tags: TagResult[] = [];
   for (const tag of TAGS) {
-    const matched = tagMatches(tag, items);
-    const pct = tierPct(tag, matched.length);
+    const { count, sum } = tagStats(tag, items);
+    const pct = tierPct(tag, count);
     if (!pct) continue;
-    const sum = matched.reduce((s, i) => s + i.score, 0);
-    tags.push({ id: tag.id, count: matched.length, pct, bonus: Math.floor((sum * pct) / 100) });
+    tags.push({ id: tag.id, count, pct, bonus: Math.floor((sum * pct) / 100) });
   }
   const bonus = tags.reduce((s, t) => s + t.bonus, 0);
   const total = base + bonus;
