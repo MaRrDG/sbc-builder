@@ -135,7 +135,7 @@ When an `sbc` job finds set progress higher than cached (an SBC done on a consol
 ---
 
 ### `GET|POST /api/evos/unsubscribe?u=&t=` (public)
-Link in every evolution email (and its `List-Unsubscribe` header, RFC 8058 one-click POST). No sign-in: `t` is an HMAC of the user id `u` (`EMAIL_SECRET`). Valid: sets `users.evo_emails = false`, answers a short plain-text message in the user's language. Invalid: `400 Invalid link.`
+Link in every evolution email (and its `List-Unsubscribe` header, RFC 8058 one-click POST). No sign-in: `t` is an HMAC of the user id `u` (`EMAIL_SECRET`). GET only shows a small confirm page (in the user's language) with a button that POSTs to the same URL, so mail link scanners can't unsubscribe anyone. POST (the button, or the one-click header) sets `users.evo_emails = false` and answers a short plain-text message in the user's language. Invalid: `400 Invalid link.`
 
 ## Admin (site)
 
