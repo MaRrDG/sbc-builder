@@ -18,31 +18,24 @@ export function GallerySet({ set, meta, onBack }: { set: GallerySetResult; meta:
       <button type="button" className="back" onClick={onBack}>
         <ArrowLeft weight="bold" aria-hidden="true" /> {t('gallery.back')}
       </button>
-      <header className="page-head gallery-set-head">
-        <div className="gallery-set-title">
-          <SetCrest set={set} meta={meta} size="lg" />
-          <div>
+      <header className="gallery-hero">
+        <SetCrest set={set} meta={meta} size="lg" />
+        <div className="gallery-hero-head">
+          <div className="gallery-hero-title">
+            <span className="gallery-cat">{t(`gallery.cat.${set.category}`)}</span>
             <h1>{set.name}</h1>
-            <p className="muted">{t(`gallery.cat.${set.category}`)}</p>
           </div>
+          <GradePill grade={set.grade} />
         </div>
-        <GradePill grade={set.grade} />
-      </header>
-
-      <section className="gallery-summary">
-        <div className="gallery-summary-grades">
+        <div className="gallery-hero-grades">
           <GradeBadges set={set} />
           <GradeBar set={set} />
           <p className="gallery-note">{setNote(set, t, lang)}</p>
         </div>
-        <p className="gallery-score">
-          <span className="muted">{t('gallery.score')}</span>
-          <strong>{fmt(set.score)}</strong>
-          <span className="muted">
-            {t('gallery.base')} {fmt(set.base)} + {t('gallery.bonus')} {fmt(set.bonus)}
-          </span>
+        <p className="gallery-breakdown">
+          {t('gallery.score')}: {t('gallery.base')} {fmt(set.base)} + {t('gallery.bonus')} {fmt(set.bonus)}
         </p>
-      </section>
+      </header>
 
       <div className="gallery-set-body">
         <section className="gallery-lineup-wrap">
@@ -63,7 +56,7 @@ export function GallerySet({ set, meta, onBack }: { set: GallerySetResult; meta:
               </li>
             ))}
             {[...Array(set.missing)].map((_, k) => (
-              <li key={`e${k}`} className="gallery-slot-empty">
+              <li key={`e${k}`}>
                 <EmptyCard size="sm" />
               </li>
             ))}

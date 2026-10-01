@@ -269,20 +269,27 @@ export default function App({
   }, [activeId, status, setId, loadAccountData, view, premium]);
 
   // FUT Gallery (Premium): loaded when its screen opens, per account
+  const [galleryError, setGalleryError] = useState<unknown>(null);
+  const [galleryTry, setGalleryTry] = useState(0); // bumped by "Try again"
+  // a ref, so a language switch (new onApiError) does not refetch
+  const onApiErrorRef = useRef(onApiError);
+  onApiErrorRef.current = onApiError;
   useEffect(() => {
     setGallery(null);
   }, [activeId]);
   useEffect(() => {
     if (view !== 'gallery' || !premium || !activeId) return;
+    setGalleryError(null);
     api
       .gallery()
       .then(setGallery)
       .catch((e) => {
         // the plan changed under us: the screen shows the locked note, no error banner
         if (e instanceof ApiError && e.code === 'premiumOnly') void api.me().then((m) => setPlan(m.plan), () => {});
-        else onApiError(e);
+        else if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onApiErrorRef.current(e);
+        else setGalleryError(e); // shown in place with "Try again", not as a banner
       });
-  }, [view, premium, activeId, onApiError]);
+  }, [view, premium, activeId, galleryTry]);
   const gallerySetId = route.view === 'gallery' ? route.setId : null;
   const gallerySet = (gallerySetId && gallery?.sets.find((s) => s.id === gallerySetId)) || null;
   // a set id that is not in the Gallery (renamed, typo): back to the list
@@ -801,6 +808,13 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                 </p>
                 <PlanCard plan={effectivePlan} now={now} />
               </section>
+            ) : !gallery && galleryError !== null ? (
+              <div className="gallery-error" role="alert">
+                <p className="muted">{errorText(galleryError, t)}</p>
+                <button type="button" className="ghost" onClick={() => setGalleryTry((n) => n + 1)}>
+                  <ArrowsClockwise weight="bold" aria-hidden="true" /> {t('auth.retry')}
+                </button>
+              </div>
             ) : !gallery ? (
               <p className="muted" role="status">{t('admin.loading')}</p>
             ) : gallerySet ? (
