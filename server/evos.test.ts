@@ -60,4 +60,26 @@ test('isFullList: only the unfiltered first page of started slots', () => {
   assert.equal(isFullList('/academy/hub/v2', q.replace('offset=0', 'offset=20'), 1), false);
   assert.equal(isFullList('/academy/hub/v2', 'offset=0&count=20', 1), false);
   assert.equal(isFullList('/academy/slot/2736/claim', q, 1), false);
+  assert.equal(isFullList('/academy/hub/v2', q + '&status=x', 1), false); // an extra filter: not the full list
+});
+
+const level = (objectives: unknown[], lv = 2) => ({ level: lv, levelState: 'IN_PROGRESS', objectives });
+const counter = (state: string, extra: Record<string, unknown> = {}) => objective({ multiplier: 5, state, currentProgress: 2, ...extra });
+
+test('a counter objective before the timer does not hide the running timer', () => {
+  const s = slot([level([counter('IN_PROGRESS'), objective({ state: 'IN_PROGRESS', currentProgress: 1790852979 })])]);
+  const [t] = parseAcademy({ slots: [s] }, NOW);
+  assert.deepEqual([t.ready, t.startedAt, t.endsAt], [false, 1790852979, 1790852979 + 43200]);
+});
+
+test('completed counter with a running timer is running, not ready', () => {
+  const s = slot([level([counter('COMPLETED', { currentProgress: 5 }), objective({ state: 'IN_PROGRESS', currentProgress: 1790852979 })])]);
+  const list = parseAcademy({ slots: [s] }, NOW);
+  assert.equal(list.length, 1);
+  assert.deepEqual([list[0].ready, list[0].endsAt], [false, 1790852979 + 43200]);
+});
+
+test('completed counter + timer without state, slot not reward-ready: no row', () => {
+  const s = slot([level([counter('COMPLETED', { currentProgress: 5 }), objective({})])]);
+  assert.deepEqual(parseAcademy({ slots: [s] }, NOW), []);
 });

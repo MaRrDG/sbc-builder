@@ -78,7 +78,7 @@ export function EvosView({ premium, meta, reload, onUpgrade, onSettings }: {
           {sorted.length > 0 && (
             <ul className="evo-list">
               {sorted.map((e) => (
-                <EvoItem key={e.slotId} evo={e} meta={meta} now={now} />
+                <EvoItem key={`${e.slotId}-${e.level}`} evo={e} meta={meta} now={now} />
               ))}
             </ul>
           )}
