@@ -1499,16 +1499,16 @@ git commit -m "feat(gallery): gallery list and set screens"
 **Files:**
 - Modify: `CLAUDE.md` (Layout: one line for `server/gallery/`), `PRODUCT.md` if it lists features
 
-- [ ] **Step 1: Add the layout line**
+- [x] **Step 1: Add the layout line**
 
 In `CLAUDE.md` → Layout, after the `server/` description, add: `server/gallery/` FUT Gallery planner (`ledger.ts` items ever seen per persona from cache writes, `score.ts` set score + tags, `optimize.ts` best lineup, `sets.json` catalogue from fut.gg via `scripts/gallery-catalogue.ts`).
 
-- [ ] **Step 2: Full check**
+- [x] **Step 2: Full check**
 
 Run: `npm run typecheck && npm test && npm run build && npm run i18n:check`
 Expected: all green; paste the summary lines in the final report.
 
-- [ ] **Step 3: Real-data sanity**
+- [x] **Step 3: Real-data sanity**
 
 With the dev server: open the gallery for a real account, pick 3 sets (one club, one league, one campaign) and check by hand that every lineup item matches the set (club / league / rarity) and that the score equals the sum of item scores plus the listed tag bonuses.
 
