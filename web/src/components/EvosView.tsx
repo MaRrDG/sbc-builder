@@ -98,31 +98,33 @@ function EvoItem({ evo: e, meta, now }: { evo: Evo; meta: Meta; now: number }) {
   const { t, lang } = useI18n();
   const left = e.endsAt !== null ? timeLeft(e.endsAt, now) : null;
   const ready = e.ready || !!left?.done;
-  let status: string;
-  if (ready) status = t('evos.ready');
-  else if (left) {
+  let remaining: string | null = null;
+  if (!ready && left) {
     const { days, hours, minutes } = left;
     const when = days ? t('evos.left.dhm', { days, hours, minutes }) : hours ? t('evos.left.hm', { hours, minutes }) : t('evos.left.m', { minutes });
-    status = t('evos.training', { left: when });
-  } else status = t('evos.inTraining');
+    remaining = t('evos.timeLeft', { left: when });
+  }
 
   return (
     <li className="evo-card">
       {e.player && <Card player={e.player} meta={meta} size="sm" />}
       <div className="evo-info">
         <h3>{e.slotName}</h3>
-        <p className="muted">{t('evos.level', { level: e.level, count: e.levelCount })}</p>
-        <p className={`evo-status${ready ? ' ready' : ''}`}>
-          {ready ? <CheckCircle weight="fill" aria-hidden="true" /> : <Timer weight="bold" aria-hidden="true" />}
-          <span>{status}</span>
-        </p>
-        {!ready && e.endsAt !== null && (
-          <p className="muted evo-ends">
-            {t('evos.endsAt', {
-              time: new Date(e.endsAt).toLocaleString(lang, { weekday: 'short', hour: '2-digit', minute: '2-digit' }),
-            })}
+        <p className="muted evo-level">{t('evos.level', { level: e.level, count: e.levelCount })}</p>
+        <div className="evo-state">
+          <p className={`evo-status${ready ? ' ready' : ''}`}>
+            {ready ? <CheckCircle weight="fill" aria-hidden="true" /> : <Timer weight="bold" aria-hidden="true" />}
+            <span>{ready ? t('evos.ready') : t('evos.inTraining')}</span>
           </p>
-        )}
+          {remaining && <p className="evo-left">{remaining}</p>}
+          {!ready && e.endsAt !== null && (
+            <p className="muted evo-ends">
+              {t('evos.endsAt', {
+                time: new Date(e.endsAt).toLocaleString(lang, { weekday: 'short', hour: '2-digit', minute: '2-digit' }),
+              })}
+            </p>
+          )}
+        </div>
       </div>
     </li>
   );
