@@ -271,6 +271,27 @@ Static data for rendering: names of nations / leagues / clubs / rarities, format
 
 `storage`: the SBC storage (from `GET /storagepile`, read by the club sync and whenever the web app opens SBC Storage), same player shape plus `inStorage: true`. In the `/api/solve` pool by default.
 
+### `GET /api/gallery` (site, Premium)
+
+FUT Gallery planner: for every set of the catalogue, the best lineup the account ever held and its score. Auth like `/api/club` (Bearer + `X-Persona`). Free accounts get 403 with `code: "premiumOnly"`. Never calls EA; it reads the item ledger (every club / storage / unassigned item ever seen, sold ones kept) and the cached club lists.
+
+```json
+{
+  "fetchedAt": 1790064472801,
+  "ledgerSize": 5120,
+  "sets": [{
+    "id": "club-nurnberg", "name": "1. FC Nürnberg", "category": "club", "size": 11,
+    "filled": 9, "missing": 2, "base": 7200, "bonus": 640, "score": 7840,
+    "grade": "B", "next": { "grade": "A", "need": 1160 },
+    "grades": { "D": 500, "C": 2000, "B": 6000, "A": 9000, "S": 12000 }, "rewards": { "B": "..." },
+    "tags": [{ "...": "..." }],
+    "lineup": [{ "id": 943996158675, "name": "Hazard", "...": "Player fields as in /api/club", "inClub": true, "firstOwner": true, "score": 830 }]
+  }]
+}
+```
+
+`inClub`: the item is still owned (club, storage or unassigned); otherwise it was owned before. The answer is cached per account until the ledger or the club cache changes.
+
 ### `GET /api/sets` (site)
 
 The cached SBC categories and sets exactly as EA returns them (`setId`, `name`, `challengesCount`, `challengesCompletedCount`, `repeatable`, `timesCompleted`, ...).

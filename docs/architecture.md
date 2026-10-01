@@ -106,6 +106,10 @@ On top of that, the extension reports what the user does in the web app so the c
 - **Pack opened**: its players go to an *Unassigned* list (they are not in the club yet).
 - **Items moved**: "send to club" moves them from Unassigned to the club; transfer list / storage / quick sell removes them.
 
+## FUT Gallery ledger
+
+The Gallery planner needs items the club no longer holds, so `server/gallery/ledger.ts` keeps a per-account ledger (`accounts/<personaId>/gallery`). It is fed by `onCacheWrite` for the club, storage and unassigned caches, backfilled from those caches plus `challengeSquads` on first read, keeps sold items and skips loans. `GET /api/gallery` (Premium) runs the optimizer over the ledger for each catalogue set (`server/gallery/compute.ts`) without calling EA.
+
 ## Points challenges
 
 A challenge is a points challenge when EA sends a `scoreRequirement` above 0 (no formation). Each card's points are its `gradingScore`, which the club cache already holds, so there is no new EA call: solving reads the cache like any solve. The points still missing are `scoreRequirement - submittedScore`. `submittedScore` is as fresh as the challenge cache: it updates when the web app loads the set's challenges (relayed by the extension) or a sync refreshes them, and shows with the challenge's `fetchedAt`. A copy seeded from the shared SBC data resets it to 0, so an untouched-looking set may be behind your real progress until the web app opens it.

@@ -35,6 +35,7 @@ import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 import { analyticsOrigins, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
+import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
 import { db, initDb } from './db/index.js';
 import { logEvent, pruneEvents } from './db/events.js';
@@ -385,6 +386,13 @@ async function clubPlayers(acc: Account) {
 }
 
 app.get('/api/club', async (req) => clubPlayers(await siteAccount(req)));
+
+// FUT Gallery planner (Premium): best lineup per set from every item seen in the club
+app.get('/api/gallery', async (req) => {
+  const { userId, acc } = await siteContext(req);
+  if ((await planFor(userId)).tier !== 'premium') throw new SessionError('FUT Gallery is a Premium feature.', 403, 'premiumOnly');
+  return galleryFor(acc, await metaFor(acc));
+});
 
 app.get('/api/sets', async (req) => {
   const acc = await siteAccount(req);
