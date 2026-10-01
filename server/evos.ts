@@ -43,15 +43,17 @@ export function parseAcademy(response: unknown, nowSec: number): EvoTraining[] {
     };
     for (const l of levels) {
       if (l.levelState !== 'IN_PROGRESS') continue;
-      const timed = (Array.isArray(l.objectives) ? l.objectives : []).map(obj).find((o) => (int(o?.multiplier) ?? 0) > 0);
-      if (!timed) continue;
-      const duration = timed.multiplier as number;
-      const progress = int(timed.currentProgress);
-      if (timed.state === 'COMPLETED' || (readyIds.has(slotId) && timed.state !== 'IN_PROGRESS')) {
-        out.push({ ...base, level: l.level as number, startedAt: null, endsAt: null, ready: true });
+      const timers = (Array.isArray(l.objectives) ? l.objectives : []).map(obj).filter((o): o is Record<string, unknown> => !!o && (int(o.multiplier) ?? 0) > 0);
+      // the timer is the objective that is running with an epoch start; counters (small multiplier/progress) are skipped
+      const timed = timers.find((o) => o.state === 'IN_PROGRESS' && (int(o.currentProgress) ?? 0) >= MIN_EPOCH);
+      if (!timed) {
+        if (readyIds.has(slotId) || (timers.length > 0 && timers.every((o) => o.state === 'COMPLETED'))) {
+          out.push({ ...base, level: l.level as number, startedAt: null, endsAt: null, ready: true });
+        }
         continue;
       }
-      if (timed.state !== 'IN_PROGRESS' || progress === null || progress < MIN_EPOCH) continue;
+      const duration = timed.multiplier as number;
+      const progress = timed.currentProgress as number;
       if (progress > nowSec + SKEW || duration > MAX_TRAINING) continue;
       const endsAt = progress + duration;
       if (slotEndsAt && endsAt > slotEndsAt) continue;
@@ -65,6 +67,8 @@ export function parseAcademy(response: unknown, nowSec: number): EvoTraining[] {
 export function isFullList(path: string, query: string, slotCount: number): boolean {
   if (path !== '/academy/hub/v2') return false;
   const q = new URLSearchParams(query);
+  const known = new Set(['offset', 'count', 'sortOrder', 'slotStatus']);
+  if ([...q.keys()].some((k) => !known.has(k))) return false;
   const count = Number(q.get('count'));
   return q.get('slotStatus') === 'STARTED' && q.get('offset') === '0' && count > 0 && slotCount < count;
 }

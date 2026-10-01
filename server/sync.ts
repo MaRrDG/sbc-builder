@@ -5,6 +5,7 @@ import { SessionError } from './ea.js';
 import { readCache, writeCache, type Cached } from './store.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
+import { versionLess } from './admin/query.js';
 import { planFor } from './plans.js';
 import { personaRow } from './db/users.js';
 import { clubCalledAt, enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
@@ -335,6 +336,8 @@ async function academyDue(acc: Account): Promise<boolean> {
   const drop = lastSbcDrop();
   const [last, asked] = await Promise.all([readCache(acc.key('academy')), readCache(acc.key('academyAsked'))]);
   if ((last && last.fetchedAt >= drop) || (asked && asked.fetchedAt >= drop)) return false;
+  // extensions before 0.8.9 don't know the 'academy' job: it would hang until the start timeout
+  if (!acc.info.extVersion || versionLess(acc.info.extVersion, '0.8.9')) return false;
   try {
     const owner = await personaRow(acc.id);
     return !!owner && (await planFor(owner.userId)).tier === 'premium';
