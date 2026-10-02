@@ -4003,6 +4003,19 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .onb-chip svg { color: var(--go); }
 .onb-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .onb-actions .club-sync-close { margin-top: 0; }
+.code-input { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
+.code-input label, .onb-code { display: grid; gap: 4px; flex: 1 1 180px; text-align: left; }
+.onb-code { margin: 0 0 12px; }
+.code-input input, .onb-code input {
+  height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg-0); color: var(--ink);
+  font-family: inherit; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.code-input input::placeholder, .onb-code input::placeholder { text-transform: none; letter-spacing: 0; }
+.code-msg { flex-basis: 100%; display: flex; gap: 6px; align-items: center; margin: 0 0 8px; text-align: left; }
+.code-msg svg { flex: none; }
+.code-msg.ok svg { color: var(--go); }
+.code-msg.bad svg, .ref-bad svg { color: var(--bad, oklch(0.7 0.17 25)); }
+.ref-banner .update-row { flex-wrap: wrap; }
 
 .slot-marked {
   position: absolute;

@@ -32,6 +32,8 @@ import { EmailAlertsCard } from './components/EmailAlertsCard';
 import { QuotaMeter } from './components/QuotaMeter';
 import { ClubSyncModal } from './components/ClubSyncModal';
 import { OnboardingModal } from './components/OnboardingModal';
+import { RefBanner } from './components/RefBanner';
+import { useFounders } from './landing/Founders';
 import { GalleryInfo } from './components/gallery/GalleryInfo';
 import { PremiumPreview } from './components/PremiumPreview';
 import { DEMO_GALLERY, DEMO_META } from './components/premiumDemo';
@@ -84,6 +86,7 @@ export default function App({
   const [admin, setAdmin] = useState(false);
   const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
+  const founders = useFounders();
   const [onboarded, setOnboarded] = useState(true); // until /api/me says otherwise
   const [dataVersion, setDataVersion] = useState(0); // bumps when the cache changed (see the status effect)
   const [takenOver, setTakenOver] = useState(false);
@@ -564,7 +567,7 @@ export default function App({
 
   if (linked === null) return <div className="boot" aria-busy="true" />;
   // asked right after sign-up, on the setup screen, or once in the app for older users
-  const survey = <OnboardingModal open={!onboarded && status?.club?.state !== 'running'} onDone={() => setOnboarded(true)} />;
+  const survey = <OnboardingModal open={!onboarded && status?.club?.state !== 'running'} onDone={() => setOnboarded(true)} founders={founders} />;
   if (linked.length === 0)
     return (
       <>
@@ -718,6 +721,8 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           </button>
         </div>
       )}
+
+      <RefBanner onboarded={onboarded} founders={founders} onApplied={() => void loadMe()} />
 
       {latestExt && needsUpdate(account?.extVersion, latestExt) && (updateAsked || dismissedUpdate !== latestExt.version) && (
         <UpdateBanner
