@@ -60,6 +60,9 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'notice.unassigned_few': '{count} jucători noi din pachete așteaptă în Unassigned. Trimite-i în club din web app și apar aici automat.',
   'notice.unassigned_other': '{count} de jucători noi din pachete așteaptă în Unassigned. Trimite-i în club din web app și apar aici automat.',
   'notice.takenOver': 'Un cont EA folosit aici e acum legat de alt utilizator FC Solver, care a dovedit că e logat în el la EA.',
+  'notice.linkLimit': 'Acest cont EA e deja legat de {limit} conturi FC Solver, maximul permis pentru un cont EA, așa că nu a fost legat de acesta.',
+  'notice.linkLimitContact': 'Dacă e contul tău EA, contactează suportul:',
+  'notice.linkLimitNoContact': 'Dacă e contul tău EA, contactează suportul.',
 
   'nav.sections': 'Secțiuni',
   'nav.sbc': 'SBC',

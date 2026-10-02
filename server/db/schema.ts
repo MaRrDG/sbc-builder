@@ -78,6 +78,8 @@ export const users = pgTable('users', {
   futYears: text('fut_years'),
   onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
   invitedBy: text('invited_by'), // userId whose invite code this user used (once per account)
+  // last link refused because the EA account already had PERSONA_USER_LIMIT accounts; cleared on a link
+  linkBlockedAt: timestamp('link_blocked_at', { withTimezone: true }),
 }, (t) => [uniqueIndex('users_founder_persona').on(t.founderPersona)]); // one spot per EA account, even without the lock
 
 /** Invite (one per user), promo (admin) and gift (bought with points) codes; server/referrals.ts. */
@@ -142,6 +144,17 @@ export const personas = pgTable(
     linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('personas_user').on(t.userId)],
+);
+
+/** Every FC Solver user an EA persona was ever linked to (server/auth-rules.ts PERSONA_USER_LIMIT). */
+export const personaLinks = pgTable(
+  'persona_links',
+  {
+    personaId: bigint('persona_id', { mode: 'number' }).notNull(),
+    userId: text('user_id').notNull(),
+    linkedAt: timestamp('linked_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.personaId, t.userId] })],
 );
 
 /** Short-lived, single-use tokens the signed-in site hands the extension. Only the hash is kept. */

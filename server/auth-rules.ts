@@ -13,5 +13,11 @@ export function linkDecision(owner: string | null, userId: string, provedBySid: 
   return provedBySid ? 'takeover' : 'needSid';
 }
 
-export const newLinkToken = () => randomBytes(32).toString('base64url');
+/** How many different FC Solver accounts one EA persona may ever be linked to. */
+export const PERSONA_USER_LIMIT = 3;
+
+/** True when `userId` would be one account too many for a persona already linked to `linked` (ever). */
+export const overLinkLimit = (linked: string[], userId: string) => !linked.includes(userId) && linked.length >= PERSONA_USER_LIMIT;
+
+export const newLinkToken =() => randomBytes(32).toString('base64url');
 export const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');

@@ -6,7 +6,7 @@ import type { OnboardingAnswer } from '../onboarding.js';
 import type { PlanRow, Tier } from '../plan.js';
 import { earnsSpot } from '../founders.js';
 import { db } from './index.js';
-import { linkTokens, personas, users } from './schema.js';
+import { linkTokens, personaLinks, personas, users } from './schema.js';
 
 const LINK_TTL_MS = 10 * 60 * 1000;
 
@@ -37,13 +37,28 @@ export async function personasOf(userId: string): Promise<number[]> {
 }
 
 export async function setOwner(personaId: number, userId: string): Promise<void> {
-  await db
-    .insert(personas)
-    .values({ personaId, userId })
-    .onConflictDoUpdate({
-      target: personas.personaId,
-      set: { previousUserId: sql`${personas.userId}`, userId, linkedAt: sql`now()` },
-    });
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(personas)
+      .values({ personaId, userId })
+      .onConflictDoUpdate({
+        target: personas.personaId,
+        set: { previousUserId: sql`${personas.userId}`, userId, linkedAt: sql`now()` },
+      });
+    await tx.insert(personaLinks).values({ personaId, userId }).onConflictDoNothing();
+    await tx.update(users).set({ linkBlockedAt: null }).where(eq(users.id, userId));
+  });
+}
+
+/** Every user this persona was ever linked to (auth-rules.ts overLinkLimit). */
+export async function personaLinkUsers(personaId: number): Promise<string[]> {
+  const rows = await db.select({ userId: personaLinks.userId }).from(personaLinks).where(eq(personaLinks.personaId, personaId));
+  return rows.map((r) => r.userId);
+}
+
+/** A link refused for the persona limit: the site shows the "contact support" notice until a link works. */
+export async function blockLink(userId: string): Promise<void> {
+  await db.update(users).set({ linkBlockedAt: new Date() }).where(eq(users.id, userId));
 }
 
 export async function unlinkPersona(personaId: number, userId: string): Promise<boolean> {

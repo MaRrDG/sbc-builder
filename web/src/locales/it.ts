@@ -60,6 +60,9 @@ export const it: Record<Keys, string> = {
   'notice.unassigned_one': '{count} nuovo giocatore dai pacchetti ti aspetta tra gli Oggetti non assegnati. Mandalo al club nella web app e comparirà qui in automatico.',
   'notice.unassigned_other': '{count} nuovi giocatori dai pacchetti ti aspettano tra gli Oggetti non assegnati. Mandali al club nella web app e compariranno qui in automatico.',
   'notice.takenOver': 'Un account EA che usavi qui ora è collegato a un altro utente di FC Solver, che ha dimostrato con EA di avervi accesso.',
+  'notice.linkLimit': 'Questo account EA è già collegato a {limit} account FC Solver, il massimo per un account EA, quindi non è stato collegato a questo.',
+  'notice.linkLimitContact': 'Se è il tuo account EA, contatta l’assistenza:',
+  'notice.linkLimitNoContact': 'Se è il tuo account EA, contatta l’assistenza.',
 
   // sidebar
   'nav.sections': 'Sezioni',
