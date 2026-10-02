@@ -95,4 +95,7 @@ test('parsePromo', () => {
   assert.equal(parsePromo({ days: 7, maxUses: -1 }), null);
   assert.equal(parsePromo({ days: 7, expiresAt: 'nope' }), null);
   assert.equal(parsePromo({ code: 'x!', days: 7 }), null);
+  // days must be explicit (even if missing)
+  assert.equal(parsePromo({}), null);
+  assert.equal(parsePromo({ code: 'X1Y2' }), null);
 });
