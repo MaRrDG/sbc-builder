@@ -673,9 +673,17 @@
 .lp-feats li { display: flex; gap: 10px; line-height: 1.45; }
 .lp-feats svg { flex: none; margin-top: 3px; color: var(--go); }
 .lp-plan .lp-btn { margin-top: auto; }
+/* invite program under the plans: same width as the two plans (columns 1-8) */
+.lp-invite { width: calc((100% + var(--col-gap)) * 8 / 12 - var(--col-gap)); margin-top: var(--col-gap); padding: 24px 28px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
+.lp-invite h3 { display: flex; align-items: center; gap: 10px; margin: 0; font: 700 20px/1.1 var(--font-num); text-transform: uppercase; }
+.lp-invite h3 svg { flex: none; color: var(--ink-2); }
+.lp-invite ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--col-gap); margin: 16px 0 0; padding: 0; list-style: none; counter-reset: step; }
+.lp-invite li { counter-increment: step; display: flex; gap: 10px; color: var(--ink-2); line-height: 1.45; }
+.lp-invite li::before { content: counter(step); flex: none; display: grid; place-items: center; width: 24px; height: 24px; border: 1px solid var(--ink-3); border-radius: 50%; color: var(--ink); font: 700 13px/1 var(--font-num); }
 
 @media (max-width: 1100px) {
   .lp-plan { grid-column: span 6; } /* 4 columns get too narrow for the plan text */
+  .lp-invite { width: 100%; }
 }
 
 /* ---------- faq ---------- */
@@ -689,7 +697,9 @@
 
 @media (max-width: 860px) {
   .lp-plan { grid-column: 1 / -1; }
-  .lp-faq-list { width: 100%; }
+  .lp-faq-list, .lp-invite { width: 100%; }
+  .lp-invite { padding: 20px; }
+  .lp-invite ol { grid-template-columns: 1fr; gap: 12px; }
 }
 
 /* ---------- backdrop (Backdrop.tsx) ----------
