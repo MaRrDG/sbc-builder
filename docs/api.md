@@ -79,7 +79,7 @@ Signed in with Clerk; only the `Authorization` header is needed.
 { "user": { "id": "user_2Rf…", "email": "you@example.com" }, "personas": [{ "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true }] }
 ```
 
-The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null }` (`server/plan.ts`). `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium. Also `"prefs": { "lang": "en"|"ro"|"it", "evoEmails": true|false }`, the email language and whether evolution emails are on. Also `"onboarding": { "done": true|false }`: whether the user answered or skipped the onboarding survey (the site asks while it is `false`).
+The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null, "founder": true|false }` (`server/plan.ts`). `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium. Also `"prefs": { "lang": "en"|"ro"|"it", "evoEmails": true|false }`, the email language and whether evolution emails are on. Also `"onboarding": { "done": true|false }`: whether the user answered or skipped the onboarding survey (the site asks while it is `false`).
 
 ### `PUT /api/me/prefs`
 
@@ -88,6 +88,8 @@ The EA accounts this user owns (same shape as `account` in `/api/status`). Also 
 ### `PUT /api/me/onboarding`
 
 The onboarding survey (`server/onboarding.ts`): `{ "heardFrom": "tiktok"|"youtube"|"reddit"|"friends"|"google"|"other", "futYears": "lt1"|"1-3"|"4-7"|"8+" }`, or `{ "skip": true }` → `{ "ok": true }`. Anything else (one answer missing, an unknown value) → `400`. Saved once: after the first answer or skip a later call changes nothing.
+
+Optional `"code"`: an invite, promo or gift code typed on the survey. The answer is saved first and a bad code never blocks it; the response then is `{ "ok": true, "redeem": { "kind", "days", "pending", "founder" } | { "error": "<code>" } }` (no `redeem` when no code was sent or the redeem limit was hit).
 
 ### `GET /api/evos` (site, Premium)
 
@@ -143,6 +145,22 @@ Link in every evolution email (and its `List-Unsubscribe` header, RFC 8058 one-c
 
 ### `GET /api/evos/card/:file.png` (public)
 The player card shown in an evolution email, rendered when the email is sent (`server/evo-card.ts`) from the item EA sent with the training (`slot.player`, so every evolution and claimed level so far) and EA's card art. No sign-in, since mail clients fetch it without a session: the name is 32 hex chars, an HMAC of persona, slot and level (`EMAIL_SECRET`). `Cache-Control: public, max-age=2592000, immutable`. Files are kept 30 days; unknown or malformed names: `404`.
+
+## Referrals (site)
+
+Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Prices: 7 days = 2 points, 14 days = 3, 30 days = 5. Error `code`s (translated as `err.<code>`): `codeUnknown`, `codeDisabled`, `codeExpired`, `codeFull`, `codeOwn`, `inviteUsed` (this user already used an invite), `codeUsed` (promo or gift already used), `pointsLow`, `pointsLifetime` (lifetime Premium cannot spend points on days), plus `rateLimited` (429).
+
+### `GET /api/referral`
+
+`{ "code": "K7M2QX", "link": "https://…/?ref=K7M2QX", "points": 1, "invited": 1, "pendingInvites": 0, "usedInvite": false, "gifts": [{ "code", "days", "usedAt": ms|null }], "ledger": [{ "delta", "reason", "at" }] }`. The user's own invite code is created on first call (one per account, for life).
+
+### `POST /api/redeem`
+
+`{ "code": "k7m-2qx" }` (typed freely: case and dashes are normalised) → `{ "kind": "invite"|"promo"|"gift", "days": 7, "pending": true|false, "founder": true|false }`. `pending: true` is an invite whose 7 days wait until the user links an EA account (the reward fires on the `/api/hello` link, which also gives the inviter 1 point, at most one per EA account ever). Failure → `400 { "error", "code", "params": {} }`. Limited to 10 per minute per IP (`429 rateLimited`).
+
+### `POST /api/points/spend`
+
+`{ "days": 7|14|30, "gift": false }` → `{ "premiumUntil": ms|null }`, or with `"gift": true` → `{ "giftCode": "ABC234" }` (a code for another user, once). Bad body → `400 { "error": "invalid spend" }`; not enough points → `400 pointsLow`.
 
 ## Admin (site)
 

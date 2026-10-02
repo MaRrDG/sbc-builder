@@ -1,5 +1,6 @@
 // A signed-in user's plan and quota, for /api/me, /api/solve and the admin screen.
 import { isAdmin } from './admin/auth.js';
+import { grantPendingInvite } from './db/referrals.js';
 import { claimFounderSpot, foundersTaken, linkedInOrder, planRow } from './db/users.js';
 import { foundersLimit, foundersState, type FoundersState } from './founders.js';
 import { effectivePlan, quotaState, weeklyLimit, type PlanRow, type Quota, type Tier } from './plan.js';
@@ -33,6 +34,15 @@ export async function grantFounderSpot(userId: string, personaId: number): Promi
   } catch (e) {
     console.error(`[founders] spot for ${userId} failed: ${(e as Error).message}`);
     return false;
+  }
+}
+
+/** A pending invite's 7 days + the inviter's point, on an EA link. Never throws, like the founders grant. */
+export async function grantInviteOnLink(userId: string, personaId: number): Promise<void> {
+  try {
+    await grantPendingInvite(userId, personaId);
+  } catch (e) {
+    console.error(`[invite] grant for ${userId} failed: ${(e as Error).message}`);
   }
 }
 
