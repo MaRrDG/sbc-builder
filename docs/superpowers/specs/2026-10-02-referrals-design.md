@@ -20,7 +20,7 @@ There are three kinds, all in one `codes` table. Every code uses the same alphab
 A single "Code" input, in onboarding and in Settings, accepts any kind. The server works out which kind it is.
 
 ### Invites
-- A user can enter **one invite code for the lifetime of their account**. After that, any other invite code is refused (`err.code.inviteUsed`). There is no time window: users who signed up before this feature can also enter one.
+- A user can enter **one invite code for the lifetime of their account**. After that, any other invite code is refused (`inviteUsed`). There is no time window: users who signed up before this feature can also enter one.
 - A user cannot use their own invite code.
 - The invitee's reward is **+7 days Premium**, granted when the invitee has a linked EA persona:
   - persona already linked when they enter the code: the 7 days are granted right away;
@@ -74,13 +74,13 @@ GET  /api/referral              → { code, link, points, invited, pendingInvite
 POST /api/referral/code         → { code }  (creates the user's own invite code if it does not exist)
 POST /api/redeem    { code }    → { kind, days | null, pending, founder }  | 4xx { msgCode }
 POST /api/points/spend { days: 7|14|30, gift: boolean } → { premiumUntil } | { giftCode }
-POST /api/onboarding            + optional `code` (same as /api/redeem; a bad code does not block the survey answer)
+PUT  /api/me/onboarding         + optional `code` (same as /api/redeem; a bad code does not block the survey answer)
 GET  /api/admin/codes           (promo + gift, paged)
 POST /api/admin/codes           { code?, days|null, maxUses?, expiresAt?, note? }
 PATCH /api/admin/codes/:code    { disabled }
 GET  /api/admin/codes/:code     → who used it, when, status
 ```
-msgCodes: `err.code.unknown`, `err.code.expired`, `err.code.disabled`, `err.code.full`, `err.code.own`, `err.code.inviteUsed`, `err.code.alreadyUsed`, `err.points.low`, `err.points.lifetime`.
+Error codes (`{ error, code, params }`, shown as `err.<code>`): `codeUnknown`, `codeExpired`, `codeDisabled`, `codeFull`, `codeOwn`, `inviteUsed`, `codeUsed`, `pointsLow`, `pointsLifetime`, plus the existing `rateLimited`.
 
 ## Web
 
