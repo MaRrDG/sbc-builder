@@ -27,6 +27,13 @@ A single "Code" input, in onboarding and in Settings, accepts any kind. The serv
   - no persona yet: the redemption is stored as `pending`, and the 7 days are granted on the first link.
 - The inviter's reward is **+1 point**, granted at the same moment as the invitee's 7 days. Only one point is ever awarded per EA persona (`point_ledger` unique on `personaId` for the reason `invite`), so a persona linked by several Clerk accounts still earns a single point.
 - Founding 50 always comes first. On link, `grantFounderSpot` runs, then the invite grant. A founder already has lifetime Premium, so the 7 days add nothing, but the inviter still gets the point.
+- **Founders are shown as lifetime, never as 7 days.** Wherever the site shows the invitee's reward, a founder sees **"Premium for life · Founder"** instead of "+7 days":
+  - the redeem result (onboarding and Settings): when the user is already a founder, the result is `{ founder: true }` and the text says "You're one of the first 50: Premium for life (Founder)". When the user has no persona yet, the text says "+7 days Premium once you link your EA account, or Premium for life if you're among the first 50", and shows how many spots are left (`/api/founders`);
+  - after linking: if the link made the user a founder, the existing link success state shows "Premium for life · Founder";
+  - `PlanCard`: a founder sees "Premium for life" + a "Founder" badge (Crown icon, not `--go`), with no end date;
+  - the account menu shows the same "Founder" badge next to Premium;
+  - the Settings "Invite friends" card hides "For me" and keeps only "Gift code" (already covered by the lifetime rule below).
+  This needs `founder: boolean` on `PlanInfo` (`server/plans.ts`, from `users.founderAt`), returned by `/api/me`.
 
 ### Adding days
 `grant(days)`: if the user has lifetime Premium (plan `premium` with `premiumUntil` null, or is a founder), nothing changes. Otherwise `plan='premium'` and `premiumUntil = max(now, premiumUntil) + days`. A promo code with lifetime sets `plan='premium'`, `premiumUntil=null`.
@@ -65,7 +72,7 @@ users          + invitedBy text null
 ```
 GET  /api/referral              → { code, link, points, invited, pendingInvites, usedInvite, gifts: [{code, days, usedAt|null}], ledger: last 20 }
 POST /api/referral/code         → { code }  (creates the user's own invite code if it does not exist)
-POST /api/redeem    { code }    → { kind, days | null, pending }  | 4xx { msgCode }
+POST /api/redeem    { code }    → { kind, days | null, pending, founder }  | 4xx { msgCode }
 POST /api/points/spend { days: 7|14|30, gift: boolean } → { premiumUntil } | { giftCode }
 POST /api/onboarding            + optional `code` (same as /api/redeem; a bad code does not block the survey answer)
 GET  /api/admin/codes           (promo + gift, paged)
@@ -80,7 +87,7 @@ msgCodes: `err.code.unknown`, `err.code.expired`, `err.code.disabled`, `err.code
 - **`?ref=CODE`**: `route.ts`/landing writes the code to `localStorage` (`sbc-ref`, inside try/catch). After sign-in it fills the onboarding field. If the user has already onboarded and has not used an invite code, a small banner offers to apply it. Once the code is applied or refused, the key is cleared.
 - **Onboarding**: an optional "Invite or promo code" field below the two questions, with an inline result ("+7 days Premium once you link your EA account" or the error).
 - **Settings, "Invite friends" card**: my code + link (copy, plus native `navigator.share` on phones), points, how many I invited and how many are pending, 3 exchange options (7d/2p, 14d/3p, 30d/5p) each with "For me" / "Gift code", my gift codes with their state, and a "Have a code?" input.
-- **PlanCard / landing FAQ**: one line about the invite program.
+- **PlanCard / landing FAQ**: one line about the invite program. PlanCard and the account menu show the Founder badge (see Invites).
 - **Admin, "Codes" tab**: a `DataTable` of codes, a create form and a disable toggle. A code's detail lists its redemptions. `UserDetail` shows points, who invited the user and how many they invited.
 - All text goes through `t()` in en / ro / it (Romanian `_one/_few/_other`). `npm run i18n:check`. Check at 390px. `--go` is used only on the primary action.
 
