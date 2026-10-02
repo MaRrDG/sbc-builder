@@ -1,5 +1,6 @@
 // Shared, account-independent data. Per-account data (club, squad, progress) stays in data/accounts/.
 import { bigint, boolean, index, integer, jsonb, pgTable, primaryKey, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import type { BrickSlot } from '../layout.js';
 
 const seen = () => ({
@@ -76,7 +77,60 @@ export const users = pgTable('users', {
   heardFrom: text('heard_from'),
   futYears: text('fut_years'),
   onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
+  invitedBy: text('invited_by'), // userId whose invite code this user used (once per account)
 }, (t) => [uniqueIndex('users_founder_persona').on(t.founderPersona)]); // one spot per EA account, even without the lock
+
+/** Invite (one per user), promo (admin) and gift (bought with points) codes; server/referrals.ts. */
+export const codes = pgTable(
+  'codes',
+  {
+    code: text('code').primaryKey(),
+    kind: text('kind').notNull(), // 'invite' | 'promo' | 'gift'
+    ownerId: text('owner_id'), // invite / gift: the user who owns it
+    days: integer('days'), // promo / gift; promo null = for life; invite unused
+    maxUses: integer('max_uses'), // null: no limit; gift: 1
+    uses: integer('uses').notNull().default(0),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    disabled: boolean('disabled').notNull().default(false),
+    note: text('note').notNull().default(''),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('codes_one_invite').on(t.ownerId).where(sql`kind = 'invite'`), index('codes_owner').on(t.ownerId)],
+);
+
+/** Who used which code. An invite waits ('pending') until the user links an EA account. */
+export const redemptions = pgTable(
+  'redemptions',
+  {
+    id: serial('id').primaryKey(),
+    code: text('code').notNull(),
+    kind: text('kind').notNull(), // copied from the code: the one-invite-per-user index needs it
+    userId: text('user_id').notNull(),
+    status: text('status').notNull(), // 'pending' | 'granted'
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+    grantedAt: timestamp('granted_at', { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex('redemptions_code_user').on(t.code, t.userId),
+    uniqueIndex('redemptions_one_invite').on(t.userId).where(sql`kind = 'invite'`),
+    index('redemptions_code').on(t.code),
+  ],
+);
+
+/** Points: one row per change; the balance is the sum. One invite point per EA persona, ever. */
+export const pointLedger = pgTable(
+  'point_ledger',
+  {
+    id: serial('id').primaryKey(),
+    userId: text('user_id').notNull(),
+    delta: integer('delta').notNull(),
+    reason: text('reason').notNull(), // 'invite' | 'spend' | 'gift' | 'admin'
+    ref: text('ref').notNull().default(''), // invitee userId / days / gift code
+    personaId: bigint('persona_id', { mode: 'number' }),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('point_ledger_user').on(t.userId), uniqueIndex('point_ledger_invite_persona').on(t.personaId).where(sql`reason = 'invite'`)],
+);
 
 /** Which user owns an EA persona. One owner per persona; a takeover remembers the previous one. */
 export const personas = pgTable(
