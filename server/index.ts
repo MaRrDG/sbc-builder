@@ -18,7 +18,7 @@ import { isAdmin } from './admin/auth.js';
 import { registerAdminRoutes } from './admin/routes.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteContext, siteUser } from './auth.js';
 import { linkDecision } from './auth-rules.js';
-import { backfillFounders, foundersNow, grantFounderSpot, planFor, planInfo } from './plans.js';
+import { backfillFounders, foundersNow, grantFounderSpot, grantInviteOnLink, planFor, planInfo } from './plans.js';
 import {
   consumeLinkToken,
   countSolve,
@@ -31,6 +31,8 @@ import {
   unlinkPersona,
 } from './db/users.js';
 import { parseOnboarding } from './onboarding.js';
+import { redeem, referralSummary, spendPoints } from './db/referrals.js';
+import { parseSpend } from './referrals.js';
 import { eq } from 'drizzle-orm';
 import { checkEvoAlerts, emailSecret } from './evo-alerts.js';
 import { asLang, checkUnsub } from './evo-rules.js';
@@ -58,6 +60,7 @@ const DEV = process.env.NODE_ENV !== 'production';
 // Per-IP limits: plenty for the site and the extension polling, not for a script hammering us.
 const apiLimit = createLimiter({ windowMs: 60_000, max: 600 });
 const proofLimit = createLimiter({ windowMs: 60_000, max: 5 }); // new EA sessions to prove (each one calls EA)
+const redeemLimit = createLimiter({ windowMs: 60_000, max: 10 }); // codes cannot be guessed by trying
 const reportLimit = createLimiter({ windowMs: 60_000, max: 20 });
 const tooMany = () => new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
 
@@ -220,12 +223,42 @@ app.get('/api/me', async (req) => {
 });
 
 /** The onboarding survey: both answers, or a skip. Asked once: a second answer is ignored. */
-app.put('/api/me/onboarding', async (req, reply) => {
+app.put<{ Body: Record<string, unknown> }>('/api/me/onboarding', async (req, reply) => {
   const userId = await siteUser(req);
   const answer = parseOnboarding(req.body);
   if (!answer) return reply.code(400).send({ error: 'invalid answer' });
   await saveOnboarding(userId, answer);
-  return { ok: true };
+  // a code typed on the survey: a bad one never blocks the answer
+  const raw = req.body?.code;
+  if (typeof raw !== 'string' || !raw.trim() || !redeemLimit(req.ip)) return { ok: true };
+  const r = await redeem(userId, raw);
+  return { ok: true, redeem: r.ok ? { kind: r.kind, days: r.days, pending: r.pending, founder: r.founder } : { error: r.code } };
+});
+
+/** My invite code and link, points, invites, gift codes. */
+app.get('/api/referral', async (req) => {
+  const userId = await siteUser(req);
+  const s = await referralSummary(userId);
+  return { ...s, link: `${publicOrigin(requestOrigin(req.headers, req.protocol))}/?ref=${s.code}` };
+});
+
+/** Use an invite, promo or gift code. */
+app.post<{ Body: { code?: unknown } }>('/api/redeem', async (req, reply) => {
+  const userId = await siteUser(req);
+  if (!redeemLimit(req.ip)) throw tooMany();
+  const r = await redeem(userId, typeof req.body?.code === 'string' ? req.body.code : '');
+  if (!r.ok) return reply.code(400).send({ error: r.code, code: r.code, params: {} });
+  return { kind: r.kind, days: r.days, pending: r.pending, founder: r.founder };
+});
+
+/** Points → Premium for me, or a gift code. */
+app.post('/api/points/spend', async (req, reply) => {
+  const userId = await siteUser(req);
+  const s = parseSpend(req.body);
+  if (!s) return reply.code(400).send({ error: 'invalid spend' });
+  const r = await spendPoints(userId, s.days, s.gift);
+  if (!r.ok) return reply.code(400).send({ error: r.code, code: r.code, params: {} });
+  return 'giftCode' in r ? { giftCode: r.giftCode } : { premiumUntil: r.premiumUntil };
 });
 
 const MAIL_LANGS = ['en', 'ro', 'it'];
@@ -374,6 +407,7 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     // Founding 50: the first links get Premium for life; on 'already' too, so a grant a DB hiccup
     // swallowed is retried (it returns at once for a founder)
     await grantFounderSpot(userId, r.account.id);
+    await grantInviteOnLink(userId, r.account.id); // after the founders grant: a founder stays for life
     await consumeLinkToken(token!);
     linked = r.account.id;
     // newly linked here: load the club now (the site re-sends tokens every few minutes, so not on 'already')
