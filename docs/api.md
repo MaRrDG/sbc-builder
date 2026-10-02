@@ -245,11 +245,12 @@ Dashboard: KPIs, daily series for the last `range` days (default `7`), what need
   "accounts": [{ "…": "<account>", "linkedAt": 1790000100000, "previousUserId": null }],
   "missing": [],
   "solves": { "days": ["2026-08-27", "…", "2026-09-25"], "found": [0, …], "notFound": [0, …] },
-  "latestExtension": "0.8.6"
+  "latestExtension": "0.8.6",
+  "referral": { "points": 3, "invitedBy": { "id": "user_9Ab…", "email": "friend@example.com" }, "invited": 2, "inviteCode": "K7M2QX" }
 }
 ```
 
-`missing`: persona IDs the user owns that have no cached account on this server. `solves`: the last 30 days. `404` `{ "error": "unknown user", "code": "unknownUser", "params": {} }` for an unknown id.
+`missing`: persona IDs the user owns that have no cached account on this server. `solves`: the last 30 days. `referral`: points balance, who invited the user (`null` if nobody), how many invitees were granted (`invited`), the user's own invite code (`null` until created). `404` `{ "error": "unknown user", "code": "unknownUser", "params": {} }` for an unknown id.
 
 ### `GET /api/admin/users/:id/events?page=`
 
@@ -266,6 +267,22 @@ The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "
 | `page` | 1… | `1` |
 
 `{ "rows": ["<account> + ownerId, ownerEmail"], "total": 1, "page": 1, "pageSize": 25, "latestExtension": "0.8.6" }`
+
+### `GET /api/admin/codes?kind=promo|gift&page=`
+
+Codes, newest first (`kind` defaults to `promo`): `{ "rows": [<code>], "total": 1, "page": 1, "pageSize": 25 }` with `<code>` = `{ code, kind, ownerEmail (gift: the buyer, else null), days (null: Premium for life), maxUses (null: unlimited), uses, expiresAt, disabled, note, createdAt }`.
+
+### `POST /api/admin/codes`
+
+Creates a promo code. Body: `{ "days": 30 | null, "code"?: "SUMMER26", "maxUses"?: 100 | null, "expiresAt"?: ISO string | null, "note"?: "…" }`. `days` must be present (`null` = for life, otherwise 1–3650). `code` is 4–20 characters of `A-Z0-9` (case-insensitive, stored upper-case); omitted = a random 8-character code. Returns the `<code>` row. `400` `{ "error": "…", "code": "invalid" | "codeTaken", "params": {} }`.
+
+### `PATCH /api/admin/codes/:code`
+
+`{ "disabled": true | false }`: disables or re-enables a code (redeeming a disabled code gives `codeDisabled`). `:code` is case-insensitive. Returns `{ "ok": true }`; `400` when `disabled` is not a boolean, `404` for an unknown code.
+
+### `GET /api/admin/codes/:code`
+
+`{ "code": <code>, "uses": [{ "userId", "email", "status", "at" }] }`, newest use first. `:code` is case-insensitive; `404` for an unknown code.
 
 ### `POST /api/admin/trust`
 
