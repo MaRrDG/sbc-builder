@@ -17,13 +17,15 @@ import { loadAccounts, registerSession, accountByKey, accountById, hello, type A
 import { isAdmin } from './admin/auth.js';
 import { registerAdminRoutes } from './admin/routes.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteContext, siteUser } from './auth.js';
-import { linkDecision } from './auth-rules.js';
+import { linkDecision, overLinkLimit, PERSONA_USER_LIMIT } from './auth-rules.js';
 import { backfillFounders, foundersNow, grantFounderSpot, grantInviteOnLink, planFor, planInfo } from './plans.js';
 import {
+  blockLink,
   consumeLinkToken,
   countSolve,
   createLinkToken,
   linkTokenUser,
+  personaLinkUsers,
   personaRow,
   personasOf,
   saveOnboarding,
@@ -214,12 +216,14 @@ app.get<{ Params: { file: string } }>('/api/evos/card/:file', async (req, reply)
 /** Who is signed in and which EA personas they own. */
 app.get('/api/me', async (req) => {
   const userId = await siteUser(req);
-  const [row] = await db.select({ email: users.email, onboardedAt: users.onboardedAt }).from(users).where(eq(users.id, userId));
+  const [row] = await db.select({ email: users.email, onboardedAt: users.onboardedAt, linkBlockedAt: users.linkBlockedAt }).from(users).where(eq(users.id, userId));
   const personas = (await personasOf(userId)).flatMap((id) => {
     const a = accountById(id);
     return a ? [a.toJSON()] : [];
   });
-  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId), prefs: await prefsOf(userId), onboarding: { done: !!row?.onboardedAt } };
+  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId), prefs: await prefsOf(userId), onboarding: { done: !!row?.onboardedAt },
+    // a link refused for the persona limit (cleared by any successful link): who to write to
+    linkBlocked: row?.linkBlockedAt ? { at: row.linkBlockedAt.getTime(), limit: PERSONA_USER_LIMIT, supportEmail: process.env.SUPPORT_EMAIL ?? null } : null };
 });
 
 /** The onboarding survey: both answers, or a skip. Asked once: a second answer is ignored. */
@@ -400,7 +404,15 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
   let linked: number | null = null;
   let clubQueued = false;
   if (userId) {
-    const decision = linkDecision((await personaRow(r.account.id))?.userId ?? null, userId, r.proved);
+    const owner = (await personaRow(r.account.id))?.userId ?? null;
+    // already linked to PERSONA_USER_LIMIT other accounts: refused before any SID proof (no EA call);
+    // ok for the extension (it keeps its key and drops the token), the site shows "contact support"
+    if (owner !== userId && overLinkLimit(await personaLinkUsers(r.account.id), userId)) {
+      await blockLink(userId);
+      await consumeLinkToken(token!);
+      return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked: null, linkRejected: true, linkLimit: true, clubQueued: false };
+    }
+    const decision = linkDecision(owner, userId, r.proved);
     // owned by someone else: only a fresh EA proof moves it; the token stays usable for the resend
     if (decision === 'needSid') return reply.code(401).send({ error: 'EA account linked to another user', needSid: true });
     if (decision !== 'already') await setOwner(r.account.id, userId);

@@ -56,6 +56,9 @@ export const en = {
   'notice.unassigned_one': '{count} new player from packs is waiting in Unassigned. Send it to your club in the web app and it shows up here automatically.',
   'notice.unassigned_other': '{count} new players from packs are waiting in Unassigned. Send them to your club in the web app and they show up here automatically.',
   'notice.takenOver': 'An EA account you used here is now linked to another FC Solver user, who proved they are logged in to it with EA.',
+  'notice.linkLimit': 'This EA account is already linked to {limit} FC Solver accounts, the most one EA account can have, so it was not linked to this one.',
+  'notice.linkLimitContact': 'If this is your EA account, contact support:',
+  'notice.linkLimitNoContact': 'If this is your EA account, contact support.',
 
   // sidebar
   'nav.sections': 'Sections',

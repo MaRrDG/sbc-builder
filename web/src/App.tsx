@@ -89,6 +89,8 @@ export default function App({
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const founders = useFounders();
   const [onboarded, setOnboarded] = useState(true); // until /api/me says otherwise
+  // the extension tried to link an EA account that already has 3 FC Solver accounts
+  const [linkBlocked, setLinkBlocked] = useState<{ at: number; limit: number; supportEmail: string | null } | null>(null);
   const [dataVersion, setDataVersion] = useState(0); // bumps when the cache changed (see the status effect)
   const [takenOver, setTakenOver] = useState(false);
   const [reward, setReward] = useState<'founder' | 'invite' | null>(null); // notice after linking an EA account gave Premium
@@ -204,7 +206,7 @@ export default function App({
 
   // Boot (and after the extension links a new EA account): who am I, which personas are mine.
   const loadMe = useCallback(async () => {
-    const { user, personas, admin, plan: p, prefs: pr, onboarding } = await api.me();
+    const { user, personas, admin, plan: p, prefs: pr, onboarding, linkBlocked: lb } = await api.me();
     setMe(user);
     setAdmin(admin);
     const prev = prevPlan.current;
@@ -217,6 +219,7 @@ export default function App({
     setPlan(p);
     setPrefs(pr);
     setOnboarded(onboarding.done);
+    setLinkBlocked(lb);
     setLinked(personas);
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
@@ -761,6 +764,23 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
         <div className="notice info" role="status">
           {reward === 'founder' ? t('notice.founder', { limit: founders?.limit ?? 50 }) : t('notice.invite')}{' '}
           <button type="button" className="text" onClick={() => setReward(null)}>
+            {t('code.dismiss')}
+          </button>
+        </div>
+      )}
+
+      {linkBlocked && (
+        <div className="notice" role="alert">
+          {t('notice.linkLimit', { limit: linkBlocked.limit })}{' '}
+          {linkBlocked.supportEmail ? (
+            <>
+              {t('notice.linkLimitContact')}{' '}
+              <a href={`mailto:${linkBlocked.supportEmail}`}>{linkBlocked.supportEmail}</a>.{' '}
+            </>
+          ) : (
+            <>{t('notice.linkLimitNoContact')} </>
+          )}
+          <button type="button" className="text" onClick={() => setLinkBlocked(null)}>
             {t('code.dismiss')}
           </button>
         </div>
