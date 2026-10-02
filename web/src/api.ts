@@ -237,6 +237,18 @@ export interface Prefs {
   evoEmails: boolean;
 }
 
+export interface ReferralInfo {
+  code: string;
+  link: string;
+  points: number;
+  invited: number;
+  pendingInvites: number;
+  usedInvite: boolean;
+  gifts: { code: string; days: number; usedAt: number | null }[];
+  ledger: { delta: number; reason: string; at: number }[];
+}
+export type RedeemResult = { kind: 'invite' | 'promo' | 'gift'; days: number | null; pending: boolean; founder: boolean };
+
 /** Onboarding survey answers (server/onboarding.ts has the same lists). */
 export const HEARD_FROM = ['tiktok', 'youtube', 'reddit', 'friends', 'google', 'other'] as const;
 export const FUT_YEARS = ['lt1', '1-3', '4-7', '8+'] as const;
@@ -305,11 +317,16 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
 export const api = {
   me: () =>
     req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean } }>('/api/me'),
-  onboarding: (a: { heardFrom: HeardFrom; futYears: FutYears } | { skip: true }) => req<{ ok: true }>('/api/me/onboarding', { method: 'PUT', body: a }),
+  onboarding: (a: ({ heardFrom: HeardFrom; futYears: FutYears } | { skip: true }) & { code?: string }) =>
+    req<{ ok: true; redeem?: RedeemResult | { error: string } }>('/api/me/onboarding', { method: 'PUT', body: a }),
   prefs: (p: { lang?: string; evoEmails?: boolean }) => req<{ ok: true }>('/api/me/prefs', { method: 'PUT', body: p }),
   legacyKeys: (keys: string[]) => req<{ map: Record<string, number> }>('/api/me/legacy-keys', { method: 'POST', body: { keys } }),
   linkToken: () => req<{ token: string; expiresIn: number }>('/api/link-token', { method: 'POST' }),
   unlinkPersona: (personaId: number) => req<{ ok: true }>(`/api/personas/${personaId}`, { method: 'DELETE' }),
+  referral: () => req<ReferralInfo>('/api/referral'),
+  redeem: (code: string) => req<RedeemResult>('/api/redeem', { method: 'POST', body: { code } }),
+  spendPoints: (days: 7 | 14 | 30, gift: boolean) =>
+    req<{ premiumUntil: number | null } | { giftCode: string }>('/api/points/spend', { method: 'POST', body: { days, gift } }),
   status: () =>
     req<{ account: Account | null; sync: SyncStatus | null; extension: { version: string; notes: string[] } | null }>('/api/status'),
   sync: (what: 'club') => req<SyncStatus>('/api/sync', { method: 'POST', body: { what } }),
