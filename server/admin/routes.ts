@@ -58,7 +58,7 @@ export function registerAdminRoutes(app: FastifyInstance) {
     await requireAdmin(req);
     return (await codeDetail(req.params.code.toUpperCase())) ?? reply.code(404).send({ error: 'unknown code' });
   });
-  app.get<Q>('/api/admin/accounts',async (req) => {
+  app.get<Q>('/api/admin/accounts', async (req) => {
     await requireAdmin(req);
     return listAccountsPage(parseAccountQuery(req.query));
   });
