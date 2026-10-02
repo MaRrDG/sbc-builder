@@ -9,6 +9,7 @@ export interface PlanRow {
   premiumUntil: Date | null;
   quotaStart: Date | null;
   quotaUsed: number;
+  founderAt?: Date | null;
 }
 
 export interface Quota {
