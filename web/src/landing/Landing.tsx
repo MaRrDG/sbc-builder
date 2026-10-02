@@ -10,6 +10,7 @@ import { Pillars } from './Pillars';
 import { Steps } from './Steps';
 import { Pricing } from './Pricing';
 import { Faq } from './Faq';
+import { Invite } from './Invite';
 import { ToTop } from './ToTop';
 import { useFounders } from './Founders';
 import './landing.css';
@@ -92,6 +93,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         <Pillars />
         <Steps link={link} />
         <Pricing cta={cta()} founders={founders} />
+        <Invite cta={!authReady ? placeholder('lp-btn', t('landing.invite.cta')) : link(signedIn ? { view: 'invite' } : signin, 'lp-btn', t('landing.invite.cta'))} />
         <Faq />
       </main>
 
