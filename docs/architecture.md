@@ -118,6 +118,10 @@ The Gallery planner needs items the club no longer holds, so `server/gallery/led
 
 A challenge is a points challenge when EA sends a `scoreRequirement` above 0 (no formation). Each card's points are its `gradingScore`, which the club cache already holds, so there is no new EA call: solving reads the cache like any solve. The points still missing are `scoreRequirement - submittedScore`. `submittedScore` is as fresh as the challenge cache: it updates when the web app loads the set's challenges (relayed by the extension) or a sync refreshes them, and shows with the challenge's `fetchedAt`. A copy seeded from the shared SBC data resets it to 0, so an untouched-looking set may be behind your real progress until the web app opens it.
 
+## Referrals
+
+Invite links earn points toward Premium days. `server/referrals.ts` holds pure rules: prices (2 points = 7 days, etc.), promo and gift code validation, points ledger. `server/db/referrals.ts` manages the three tables—`codes` (promo/invite/gift code and kind), `redemptions` (user + code), `point_ledger` (transaction type, account, delta)—and provides transactional helpers (`applyRedemption`, `awardPoints`). `server/admin/codes.ts` gates the admin codes API (`GET` list / create) to admins only. An invite code is generated once per user lifetime (6 chars, unique). When a friend joins with the invite link and links their EA persona to their account, the inviter gets one point—once per distinct persona (never twice for the same invitee). The invite status lives in `redemptions` (`{ code_id, user_id, kind, granted_at, redeemed_at }`): pending until the invitee links, then granted. On `POST /api/hello` after Founding 50 ends (or immediately if there are spots left), a link triggers a lookup: if the invitee redeemed an invite code and the inviter owns one persona, their point posts. The ledger tracks redemptions, points bought, gift codes used, admin grants and refunds for audits.
+
 ## Staying exact
 
 The web app is a large obfuscated bundle, but the relevant classes are readable. FC Solver ports them 1:1 (`server/squad.ts`):
