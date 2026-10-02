@@ -74,9 +74,10 @@ export function checkSpend(balance: number, days: SpendDays, gift: boolean, life
 export function parsePromo(body: unknown): { code: string | null; days: number | null; maxUses: number | null; expiresAt: Date | null; note: string } | null {
   if (!body || typeof body !== 'object') return null;
   const b = body as Record<string, unknown>;
+  if (!('days' in b)) return null; // days must be explicitly provided
   const code = b.code === undefined || b.code === '' ? null : normalizeCode(b.code);
   if (b.code !== undefined && b.code !== '' && !code) return null;
-  const days = b.days === null || b.days === undefined ? null : b.days;
+  const days = b.days === null ? null : b.days;
   if (days !== null && !(Number.isInteger(days) && (days as number) > 0 && (days as number) <= 3650)) return null;
   const maxUses = b.maxUses === null || b.maxUses === undefined || b.maxUses === '' ? null : b.maxUses;
   if (maxUses !== null && !(Number.isInteger(maxUses) && (maxUses as number) > 0)) return null;
