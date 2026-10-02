@@ -32,6 +32,8 @@ import {
 import { eq } from 'drizzle-orm';
 import { checkEvoAlerts, emailSecret } from './evo-alerts.js';
 import { asLang, checkUnsub } from './evo-rules.js';
+import { CARD_FILE } from './evo-card-svg.js';
+import { CARD_DIR } from './evo-card.js';
 import { prefsOf, setPrefs, trainingsOf } from './db/evos.js';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
@@ -193,6 +195,15 @@ await app.register(async (s) => {
   s.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string', bodyLimit: 1024 }, (_req, _body, done) => done(null, null));
   s.get('/api/evos/unsubscribe', unsubscribe);
   s.post('/api/evos/unsubscribe', unsubscribe);
+});
+
+// Card images in evolution emails: public (mail clients fetch them without a session), unguessable names.
+app.get<{ Params: { file: string } }>('/api/evos/card/:file', async (req, reply) => {
+  const name = req.params.file.replace(/\.png$/, '');
+  if (!CARD_FILE.test(name)) return reply.code(404).send();
+  const png = await readFile(join(CARD_DIR, `${name}.png`)).catch(() => null);
+  if (!png) return reply.code(404).send();
+  return reply.type('image/png').header('Cache-Control', 'public, max-age=2592000, immutable').header('X-Robots-Tag', 'noindex').send(png);
 });
 
 /** Who is signed in and which EA personas they own. */

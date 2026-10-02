@@ -7,6 +7,7 @@ import { planFor } from './plans.js';
 import { loadMeta } from './meta.js';
 import { BATCH_MAX, sendMails, type Mail, type SendResult } from './mail.js';
 import { publicOrigin } from './origins.js';
+import { pruneEvoCards, renderEvoCard, type CardItem } from './evo-card.js';
 
 /** Canonical origin for links in emails (SITE_URL, else our first https origin); never the request's host. */
 export const siteUrl = () => publicOrigin('').replace(/\/+$/, '');
@@ -44,16 +45,25 @@ export async function checkEvoAlerts(now = Date.now()): Promise<void> {
     if (skip.length) await markNotified(skip.map(keyOf)); // closed: never mailed later
 
     const meta = mails.length ? await loadMeta() : null;
+    // the card as EA sent it with the training (slot.player: every evolution and claimed level so far); no card, no image
+    const cards = new Map<TrainingRow, string | null>();
+    if (meta)
+      for (const r of mails.flatMap((m) => m.rows))
+        cards.set(r, await renderEvoCard(r.player as CardItem | null, meta, keyOf(r), emailSecret()).catch((e) => {
+          console.warn(`[evos] card for ${r.personaId}/${r.slotId} failed: ${(e as Error).message}`);
+          return null;
+        }));
     const fallback = { en: 'Your player', ro: 'Jucătorul tău', it: 'Il tuo giocatore' };
     const prepared = mails.map((m) => {
       const unsubUrl = `${siteUrl()}/api/evos/unsubscribe?u=${encodeURIComponent(m.userId)}&t=${unsubToken(m.userId, emailSecret())}`;
       const items = m.rows.map((r) => ({
         player: meta?.players[String((r.player as { assetId?: number } | null)?.assetId)]?.name ?? fallback[m.lang],
         evo: r.slotName, level: r.level, levelCount: r.levelCount,
+        cardUrl: cards.get(r) ? `${siteUrl()}/api/evos/card/${cards.get(r)}.png` : null,
       }));
       const mail: Mail = {
         to: m.email,
-        ...evoDigest(m.lang, items, { evosUrl: `${siteUrl()}/dashboard/evolutions`, unsubUrl }),
+        ...evoDigest(m.lang, items, { evosUrl: `${siteUrl()}/dashboard/evolutions`, unsubUrl, logoUrl: `${siteUrl()}/icon-192.png` }),
         headers: { 'List-Unsubscribe': `<${unsubUrl}>`, 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
       };
       return { mail, userId: m.userId, keys: m.rows.map(keyOf) };
@@ -78,6 +88,7 @@ export async function checkEvoAlerts(now = Date.now()): Promise<void> {
       if (!(await settle(res, keys))) return;
       if (res.kind === 'ok') sent += batch.length;
     }
+    if (sent) await pruneEvoCards();
     if (sent || skip.length) console.log(`[evos] ${sent} mail(s) sent, ${skip.length} training(s) closed without a mail`);
   } catch (e) {
     console.error(`[evos] alert tick failed: ${(e as Error).message}`);

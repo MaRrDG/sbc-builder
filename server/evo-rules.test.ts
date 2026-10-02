@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertKey, asLang, checkUnsub, chunk, classifySend, decide, evoDigest, evoMail, isDue, planAlerts, unsubToken } from './evo-rules.js';
+import { alertKey, asLang, checkUnsub, chunk, classifySend, decide, evoDigest, evoMail, isDue, isFinal, planAlerts, unsubToken } from './evo-rules.js';
 
 const NOW = Date.UTC(2026, 9, 2, 8);
 const row = (o: Partial<Parameters<typeof isDue>[0]> = {}) => ({ endsAt: new Date(NOW - 1000), notifiedAt: null, tries: 0, ready: false, ...o });
@@ -83,6 +83,34 @@ test('evoDigest: one training reads like evoMail, several are listed', () => {
   const twenty = Array.from({ length: 20 }, () => one);
   assert.match(evoDigest('ro', twenty, urls).subject, /20 de evoluții/); // Romanian: "de" from 20 up
   assert.doesNotMatch(evoDigest('ro', many, urls).subject, / de evoluții/);
+});
+
+test('evoMail: last level reads as a finished evolution, an earlier one as a level', () => {
+  const urls = { evosUrl: 'https://x/dashboard/evolutions', unsubUrl: 'https://x/u' };
+  const done = evoMail('en', { player: 'Maxim', evo: 'Trust the Keeper', level: 2, levelCount: 2, ...urls });
+  const step = evoMail('en', { player: 'Maxim', evo: 'Trust the Keeper', level: 1, levelCount: 2, ...urls });
+  assert.match(done.subject, /finished Trust the Keeper/);
+  assert.match(done.html, /Evolution complete/);
+  assert.match(step.subject, /level 1 of 2/);
+  assert.match(step.html, /Level 1 of 2 ready/);
+  assert.equal(isFinal({ level: 2, levelCount: 2 }), true);
+  assert.equal(isFinal({ level: 1, levelCount: 2 }), false);
+  assert.equal(isFinal({ level: 1, levelCount: 0 }), false); // levels unknown: don't claim it's over
+});
+
+test('evoMail: card image only when rendered, with the "card as it is now" note', () => {
+  const base = { player: 'Maxim', evo: 'Trust the Keeper', level: 2, levelCount: 2, evosUrl: 'https://x/e', unsubUrl: 'https://x/u', logoUrl: 'https://x/icon-192.png' };
+  const withCard = evoMail('en', { ...base, cardUrl: 'https://x/api/evos/card/abc.png' });
+  assert.ok(withCard.html.includes('src="https://x/api/evos/card/abc.png"') && withCard.html.includes('alt="Maxim"'));
+  assert.match(withCard.html, /as they are now/);
+  const without = evoMail('en', base);
+  assert.ok(!without.html.includes('/api/evos/card/') && !without.html.includes('as they are now'));
+  for (const m of [withCard, without]) {
+    assert.ok(m.html.includes('https://www.ea.com/ea-sports-fc/ultimate-team/web-app/')); // primary: EA web app
+    assert.ok(m.html.includes('https://x/e') && m.text.includes('Companion'));
+  }
+  const many = evoDigest('ro', [{ ...base, cardUrl: 'https://x/c1.png' }, { ...base, level: 1, cardUrl: null }], base);
+  assert.ok(many.html.includes('https://x/c1.png') && many.html.includes('Nivelul 1 din 2') && many.html.includes('Evoluție terminată'));
 });
 
 test('classifySend', () => {

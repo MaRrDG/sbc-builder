@@ -137,6 +137,9 @@ When an `sbc` job finds set progress higher than cached (an SBC done on a consol
 ### `GET|POST /api/evos/unsubscribe?u=&t=` (public)
 Link in every evolution email (and its `List-Unsubscribe` header, RFC 8058 one-click POST). No sign-in: `t` is an HMAC of the user id `u` (`EMAIL_SECRET`). GET only shows a small confirm page (in the user's language) with a button that POSTs to the same URL, so mail link scanners can't unsubscribe anyone. POST (the button, or the one-click header) sets `users.evo_emails = false` and answers a short plain-text message in the user's language. Invalid: `400 Invalid link.`
 
+### `GET /api/evos/card/:file.png` (public)
+The player card shown in an evolution email, rendered when the email is sent (`server/evo-card.ts`) from the item EA sent with the training (`slot.player`, so every evolution and claimed level so far) and EA's card art. No sign-in, since mail clients fetch it without a session: the name is 32 hex chars, an HMAC of persona, slot and level (`EMAIL_SECRET`). `Cache-Control: public, max-age=2592000, immutable`. Files are kept 30 days; unknown or malformed names: `404`.
+
 ## Admin (site)
 
 Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated, default `dragutmariotheodor1@gmail.com`); anyone else gets `403` `adminOnly` (`401` `signIn` when not signed in). The POSTs below are actions; after a successful one the next admin read is fresh (account rows are memoized 5 s otherwise).
