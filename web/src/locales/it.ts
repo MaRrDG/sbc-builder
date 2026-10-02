@@ -289,7 +289,7 @@ export const it: Record<Keys, string> = {
   'plan.unlimited': 'Risoluzioni illimitate e impostazioni globali.',
   'plan.until': 'fino al {date}',
   'plan.globalLocked': 'Le impostazioni globali fanno parte di Premium. Con Free, ogni SBC può comunque avere impostazioni proprie e giocatori esclusi.',
-  'plan.inviteHint': 'Invita gli amici per guadagnare giorni di Premium. Vedi "Invita amici" di seguito.',
+  'plan.inviteHint': 'Invita gli amici per guadagnare giorni di Premium. Vedi “Invita amici” di seguito.',
 
   // quota meter (Solve button)
   'quota.left_one': '{count} risoluzione su {limit} rimasta questa settimana',

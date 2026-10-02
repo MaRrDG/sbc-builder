@@ -293,7 +293,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'plan.unlimited': 'Rezolvări nelimitate și setări globale.',
   'plan.until': 'până la {date}',
   'plan.globalLocked': 'Setările globale fac parte din Premium. Pe Free, fiecare SBC poate avea în continuare setările lui și jucătorii excluși.',
-  'plan.inviteHint': 'Invită prieteni și câștigă zile de Premium. Vezi "Invită prieteni" mai jos.',
+  'plan.inviteHint': 'Invită prieteni și câștigă zile de Premium. Vezi „Invită prieteni" mai jos.',
 
   // quota meter (butonul Rezolvă)
   'quota.left_one': 'Mai ai {count} rezolvare din {limit} săptămâna asta',
