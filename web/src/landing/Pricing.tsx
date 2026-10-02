@@ -1,6 +1,6 @@
 // Free vs Premium. Display only until billing exists: the Premium button is disabled ("Coming soon").
 import { useState, type ReactNode } from 'react';
-import { Check, Gift } from '@phosphor-icons/react';
+import { Check } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
 import { formatEur, proPrice, yearlySaving, FREE_WEEKLY_SOLVES, type Billing } from './pricing';
 import { Backdrop } from './Backdrop';
@@ -60,17 +60,6 @@ export function Pricing({ cta, founders }: { cta: ReactNode; founders: Founders 
           </button>
         </article>
       </div>
-
-      <aside className="lp-invite" aria-labelledby="lp-invite-title">
-        <h3 id="lp-invite-title">
-          <Gift weight="fill" aria-hidden="true" /> {t('landing.invite.title')}
-        </h3>
-        <ol>
-          <li>{t('landing.invite.s1')}</li>
-          <li>{t('landing.invite.s2')}</li>
-          <li>{t('landing.invite.s3')}</li>
-        </ol>
-      </aside>
     </section>
   );
 }
