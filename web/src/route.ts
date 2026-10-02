@@ -13,7 +13,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { LegalDoc } from './legal/docs';
 
-export type AdminPage = 'overview' | 'users' | 'user' | 'accounts';
+export type AdminPage = 'overview' | 'users' | 'user' | 'accounts' | 'codes';
 
 export type Route =
   | { view: 'landing' }
@@ -36,6 +36,7 @@ export const ADMIN_TABS: { page: Exclude<AdminPage, 'user'>; key: string }[] = [
   { page: 'overview', key: 'admin.tab.overview' },
   { page: 'users', key: 'admin.tab.users' },
   { page: 'accounts', key: 'admin.tab.accounts' },
+  { page: 'codes', key: 'admin.tab.codes' },
 ];
 
 export const adminRoute = (page: AdminPage, extra: { userId?: string; query?: string } = {}): Route => ({
@@ -76,6 +77,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
     }
     if (y === 'users') return adminRoute('users', { query });
     if (y === 'accounts') return adminRoute('accounts', { query });
+    if (y === 'codes') return adminRoute('codes');
     return adminRoute('overview');
   }
   if (x === 'sbc' && id(y) !== null) return { view: 'sbcs', setId: id(y), challengeId: id(z) };
