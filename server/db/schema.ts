@@ -72,6 +72,10 @@ export const users = pgTable('users', {
   founderPersona: bigint('founder_persona', { mode: 'number' }),
   lang: text('lang').notNull().default('en'), // 'en' | 'ro' | 'it', for emails; the site saves it on change
   evoEmails: boolean('evo_emails').notNull().default(true), // evolution training emails (Premium)
+  // onboarding survey (server/onboarding.ts); onboardedAt is set on answer or skip, answers stay null on a skip
+  heardFrom: text('heard_from'),
+  futYears: text('fut_years'),
+  onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
 }, (t) => [uniqueIndex('users_founder_persona').on(t.founderPersona)]); // one spot per EA account, even without the lock
 
 /** Which user owns an EA persona. One owner per persona; a takeover remembers the previous one. */

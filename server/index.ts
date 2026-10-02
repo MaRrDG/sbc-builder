@@ -26,9 +26,11 @@ import {
   linkTokenUser,
   personaRow,
   personasOf,
+  saveOnboarding,
   setOwner,
   unlinkPersona,
 } from './db/users.js';
+import { parseOnboarding } from './onboarding.js';
 import { eq } from 'drizzle-orm';
 import { checkEvoAlerts, emailSecret } from './evo-alerts.js';
 import { asLang, checkUnsub } from './evo-rules.js';
@@ -209,12 +211,21 @@ app.get<{ Params: { file: string } }>('/api/evos/card/:file', async (req, reply)
 /** Who is signed in and which EA personas they own. */
 app.get('/api/me', async (req) => {
   const userId = await siteUser(req);
-  const [row] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+  const [row] = await db.select({ email: users.email, onboardedAt: users.onboardedAt }).from(users).where(eq(users.id, userId));
   const personas = (await personasOf(userId)).flatMap((id) => {
     const a = accountById(id);
     return a ? [a.toJSON()] : [];
   });
-  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId), prefs: await prefsOf(userId) };
+  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId), prefs: await prefsOf(userId), onboarding: { done: !!row?.onboardedAt } };
+});
+
+/** The onboarding survey: both answers, or a skip. Asked once: a second answer is ignored. */
+app.put('/api/me/onboarding', async (req, reply) => {
+  const userId = await siteUser(req);
+  const answer = parseOnboarding(req.body);
+  if (!answer) return reply.code(400).send({ error: 'invalid answer' });
+  await saveOnboarding(userId, answer);
+  return { ok: true };
 });
 
 const MAIL_LANGS = ['en', 'ro', 'it'];

@@ -84,6 +84,8 @@ export async function listUsers(q: UserQuery) {
         accounts: mine.length,
         online: mine.filter((o) => online.has(o.personaId)).length,
         solves7d: s7,
+        heardFrom: u.heardFrom,
+        futYears: u.futYears,
       };
     }),
   };
