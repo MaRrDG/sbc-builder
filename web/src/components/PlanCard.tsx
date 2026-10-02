@@ -12,7 +12,9 @@ export function PlanCard({ plan, now }: { plan: PlanInfo | null; now: number }) 
   return (
     <section className="settings-card plan-card">
       <h2>
-        {plan.tier === 'premium' && <Crown weight="fill" aria-hidden="true" />} {plan.tier === 'premium' ? t('plan.premium') : t('plan.free')}
+        {plan.tier === 'premium' && <Crown weight="fill" aria-hidden="true" />}{' '}
+        {plan.tier === 'premium' ? (plan.premiumUntil === null ? t('plan.lifetime') : t('plan.premium')) : t('plan.free')}
+        {plan.founder && <span className="founder-badge">{t('plan.founder')}</span>}
       </h2>
       {q ? (
         <>
