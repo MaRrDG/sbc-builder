@@ -759,7 +759,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
 
       {reward && (
         <div className="notice info" role="status">
-          {reward === 'founder' ? t('notice.founder') : t('notice.invite')}{' '}
+          {reward === 'founder' ? t('notice.founder', { limit: founders?.limit ?? 50 }) : t('notice.invite')}{' '}
           <button type="button" className="text" onClick={() => setReward(null)}>
             {t('code.dismiss')}
           </button>
