@@ -246,6 +246,8 @@ export interface ReferralInfo {
   usedInvite: boolean;
   gifts: { code: string; days: number; usedAt: number | null }[];
   ledger: { delta: number; reason: string; at: number }[];
+  /** Redemptions of my invite code, newest first; email already masked (null: none on file). */
+  friends: { email: string | null; at: number; status: 'pending' | 'granted'; point: boolean }[];
 }
 export type RedeemResult = { kind: 'invite' | 'promo' | 'gift'; days: number | null; pending: boolean; founder: boolean };
 

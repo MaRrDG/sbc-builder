@@ -20,6 +20,15 @@ export interface CodeRow {
 
 export type RedeemError = 'codeUnknown' | 'codeDisabled' | 'codeExpired' | 'codeFull' | 'codeOwn' | 'inviteUsed' | 'codeUsed';
 
+/** An email for the inviter's friends table: 2 chars of the local part (1 when it has 2 or fewer), then ••• and the domain. */
+export function maskEmail(email: string | null | undefined): string | null {
+  if (!email) return null;
+  const at = email.lastIndexOf('@');
+  const local = at < 0 ? email : email.slice(0, at);
+  const domain = at < 0 ? '' : email.slice(at);
+  return `${[...local].slice(0, local.length <= 2 ? 1 : 2).join('')}•••${domain}`;
+}
+
 export function generateCode(len = 6, rand: (n: number) => number = randomInt): string {
   let s = '';
   for (let i = 0; i < len; i++) s += CODE_ALPHABET[rand(CODE_ALPHABET.length)];
