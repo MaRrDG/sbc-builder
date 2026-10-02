@@ -902,6 +902,8 @@ export const en = {
   'invite.giftMade': 'Gift code {code} for {days} days. Send it to a friend.',
   'invite.gifts': 'Your gift codes',
   'invite.giftUsed': 'used',
+  'invite.giftDays_one': '{count} day',
+  'invite.giftDays_other': '{count} days',
   'invite.giftFree': 'not used yet',
   'invite.haveCode': 'Have a code?',
   'err.pointsLow': 'Not enough points.',

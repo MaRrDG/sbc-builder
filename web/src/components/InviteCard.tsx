@@ -74,7 +74,7 @@ export function InviteCard({ plan, founders, onPlanChange }: { plan: PlanInfo; f
           <h3>{t('invite.gifts')}</h3>
           <ul className="invite-gifts">
             {info.gifts.map((g) => (
-              <li key={g.code}><b className="code-chip">{g.code}</b> {g.days}d · {g.usedAt ? t('invite.giftUsed') : t('invite.giftFree')}</li>
+              <li key={g.code}><b className="code-chip">{g.code}</b> {t('invite.giftDays', { count: g.days })} · {g.usedAt ? t('invite.giftUsed') : t('invite.giftFree')}</li>
             ))}
           </ul>
         </>
