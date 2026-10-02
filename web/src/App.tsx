@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, List, Prohibit, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, List, Prohibit, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
   type Account, type Challenge, type GalleryResponse, type Meta, type Player, type PlanInfo, type Prefs, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
@@ -27,7 +27,7 @@ import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
-import { InviteCard } from './components/InviteCard';
+import { InvitePage } from './components/InvitePage';
 import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
 import { QuotaMeter } from './components/QuotaMeter';
@@ -376,7 +376,7 @@ export default function App({
   // the tab title follows the screen
   useEffect(() => {
     const name =
-      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery'
+      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'invite' ? 'Invite friends' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery'
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
@@ -796,6 +796,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <FrameCorners weight="bold" aria-hidden="true" />
             <span>{t('nav.gallery')}</span>
           </button>
+          <button type="button" className="nav-item" aria-current={view === 'invite' && !showGuide ? 'page' : undefined} onClick={() => go('invite')}>
+            <Gift weight="bold" aria-hidden="true" />
+            <span>{t('nav.invite')}</span>
+          </button>
           <button type="button" className="nav-item" aria-current={view === 'settings' && !showGuide ? 'page' : undefined} onClick={() => go('settings')}>
             <GearSix weight="bold" aria-hidden="true" />
             <span>{t('nav.settings')}</span>
@@ -911,6 +915,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             )
           )}
 
+          {!showGuide && view === 'invite' && effectivePlan && (
+            <InvitePage plan={effectivePlan} founders={founders} onPlanChange={() => void loadMe()} />
+          )}
+
           {!showGuide && view === 'settings' && meta && (
             <section className="settings-page">
               <header className="page-head">
@@ -931,8 +939,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                   </fieldset>
                 </div>
                 <div className="settings-side">
-                <PlanCard plan={effectivePlan} now={now} />
-                {effectivePlan && <InviteCard plan={effectivePlan} founders={founders} onPlanChange={() => void loadMe()} />}
+                <PlanCard plan={effectivePlan} now={now} onInvite={() => navigate({ view: 'invite' })} />
                 {prefs && <EmailAlertsCard premium={premium} prefs={prefs} onChange={setPrefs} />}
                 <AccountCard email={me?.email ?? ''} personas={linked} onUnlink={unlink} onSignOut={doSignOut} />
                 {status?.ea && <EaRequestsCard ea={status.ea} />}

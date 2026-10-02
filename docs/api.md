@@ -152,7 +152,7 @@ Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Pric
 
 ### `GET /api/referral`
 
-`{ "code": "K7M2QX", "link": "https://…/?ref=K7M2QX", "points": 1, "invited": 1, "pendingInvites": 0, "usedInvite": false, "gifts": [{ "code", "days", "usedAt": ms|null }], "ledger": [{ "delta", "reason", "at" }] }`. The user's own invite code is created on first call (one per account, for life).
+`{ "code": "K7M2QX", "link": "https://…/?ref=K7M2QX", "points": 1, "invited": 1, "pendingInvites": 0, "usedInvite": false, "gifts": [{ "code", "days", "usedAt": ms|null }], "ledger": [{ "delta", "reason", "at" }], "friends": [{ "email": "ma•••@gmail.com"|null, "at": ms, "status": "pending"|"granted", "point": true|false }] }`. `friends`: who joined with the user's invite code, newest first, at most 200; the email is masked on the server (first 2 characters of the local part, or 1 when it has 2 or fewer, then `•••` and the domain; `null` when none is on file). `point`: the invite earned the user a point (a granted invite whose EA account already gave one earned none). The user's own invite code is created on first call (one per account, for life).
 
 ### `POST /api/redeem`
 

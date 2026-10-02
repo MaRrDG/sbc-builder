@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CODE_ALPHABET, PRICES, checkRedeem, checkSpend, extendPremium, generateCode, isLifetime,
-  normalizeCode, parsePromo, parseSpend, rewardDays, type CodeRow,
+  maskEmail, normalizeCode, parsePromo, parseSpend, rewardDays, type CodeRow,
 } from './referrals.js';
 
 const DAY = 86_400_000;
@@ -98,4 +98,14 @@ test('parsePromo', () => {
   // days must be explicit (even if missing)
   assert.equal(parsePromo({}), null);
   assert.equal(parsePromo({ code: 'X1Y2' }), null);
+});
+
+test('maskEmail keeps 2 chars of the local part and the domain', () => {
+  assert.equal(maskEmail('mario@gmail.com'), 'ma•••@gmail.com');
+  assert.equal(maskEmail('ab@x.io'), 'a•••@x.io');
+  assert.equal(maskEmail('a@x.io'), 'a•••@x.io');
+  assert.equal(maskEmail('abc@x.io'), 'ab•••@x.io');
+  assert.equal(maskEmail(null), null);
+  assert.equal(maskEmail(''), null);
+  assert.equal(maskEmail('nodomain'), 'no•••');
 });

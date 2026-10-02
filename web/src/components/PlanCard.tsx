@@ -4,7 +4,7 @@ import type { PlanInfo } from '../api';
 import { useI18n } from '../i18n';
 import { untilText } from '../repeat';
 
-export function PlanCard({ plan, now }: { plan: PlanInfo | null; now: number }) {
+export function PlanCard({ plan, now, onInvite }: { plan: PlanInfo | null; now: number; onInvite: () => void }) {
   const { t } = useI18n();
   if (!plan) return null;
   const q = plan.quota;
@@ -28,7 +28,10 @@ export function PlanCard({ plan, now }: { plan: PlanInfo | null; now: number }) 
             {q.resetsAt ? t('plan.resetsIn', { until: untilText(t, q.resetsAt, now) }) : t('plan.windowIdle')}
           </p>
           <p className="muted">{t('plan.howFree', { limit: q.limit })}</p>
-          <p className="muted">{t('plan.inviteHint')}</p>
+          <p className="muted">
+            {t('plan.inviteHint')}{' '}
+            <button type="button" className="ghost" onClick={onInvite}>{t('plan.inviteLink')}</button>
+          </p>
           <p>
             <b>{t('plan.premiumAdds')}</b> {t('plan.premiumList')} <em>{t('plan.soon')}</em>
           </p>

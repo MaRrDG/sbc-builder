@@ -82,3 +82,10 @@ test('admin codes route', () => {
   assert.deepEqual(parseRoute('/dashboard/admin/codes'), adminRoute('codes'));
   assert.equal(routePath(adminRoute('codes')), '/dashboard/admin/codes');
 });
+
+test('invite route', () => {
+  assert.deepEqual(parseRoute('/dashboard/invite'), { view: 'invite' });
+  assert.deepEqual(parseRoute('/invite'), { view: 'invite' });
+  assert.equal(routePath({ view: 'invite' }), '/dashboard/invite');
+  assert.deepEqual(parseRoute(routePath({ view: 'invite' })), { view: 'invite' });
+});

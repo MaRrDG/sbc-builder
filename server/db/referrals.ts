@@ -1,7 +1,7 @@
 // Invites, promo and gift codes, points. Every write runs in a transaction: a code row is locked
 // FOR UPDATE while it is used, and a user's points under a per-user advisory lock.
 import { and, desc, eq, sql } from 'drizzle-orm';
-import { checkRedeem, checkSpend, extendPremium, generateCode, INVITE_DAYS, isLifetime, normalizeCode, PRICES, rewardDays,
+import { checkRedeem, maskEmail, checkSpend, extendPremium, generateCode, INVITE_DAYS, isLifetime, normalizeCode, PRICES, rewardDays,
   type CodeKind, type CodeRow, type RedeemError, type SpendDays } from '../referrals.js';
 import { db } from './index.js';
 import { codes, personas, pointLedger, redemptions, users } from './schema.js';
@@ -124,6 +124,8 @@ export interface ReferralSummary {
   usedInvite: boolean;
   gifts: { code: string; days: number; usedAt: number | null }[];
   ledger: { delta: number; reason: string; at: number }[];
+  /** Redemptions of my invite code, newest first, email masked. `point`: it earned me a point. */
+  friends: { email: string | null; at: number; status: 'pending' | 'granted'; point: boolean }[];
 }
 
 export async function referralSummary(userId: string): Promise<ReferralSummary> {
@@ -138,6 +140,11 @@ export async function referralSummary(userId: string): Promise<ReferralSummary> 
     .where(and(eq(codes.ownerId, userId), eq(codes.kind, 'gift'))).orderBy(desc(codes.createdAt));
   const ledger = await db.select({ delta: pointLedger.delta, reason: pointLedger.reason, at: pointLedger.at }).from(pointLedger)
     .where(eq(pointLedger.userId, userId)).orderBy(desc(pointLedger.at)).limit(20);
+  const friends = await db.select({ email: users.email, at: redemptions.at, status: redemptions.status, userId: redemptions.userId })
+    .from(redemptions).leftJoin(users, eq(users.id, redemptions.userId))
+    .where(eq(redemptions.code, code)).orderBy(desc(redemptions.at)).limit(200);
+  const earned = new Set((await db.select({ ref: pointLedger.ref }).from(pointLedger)
+    .where(and(eq(pointLedger.userId, userId), eq(pointLedger.reason, 'invite')))).map((r) => r.ref));
   return {
     code,
     points: await balanceIn(db, userId),
@@ -146,6 +153,12 @@ export async function referralSummary(userId: string): Promise<ReferralSummary> 
     usedInvite: !!used,
     gifts: gifts.map((g) => ({ code: g.code, days: g.days ?? 0, usedAt: g.usedAt?.getTime() ?? null })),
     ledger: ledger.map((l) => ({ delta: l.delta, reason: l.reason, at: l.at.getTime() })),
+    friends: friends.map((f) => ({
+      email: maskEmail(f.email),
+      at: f.at.getTime(),
+      status: f.status === 'granted' ? 'granted' : 'pending',
+      point: f.status === 'granted' && earned.has(f.userId),
+    })),
   };
 }
 
