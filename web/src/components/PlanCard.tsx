@@ -28,6 +28,7 @@ export function PlanCard({ plan, now }: { plan: PlanInfo | null; now: number }) 
             {q.resetsAt ? t('plan.resetsIn', { until: untilText(t, q.resetsAt, now) }) : t('plan.windowIdle')}
           </p>
           <p className="muted">{t('plan.howFree', { limit: q.limit })}</p>
+          <p className="muted">{t('plan.inviteHint')}</p>
           <p>
             <b>{t('plan.premiumAdds')}</b> {t('plan.premiumList')} <em>{t('plan.soon')}</em>
           </p>

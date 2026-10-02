@@ -285,6 +285,7 @@ export const en = {
   'plan.unlimited': 'Unlimited solves and global settings.',
   'plan.until': 'until {date}',
   'plan.globalLocked': 'Global settings are part of Premium. On Free, each SBC can still have its own settings and excluded players.',
+  'plan.inviteHint': 'Invite friends to earn Premium days. See "Invite friends" below.',
 
   // quota meter (Solve button)
   'quota.left_one': '{count} of {limit} solves left this week',
@@ -822,6 +823,8 @@ export const en = {
   'landing.faq.evos.a': 'With Premium, yes. FC Solver sees the Training Camp timers when you open Evolutions in the EA web app (and once a day after the drop), shows a countdown and emails you when a player is ready to claim. Claiming stays in the web app: FC Solver never does it for you.',
   'landing.faq.gallery.q': 'Can it plan my FUT Gallery sets?',
   'landing.faq.gallery.a': 'With Premium, yes. FC Solver remembers every player that has been in your club since you installed the extension, even after you sell one, and shows the best lineup and D–S grade for each FUT Gallery set, plus what is missing for the next grade. Players you had before the extension are not recorded.',
+  'landing.faq.invite.q': 'Can I get Premium for free?',
+  'landing.faq.invite.a': 'Yes. Every account has an invite link: a friend who joins with it gets 7 days of Premium (or Premium for life while Founding 50 spots last), and you earn a point when they link their EA account. 2 points buy 7 days, 3 buy 14, 5 buy 30, or turn them into a gift code.',
   'evos.title': 'Evolutions',
   'evos.lede': 'Timed evolution trainings and how long each one has left.',
   'evos.loading': 'Loading…',

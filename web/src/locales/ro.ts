@@ -293,6 +293,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'plan.unlimited': 'Rezolvări nelimitate și setări globale.',
   'plan.until': 'până la {date}',
   'plan.globalLocked': 'Setările globale fac parte din Premium. Pe Free, fiecare SBC poate avea în continuare setările lui și jucătorii excluși.',
+  'plan.inviteHint': 'Invită prieteni și câștigă zile de Premium. Vezi "Invită prieteni" mai jos.',
 
   // quota meter (butonul Rezolvă)
   'quota.left_one': 'Mai ai {count} rezolvare din {limit} săptămâna asta',
@@ -838,6 +839,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.faq.evos.a': 'Cu Premium, da. FC Solver vede timerele din Training Camp când deschizi Evolutions în EA web app (și o dată pe zi, după drop), arată cât mai e și îți trimite un email când jucătorul e gata de claim. Claim-ul îl dai tot tu, în web app: FC Solver nu-l face niciodată în locul tău.',
   'landing.faq.gallery.q': 'Mă poate ajuta cu seturile din FUT Gallery?',
   'landing.faq.gallery.a': 'Cu Premium, da. FC Solver ține minte fiecare jucător care a trecut prin clubul tău de când ai instalat extensia, chiar și după ce l-ai vândut, și îți arată cea mai bună echipă și nota D–S pentru fiecare set din FUT Gallery, plus ce lipsește pentru nota următoare. Jucătorii pe care îi aveai înainte de extensie nu sunt înregistrați.',
+  'landing.faq.invite.q': 'Pot obține Premium gratuit?',
+  'landing.faq.invite.a': 'Da. Fiecare cont are un link de invitație: un prieten care se înregistrează cu el obține 7 zile de Premium (sau Premium pe viață cât se mai pot adăuga Founder-i), și tu câștigi un punct când acesta isi leagă contul EA. 2 puncte cumpără 7 zile, 3 cumpără 14, 5 cumpără 30, sau poți transforma punctele într-un cod cadou.',
   'evos.title': 'Evoluții',
   'evos.lede': 'Antrenamentele de evoluție cu timp și cât mai are fiecare.',
   'evos.loading': 'Se încarcă…',
