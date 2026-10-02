@@ -6,6 +6,7 @@ import { latestExtension } from '../extension.js';
 import { planInfo } from '../plans.js';
 import { adminEmails } from './auth.js';
 import { accountRows, owners } from './accounts.js';
+import { referralOf } from './codes.js';
 import { clampPage, fillDays, isOutdated, isProblem, lastDays, likePattern, PAGE_SIZE, type UserQuery } from './query.js';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -125,6 +126,7 @@ export async function userDetail(id: string) {
     missing: mine.filter(([pid]) => !byId.has(pid)).map(([pid]) => pid),
     solves: await solvesByDay(id, lastDays(30, now, TZ())),
     latestExtension: (await latestExtension()).version,
+    referral: await referralOf(u.id, u.invitedBy),
   };
 }
 

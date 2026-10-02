@@ -331,6 +331,11 @@ export const api = {
   adminUsers: (query: string) => req<Paged<AdminUserRow>>(`/api/admin/users${query ? `?${query}` : ''}`),
   adminUser: (id: string) => req<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(id)}`),
   adminUserEvents: (id: string, page: number) => req<Paged<AdminEvent>>(`/api/admin/users/${encodeURIComponent(id)}/events?page=${page}`),
+  adminCodes: (kind: 'promo' | 'gift', page: number) => req<Paged<AdminCodeRow>>(`/api/admin/codes?kind=${kind}&page=${page}`),
+  adminCreateCode: (b: { code?: string; days: number | null; maxUses?: number | null; expiresAt?: string | null; note?: string }) =>
+    req<AdminCodeRow>('/api/admin/codes', { method: 'POST', body: b }),
+  adminSetCodeDisabled: (code: string, disabled: boolean) => req<{ ok: true }>(`/api/admin/codes/${encodeURIComponent(code)}`, { method: 'PATCH', body: { disabled } }),
+  adminCode: (code: string) => req<{ code: AdminCodeRow; uses: { userId: string; email: string; status: string; at: number }[] }>(`/api/admin/codes/${encodeURIComponent(code)}`),
   adminAccounts: (query: string) => req<Paged<AdminAccountRow> & { latestExtension: string }>(`/api/admin/accounts${query ? `?${query}` : ''}`),
   adminSync: (what: 'club' | 'sbc' | 'all', personaIds?: number[]) =>
     req<{ results: AdminSyncResult[] }>('/api/admin/sync', { method: 'POST', body: { what, personaIds } }),
@@ -365,6 +370,8 @@ export interface AdminAccount {
 
 export interface Paged<T> { rows: T[]; total: number; page: number; pageSize: number }
 
+export interface AdminCodeRow { code: string; kind: 'promo' | 'gift'; ownerEmail: string | null; days: number | null; maxUses: number | null; uses: number; expiresAt: number | null; disabled: boolean; note: string; createdAt: number }
+
 export interface AdminUserRow {
   id: string; email: string; createdAt: number; lastSeenAt: number;
   planSet: 'free' | 'premium'; plan: PlanInfo; admin: boolean;
@@ -379,6 +386,7 @@ export interface AdminUserDetail {
   missing: number[];
   solves: { days: string[]; found: number[]; notFound: number[] };
   latestExtension: string;
+  referral: { points: number; invitedBy: { id: string; email: string } | null; invited: number; inviteCode: string | null };
 }
 export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day'; personaId: number | null; data: Record<string, unknown> }
 export type AdminAttention =

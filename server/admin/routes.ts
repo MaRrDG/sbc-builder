@@ -10,6 +10,8 @@ import { users } from '../db/schema.js';
 import { adminSync } from '../sync.js';
 import { requireAdmin } from './auth.js';
 import { invalidateAccountRows, listAccountsPage } from './accounts.js';
+import { parsePromo } from '../referrals.js';
+import { codeDetail, createPromo, listCodes, setDisabled } from './codes.js';
 import { overview } from './overview.js';
 import { clampPage, PAGE_SIZE, parseAccountQuery, parsePage, parseRange, parseUserQuery } from './query.js';
 import { listUsers, userDetail } from './users.js';
@@ -36,7 +38,27 @@ export function registerAdminRoutes(app: FastifyInstance) {
     const page = clampPage(parsePage(req.query.page), await userEventCount(req.params.id, personaIds));
     return { ...(await userEvents(req.params.id, personaIds, page, PAGE_SIZE)), page, pageSize: PAGE_SIZE };
   });
-  app.get<Q>('/api/admin/accounts', async (req) => {
+  app.get<Q>('/api/admin/codes', async (req) => {
+    await requireAdmin(req);
+    return listCodes(req.query.kind === 'gift' ? 'gift' : 'promo', parsePage(req.query.page));
+  });
+  app.post('/api/admin/codes', async (req, reply) => {
+    await requireAdmin(req);
+    const p = parsePromo(req.body);
+    if (!p) return reply.code(400).send({ error: 'invalid code', code: 'invalid', params: {} });
+    const r = await createPromo(p);
+    return r === 'codeTaken' ? reply.code(400).send({ error: 'code taken', code: 'codeTaken', params: {} }) : r;
+  });
+  app.patch<{ Params: { code: string }; Body: { disabled?: unknown } }>('/api/admin/codes/:code', async (req, reply) => {
+    await requireAdmin(req);
+    if (typeof req.body?.disabled !== 'boolean') return reply.code(400).send({ error: 'invalid' });
+    return (await setDisabled(req.params.code.toUpperCase(), req.body.disabled)) ? { ok: true } : reply.code(404).send({ error: 'unknown code' });
+  });
+  app.get<{ Params: { code: string } }>('/api/admin/codes/:code', async (req, reply) => {
+    await requireAdmin(req);
+    return (await codeDetail(req.params.code.toUpperCase())) ?? reply.code(404).send({ error: 'unknown code' });
+  });
+  app.get<Q>('/api/admin/accounts',async (req) => {
     await requireAdmin(req);
     return listAccountsPage(parseAccountQuery(req.query));
   });
