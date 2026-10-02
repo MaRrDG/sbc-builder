@@ -11,14 +11,42 @@ const OPTIONS = [{ days: 7, price: 2 }, { days: 14, price: 3 }, { days: 30, pric
 export function InvitePage({ plan, founders, onPlanChange }: { plan: PlanInfo; founders: { limit: number; taken: number; left: number } | null; onPlanChange: () => void }) {
   const { t, lang } = useI18n();
   const [info, setInfo] = useState<ReferralInfo | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const lifetime = plan.tier === 'premium' && plan.premiumUntil === null;
 
-  const load = () => api.referral().then(setInfo, () => {});
+  const load = () =>
+    api.referral().then(
+      (r) => {
+        setInfo(r);
+        setLoadError(null);
+      },
+      (e) => setLoadError(errorText(e, t)),
+    );
   useEffect(() => void load(), []);
-  if (!info) return null;
+
+  if (!info) {
+    return (
+      <section className="settings-page invite-page">
+        <header className="page-head">
+          <div>
+            <h1>{t('invite.title')}</h1>
+            <p className="muted">{t('invite.lede')}</p>
+          </div>
+        </header>
+        {loadError ? (
+          <div role="alert">
+            <p className="signin-error">{loadError}</p>
+            <button type="button" className="ghost" onClick={() => void load()}>{t('auth.retry')}</button>
+          </div>
+        ) : (
+          <p className="muted" role="status">{t('invite.loading')}</p>
+        )}
+      </section>
+    );
+  }
 
   const copy = async () => {
     try {

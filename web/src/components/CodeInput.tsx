@@ -9,7 +9,7 @@ type T = ReturnType<typeof useI18n>['t'];
 
 /** What a redeemed code gave; a founder always reads as lifetime, never as days. */
 export function redeemText(r: RedeemResult, t: T, founders: { limit: number; left: number } | null): string {
-  if (r.founder) return t('code.founder');
+  if (r.founder) return t('code.founder', { limit: founders?.limit ?? 50 });
   if (r.kind === 'invite' && r.pending)
     return founders && founders.left > 0 ? t('code.invitePendingFounders', { limit: founders.limit, left: founders.left }) : t('code.invitePending');
   return r.days === null ? t('code.lifetime') : t('code.days', { count: r.days });

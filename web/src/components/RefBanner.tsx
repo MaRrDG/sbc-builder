@@ -2,7 +2,7 @@
 // who has not used an invite yet. Applying or dismissing forgets the code.
 import { useEffect, useState } from 'react';
 import { CheckCircle, Gift, WarningCircle, X } from '@phosphor-icons/react';
-import { api } from '../api';
+import { api, ApiError } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
 import { clearRef, readRef, shouldOfferRef } from '../ref';
@@ -44,6 +44,8 @@ export function RefBanner({ onboarded, founders, onApplied }: { onboarded: boole
       setMsg({ ok: true, text: redeemText(r, t, founders) });
       onApplied();
     } catch (e) {
+      // refused by the server: the link is spent; a network error or rate limit keeps it for a retry
+      if (e instanceof ApiError && e.code && e.code !== 'rateLimited') clearRef();
       setMsg({ ok: false, text: errorText(e, t) });
     }
     setBusy(false);

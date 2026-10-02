@@ -255,7 +255,7 @@ app.post<{ Body: { code?: unknown } }>('/api/redeem', async (req, reply) => {
 app.post('/api/points/spend', async (req, reply) => {
   const userId = await siteUser(req);
   const s = parseSpend(req.body);
-  if (!s) return reply.code(400).send({ error: 'invalid spend' });
+  if (!s) return reply.code(400).send({ error: 'invalid spend', code: 'invalid', params: {} });
   const r = await spendPoints(userId, s.days, s.gift);
   if (!r.ok) return reply.code(400).send({ error: r.code, code: r.code, params: {} });
   return 'giftCode' in r ? { giftCode: r.giftCode } : { premiumUntil: r.premiumUntil };
