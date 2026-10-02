@@ -2,6 +2,7 @@
 // their own user ("Disconnect"); a takeover keeps the previous owner for the "taken over" notice.
 import { and, asc, eq, gt, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
 import { hashToken, newLinkToken } from '../auth-rules.js';
+import type { OnboardingAnswer } from '../onboarding.js';
 import type { PlanRow, Tier } from '../plan.js';
 import { earnsSpot } from '../founders.js';
 import { db } from './index.js';
@@ -135,4 +136,10 @@ export async function claimFounderSpot(userId: string, personaId: number, admin:
 /** Users with a linked EA account, earliest link first: who the startup backfill offers spots to. */
 export async function linkedInOrder(): Promise<{ userId: string; personaId: number }[]> {
   return db.select({ userId: personas.userId, personaId: personas.personaId }).from(personas).orderBy(asc(personas.linkedAt));
+}
+
+/** Saves the survey answer once; a later call (another tab) does not overwrite it. */
+export async function saveOnboarding(userId: string, a: OnboardingAnswer): Promise<void> {
+  const answers = 'skip' in a ? {} : { heardFrom: a.heardFrom, futYears: a.futYears };
+  await db.update(users).set({ ...answers, onboardedAt: new Date() }).where(and(eq(users.id, userId), isNull(users.onboardedAt)));
 }

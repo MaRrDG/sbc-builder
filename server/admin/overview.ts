@@ -6,6 +6,7 @@ import { latestExtension } from '../extension.js';
 import { meterDay } from '../meter.js';
 import { lastSbcDrop } from '../sync.js';
 import { withOwners } from './accounts.js';
+import { FUT_YEARS, HEARD_FROM, tally } from '../onboarding.js';
 import { fillDays, isOutdated, isProblem, lastDays } from './query.js';
 import { expiringSql, premiumSql, solvesByDay, TZ } from './users.js';
 
@@ -38,7 +39,7 @@ export async function overview(range: 7 | 30) {
     })
     .from(users);
   const signupDay = dayOf(users.createdAt);
-  const [signups, syncs, eaDays, solves, expiringUsers, [sets], [chs], [bricks], [trusted]] = await Promise.all([
+  const [signups, syncs, eaDays, solves, expiringUsers, [sets], [chs], [bricks], [trusted], heard, years, [asked]] = await Promise.all([
     db.select({ day: signupDay, n: sql<number>`count(*)::int` }).from(users).where(gte(users.createdAt, since)).groupBy(sql`1`),
     db
       .select({ day: evDay, n: sql<number>`count(*)::int`, failed: sql<number>`count(*) filter (where not (${events.data}->>'ok')::boolean)::int` })
@@ -57,6 +58,11 @@ export async function overview(range: 7 | 30) {
     db.select({ n: count() }).from(challenges),
     db.select({ n: count() }).from(brickReports),
     db.select({ n: count() }).from(trustedAccounts),
+    db.select({ value: users.heardFrom, n: sql<number>`count(*)::int` }).from(users).groupBy(users.heardFrom),
+    db.select({ value: users.futYears, n: sql<number>`count(*)::int` }).from(users).groupBy(users.futYears),
+    db
+      .select({ answered: sql<number>`count(*) filter (where ${users.heardFrom} is not null)::int`, skipped: sql<number>`count(*) filter (where ${users.onboardedAt} is not null and ${users.heardFrom} is null)::int` })
+      .from(users),
   ]);
 
   const eaToday = accs.reduce((n, a) => n + a.ea.today, 0);
@@ -101,6 +107,7 @@ export async function overview(range: 7 | 30) {
     },
     attention,
     versions: [...versions].map(([version, n]) => ({ version, count: n, latest: version === latest })).sort((a, b) => b.count - a.count),
+    onboarding: { answered: asked.answered, skipped: asked.skipped, heardFrom: tally(HEARD_FROM, heard), futYears: tally(FUT_YEARS, years) },
     db: { sets: sets.n, challenges: chs.n, brickReports: bricks.n, trusted: trusted.n },
   };
 }

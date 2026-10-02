@@ -75,6 +75,8 @@ export function UsersTable({ route, navigate }: AdminProps) {
         ),
     },
     { key: 'solves7d', label: t('admin.users.col.solves'), sortable: true, num: true, hideSm: true, render: (u) => u.solves7d },
+    { key: 'heardFrom', label: t('admin.users.col.heardFrom'), hideSm: true, render: (u) => (u.heardFrom ? t(`onboarding.heardFrom.${u.heardFrom}`) : <span className="muted">—</span>) },
+    { key: 'futYears', label: t('admin.users.col.futYears'), hideSm: true, render: (u) => (u.futYears ? t(`onboarding.futYears.${u.futYears}`) : <span className="muted">—</span>) },
     { key: 'lastSeen', label: t('admin.users.col.seen'), sortable: true, render: (u) => ago(u.lastSeenAt) },
     { key: 'createdAt', label: t('admin.users.col.joined'), sortable: true, hideSm: true, render: (u) => new Date(u.createdAt).toLocaleDateString() },
   ];

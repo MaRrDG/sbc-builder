@@ -236,6 +236,12 @@ export interface Prefs {
   evoEmails: boolean;
 }
 
+/** Onboarding survey answers (server/onboarding.ts has the same lists). */
+export const HEARD_FROM = ['tiktok', 'youtube', 'reddit', 'friends', 'google', 'other'] as const;
+export const FUT_YEARS = ['lt1', '1-3', '4-7', '8+'] as const;
+export type HeardFrom = (typeof HEARD_FROM)[number];
+export type FutYears = (typeof FUT_YEARS)[number];
+
 /** A timed evolution slot; times are epoch ms. */
 export interface Evo {
   slotId: number;
@@ -297,7 +303,8 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
 
 export const api = {
   me: () =>
-    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs }>('/api/me'),
+    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean } }>('/api/me'),
+  onboarding: (a: { heardFrom: HeardFrom; futYears: FutYears } | { skip: true }) => req<{ ok: true }>('/api/me/onboarding', { method: 'PUT', body: a }),
   prefs: (p: { lang?: string; evoEmails?: boolean }) => req<{ ok: true }>('/api/me/prefs', { method: 'PUT', body: p }),
   legacyKeys: (keys: string[]) => req<{ map: Record<string, number> }>('/api/me/legacy-keys', { method: 'POST', body: { keys } }),
   linkToken: () => req<{ token: string; expiresIn: number }>('/api/link-token', { method: 'POST' }),
@@ -361,6 +368,7 @@ export interface AdminUserRow {
   id: string; email: string; createdAt: number; lastSeenAt: number;
   planSet: 'free' | 'premium'; plan: PlanInfo; admin: boolean;
   accounts: number; online: number; solves7d: number;
+  heardFrom: HeardFrom | null; futYears: FutYears | null;
 }
 export type AdminAccountRow = AdminAccount & { ownerId: string | null; ownerEmail: string | null };
 export interface AdminUserDetail {
@@ -387,6 +395,7 @@ export interface AdminOverview {
   series: { days: string[]; found: number[]; notFound: number[]; signups: number[]; eaRequests: number[]; syncs: number[]; syncFailed: number[] };
   attention: AdminAttention[];
   versions: { version: string; count: number; latest: boolean }[];
+  onboarding: { answered: number; skipped: number; heardFrom: { value: HeardFrom; count: number }[]; futYears: { value: FutYears; count: number }[] };
   db: { sets: number; challenges: number; brickReports: number; trusted: number };
 }
 

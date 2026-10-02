@@ -127,6 +127,15 @@ export function Overview({ navigate }: AdminProps) {
       </div>
 
       <section className="adm-card">
+        <h2>{t('admin.onboarding.title')}</h2>
+        <p className="muted">{t('admin.onboarding.lede', { answered: o.onboarding.answered, skipped: o.onboarding.skipped })}</p>
+        <div className="adm-grid2">
+          <Share title={t('admin.onboarding.heardFrom')} rows={o.onboarding.heardFrom.map((r) => ({ label: t(`onboarding.heardFrom.${r.value}`), count: r.count }))} />
+          <Share title={t('admin.onboarding.futYears')} rows={o.onboarding.futYears.map((r) => ({ label: t(`onboarding.futYears.${r.value}`), count: r.count }))} />
+        </div>
+      </section>
+
+      <section className="adm-card">
         <h2>{t('admin.sync.title')}</h2>
         <p className="muted">{t('admin.sync.lede')}</p>
         <div className="adm-actions">
@@ -146,5 +155,27 @@ export function Overview({ navigate }: AdminProps) {
         )}
       </section>
     </>
+  );
+}
+
+/** Answers with a count, a percent of all answers and a bar; the numbers carry it, not the bar. */
+function Share({ title, rows }: { title: string; rows: { label: string; count: number }[] }) {
+  const total = rows.reduce((n, r) => n + r.count, 0);
+  return (
+    <div>
+      <h3 className="adm-share-title">{title}</h3>
+      <ul className="adm-list">
+        {rows.map((r) => {
+          const pct = total ? Math.round((r.count / total) * 100) : 0;
+          return (
+            <li key={r.label} className="adm-share">
+              <span>{r.label}</span>
+              <span className="adm-share-bar" aria-hidden="true"><span style={{ width: `${pct}%` }} /></span>
+              <b>{r.count} <small className="muted">{pct}%</small></b>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }

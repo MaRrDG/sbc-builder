@@ -79,11 +79,15 @@ Signed in with Clerk; only the `Authorization` header is needed.
 { "user": { "id": "user_2Rf…", "email": "you@example.com" }, "personas": [{ "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true }] }
 ```
 
-The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null }` (`server/plan.ts`). `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium. Also `"prefs": { "lang": "en"|"ro"|"it", "evoEmails": true|false }`, the email language and whether evolution emails are on.
+The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null }` (`server/plan.ts`). `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium. Also `"prefs": { "lang": "en"|"ro"|"it", "evoEmails": true|false }`, the email language and whether evolution emails are on. Also `"onboarding": { "done": true|false }`: whether the user answered or skipped the onboarding survey (the site asks while it is `false`).
 
 ### `PUT /api/me/prefs`
 
 `{ "lang"?: "en"|"ro"|"it", "evoEmails"?: boolean }` → `{ "ok": true }`. Only the fields sent are changed; an unknown `lang` or a non-boolean `evoEmails` is ignored.
+
+### `PUT /api/me/onboarding`
+
+The onboarding survey (`server/onboarding.ts`): `{ "heardFrom": "tiktok"|"youtube"|"reddit"|"friends"|"google"|"other", "futYears": "lt1"|"1-3"|"4-7"|"8+" }`, or `{ "skip": true }` → `{ "ok": true }`. Anything else (one answer missing, an unknown value) → `400`. Saved once: after the first answer or skip a later call changes nothing.
 
 ### `GET /api/evos` (site, Premium)
 
@@ -173,6 +177,10 @@ Dashboard: KPIs, daily series for the last `range` days (default `7`), what need
     { "kind": "expiring", "userId": "user_3Ab…", "email": "someone@example.com", "until": 1790500000000 }
   ],
   "versions": [{ "version": "0.8.0", "count": 1, "latest": false }],
+  "onboarding": {
+    "answered": 5, "skipped": 2,
+    "heardFrom": [{ "value": "tiktok", "count": 3 }, "…"], "futYears": [{ "value": "lt1", "count": 0 }, "…"]
+  },
   "db": { "sets": 9, "challenges": 12, "brickReports": 0, "trusted": 0 }
 }
 ```
@@ -181,6 +189,7 @@ Dashboard: KPIs, daily series for the last `range` days (default `7`), what need
 - `accounts.problem`: an error, stale club or SBC data, a throttle pause, or today's EA budget used up. `unlinked`: no site user owns it.
 - `series` arrays line up with `days`. `found` / `notFound`: solves by outcome. `eaRequests`: EA calls per day, summed over accounts (one count per account and day even when logged twice); today's value is the live meter. `syncs` / `syncFailed`: syncs run and how many failed.
 - `attention`: one item per account at most, the first that applies of `error` (`detail`: the message), `paused`, `atLimit`, `outdated` (`detail`: its extension version, `null` if unknown); then every user whose stored Premium ends within 7 days (`expiring`, `until` in ms). `userId` of an account item is its owner or `null`.
+- `onboarding`: survey answers over all users, every answer listed in the order of `PUT /api/me/onboarding` (0 when nobody picked it). `skipped`: users who skipped; users not asked yet count in neither.
 - `versions`: accounts per extension version (`"?"` when unknown), most used first.
 
 ### `GET /api/admin/users?q=&plan=&activity=&ea=&sort=&dir=&page=`
@@ -200,13 +209,14 @@ Dashboard: KPIs, daily series for the last `range` days (default `7`), what need
   "rows": [{
     "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000,
     "planSet": "free", "plan": { "tier": "free", "premiumUntil": null, "quota": { "used": 3, "limit": 20, "resetsAt": null } },
-    "admin": false, "accounts": 1, "online": 0, "solves7d": 12
+    "admin": false, "accounts": 1, "online": 0, "solves7d": 12,
+    "heardFrom": "reddit", "futYears": "4-7"
   }],
   "total": 2, "page": 1, "pageSize": 25
 }
 ```
 
-`accounts`: EA accounts the user owns; `online`: how many of them have a live session; `solves7d`: solves in the last 7 days.
+`accounts`: EA accounts the user owns; `online`: how many of them have a live session; `solves7d`: solves in the last 7 days. `heardFrom` / `futYears`: onboarding answers, `null` when skipped or not asked yet.
 
 ### `GET /api/admin/users/:id`
 

@@ -31,6 +31,7 @@ import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
 import { QuotaMeter } from './components/QuotaMeter';
 import { ClubSyncModal } from './components/ClubSyncModal';
+import { OnboardingModal } from './components/OnboardingModal';
 import { GalleryInfo } from './components/gallery/GalleryInfo';
 import { PremiumPreview } from './components/PremiumPreview';
 import { DEMO_GALLERY, DEMO_META } from './components/premiumDemo';
@@ -83,6 +84,7 @@ export default function App({
   const [admin, setAdmin] = useState(false);
   const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
+  const [onboarded, setOnboarded] = useState(true); // until /api/me says otherwise
   const [dataVersion, setDataVersion] = useState(0); // bumps when the cache changed (see the status effect)
   const [takenOver, setTakenOver] = useState(false);
   const { signOut } = useClerk();
@@ -195,11 +197,12 @@ export default function App({
 
   // Boot (and after the extension links a new EA account): who am I, which personas are mine.
   const loadMe = useCallback(async () => {
-    const { user, personas, admin, plan: p, prefs: pr } = await api.me();
+    const { user, personas, admin, plan: p, prefs: pr, onboarding } = await api.me();
     setMe(user);
     setAdmin(admin);
     setPlan(p);
     setPrefs(pr);
+    setOnboarded(onboarding.done);
     setLinked(personas);
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
@@ -560,7 +563,15 @@ export default function App({
   };
 
   if (linked === null) return <div className="boot" aria-busy="true" />;
-  if (linked.length === 0) return <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} />;
+  // asked right after sign-up, on the setup screen, or once in the app for older users
+  const survey = <OnboardingModal open={!onboarded && status?.club?.state !== 'running'} onDone={() => setOnboarded(true)} />;
+  if (linked.length === 0)
+    return (
+      <>
+        {survey}
+        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} />
+      </>
+    );
 
   const busy = !!syncing || !!status?.running;
   // the Club button rests a few minutes after the last club load or sync
@@ -657,6 +668,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
   return (
     <div className="app">
       <ClubSyncModal status={status} players={club.length} />
+      {survey /* never on top of a running club sync: that dialog blocks the page */}
       <GalleryInfo open={galleryInfo} onClose={closeGalleryInfo} />
       <header className="topbar">
         <a className="brand" href="/dashboard" aria-label={t('top.home')}>
