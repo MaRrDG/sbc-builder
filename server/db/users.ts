@@ -75,7 +75,7 @@ export async function consumeLinkToken(token: string): Promise<boolean> {
   return done.length > 0;
 }
 
-const planCols = { plan: users.plan, premiumUntil: users.premiumUntil, quotaStart: users.quotaStart, quotaUsed: users.quotaUsed };
+const planCols = { plan: users.plan, premiumUntil: users.premiumUntil, quotaStart: users.quotaStart, quotaUsed: users.quotaUsed, founderAt: users.founderAt };
 
 export async function planRow(userId: string): Promise<PlanRow | null> {
   const [row] = await db.select(planCols).from(users).where(eq(users.id, userId));

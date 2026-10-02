@@ -221,6 +221,7 @@ export interface PlanInfo {
   tier: 'free' | 'premium';
   premiumUntil: number | null;
   quota: Quota | null;
+  founder: boolean;
 }
 
 /** A server error; `code` + `params` let the UI say it in the user's language. */

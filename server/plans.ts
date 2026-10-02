@@ -8,6 +8,7 @@ export interface PlanInfo {
   tier: Tier;
   premiumUntil: number | null;
   quota: Quota | null; // null: Premium, no limit
+  founder: boolean; // Founding 50: Premium for life
 }
 
 // read on use: .env is loaded by initDb(), after this module is imported
@@ -15,11 +16,11 @@ export const limit = () => weeklyLimit(process.env.FREE_WEEKLY_SOLVES);
 
 export function planInfo(row: PlanRow, admin: boolean, now: number): PlanInfo {
   const tier = effectivePlan(row, admin, now);
-  return { tier, premiumUntil: row.premiumUntil?.getTime() ?? null, quota: tier === 'free' ? quotaState(row, limit(), now) : null };
+  return { tier, premiumUntil: row.premiumUntil?.getTime() ?? null, quota: tier === 'free' ? quotaState(row, limit(), now) : null, founder: !!row.founderAt };
 }
 
 export async function planFor(userId: string): Promise<PlanInfo> {
-  const row = (await planRow(userId)) ?? { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0 };
+  const row = (await planRow(userId)) ?? { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0, founderAt: null };
   return planInfo(row, await isAdmin(userId), Date.now());
 }
 
