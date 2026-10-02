@@ -6,6 +6,7 @@ import { Overview } from './Overview';
 import { UsersTable } from './UsersTable';
 import { UserDetail } from './UserDetail';
 import { AccountsTable } from './AccountsTable';
+import { CodesTable } from './CodesTable';
 
 type AdminR = Extract<Route, { view: 'admin' }>;
 export interface AdminProps { route: AdminR; navigate: (r: Route, replace?: boolean) => void }
@@ -22,6 +23,7 @@ export function AdminLayout({ route, navigate }: AdminProps) {
       {route.page === 'overview' && <Overview route={route} navigate={navigate} />}
       {route.page === 'users' && <UsersTable route={route} navigate={navigate} />}
       {route.page === 'user' && <UserDetail key={route.userId ?? ''} route={route} navigate={navigate} />}
+      {route.page === 'codes' && <CodesTable />}
       {route.page === 'accounts' && <AccountsTable route={route} navigate={navigate} />}
     </section>
   );

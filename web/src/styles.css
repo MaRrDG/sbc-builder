@@ -4091,3 +4091,10 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .invite-options { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
 .invite-options li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .invite-gifts { list-style: none; padding: 0; display: grid; gap: 4px; }
+
+.adm-codes-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; align-items: end; margin-top: 12px; }
+.adm-codes-form label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }
+.adm-codes-form input:not([type='checkbox']) { height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg-0); color: var(--ink); }
+.adm-codes-form .adm-check { display: flex; align-items: center; gap: 8px; height: 36px; }
+.adm-codes-new > summary { cursor: pointer; font-weight: 600; }
+.adm-uses { margin: 0; padding-left: 18px; color: var(--ink-2); }

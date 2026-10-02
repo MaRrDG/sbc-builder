@@ -77,3 +77,8 @@ test('canonicalPath ignores the admin query', () => {
 test('a malformed %-escape in the admin user id falls back to the raw segment, never throws', () => {
   assert.deepEqual(parseRoute('/dashboard/admin/users/user_%E0%A4%A'), adminRoute('user', { userId: 'user_%E0%A4%A' }));
 });
+
+test('admin codes route', () => {
+  assert.deepEqual(parseRoute('/dashboard/admin/codes'), adminRoute('codes'));
+  assert.equal(routePath(adminRoute('codes')), '/dashboard/admin/codes');
+});

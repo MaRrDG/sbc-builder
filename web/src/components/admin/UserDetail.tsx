@@ -93,6 +93,17 @@ export function UserDetail({ route, navigate }: AdminProps) {
         <dl className="adm-dl">
           <dt>{t('admin.users.col.joined')}</dt><dd>{new Date(d.user.createdAt).toLocaleString()}</dd>
           <dt>{t('admin.users.col.seen')}</dt><dd>{ago(d.user.lastSeenAt)}</dd>
+          <dt>{t('admin.user.points')}</dt><dd>{d.referral.points}</dd>
+          <dt>{t('admin.user.invitedBy')}</dt>
+          <dd>
+            {d.referral.invitedBy ? (
+              <a href={routePath(adminRoute('user', { userId: d.referral.invitedBy.id }))} onClick={(e) => (e.preventDefault(), navigate(adminRoute('user', { userId: d.referral.invitedBy!.id })))}>
+                {d.referral.invitedBy.email || d.referral.invitedBy.id}
+              </a>
+            ) : '—'}
+          </dd>
+          <dt>{t('admin.user.invited')}</dt><dd>{d.referral.invited}</dd>
+          <dt>{t('admin.user.inviteCode')}</dt><dd>{d.referral.inviteCode ? <code>{d.referral.inviteCode}</code> : '—'}</dd>
         </dl>
       </section>
 
