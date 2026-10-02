@@ -906,6 +906,8 @@ export const it: Record<Keys, string> = {
   'invite.giftMade': 'Codice regalo {code} per {days} giorni. Invialo a un amico.',
   'invite.gifts': 'I tuoi codici regalo',
   'invite.giftUsed': 'usato',
+  'invite.giftDays_one': '{count} giorno',
+  'invite.giftDays_other': '{count} giorni',
   'invite.giftFree': 'non ancora usato',
   'invite.haveCode': 'Hai un codice?',
   'err.pointsLow': 'Punti insufficienti.',

@@ -91,7 +91,7 @@ export default function App({
   const [onboarded, setOnboarded] = useState(true); // until /api/me says otherwise
   const [dataVersion, setDataVersion] = useState(0); // bumps when the cache changed (see the status effect)
   const [takenOver, setTakenOver] = useState(false);
-  const [reward, setReward] = useState<string | null>(null); // notice after linking an EA account gave Premium
+  const [reward, setReward] = useState<'founder' | 'invite' | null>(null); // notice after linking an EA account gave Premium
   const prevPlan = useRef<PlanInfo | null>(null);
   const justLinked = useRef(false);
   const { signOut } = useClerk();
@@ -209,8 +209,8 @@ export default function App({
     setAdmin(admin);
     const prev = prevPlan.current;
     if (prev && justLinked.current) {
-      if (!prev.founder && p.founder) setReward(t('notice.founder'));
-      else if (p.premiumUntil !== null && Math.abs(p.premiumUntil - (prev.premiumUntil ?? Date.now()) - 7 * 864e5) < 6 * 36e5) setReward(t('notice.invite'));
+      if (!prev.founder && p.founder) setReward('founder');
+      else if (p.premiumUntil !== null && Math.abs(p.premiumUntil - (prev.premiumUntil ?? Date.now()) - 7 * 864e5) < 6 * 36e5) setReward('invite');
     }
     justLinked.current = false;
     prevPlan.current = p;
@@ -226,7 +226,7 @@ export default function App({
       setMeta(await api.meta());
     } else if (pick.personaId !== activeIdRef.current) await selectAccount(pick.personaId);
     return personas;
-  }, [selectAccount, t]);
+  }, [selectAccount]);
 
   useEffect(() => {
     let cancelled = false; // StrictMode runs this twice; only the live run may select
@@ -759,7 +759,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
 
       {reward && (
         <div className="notice info" role="status">
-          {reward}{' '}
+          {reward === 'founder' ? t('notice.founder') : t('notice.invite')}{' '}
           <button type="button" className="text" onClick={() => setReward(null)}>
             {t('code.dismiss')}
           </button>
