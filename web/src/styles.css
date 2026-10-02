@@ -17,6 +17,7 @@
   --go: oklch(0.84 0.17 163);
   --go-ink: oklch(0.22 0.05 165);
   --pos: oklch(0.86 0.16 88);
+  --gold: oklch(0.8 0.13 72);
   --bad: oklch(0.7 0.18 25);
 
   --r-ctl: 8px;
@@ -4082,3 +4083,11 @@ a.adm-kpi:hover { background: var(--surface-2); }
   font-weight: 600;
   text-align: right;
 }
+
+/* Invites + Founder badge */
+.founder-badge { display: inline-flex; align-items: center; margin-inline-start: 8px; padding: 2px 8px; border-radius: var(--r-ctl); font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border: 1px solid currentColor; color: var(--gold); }
+.invite-code { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.code-chip { font-family: var(--font-num); font-size: 1.15rem; letter-spacing: 0.12em; padding: 2px 8px; border-radius: var(--r-ctl); background: var(--surface-2); }
+.invite-options { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
+.invite-options li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.invite-gifts { list-style: none; padding: 0; display: grid; gap: 4px; }

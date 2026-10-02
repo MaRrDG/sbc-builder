@@ -5,8 +5,9 @@ import { GearSix, SignOut } from '@phosphor-icons/react';
 import type { Account } from '../api';
 import { useI18n } from '../i18n';
 
-export function AccountMenu({ email, personas, active, onSelect, onSettings, onSignOut }: {
+export function AccountMenu({ email, founder, personas, active, onSelect, onSettings, onSignOut }: {
   email: string;
+  founder: boolean;
   personas: Account[];
   active: Account | null;
   onSelect: (personaId: number) => void;
@@ -53,7 +54,12 @@ export function AccountMenu({ email, personas, active, onSelect, onSettings, onS
       </button>
       {open && (
         <div className="account-pop" id={popId} role="dialog" aria-label={t('account.menu')}>
-          {email && <p className="account-pop-email">{email}</p>}
+          {(email || founder) && (
+            <p className="account-pop-email">
+              {email}
+              {founder && <span className="founder-badge">{t('plan.founder')}</span>}
+            </p>
+          )}
           {active && (
             <div className="account-pop-ea">
               <span className="account-pop-label">

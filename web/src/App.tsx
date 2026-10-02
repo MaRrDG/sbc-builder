@@ -27,6 +27,7 @@ import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
+import { InviteCard } from './components/InviteCard';
 import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
 import { QuotaMeter } from './components/QuotaMeter';
@@ -90,6 +91,9 @@ export default function App({
   const [onboarded, setOnboarded] = useState(true); // until /api/me says otherwise
   const [dataVersion, setDataVersion] = useState(0); // bumps when the cache changed (see the status effect)
   const [takenOver, setTakenOver] = useState(false);
+  const [reward, setReward] = useState<string | null>(null); // notice after linking an EA account gave Premium
+  const prevPlan = useRef<PlanInfo | null>(null);
+  const justLinked = useRef(false);
   const { signOut } = useClerk();
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -203,6 +207,13 @@ export default function App({
     const { user, personas, admin, plan: p, prefs: pr, onboarding } = await api.me();
     setMe(user);
     setAdmin(admin);
+    const prev = prevPlan.current;
+    if (prev && justLinked.current) {
+      if (!prev.founder && p.founder) setReward(t('notice.founder'));
+      else if (p.premiumUntil !== null && Math.abs(p.premiumUntil - (prev.premiumUntil ?? Date.now()) - 7 * 864e5) < 6 * 36e5) setReward(t('notice.invite'));
+    }
+    justLinked.current = false;
+    prevPlan.current = p;
     setPlan(p);
     setPrefs(pr);
     setOnboarded(onboarding.done);
@@ -215,7 +226,7 @@ export default function App({
       setMeta(await api.meta());
     } else if (pick.personaId !== activeIdRef.current) await selectAccount(pick.personaId);
     return personas;
-  }, [selectAccount]);
+  }, [selectAccount, t]);
 
   useEffect(() => {
     let cancelled = false; // StrictMode runs this twice; only the live run may select
@@ -229,7 +240,10 @@ export default function App({
     };
   }, [loadMe]);
 
-  const onLinked = useCallback(() => void migrateLegacyKeys().then(loadMe), [loadMe]);
+  const onLinked = useCallback(() => {
+    justLinked.current = true;
+    void migrateLegacyKeys().then(loadMe);
+  }, [loadMe]);
   useExtensionLink(true, onLinked);
 
   // the persona was disconnected or taken over elsewhere: reload who we are
@@ -686,6 +700,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           {controls}
           <AccountMenu
             email={me?.email ?? ''}
+            founder={!!effectivePlan?.founder}
             personas={linked}
             active={account}
             onSelect={(id) => {
@@ -739,6 +754,15 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
       {!!status?.unassigned && (
         <div className="notice info">
           {t('notice.unassigned', { count: status.unassigned })}
+        </div>
+      )}
+
+      {reward && (
+        <div className="notice info" role="status">
+          {reward}{' '}
+          <button type="button" className="text" onClick={() => setReward(null)}>
+            {t('code.dismiss')}
+          </button>
         </div>
       )}
 
@@ -908,6 +932,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                 </div>
                 <div className="settings-side">
                 <PlanCard plan={effectivePlan} now={now} />
+                {effectivePlan && <InviteCard plan={effectivePlan} founders={founders} onPlanChange={() => void loadMe()} />}
                 {prefs && <EmailAlertsCard premium={premium} prefs={prefs} onChange={setPrefs} />}
                 <AccountCard email={me?.email ?? ''} personas={linked} onUnlink={unlink} onSignOut={doSignOut} />
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
