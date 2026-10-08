@@ -12,6 +12,9 @@ import { requireAdmin } from './auth.js';
 import { invalidateAccountRows, listAccountsPage } from './accounts.js';
 import { parsePromo } from '../referrals.js';
 import { codeDetail, createPromo, listCodes, setDisabled } from './codes.js';
+import { adminDay, adminLeaderboard } from './daily.js';
+import { clearUsername } from '../db/dailyProfile.js';
+import { invalidateLeaderboard } from '../daily/service.js';
 import { overview } from './overview.js';
 import { clampPage, PAGE_SIZE, parseAccountQuery, parsePage, parseRange, parseUserQuery } from './query.js';
 import { listUsers, userDetail } from './users.js';
@@ -110,6 +113,21 @@ export function registerAdminRoutes(app: FastifyInstance) {
     if (typeof userId !== 'string') return reply.code(400).send({ error: 'invalid payload' });
     if (!(await resetQuota(userId))) return reply.code(404).send({ error: 'unknown user', code: 'unknownUser', params: {} });
     invalidateAccountRows();
+    return { ok: true };
+  });
+
+  app.get<Q>('/api/admin/daily', async (req) => {
+    await requireAdmin(req);
+    return adminDay(req.query.day);
+  });
+  app.get('/api/admin/daily/leaderboard', async (req) => {
+    await requireAdmin(req);
+    return adminLeaderboard();
+  });
+  app.post<{ Params: { id: string } }>('/api/admin/daily/users/:id/clear-username', async (req, reply) => {
+    await requireAdmin(req);
+    if (!(await clearUsername(req.params.id))) return reply.code(404).send({ error: 'unknown user', code: 'unknownUser', params: {} });
+    invalidateLeaderboard();
     return { ok: true };
   });
 }

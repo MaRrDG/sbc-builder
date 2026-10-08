@@ -8,11 +8,13 @@ import { join } from 'node:path';
 import { SessionError } from '../ea.js';
 import { DATA_DIR } from '../store.js';
 import { lastSbcDrop } from '../sync.js';
-import { answerFor, answersSince, firstAnswer, guessDaily, insertAnswer, playOf, playsOf } from '../db/daily.js';
+import { answerFor, answersSince, firstAnswer, guessDaily, insertAnswer, playOf, playsOf, recordAnonGuess } from '../db/daily.js';
+import { leaderboardSource, profileOf } from '../db/dailyProfile.js';
 import { dayFor, dropDate, nextDropAfter, staleDay } from './day.js';
 import { applyGuess, gameView, progressOf, type GameView, type GuessRow, type Silhouette, type Answer } from './game.js';
 import { RECENT_DAYS, poolOf } from './pool.js';
-import { loadPlayers, playerById, playerRows } from './store.js';
+import { rankLeaderboard, type LbRow } from './leaderboard.js';
+import { loadPlayers, namesList, playerById, playerRows } from './store.js';
 import { statsOf, type Stats } from './streak.js';
 import { openPractice, sealPractice, signState, verifyState } from './tokens.js';
 import type { PlayerRow } from './types.js';
@@ -98,11 +100,24 @@ const result = (view: GameView, extra: Partial<GuessResult> = {}): GuessResult =
 
 export async function dailyInfo(userId: string | null) {
   const t = await todayGame();
-  const base = { day: t.day, date: t.date, nextAt: t.nextAt, maxGuesses: 5 as const, signedIn: !!userId };
+  await loadPlayers();
+  const base = { day: t.day, date: t.date, nextAt: t.nextAt, maxGuesses: 5 as const, signedIn: !!userId, players: namesList().players.length };
   if (!userId) return base;
   const guesses = await playOf(userId, t.day);
   const view = gameView(progressOf(guesses, t.answer.assetId), t.answer, playerById);
-  return { ...base, game: { ...view, stats: statsOf(await playsOf(userId), t.day) } };
+  return { ...base, me: await profileOf(userId), game: { ...view, stats: statsOf(await playsOf(userId), t.day) } };
+}
+
+let lbCache: { at: number; rows: LbRow[] } | null = null;
+export const invalidateLeaderboard = () => { lbCache = null; };
+
+export async function publicLeaderboard(userId: string | null) {
+  const t = await todayGame();
+  if (!lbCache || Date.now() - lbCache.at > 60_000)
+    lbCache = { at: Date.now(), rows: rankLeaderboard((await leaderboardSource(false)).map((s) => ({ userId: s.userId, username: s.username!, plays: s.plays })), t.day) };
+  const pub = (r: LbRow) => ({ rank: r.rank, username: r.username, wins: r.wins, played: r.played, winPct: r.winPct, avgGuesses: r.avgGuesses, streak: r.streak });
+  const mine = userId ? lbCache.rows.find((r) => r.userId === userId) : undefined;
+  return { rows: lbCache.rows.slice(0, 50).map(pub), me: mine ? { ...pub(mine), inTop: mine.rank <= 50 } : null, total: lbCache.rows.length };
 }
 
 export async function guessToday(userId: string | null, assetId: number, state: unknown, day?: unknown): Promise<GuessResult> {
@@ -124,6 +139,9 @@ export async function guessToday(userId: string | null, assetId: number, state: 
   if (!s) throw err('dailyExpired', 409, 'This game has expired.');
   const p = applyGuess(s.g, assetId, a, known);
   if ('error' in p) throw guessError(p.error);
+  // a counter failure never fails the guess
+  await recordAnonGuess(t.day, assetId, p.finished ? { won: p.won, guesses: p.guesses.length } : null)
+    .catch((e) => console.warn('[daily] anon count failed:', (e as Error).message));
   return result(gameView(p, t.answer, playerById), { state: signState(await dailySecret(), { k, g: p.guesses }) });
 }
 

@@ -1,16 +1,19 @@
 // server/daily/routes.ts
 // Public Daily game endpoints (docs/api.md). Signed in only adds saved state, stats and points.
 import type { FastifyInstance } from 'fastify';
-import { optionalSiteUser } from '../auth.js';
+import { optionalSiteUser, siteUser } from '../auth.js';
+import { updateProfile } from '../db/dailyProfile.js';
 import { SessionError } from '../ea.js';
 import { createLimiter } from '../limits.js';
 import { requestOrigin } from '../extension.js';
 import { publicOrigin } from '../origins.js';
-import { dailyInfo, guessPractice, guessToday, newPractice } from './service.js';
+import { dailyInfo, guessPractice, guessToday, invalidateLeaderboard, newPractice, publicLeaderboard } from './service.js';
+import { normalizeUsername } from './username.js';
 import { loadPlayers, namesList } from './store.js';
 
 const BOOT = Date.now().toString(36);
-const guessLimit =createLimiter({ windowMs: 60_000, max: 40 });
+const guessLimit = createLimiter({ windowMs: 60_000, max: 40 });
+const profileLimit = createLimiter({ windowMs: 60_000, max: 20 });
 const tooMany = () => new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
 const assetIdOf = (b: unknown) => {
   const v = (b as { assetId?: unknown } | null)?.assetId;
@@ -48,5 +51,31 @@ export function registerDailyRoutes(app: FastifyInstance) {
   app.post<{ Body: { token?: unknown; assetId?: unknown; state?: unknown } }>('/api/daily/practice/guess', async (req) => {
     if (!guessLimit(req.ip)) throw tooMany();
     return guessPractice(req.body?.token, assetIdOf(req.body), req.body?.state);
+  });
+
+  app.get('/api/daily/leaderboard', async (req, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return publicLeaderboard(await optionalSiteUser(req));
+  });
+
+  app.put<{ Body: { username?: unknown; leaderboard?: unknown; asked?: unknown } }>('/api/me/daily-profile', async (req) => {
+    const userId = await siteUser(req);
+    if (!profileLimit(req.ip)) throw tooMany();
+    const b = req.body ?? {};
+    let username: string | undefined;
+    if (b.username !== undefined) {
+      const n = normalizeUsername(b.username);
+      if (!n) throw new SessionError('Pick 3-16 letters, digits, _ . or -.', 400, 'usernameInvalid');
+      username = n;
+    }
+    const r = await updateProfile(userId, {
+      username,
+      leaderboard: typeof b.leaderboard === 'boolean' ? b.leaderboard : undefined,
+      asked: b.asked === true ? true : undefined,
+    });
+    if (r === 'usernameTaken') throw new SessionError('That username is taken.', 409, 'usernameTaken');
+    if (r === 'usernameRequired') throw new SessionError('Pick a username first.', 400, 'usernameRequired');
+    invalidateLeaderboard();
+    return r;
   });
 }
