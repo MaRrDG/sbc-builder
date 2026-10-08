@@ -681,7 +681,7 @@
   padding: 0 12px;
   border: 1px solid var(--line);
   border-radius: var(--r-ctl);
-  background: oklch(0.17 0.025 222);
+  background: var(--bg-0);
   font-size: 16px; /* no iOS zoom on focus */
 }
 .dg-uname input:hover { border-color: var(--ink-3); }
