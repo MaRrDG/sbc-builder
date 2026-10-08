@@ -39,9 +39,10 @@ export function roleSlots(c: Condition, slotTypes: number[]): number[] {
 }
 
 /** The club as a playing squad sees it: storage is out, loans are in, the user's exclusions apply. */
-export function playPool(players: Player[], o: { excludeIds: number[]; maxRating: number }): Player[] {
+/** Who may play: club players (no storage), not excluded, not over max OVR; loans only when asked (they run out). */
+export function playPool(players: Player[], o: { excludeIds: number[]; maxRating: number; includeLoans?: boolean }): Player[] {
   const excluded = new Set(o.excludeIds);
-  return players.filter((p) => !p.inStorage && !excluded.has(p.id) && p.rating <= o.maxRating);
+  return players.filter((p) => !p.inStorage && !excluded.has(p.id) && p.rating <= o.maxRating && (o.includeLoans || !p.isLoan));
 }
 
 type Chem = ReturnType<typeof playerChem>;

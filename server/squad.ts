@@ -41,6 +41,13 @@ export interface Player {
   weakFoot: number;
   foot: 'Right' | 'Left';
   inStorage?: boolean; // in SBC storage, not in the club
+  /** matches left on a match loan (EA loansInfo MATCH_LOAN); absent otherwise */
+  loanMatches?: number;
+}
+
+/** Matches left on a loan, only when EA counts it in matches. */
+export function loanMatches(info: { loanType: string; loanValue: number } | null | undefined): number | undefined {
+  return info?.loanType === 'MATCH_LOAN' ? info.loanValue : undefined;
 }
 
 export function toPlayer(i: ClubItem, meta: Meta): Player {
@@ -64,6 +71,7 @@ export function toPlayer(i: ClubItem, meta: Meta): Player {
     groups: i.groups ?? [],
     state: i.itemState,
     isLoan: !!i.loansInfo,
+    ...(loanMatches(i.loansInfo) !== undefined ? { loanMatches: loanMatches(i.loansInfo) } : {}),
     guidAssetId: i.guidAssetId,
     minPrice: i.marketDataMinPrice ?? 0,
     fullName: meta.players[i.assetId]?.full ?? '',

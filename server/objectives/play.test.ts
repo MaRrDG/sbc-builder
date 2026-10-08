@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { loanMatches } from '../squad.js';
 import { matchesFilter, roleSlots, playPool, checkCovers, diagnosePlay, buildPlayProblem } from './play.js';
 import type { Player } from '../squad.js';
 import type { Condition } from './types.js';
@@ -41,14 +42,23 @@ test('roleSlots: score, assist, named position, xi', () => {
   assert.deepEqual(roleSlots(c('xi', {}), F433), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });
 
-test('playPool keeps loans, drops storage, exclusions and players over max OVR', () => {
+test('playPool drops loans by default, storage, exclusions and players over max OVR; keeps loans with includeLoans', () => {
   const loan = pl({ isLoan: true });
   const stored = pl({ inStorage: true });
   const excluded = pl();
   const tooGood = pl({ rating: 95 });
   const ok = pl();
-  const pool = playPool([loan, stored, excluded, tooGood, ok], { excludeIds: [excluded.id], maxRating: 90 });
-  assert.deepEqual(pool.map((p) => p.id), [loan.id, ok.id]);
+  const all = [loan, stored, excluded, tooGood, ok];
+  assert.deepEqual(playPool(all, { excludeIds: [excluded.id], maxRating: 90 }).map((p) => p.id), [ok.id]);
+  assert.deepEqual(playPool(all, { excludeIds: [excluded.id], maxRating: 90, includeLoans: false }).map((p) => p.id), [ok.id]);
+  assert.deepEqual(playPool(all, { excludeIds: [excluded.id], maxRating: 90, includeLoans: true }).map((p) => p.id), [loan.id, ok.id]);
+});
+
+test('loanMatches: remaining matches only for match loans', () => {
+  assert.equal(loanMatches({ loanType: 'MATCH_LOAN', loanValue: 5 }), 5);
+  assert.equal(loanMatches({ loanType: 'TIME_LOAN', loanValue: 3 }), undefined);
+  assert.equal(loanMatches(null), undefined);
+  assert.equal(loanMatches(undefined), undefined);
 });
 
 test('checkCovers: met only when enough matching players sit in the role slots', () => {

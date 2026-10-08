@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Challenge, Meta, Player, SolveResult } from '../api';
-import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin, Prohibit, Target } from '@phosphor-icons/react';
+import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin, Prohibit, Target, HourglassMedium } from '@phosphor-icons/react';
 import { BrickCard, Card, EmptyCard } from './Card';
 import { useI18n } from '../i18n';
 
@@ -151,9 +151,11 @@ interface Props {
   badges?: Map<number, string>;
   /** show the Options / Solve corner buttons; default true (screens with their own solve action hide them) */
   corners?: boolean;
+  /** tag loan players (icon + "Loan", matches left when EA counts them); default false */
+  loanBadge?: boolean;
 }
 
-export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, marked, cheaper = true, badges, corners = true }: Props) {
+export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, marked, cheaper = true, badges, corners = true, loanBadge = false }: Props) {
   const { t } = useI18n();
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
@@ -228,6 +230,12 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
               {player && badges?.has(player.id) && !solving && (
                 <span className="slot-badge" title={badges.get(player.id)}>
                   <Target weight="bold" aria-label={badges.get(player.id)} />
+                </span>
+              )}
+              {loanBadge && player?.isLoan && !solving && (
+                <span className="slot-loan">
+                  <HourglassMedium weight="bold" aria-hidden="true" />
+                  {player.loanMatches !== undefined ? t('pitch.loanMatches', { count: player.loanMatches }) : t('pitch.loan')}
                 </span>
               )}
               {brick ? (

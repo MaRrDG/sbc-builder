@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { awardText, conditionLabel, doneKey, formationKey, pruneManual, formationLabel, isStale, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups } from './objectives.js';
+import { awardText, conditionLabel, doneKey, loansKey, formationKey, pruneManual, formationLabel, isStale, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups } from './objectives.js';
 
 const meta = { names: { nation: { 34: 'Netherlands' }, league: { 10: 'Eredivisie' }, club: {}, rarity: { 151: 'Ultimate Scream' } } };
 const t = (k: string, p?: Record<string, unknown>) => `${k}${p ? JSON.stringify(p) : ''}`;
@@ -27,6 +27,7 @@ test('storage keys are per persona and keep the sbc- prefix', () => {
   assert.equal(resultKey(7), 'sbc-objectives-result-7');
   assert.equal(formationKey(7), 'sbc-objectives-formation-7');
   assert.equal(doneKey(7), 'sbc-objectives-done-7');
+  assert.equal(loansKey(7), 'sbc-objectives-loans-7');
 });
 
 test('formationLabel reads like the web app: dashes, variants numbered', () => {
@@ -50,6 +51,11 @@ test('isStale compares the last solve with the current ticks and formation', () 
   assert.equal(isStale({ picked: [1, 2], formation: 'f433' }, [1, 2], 'f442'), true);
   // a save from before picks were stored: unknown, so no hint
   assert.equal(isStale({ formation: 'f433' }, [1], 'f433'), false);
+  // the loan setting counts too; saves from before it was stored are not judged on it
+  assert.equal(isStale({ picked: [1], formation: 'f433', loans: false }, [1], 'f433', true), true);
+  assert.equal(isStale({ picked: [1], formation: 'f433', loans: true }, [1], 'f433', true), false);
+  assert.equal(isStale({ picked: [1], formation: 'f433', loans: false }, [1], 'f433'), false);
+  assert.equal(isStale({ picked: [1], formation: 'f433' }, [1], 'f433', true), false);
 });
 
 test('reachableStep: deep links fall back to the earliest incomplete step', () => {
