@@ -813,6 +813,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'obj.find': 'Găsește echipa',
   'obj.solving': 'Se face echipa…',
   'obj.resultTitle': 'Echipa ta',
+  'obj.rewards': 'Recompense: {list}',
+  'obj.stale': 'Neactualizat: ai schimbat bifele sau formația. Caută echipa din nou.',
   'obj.met': 'Acoperit',
   'obj.notMet': 'Neacoperit',
   'obj.reason.noMatch': 'Nimeni din clubul tău nu poate face asta: {what}',

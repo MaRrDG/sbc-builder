@@ -1,5 +1,5 @@
 // Pure helpers for the Objectives screen.
-import type { Meta, ObjCondition } from '../../api';
+import type { Meta, ObjAward, ObjCondition } from '../../api';
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
 
@@ -29,6 +29,21 @@ export function formationLabel(f: string): string {
   if (!m) return f;
   const base = m[1].split('').join('-');
   return m[2] ? `${base} (${m[2].charCodeAt(0) - 95})` : base;
+}
+
+/** A reward as EA words it; without EA's description, its value and type ("500 coins"). */
+export function awardText(a: ObjAward): string {
+  const d = a.itemDataReduced?.description?.trim();
+  return d || `${a.value} ${a.awardType}`;
+}
+
+/** The shown answer was solved for other ticks or another formation. Saves without `picked` are not judged. */
+export function isStale(last: { picked?: number[]; formation: string }, active: number[], formation: string): boolean {
+  if (!last.picked) return false;
+  if (last.formation !== formation) return true;
+  const a = [...last.picked].sort((x, y) => x - y);
+  const b = [...active].sort((x, y) => x - y);
+  return a.length !== b.length || a.some((x, i) => x !== b[i]);
 }
 
 export const pickKey = (personaId: number) => `sbc-objectives-pick-${personaId}`;

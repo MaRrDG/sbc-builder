@@ -2,16 +2,30 @@
 // club that covers their squad conditions. Objective names / texts and player / nation / league names
 // are EA's; only our own labels are translated.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowsClockwise, CheckCircle, CheckSquare, HandPointing, SoccerBall, Square, UsersThree, Warning, XCircle } from '@phosphor-icons/react';
-import { api, ApiError, type Challenge, type Meta, type ObjCondition, type Player, type ObjectiveGroupView, type ObjectivesResponse, type ObjectivesSolve, type SolveResult } from '../../api';
+import { ArrowsClockwise, CheckCircle, CheckSquare, Gift, HandPointing, SoccerBall, Square, UsersThree, Warning, XCircle } from '@phosphor-icons/react';
+import { api, ApiError, type Challenge, type Meta, type ObjAward, type ObjCondition, type Player, type ObjectiveGroupView, type ObjectivesResponse, type ObjectivesSolve, type SolveResult } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
 import { errorText } from '../../messages';
 import { Pitch } from '../Pitch';
-import { conditionLabel, formationLabel, pickKey, resultKey, timeLeft } from './objectives';
+import { awardText, conditionLabel, formationLabel, isStale, pickKey, resultKey, timeLeft } from './objectives';
 
 const ROLE_ICON = { score: SoccerBall, assist: HandPointing, xi: UsersThree } as const;
 const NO_IDS = new Set<number>();
 const NO_PLACED = new Map<number, Player>();
+
+/** The last answer plus the ticks it was solved for (saves from before this have no `picked`). */
+type Saved = ObjectivesSolve & { picked?: number[] };
+
+/** EA's reward texts as sent, in one quiet line. */
+function Rewards({ awards }: { awards: ObjAward[] }) {
+  const { t } = useI18n();
+  if (!awards.length) return null;
+  return (
+    <p className="obj-rewards">
+      <Gift weight="bold" aria-hidden="true" /> {t('obj.rewards', { list: awards.map(awardText).join(', ') })}
+    </p>
+  );
+}
 
 function readJson<T>(key: string, fallback: T): T {
   try {
@@ -46,6 +60,7 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now }: {
                 {g.category}
                 {left ? ` · ${t('obj.timeLeft', { days: left.days, hours: left.hours })}` : ''}
               </p>
+              <Rewards awards={g.awards} />
             </header>
             <ul className="obj-list">
               {g.objectives.map((o) => {
@@ -62,6 +77,7 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now }: {
                       <span className="obj-progress">{o.progress}/{o.target}</span>
                     </button>
                     <p className="obj-desc" id={`obj-desc-${o.id}`}>{o.description}</p>
+                    <Rewards awards={o.awards} />
                     {can ? (
                       <ul className="obj-pills">
                         {o.conditions.map((c, k) => {
@@ -98,8 +114,8 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   const [tries, setTries] = useState(0);
   const [picked, setPicked] = useState<number[]>(() => readJson(pickKey(personaId), []));
   const [chosen, setChosen] = useState('');
-  const [result, setResult] = useState<ObjectivesSolve | null>(() => {
-    const r = readJson<ObjectivesSolve | null>(resultKey(personaId), null);
+  const [result, setResult] = useState<Saved | null>(() => {
+    const r = readJson<Saved | null>(resultKey(personaId), null);
     return r && Array.isArray(r.slots) && Array.isArray(r.covers) && Array.isArray(r.reasons) ? r : null; // ignore a damaged save
   });
   const [solving, setSolving] = useState(false);
@@ -119,8 +135,9 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       },
       (e) => {
         if (!alive) return;
+        // persona errors also go to App (reloads who we are); either way the loading state ends
         if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onErrorRef.current(e);
-        else setLoadError(e); // shown in place with "Try again"
+        setLoadError(e); // shown in place with "Try again"
       },
     );
     return () => {
@@ -143,8 +160,9 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
     setSolving(true);
     try {
       const r = await api.solveObjectives({ objectiveIds: active, formation, options: { excludeIds, maxRating } });
-      setResult(r);
-      writeJson(resultKey(personaId), r);
+      const saved: Saved = { ...r, picked: active };
+      setResult(saved);
+      writeJson(resultKey(personaId), saved);
       const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }));
     } catch (e) {
@@ -225,6 +243,11 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       {showPitch && (
         <div className="obj-result" ref={resultRef}>
           <h2>{t('obj.resultTitle')}</h2>
+          {shown && isStale(shown, active, formation) && (
+            <p className="muted obj-stale" role="status">
+              <ArrowsClockwise weight="bold" aria-hidden="true" /> {t('obj.stale')}
+            </p>
+          )}
           <div className="obj-pitch">
             <Pitch
               meta={meta}

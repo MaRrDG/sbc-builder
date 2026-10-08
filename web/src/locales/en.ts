@@ -794,6 +794,8 @@ export const en = {
   'obj.find': 'Find squad',
   'obj.solving': 'Building squad…',
   'obj.resultTitle': 'Your squad',
+  'obj.rewards': 'Rewards: {list}',
+  'obj.stale': 'Out of date: your ticks or formation changed. Find squad again.',
   'obj.met': 'Covered',
   'obj.notMet': 'Not covered',
   'obj.reason.noMatch': 'Nobody in your club can do this: {what}',

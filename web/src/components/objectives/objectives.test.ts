@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { conditionLabel, formationLabel, timeLeft, pickKey, resultKey } from './objectives.js';
+import { awardText, conditionLabel, formationLabel, isStale, timeLeft, pickKey, resultKey } from './objectives.js';
 
 const meta = { names: { nation: { 34: 'Netherlands' }, league: { 10: 'Eredivisie' }, club: {}, rarity: { 151: 'Ultimate Scream' } } };
 const t = (k: string, p?: Record<string, unknown>) => `${k}${p ? JSON.stringify(p) : ''}`;
@@ -33,4 +33,19 @@ test('formationLabel reads like the web app: dashes, variants numbered', () => {
   assert.equal(formationLabel('f433c'), '4-3-3 (4)');
   assert.equal(formationLabel('f41212'), '4-1-2-1-2');
   assert.equal(formationLabel('weird'), 'weird');
+});
+
+test('awardText uses EA text as sent, else value + awardType', () => {
+  assert.equal(awardText({ value: 1, awardType: 'item', itemDataReduced: { description: 'Meerveld Player Item' } }), 'Meerveld Player Item');
+  assert.equal(awardText({ value: 500, awardType: 'coins' }), '500 coins');
+  assert.equal(awardText({ value: 1, awardType: 'pack', itemDataReduced: { description: '  ' } }), '1 pack');
+  assert.equal(awardText({ value: 1, awardType: 'pack', itemDataReduced: null }), '1 pack');
+});
+
+test('isStale compares the last solve with the current ticks and formation', () => {
+  assert.equal(isStale({ picked: [2, 1], formation: 'f433' }, [1, 2], 'f433'), false);
+  assert.equal(isStale({ picked: [1], formation: 'f433' }, [1, 2], 'f433'), true);
+  assert.equal(isStale({ picked: [1, 2], formation: 'f433' }, [1, 2], 'f442'), true);
+  // a save from before picks were stored: unknown, so no hint
+  assert.equal(isStale({ formation: 'f433' }, [1], 'f433'), false);
 });
