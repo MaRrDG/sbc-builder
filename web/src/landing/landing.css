@@ -148,8 +148,8 @@
 @media (max-width: 1180px) {
   .lp-top .lang-name,
   .lp-signin { display: none; }
-  .lp-nav { margin-left: 12px; }
-  .lp-nav a { padding-inline: 8px; }
+  .lp-nav { gap: 0; margin-left: 8px; }
+  .lp-nav a { padding-inline: 6px; }
 }
 @media (max-width: 860px) {
   .lp-nav { display: none; }
@@ -522,51 +522,53 @@
   background: var(--surface);
 }
 .lp-obj-rows { margin: 0; padding: 6px 16px; list-style: none; }
-.lp-obj-rows li { display: grid; grid-template-columns: 20px minmax(0, 1fr) 24px; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.4; }
+.lp-obj-rows li { display: grid; grid-template-columns: 22px minmax(0, 1fr) 24px; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.4; }
 .lp-obj-rows li:first-child { border-top: 0; }
-.lp-obj-icon { width: 20px; height: 20px; color: var(--ink-2); }
+/* the number a row shares with the card that covers it (the link is never colour alone) */
+.lp-obj-num {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--ink-3);
+  border-radius: 50%;
+  background: var(--bg-0);
+  color: var(--ink);
+  font: 700 13px/1 var(--font-num);
+}
 /* the empty ring stays; the green tick pops into it */
 .lp-obj-box { display: grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--ink-3); border-radius: 50%; }
 .lp-obj-tick { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--go); color: var(--go-ink); font-size: 14px; }
 
-/* flat pitch, attack at the top */
+/* flat pitch, attack at the top, the demo squad's real cards */
 .lp-obj-pitch {
-  --hit-w: clamp(38px, 11cqi, 60px);
+  --card-w: clamp(40px, 11.5cqi, 66px);
   position: relative;
-  aspect-ratio: 10 / 7.4;
+  aspect-ratio: 10 / 8;
   border-top: 1px solid var(--line);
   background: linear-gradient(180deg, var(--pitch-a), var(--pitch-b));
 }
 .lp-obj-pitch::before { content: ''; position: absolute; inset: 50% 4% auto; height: 1px; background: var(--pitch-line); }
 .lp-obj-pitch::after { content: ''; position: absolute; left: 50%; top: 50%; width: 18cqi; aspect-ratio: 1; border: 1px solid var(--pitch-line); border-radius: 50%; translate: -50% -50%; }
-.lp-obj-spot { position: absolute; z-index: 1; translate: -50% -50%; display: grid; place-items: center; }
-.lp-obj-dot {
-  display: grid;
-  place-items: center;
-  width: clamp(28px, 7.4cqi, 36px);
-  aspect-ratio: 1;
-  border: 1px solid var(--pitch-line);
-  border-radius: 50%;
-  background: oklch(0.2 0.03 215 / 0.75);
-  color: var(--ink-2);
-  font: 600 clamp(11px, 2.6cqi, 13px)/1 var(--font-num);
-}
-/* a lit player: a gold card over its dot, with the icon of the objective it covers */
-.lp-obj-hit { position: absolute; display: grid; place-items: center; width: var(--hit-w); aspect-ratio: 576 / 800; color: #3e281c; filter: drop-shadow(0 0 10px oklch(0.84 0.17 163 / 0.45)); }
-.lp-obj-hit img { position: absolute; inset: 0; width: 100%; height: 100%; }
-.lp-obj-hit b { position: absolute; left: 17%; top: 23%; font: 700 calc(var(--hit-w) * 0.2)/1 var(--font-num); }
-.lp-obj-hit-icon { position: relative; width: 44%; height: 44%; margin-top: 12%; }
+/* cards that cover nothing stay dimmed; the same filter list in both states so the light-up interpolates */
+.lp-obj-spot { position: absolute; z-index: 1; translate: -50% -50%; filter: brightness(0.5) saturate(0.6) drop-shadow(0 0 0 transparent); }
+.lp-obj-spot.is-hit { z-index: 2; filter: brightness(1) saturate(1) drop-shadow(0 0 8px oklch(0.84 0.17 163 / 0.4)); }
+.lp-obj-spot .lp-obj-num { position: absolute; top: -7px; right: -9px; }
 
 .lp-obj-demo.is-in .lp-obj-tick { animation: lp-pop 320ms var(--ease) both; animation-delay: calc(250ms + var(--i) * 450ms); }
-.lp-obj-demo.is-in .lp-obj-hit { animation: lp-obj-light 520ms var(--ease) both; animation-delay: calc(1700ms + var(--i) * 160ms); }
-@keyframes lp-obj-light { from { opacity: 0; scale: 0.6; } }
+.lp-obj-demo.is-in .lp-obj-spot.is-hit { animation: lp-obj-light 520ms var(--ease) both; animation-delay: calc(1700ms + var(--i) * 220ms); }
+.lp-obj-demo.is-in .lp-obj-spot .lp-obj-num { animation: lp-pop 320ms var(--ease) both; animation-delay: calc(1900ms + var(--i) * 220ms); }
+@keyframes lp-obj-light { from { filter: brightness(0.5) saturate(0.6) drop-shadow(0 0 0 transparent); } }
 
 @media (max-width: 860px) {
   .lp-obj-copy,
   .lp-obj-demo { grid-column: 1 / -1; }
 }
-/* 861-1100px: five anchors + language flag + CTA don't fit in Romanian; FAQ (the last section) goes */
-@media (min-width: 861px) and (max-width: 1100px) {
+/* 861-969px: even with the tightened bar (see the 1180px query) five anchors + language flag + CTA
+   don't fit in Romanian when signed in ("Deschide dashboard": all five need ~962px); only there FAQ
+   (the last section) goes, and the anchors close up a little more so the other four fit at 861px */
+@media (min-width: 861px) and (max-width: 969px) {
+  .lp-nav a { padding-inline: 5px; font-size: 13px; }
   .lp-nav a[href='#faq'] { display: none; }
 }
 
