@@ -586,10 +586,11 @@ app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excl
     const t0 = Date.now();
     // soft solve: each objective is a group, as many covered as possible, then the strongest squad
     const r = await solveObjectives(players, formation, conds.map((c) => c.condition), meta, options, undefined, undefined, conds.map((c) => c.objectiveId));
-    logEvent({ type: 'solve', userId, personaId: acc.id, data: { kind: 'objectives', found: r.found, partial: r.partial, objectives: picked.length } });
+    logEvent({ type: 'solve', userId, personaId: acc.id, data: { kind: 'objectives', found: r.found, partial: r.partial, optimal: r.optimal, objectives: picked.length } });
     return {
       found: r.found,
       partial: r.partial,
+      optimal: r.optimal,
       ms: Date.now() - t0,
       formation,
       slots: meta.formations[formation].map((position, i) => ({ position, player: r.slots[i], chem: r.eval?.perSlotChem[i] ?? 0 })),

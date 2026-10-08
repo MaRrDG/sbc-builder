@@ -4222,7 +4222,8 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-empty svg { flex: none; width: 20px; height: 20px; color: var(--ink-2); }
 .obj-fail-text { margin: 0; color: var(--ink-2); }
 /* a squad that covers only some of the picks: which ones, and why the rest do not fit */
-.obj-partial { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid oklch(0.8 0.13 72 / 0.5); border-radius: var(--r-box); background: oklch(0.8 0.13 72 / 0.08); }
+.obj-partial { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid color-mix(in oklch, var(--gold) 50%, transparent); border-radius: var(--r-box); background: color-mix(in oklch, var(--gold) 8%, transparent); }
+.obj-partial > p { margin: 0; }
 .obj-partial h3 { display: flex; gap: 8px; align-items: center; margin: 0; font-size: 15px; font-weight: 600; }
 .obj-partial h3 svg { flex: none; width: 20px; height: 20px; color: var(--gold); }
 .obj-partial .obj-covers { font-size: 14px; }

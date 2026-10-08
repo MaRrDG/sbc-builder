@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loanMatches } from '../squad.js';
-import { matchesFilter, roleSlots, playPool, checkCovers, diagnosePlay, buildPlayProblem, uncoveredReasons } from './play.js';
+import { matchesFilter, roleSlots, playPool, checkCovers, diagnosePlay, buildPlayProblem, uncoveredReasons, playableXi } from './play.js';
 import type { Player } from '../squad.js';
 import type { Condition } from './types.js';
 import { POSITION_IDS } from '../meta.js';
@@ -128,10 +128,65 @@ test('uncoveredReasons: per uncovered objective, noMatch for a condition nobody 
   slots[9] = dutchSt;
   const covers = checkCovers(slots, F433, conds);
   // 1 is covered; 2 is half met and could be done, it clashes; nobody in the club is French
-  assert.deepEqual(uncoveredReasons([dutchSt, germanSt], F433, conds, groups, covers), [
+  assert.deepEqual(uncoveredReasons([dutchSt, germanSt], F433, conds, groups, covers, { optimal: true }), [
     { code: 'combo', objectiveId: 2 },
     { code: 'noMatch', condition: french, objectiveId: 3 },
   ]);
   // everything covered: no reasons
-  assert.deepEqual(uncoveredReasons([dutchSt], F433, [dutch], [1], checkCovers(slots, F433, [dutch])), []);
+  assert.deepEqual(uncoveredReasons([dutchSt], F433, [dutch], [1], checkCovers(slots, F433, [dutch]), { optimal: true }), []);
+});
+
+// 4-2-3-1 as meta has it: GK RB RCB LCB LB RDM LDM RAM CAM LAM ST
+const F4231 = [0, 3, 5, 5, 7, 10, 10, 17, 18, 19, 25];
+const F442 = [0, 3, 5, 5, 7, 12, 14, 14, 16, 25, 25];
+
+test('diagnosePlay: noSlot when the formation has no slot for the condition, naming formations that do', () => {
+  const cam = pl({ positions: [POSITION_IDS.CAM], preferredPosition: 'CAM', possiblePositions: ['CAM'] });
+  const playmaker = c('assist', { position: 'CAM', preferredOnly: true });
+  assert.deepEqual(diagnosePlay([cam], F433, [playmaker], { f433: F433, f442: F442, f4231: F4231 }), [
+    { code: 'noSlot', condition: playmaker, formations: ['f4231'] },
+  ]);
+  // closest to the current formation first (fewest slots to change), at most two
+  const F3412 = [0, 5, 5, 5, 12, 14, 14, 16, 18, 21, 21];
+  const F41212 = [0, 3, 5, 5, 7, 10, 14, 14, 18, 25, 25];
+  assert.deepEqual(diagnosePlay([cam], F433, [playmaker], { f3412: F3412, f41212: F41212, f4231: F4231 })[0], {
+    code: 'noSlot', condition: playmaker, formations: ['f41212', 'f4231'],
+  });
+  // without other formations to suggest: still noSlot, an empty list
+  assert.deepEqual(diagnosePlay([], F433, [playmaker]), [{ code: 'noSlot', condition: playmaker, formations: [] }]);
+  // the slot exists but nobody fits it: noMatch
+  assert.deepEqual(diagnosePlay([], F4231, [playmaker]), [{ code: 'noMatch', condition: playmaker }]);
+});
+
+test('uncoveredReasons: noSlot, selfClash when nothing is covered, timeout when not proven optimal', () => {
+  const dutchSt = pl({ nation: 34 });
+  const cam = pl({ positions: [POSITION_IDS.CAM], preferredPosition: 'CAM', possiblePositions: ['CAM'] });
+  const dutch = c('score', { nation: [34] });
+  const playmaker = c('assist', { position: 'CAM', preferredOnly: true });
+  const slots: (Player | null)[] = F433.map(() => null);
+  slots[9] = dutchSt;
+  const formations = { f433: F433, f4231: F4231 };
+  // the playmaker objective in 4-3-3: the formation has no CAM slot
+  assert.deepEqual(
+    uncoveredReasons([dutchSt, cam], F433, [dutch, playmaker], [1, 2], checkCovers(slots, F433, [dutch, playmaker]), { optimal: true, formations }),
+    [{ code: 'noSlot', condition: playmaker, formations: ['f4231'], objectiveId: 2 }],
+  );
+  // proven optimal and nothing covered although each condition alone can be met: the objective clashes with itself
+  const twoDutch = c('xi', { nation: [34] }, 2);
+  const otherDutch = pl({ nation: 34, positions: [POSITION_IDS.CB], preferredPosition: 'CB', possiblePositions: ['CB'] });
+  const none = checkCovers(F433.map(() => null), F433, [dutch, twoDutch]);
+  assert.deepEqual(uncoveredReasons([dutchSt, otherDutch], F433, [dutch, twoDutch], [1, 1], none, { optimal: true }), [{ code: 'selfClash', objectiveId: 1 }]);
+  // the solver ran out of time: nothing is proven, so no "clash"
+  assert.deepEqual(uncoveredReasons([dutchSt, otherDutch], F433, [dutch, twoDutch], [1, 1], none, { optimal: false }), [{ code: 'timeout', objectiveId: 1 }]);
+});
+
+test('playableXi: every slot filled, in position, no asset twice', () => {
+  const gk = pl({ positions: [POSITION_IDS.GK], preferredPosition: 'GK', possiblePositions: ['GK'] });
+  const st = pl();
+  const types = [POSITION_IDS.GK, POSITION_IDS.ST];
+  assert.equal(playableXi([gk, st], types), true);
+  assert.equal(playableXi([gk, null], types), false);
+  assert.equal(playableXi([st, gk], types), false); // out of position
+  const twin = { ...st, id: st.id + 1000 }; // another copy of the same card
+  assert.equal(playableXi([gk, st, twin], [...types, POSITION_IDS.ST]), false);
 });

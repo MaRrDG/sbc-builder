@@ -492,7 +492,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   const shown = result && !solving && buildError === null ? result : null;
   // the stale hint is for someone who comes back to an older squad, never right after Build
   const stale = !!shown && !fresh && isStale(shown, active, formation, loans);
-  // partial: a full XI that covers some of the picks (as many as fit); failed: no XI at all
+  // partial: a full XI that covers some of the picks (as many as fit); failed: no XI, or none of the picks covered
   const partial = !!shown && !shown.found && shown.partial === true;
   const failed = !!shown && !shown.found && !partial;
   const coverage = shown ? objectiveCoverage(shown.covers) : [];
@@ -523,8 +523,32 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       <button type="button" className="ghost" onClick={() => onStep('pick')}>{t('obj.editObjectives')}</button>
     </>
   );
-  const reasonText = (r: ObjectivesSolve['reasons'][number], formationName: string) =>
-    r.code === 'noMatch' ? t('obj.reason.noMatch', { what: conditionLabel(r.condition, meta, t) }) : t('obj.reason.clash', { formation: formationName });
+  // many: more than one objective picked (only then can a reason point at "your other picks")
+  const reasonText = (r: ObjectivesSolve['reasons'][number], formationName: string, many: boolean): string => {
+    switch (r.code) {
+      case 'noMatch':
+        return t('obj.reason.noMatch', { what: conditionLabel(r.condition, meta, t) });
+      case 'noSlot': {
+        const pos = r.condition.filter.position;
+        const head = pos
+          ? t('obj.reason.noSlotPos', { formation: formationName, position: pos })
+          : t('obj.reason.noSlot', { formation: formationName, what: conditionLabel(r.condition, meta, t) });
+        const tail = r.formations.length
+          ? t('obj.reason.tryFormations', { list: r.formations.map(formationLabel).join(', ') })
+          : t('obj.reason.pickFormation');
+        return `${head} ${tail}`;
+      }
+      case 'selfClash':
+        return t('obj.reason.selfClash', { formation: formationName });
+      case 'timeout':
+        return many ? t('obj.reason.timeout', { formation: formationName }) : t('obj.reason.timeoutAlone', { formation: formationName });
+      default: // combo: per objective it clashes with the others; the old whole-problem answer has no objectiveId
+        return r.objectiveId !== undefined && many
+          ? t('obj.reason.clash', { formation: formationName })
+          : t('obj.reason.combo', { formation: formationName });
+    }
+  };
+  const many = coverage.length > 1;
   const partialPanel = partial && shown && (
     <div className="obj-partial" role="status">
       <h3>
@@ -540,24 +564,27 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
               {!c.met &&
                 shown.reasons
                   .filter((r) => r.objectiveId === c.objectiveId)
-                  .map((r, i) => <span key={i} className="obj-why">{reasonText(r, formationLabel(shown.formation))}</span>)}
+                  .map((r, i) => <span key={i} className="obj-why">{reasonText(r, formationLabel(shown.formation), many)}</span>)}
             </span>
           </li>
         ))}
       </ul>
-      <div className="obj-fail-actions">
-        <button type="button" className="ghost" onClick={() => onStep('formation')}>{t('obj.changeFormation')}</button>
-        <button
-          type="button"
-          className="ghost"
-          onClick={() => {
-            setPicked((p) => dropUncovered(p, coverage));
-            onStep('pick');
-          }}
-        >
-          {t('obj.dropUncovered')}
-        </button>
-      </div>
+      {shown.optimal === false && <p className="obj-why">{t('obj.partialNotProven')}</p>}
+      {!stale && (
+        // Change formation / Edit objectives are in the bar below; this one also unticks what is not covered
+        <div className="obj-fail-actions">
+          <button
+            type="button"
+            className="ghost"
+            onClick={() => {
+              setPicked((p) => dropUncovered(p, coverage));
+              onStep('pick');
+            }}
+          >
+            {t('obj.dropUncovered')}
+          </button>
+        </div>
+      )}
     </div>
   );
   const buildAgain = (
@@ -601,9 +628,8 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
             <ul>
               {shown.reasons.map((r, i) => (
                 <li key={i}>
-                  {r.code === 'noMatch'
-                    ? reasonText(r, '')
-                    : t('obj.reason.combo', { formation: formationLabel(shown.formation) })}
+                  {r.objectiveId !== undefined && nameOf(r.objectiveId) && <strong>{nameOf(r.objectiveId)}: </strong>}
+                  {reasonText(r, formationLabel(shown.formation), many)}
                 </li>
               ))}
             </ul>
