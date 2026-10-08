@@ -151,3 +151,7 @@ The sidebar has three sections: **SBC** (every set as a paginated grid with its 
 ## Multi-account and hosting
 
 One server can serve friends: each account has its own session, request queue, cache folder and key. The trade-off of hosting is that all EA requests leave from the server's IP; the per-account queue, caching and the drop-based schedule keep the volume close to what the web app itself does.
+
+## Daily game
+
+The `players` table (Postgres, mirrored in memory by `server/daily/store.ts`) is fed by `onCacheWrite`: every cache write of club, storage, unassigned, SBC challenge squads and objectives is scanned for EA player items (`server/daily/ingest.ts`), never an EA call. A row keeps the latest card data plus `baseClubs`, the clubs seen on base cards (rareflag 0/1); special cards (icons, heroes, promos) never move the club. A base card seen at a new club inside the transfer window is treated as a recent transfer and leaves the answer pool. The pool is the top-5-league base players above `DAILY_MIN_RATING`, stepping down to `DAILY_RATING_FLOOR` until it holds `DAILY_MIN_POOL` players; the daily pick is made at the drop and stored in `daily_answers`. `npm run daily:import` backfills `players` from `data/accounts` and prints pool size per threshold.

@@ -49,6 +49,7 @@ import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
+import { installDailyIngest } from './daily/store.js';
 import { openGroups, solvable } from './objectives/open.js';
 import { solveObjectives } from './objectives/solve.js';
 import { mergeGroups, nameAwards, SHARED_OBJECTIVES_KEY } from './objectives/shared.js';
@@ -849,6 +850,7 @@ try {
   process.exit(1);
 }
 installLedger();
+installDailyIngest();
 void pruneEvents();
 void backfillFounders().catch((e) => console.error(`[founders] backfill failed: ${(e as Error).message}`));
 setInterval(() => void pruneEvents(), 24 * 60 * 60 * 1000).unref();
