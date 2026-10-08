@@ -9,7 +9,8 @@ import { publicOrigin } from '../origins.js';
 import { dailyInfo, guessPractice, guessToday, newPractice } from './service.js';
 import { loadPlayers, namesList } from './store.js';
 
-const guessLimit = createLimiter({ windowMs: 60_000, max: 40 });
+const BOOT = Date.now().toString(36);
+const guessLimit =createLimiter({ windowMs: 60_000, max: 40 });
 const tooMany = () => new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
 const assetIdOf = (b: unknown) => {
   const v = (b as { assetId?: unknown } | null)?.assetId;
@@ -26,8 +27,10 @@ export function registerDailyRoutes(app: FastifyInstance) {
   app.get('/api/daily/players', async (req, reply) => {
     await loadPlayers();
     const list = namesList();
-    const etag = `"${list.v}"`;
-    reply.header('ETag', etag).header('Cache-Control', 'public, max-age=300');
+    // the version restarts at every boot: tag it with the boot so a list cached before a restart
+    // (e.g. still empty before daily:import) is never revalidated as current
+    const etag = `"${BOOT}-${list.v}"`;
+    reply.header('ETag', etag).header('Cache-Control', 'no-cache');
     if (req.headers['if-none-match'] === etag) return reply.code(304).send();
     return list;
   });
