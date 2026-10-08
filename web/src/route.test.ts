@@ -57,6 +57,12 @@ test('gallery routes', () => {
   assert.equal(routePath({ view: 'gallery', setId: 'a-b' }), '/dashboard/gallery/a-b');
 });
 
+test('objectives route', () => {
+  assert.deepEqual(parseRoute('/dashboard/objectives'), { view: 'objectives' });
+  assert.deepEqual(parseRoute('/objectives'), { view: 'objectives' });
+  assert.equal(routePath({ view: 'objectives' }), '/dashboard/objectives');
+});
+
 test('admin sub-routes keep their query', () => {
   assert.deepEqual(parseRoute('/dashboard/admin'), adminRoute('overview'));
   assert.deepEqual(parseRoute('/dashboard/admin/users', '?plan=premium&page=2'), adminRoute('users', { query: 'plan=premium&page=2' }));

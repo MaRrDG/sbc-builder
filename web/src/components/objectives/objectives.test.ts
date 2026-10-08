@@ -1,0 +1,36 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { conditionLabel, formationLabel, timeLeft, pickKey, resultKey } from './objectives.js';
+
+const meta = { names: { nation: { 34: 'Netherlands' }, league: { 10: 'Eredivisie' }, club: {}, rarity: { 151: 'Ultimate Scream' } } };
+const t = (k: string, p?: Record<string, unknown>) => `${k}${p ? JSON.stringify(p) : ''}`;
+
+test('conditionLabel names role and filter with EA names', () => {
+  assert.equal(conditionLabel({ role: 'score', min: 1, filter: { nation: [34] } }, meta, t), 'obj.role.score{"what":"Netherlands"}');
+  assert.equal(conditionLabel({ role: 'xi', min: 2, filter: { league: [10] } }, meta, t), 'obj.role.xi{"what":"Eredivisie","count":2}');
+  // xi always passes count, so t() picks the _one / _other form
+  assert.equal(conditionLabel({ role: 'xi', min: 1, filter: { rarity: [151] } }, meta, t), 'obj.role.xi{"what":"Ultimate Scream","count":1}');
+  assert.equal(conditionLabel({ role: 'assist', min: 1, filter: { position: 'CAM', preferredOnly: true } }, meta, t),
+    'obj.role.assist{"what":"CAM (obj.preferredOnly)"}');
+  assert.equal(conditionLabel({ role: 'score', min: 1, filter: { attr: { stat: 'PAC', min: 85 } } }, meta, t), 'obj.role.score{"what":"85+ PAC"}');
+  assert.equal(conditionLabel({ role: 'score', min: 1, filter: { nation: [34, 99] } }, meta, t), 'obj.role.score{"what":"Netherlands / #99"}');
+});
+
+test('timeLeft in days and hours, null without an end or when over', () => {
+  assert.deepEqual(timeLeft(1_000 + (33 * 3600 + 120) * 1000, 1_000), { days: 1, hours: 9 });
+  assert.equal(timeLeft(null, 0), null);
+  assert.equal(timeLeft(10, 20), null);
+});
+
+test('storage keys are per persona and keep the sbc- prefix', () => {
+  assert.equal(pickKey(7), 'sbc-objectives-pick-7');
+  assert.equal(resultKey(7), 'sbc-objectives-result-7');
+});
+
+test('formationLabel reads like the web app: dashes, variants numbered', () => {
+  assert.equal(formationLabel('f433'), '4-3-3');
+  assert.equal(formationLabel('f433a'), '4-3-3 (2)');
+  assert.equal(formationLabel('f433c'), '4-3-3 (4)');
+  assert.equal(formationLabel('f41212'), '4-1-2-1-2');
+  assert.equal(formationLabel('weird'), 'weird');
+});

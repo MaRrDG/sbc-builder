@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Challenge, Meta, Player, SolveResult } from '../api';
-import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin, Prohibit } from '@phosphor-icons/react';
+import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin, Prohibit, Target } from '@phosphor-icons/react';
 import { BrickCard, Card, EmptyCard } from './Card';
 import { useI18n } from '../i18n';
 
@@ -145,9 +145,13 @@ interface Props {
   outOfSolves: boolean;
   /** players marked to keep out (⊘ badge) */
   marked: Set<number>;
+  /** show the Cheaper (deep solve) corner button; default true */
+  cheaper?: boolean;
+  /** player id -> what they cover (target badge, objectives squads) */
+  badges?: Map<number, string>;
 }
 
-export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, marked }: Props) {
+export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, marked, cheaper = true, badges }: Props) {
   const { t } = useI18n();
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
@@ -219,6 +223,11 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
                   <Prohibit weight="bold" aria-label={t('pitch.marked')} />
                 </span>
               )}
+              {player && badges?.has(player.id) && !solving && (
+                <span className="slot-badge" title={badges.get(player.id)}>
+                  <Target weight="bold" aria-label={badges.get(player.id)} />
+                </span>
+              )}
               {brick ? (
                 <BrickCard brick={brick} meta={meta} />
               ) : player ? (
@@ -251,7 +260,7 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
 
       <PitchCorners
         lock={lock} solving={solving} outOfSolves={outOfSolves} hasResult={!!result} localOptions={localOptions}
-        onSolve={onSolve} onToggleOptions={onToggleOptions} cheaper
+        onSolve={onSolve} onToggleOptions={onToggleOptions} cheaper={cheaper}
       />
     </div>
   );
