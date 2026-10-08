@@ -8,7 +8,7 @@ export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'cookies'];
 
 export const OPERATOR = 'Mario Dragut';
 export const CONTACT = 'dragutmariotheodor1@gmail.com';
-export const UPDATED = '2026-09-24';
+export const UPDATED = '2026-10-08';
 
 export interface Section {
   id: string;
@@ -55,6 +55,14 @@ const en: Record<LegalDoc, Doc> = {
         h: 'Fair use',
         p: [
           'Do not misuse FC Solver: no attempts to break its security, to reach other people\'s data, to overload it, to scrape it in bulk, or to use it to automate actions in EA services. We may suspend or remove accounts that do.',
+        ],
+      },
+      {
+        id: 'daily',
+        h: 'FC Solver Daily',
+        p: [
+          'FC Solver Daily is a free guessing game at /daily. Players come from FC Solver\'s own database, built from the EA FC data the FC Solver extension sees while people use it; it can be incomplete or out of date (a very recent transfer can show the old club for a while).',
+          'Signed in, consecutive daily wins earn invite points: +1 at 7 wins in a row, +1 at 14, +2 at 30, then again every 30 wins. Practice games and games played while signed out earn nothing. Points are the same as invite points: they have no cash value, cannot be transferred, are granted at our discretion and can be withdrawn on abuse or cheating (for example automated guessing or several accounts).',
         ],
       },
       {
@@ -109,6 +117,7 @@ const en: Record<LegalDoc, Doc> = {
           '- Use of the service: how many requests we made to EA for your account each day, sync times and errors, the extension version, and the solver settings you send with each solve.',
           '- Technical data: IP address and browser details in server and security logs, and to limit abuse.',
           '- In your browser only: solver settings, saved squads, language and similar preferences (see the cookie policy).',
+          '- FC Solver Daily, when you play signed in: the day, your guesses and whether you won, to keep your stats and streak. Signed out, the game keeps its state only in your browser.',
         ],
       },
       {
@@ -233,6 +242,14 @@ const ro: Record<LegalDoc, Doc> = {
         ],
       },
       {
+        id: 'daily',
+        h: 'FC Solver Daily',
+        p: [
+          'FC Solver Daily este un joc gratuit de ghicit, la /daily. Jucătorii vin din baza de date proprie FC Solver, construită din datele EA FC pe care le vede extensia FC Solver când este folosită; poate fi incompletă sau neactualizată (un transfer foarte recent poate arăta o vreme clubul vechi).',
+          'Autentificat, victoriile zilnice la rând aduc puncte de invitație: +1 la 7 victorii la rând, +1 la 14, +2 la 30, apoi din nou la fiecare 30 de victorii. Jocurile de antrenament și cele jucate neautentificat nu aduc nimic. Punctele sunt aceleași ca punctele de invitație: nu au valoare în bani, nu se pot transfera, sunt acordate la discreția noastră și pot fi retrase în caz de abuz sau trișare (de exemplu ghicit automatizat sau mai multe conturi).',
+        ],
+      },
+      {
         id: 'accuracy',
         h: 'Fără garanții',
         p: [
@@ -284,6 +301,7 @@ const ro: Record<LegalDoc, Doc> = {
           '- Folosirea serviciului: câte cereri am făcut către EA pentru contul tău în fiecare zi, momentele și erorile sincronizărilor, versiunea extensiei și setările solverului trimise la fiecare rezolvare.',
           '- Date tehnice: adresa IP și detalii despre browser în jurnalele serverului și de securitate, și pentru limitarea abuzurilor.',
           '- Doar în browserul tău: setările solverului, echipele salvate, limba și preferințe similare (vezi politica de cookie-uri).',
+          '- FC Solver Daily, când joci autentificat: ziua, încercările tale și dacă ai câștigat, pentru statistici și serie. Neautentificat, jocul își păstrează starea doar în browserul tău.',
         ],
       },
       {
@@ -408,6 +426,14 @@ const it: Record<LegalDoc, Doc> = {
         ],
       },
       {
+        id: 'daily',
+        h: 'FC Solver Daily',
+        p: [
+          'FC Solver Daily è un gioco gratuito di indovinelli su /daily. I giocatori vengono dal database di FC Solver, costruito con i dati EA FC che vede l\'estensione FC Solver mentre viene usata; può essere incompleto o non aggiornato (un trasferimento molto recente può mostrare per un po\' il vecchio club).',
+          'Con l\'accesso, le vittorie giornaliere di fila danno punti invito: +1 a 7 vittorie di fila, +1 a 14, +2 a 30, poi di nuovo ogni 30 vittorie. Le partite di allenamento e quelle giocate senza accesso non danno nulla. I punti sono gli stessi punti invito: non hanno valore in denaro, non sono trasferibili, sono concessi a nostra discrezione e possono essere ritirati in caso di abuso o imbrogli (per esempio tentativi automatizzati o più account).',
+        ],
+      },
+      {
         id: 'accuracy',
         h: 'Nessuna garanzia',
         p: [
@@ -459,6 +485,7 @@ const it: Record<LegalDoc, Doc> = {
           '- Uso del servizio: quante richieste abbiamo fatto a EA per il tuo account ogni giorno, orari ed errori delle sincronizzazioni, la versione dell\'estensione e le impostazioni del solver che invii con ogni risoluzione.',
           '- Dati tecnici: indirizzo IP e dettagli del browser nei log del server e di sicurezza, e per limitare gli abusi.',
           "- Solo nel tuo browser: impostazioni del solver, rose salvate, lingua e preferenze simili (vedi la cookie policy).",
+          '- FC Solver Daily, quando giochi con l\'accesso: il giorno, i tuoi tentativi e se hai vinto, per statistiche e serie. Senza accesso, il gioco conserva lo stato solo nel tuo browser.',
         ],
       },
       {
