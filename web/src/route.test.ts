@@ -98,6 +98,15 @@ test('admin codes route', () => {
   assert.equal(routePath(adminRoute('codes')), '/dashboard/admin/codes');
 });
 
+test('admin daily route keeps day and view in the query', () => {
+  assert.deepEqual(parseRoute('/dashboard/admin/daily'), { view: 'admin', page: 'daily', userId: null, query: '' });
+  assert.equal(routePath(adminRoute('daily')), '/dashboard/admin/daily');
+  assert.deepEqual(parseRoute('/dashboard/admin/daily', '?day=12&view=leaderboard'), adminRoute('daily', { query: 'day=12&view=leaderboard' }));
+  assert.equal(routePath(adminRoute('daily', { query: 'day=12' })), '/dashboard/admin/daily?day=12');
+  const r = adminRoute('daily', { query: 'view=leaderboard' });
+  assert.deepEqual(parseRoute(...(routePath(r).split('?').map((s, i) => (i ? `?${s}` : s)) as [string, string])), r);
+});
+
 test('invite route', () => {
   assert.deepEqual(parseRoute('/dashboard/invite'), { view: 'invite' });
   assert.deepEqual(parseRoute('/invite'), { view: 'invite' });
