@@ -168,7 +168,7 @@ Public endpoints for the Daily player-guess game (`/daily`). Signed in (Clerk `A
 
 ### `GET /api/daily`
 
-`{ day, date, nextAt, maxGuesses: 5, share, signedIn, game? }`. `nextAt`: ms of the next drop. `share`: host + `/daily` without protocol. `game` (signed in only): the saved `GameView` of today plus `stats`.
+`{ day, date, nextAt, maxGuesses: 5, share, signedIn, players, me?, game? }`. `nextAt`: ms of the next drop. `share`: host + `/daily` without protocol. `players`: size of the autocomplete list (`GET /api/daily/players`). `me` and `game` (signed in only): `me` is the `DailyProfile` `{ username: string | null, leaderboard: boolean, asked: boolean }`; `game` is the saved `GameView` of today plus `stats`. Never carries the answer of an unfinished game.
 
 ### `GET /api/daily/players`
 
@@ -187,6 +187,18 @@ Public endpoints for the Daily player-guess game (`/daily`). Signed in (Clerk `A
 `{ token, assetId, state? }` -> `GuessResult` without `stats` and `points`. Same signed `state` flow as the anonymous daily.
 
 Guess and practice calls are limited to 40 per minute per IP (`rateLimited`).
+
+Signed-out daily guesses (not Practice, not signed in) also bump anonymous aggregate counters (`daily_anon_stats`, `daily_guess_counts`: per day, games finished / won / by guesses used, and how often each player was tried). They hold no identifier, no IP and no token. Replaying an older same-day `state` token buys extra tries and can inflate them; they are for the admin overview, not for scoring.
+
+### `GET /api/daily/leaderboard`
+
+Public, optional auth, `Cache-Control: no-store`. Only users who opted in with a username are ranked (wins, then lower average guesses on wins, then who reached their last win first). The ranking is cached for 60 s server-side and refreshed on a profile change.
+
+`{ rows: PublicLbRow[], me: (PublicLbRow & { inTop: boolean }) | null, total }` with `PublicLbRow = { rank, username, wins, played, winPct, avgGuesses: number | null, streak }`. Top 50 in `rows`; `total` counts all ranked users. `me` only when signed in, opted in and ranked (`inTop` false when below the 50). No user id, email or answer data.
+
+### `PUT /api/me/daily-profile`
+
+Signed in. Body `{ username?: string, leaderboard?: boolean, asked?: true }` -> `DailyProfile`. Any call also marks the leaderboard prompt as answered (`asked`). `username` is 3-16 letters, digits, `_`, `.` or `-`, unique ignoring case. Errors: `usernameInvalid` 400, `usernameTaken` 409, `usernameRequired` 400 (opting in without a username), `rateLimited` 429 (20 per minute per IP).
 
 ## Admin (site)
 
@@ -235,6 +247,20 @@ Dashboard: KPIs, daily series for the last `range` days (default `7`), what need
 - `attention`: one item per account at most, the first that applies of `error` (`detail`: the message), `paused`, `atLimit`, `outdated` (`detail`: its extension version, `null` if unknown); then every user whose stored Premium ends within 7 days (`expiring`, `until` in ms). `userId` of an account item is its owner or `null`.
 - `onboarding`: survey answers over all users, every answer listed in the order of `PUT /api/me/onboarding` (0 when nobody picked it). `skipped`: users who skipped; users not asked yet count in neither.
 - `versions`: accounts per extension version (`"?"` when unknown), most used first.
+
+### `GET /api/admin/daily?day=N`
+
+The only endpoint that returns the answer of a day (unfinished games included). Default `day` = latest; an unknown day falls back to the latest.
+
+`{ days: { day, date }[], day, date, answer: { id, name, fullName, rating, position, club, league, nation, rareflag, cardType } | null, summary: { finished, won, winPct, dist: number[5], signedIn: { finished, won }, anon: { finished, won } }, topGuessed: { id, name, count }[], games: { userId, email, username, guesses: { id, name }[], won, used, finishedAt: number | null }[] }`. `summary` counts finished signed-in games plus the anonymous counters; `topGuessed` is the top 10 players tried (signed-in guesses plus anonymous counters); `games` are the signed-in games, newest finish first, unfinished last.
+
+### `GET /api/admin/daily/leaderboard`
+
+`{ rows: (LbRow & { email, hidden, username: string | null })[] }`: everyone with a finished game, ranked (users without a username are ranked under their email). `hidden` = not opted in or no username.
+
+### `POST /api/admin/daily/users/:id/clear-username`
+
+Removes the user's username and leaderboard opt-in. `{ ok: true }`; `404` `unknownUser` for an unknown id.
 
 ### `GET /api/admin/users?q=&plan=&activity=&ea=&sort=&dir=&page=`
 
