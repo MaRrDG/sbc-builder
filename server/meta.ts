@@ -46,7 +46,7 @@ export interface Meta {
     group: Record<string, string>;
     loc: Record<string, string>;
   };
-  players: Record<string, { name: string; full: string }>;
+  players: Record<string, { name: string; full: string; rating: number }>;
   formations: Record<string, { uniqueId: number; name: string; typeId: number }[]>;
   thresholds: Record<ParamId, Threshold[]>;
   baseProfiles: Record<number, ChemProfile>; // 1 base, 2 hero, 3 icon
@@ -128,7 +128,7 @@ function build(raw: Awaited<ReturnType<typeof fetchStatic>>, chem: ChemProfilesR
   const { players, loc, squad, rarity } = raw;
   const playerNames: Meta['players'] = {};
   for (const p of [...players.Players, ...players.LegendsPlayers]) {
-    playerNames[p.id] = { name: p.c || p.l || p.f, full: `${p.f} ${p.l}`.trim() };
+    playerNames[p.id] = { name: p.c || p.l || p.f, full: `${p.f} ${p.l}`.trim(), rating: p.r };
   }
 
   const posById = new Map(squad.positionData.map((p) => [p.uniqueId, p]));
