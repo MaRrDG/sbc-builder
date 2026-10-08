@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { dayFor, dropDate, nextDropAfter } from './day.js';
+import { dayFor, dropDate, nextDropAfter, staleDay } from './day.js';
 import { DAY } from './players.js';
 
 test('day 1 is the first stored answer; later drops count on, DST hours round away', () => {
@@ -20,4 +20,13 @@ test('nextDropAfter asks lastDrop for a moment past the next drop', () => {
   const last = (d: Date) => [...drops].reverse().find((x) => x <= d.getTime()) ?? 0;
   assert.equal(nextDropAfter(last, drops[0] + 60_000), drops[1]);
   assert.equal(nextDropAfter(last, drops[1] - 60_000), drops[1]);
+});
+
+test('staleDay: another day is stale, a missing day counts as today', () => {
+  assert.equal(staleDay(undefined, 7), false);
+  assert.equal(staleDay(null, 7), false);
+  assert.equal(staleDay(7, 7), false);
+  assert.equal(staleDay(6, 7), true);
+  assert.equal(staleDay(8, 7), true);
+  assert.equal(staleDay('7', 7), true);
 });

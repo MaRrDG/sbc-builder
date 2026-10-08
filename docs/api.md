@@ -164,7 +164,7 @@ Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Pric
 
 ## Daily game
 
-Public endpoints for the Daily player-guess game (`/daily`). Signed in (Clerk `Authorization: Bearer`, optional) only adds saved state, stats and points; none of them touches EA. The answer is picked at the SBC drop (or on the first request after it) and only appears in a response once the game is `finished`. Errors carry a translatable `code`: `dailyFinished` 409, `dailyRepeat` 409, `dailyUnknownPlayer` 400, `dailyNoPool` 503, `dailyExpired` 409, `rateLimited` 429.
+Public endpoints for the Daily player-guess game (`/daily`). Signed in (Clerk `Authorization: Bearer`, optional) only adds saved state, stats and points; none of them touches EA. The answer is picked at the SBC drop (or on the first request after it) and only appears in a response once the game is `finished`. Errors carry a translatable `code`: `dailyFinished` 409, `dailyRepeat` 409, `dailyUnknownPlayer` 400, `dailyNoPool` 503 (also while the answer pool has fewer than `DAILY_HARD_MIN_POOL` players, default 30), `dailyExpired` 409, `rateLimited` 429.
 
 ### `GET /api/daily`
 
@@ -176,7 +176,7 @@ Public endpoints for the Daily player-guess game (`/daily`). Signed in (Clerk `A
 
 ### `POST /api/daily/guess`
 
-`{ assetId, state? }` -> `GuessResult = { row, finished, won, silhouette?, answer?, state?, stats?, points? }`. `row`: the compared tiles of this guess. `silhouette` and `answer` appear only when the game is finished. Signed in: state lives in `daily_plays` (one row lock per user and day), `stats` comes when finished and `points: { added, streak }` on a win (one grant per day). Signed out: send no `state` on the first guess, then send back the `state` of the last answer; it is a signed token, so replaying an older same-day token only buys extra tries, and anonymous games never earn points. A tampered or other-day token is `dailyExpired`.
+`{ assetId, state?, day? }` -> `GuessResult = { row, finished, won, silhouette?, answer?, state?, stats?, points? }`. `row`: the compared tiles of this guess. `silhouette` (rating, position, rareflag, card type) appears from the 3rd wrong guess on while the game is in progress, and stays at the end; `answer` appears only once the game is finished. `day`: the `day` of the game the guess is for (the site always sends `GET /api/daily`'s `day`); when it is not today's (the page stayed open across the drop) the guess is refused with `dailyExpired` before anything is saved, signed in or not. A missing `day` counts as today. Signed in: state lives in `daily_plays` (one row lock per user and day), `stats` comes when finished and `points: { added, streak }` on a win (one grant per day). A bad or expired `Authorization` token is `401 signIn` (here and on `GET /api/daily`), never a silent signed-out game; no header at all means signed out. Signed out: send no `state` on the first guess (omitting `state` always starts a fresh signed-out game), then send back the `state` of the last answer; it is a signed token, so replaying an older same-day token only buys extra tries, and anonymous games never earn points. A tampered or other-day token is `dailyExpired`.
 
 ### `POST /api/daily/practice`
 

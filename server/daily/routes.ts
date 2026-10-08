@@ -32,9 +32,9 @@ export function registerDailyRoutes(app: FastifyInstance) {
     return list;
   });
 
-  app.post<{ Body: { assetId?: unknown; state?: unknown } }>('/api/daily/guess', async (req) => {
+  app.post<{ Body: { assetId?: unknown; state?: unknown; day?: unknown } }>('/api/daily/guess', async (req) => {
     if (!guessLimit(req.ip)) throw tooMany();
-    return guessToday(await optionalSiteUser(req), assetIdOf(req.body), req.body?.state);
+    return guessToday(await optionalSiteUser(req), assetIdOf(req.body), req.body?.state, req.body?.day);
   });
 
   app.post('/api/daily/practice', async (req) => {
