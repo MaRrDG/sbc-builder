@@ -4122,6 +4122,10 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-pills { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0 28px; padding: 0; }
 .obj-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 13px; }
 .obj-none { margin: 6px 0 0 28px; font-size: 13px; }
+.obj-rewards { display: flex; gap: 6px; align-items: baseline; margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+.obj-rewards svg { flex: none; position: relative; top: 2px; color: var(--ink-3); }
+.obj-item .obj-rewards { margin-left: 28px; }
+.obj-stale { display: flex; gap: 6px; align-items: center; margin: 0; font-size: 13px; }
 .obj-empty { display: flex; gap: 10px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
 .obj-empty p { margin: 0; }
 .obj-empty svg { flex: none; width: 20px; height: 20px; color: var(--ink-2); }

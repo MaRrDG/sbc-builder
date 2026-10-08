@@ -798,6 +798,8 @@ export const it: Record<Keys, string> = {
   'obj.find': 'Trova la squadra',
   'obj.solving': 'Creo la squadra…',
   'obj.resultTitle': 'La tua squadra',
+  'obj.rewards': 'Ricompense: {list}',
+  'obj.stale': 'Non aggiornata: hai cambiato le spunte o il modulo. Trova di nuovo la squadra.',
   'obj.met': 'Coperto',
   'obj.notMet': 'Non coperto',
   'obj.reason.noMatch': 'Nessuno nel tuo club può farlo: {what}',
