@@ -13,3 +13,8 @@ export function dropDate(drop: number, tz: string): string {
 export function nextDropAfter(lastDrop: (d: Date) => number, now: number): number {
   return lastDrop(new Date(lastDrop(new Date(now)) + 25 * 3_600_000));
 }
+
+/** A guess made for another day (page open across the drop): `day` missing counts as today. */
+export function staleDay(sent: unknown, today: number): boolean {
+  return sent !== undefined && sent !== null && sent !== today;
+}

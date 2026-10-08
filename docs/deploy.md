@@ -47,6 +47,21 @@ docker compose logs -f --tail=50
 
 After the first deploy with the DB, fill it once from the cached accounts: `docker compose exec app npm run db:import`. Trusted accounts (their brick layout wins): `docker compose exec app npm run db:trust <personaId> <note>`.
 
+### Daily game
+
+The first deploy with the Daily game (`/daily`) needs its players table filled before the first pick:
+
+```bash
+docker compose exec app npm run daily:import   # players from the cached accounts in data/
+docker compose restart app                     # the server loads the players into memory once, at the first daily request
+```
+
+Until the answer pool has `DAILY_HARD_MIN_POOL` players, `/daily` and Practice answer `503 dailyNoPool` ("not ready yet") instead of picking from a tiny pool. Environment (all optional; compose does not forward them by default, add the ones you set to the app's `environment`, e.g. `DAILY_SECRET: ${DAILY_SECRET:-}`):
+
+- `DAILY_SECRET`: signs the state tokens and seals Practice answers; at least 32 characters (`openssl rand -hex 32`). Missing or shorter: one is generated into `data/daily-secret` (kept across rebuilds with `data/`).
+- `DAILY_MIN_RATING` (82): rating of the answer pool; it steps down to `DAILY_RATING_FLOOR` (75) until the pool has `DAILY_MIN_POOL` (150) players.
+- `DAILY_HARD_MIN_POOL` (30): below this many players there is no game at all.
+
 The server folder is a git checkout of `dev` (owned by root); `data/` is git-ignored and survives pulls and rebuilds.
 
 ## Clerk
