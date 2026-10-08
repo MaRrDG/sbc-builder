@@ -414,7 +414,7 @@ export const api = {
   daily: {
     info: () => req<DailyInfo>('/api/daily'),
     players: () => req<{ v: number; players: DailyName[] }>('/api/daily/players'),
-    guess: (assetId: number, state?: string) => req<DailyGuess>('/api/daily/guess', { method: 'POST', body: { assetId, state } }),
+    guess: (assetId: number, state?: string, day?: number) => req<DailyGuess>('/api/daily/guess', { method: 'POST', body: { assetId, state, day } }),
     practice: () => req<{ token: string }>('/api/daily/practice', { method: 'POST' }),
     practiceGuess: (token: string, assetId: number, state?: string) =>
       req<DailyGuess>('/api/daily/practice/guess', { method: 'POST', body: { token, assetId, state } }),
