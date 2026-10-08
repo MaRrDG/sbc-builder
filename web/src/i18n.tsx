@@ -40,7 +40,10 @@ export function translate(lang: Lang, key: string, params: Params = {}): string 
     text = d[`${key}_${cat}`] ?? d[`${key}_other`] ?? dicts.en[`${key}_${cat === 'one' ? 'one' : 'other'}`];
   }
   text ??= d[key] ?? dicts.en[key] ?? key;
-  return text.replace(/\{(\w+)\}/g, (m, name) => (name in params ? String(params[name]) : m));
+  // {count} can show a pre-formatted text (params.countText, e.g. 12.345) while the plural form still follows the number
+  return text.replace(/\{(\w+)\}/g, (m, name) =>
+    name === 'count' && typeof params.countText === 'string' ? params.countText : name in params ? String(params[name]) : m,
+  );
 }
 
 interface I18n {
