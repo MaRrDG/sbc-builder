@@ -47,7 +47,13 @@ test('awardText on the real reward shapes: player names, counts, no raw ids or t
     itemDataReduced: { assetId: 73885, rating: 82, itemType: 'player', preferredPosition: 'ST' } };
   assert.equal(awardText(player, tt), 'Ekitike 82 ST');
   // a player we cannot name still reads as a player item, never as the resource id
-  assert.equal(awardText({ ...player, name: undefined }, tt), 'obj.award.player{"rating":82,"position":"ST"}');
+  assert.equal(awardText({ ...player, name: undefined }, tt), 'obj.award.player{"what":"82 ST"}');
+  // only the fields that are there; nothing at all reads as a generic item
+  assert.equal(awardText({ ...player, itemDataReduced: { itemType: 'player', assetId: 1, rating: 82 } }, tt), 'Ekitike 82');
+  assert.equal(awardText({ value: 1, awardType: 'item', itemDataReduced: { itemType: 'player' } }, tt), 'obj.award.item');
+  // more than one
+  assert.equal(awardText({ ...player, count: 2 }, tt), '2 × Ekitike 82 ST');
+  assert.equal(awardText({ value: 1, awardType: 'item', count: 3, itemDataReduced: { itemType: 'training' } }, tt), '3 × obj.award.item');
   // other items: EA's own wording when it is a readable text, else a generic item
   assert.equal(awardText({ value: 1, awardType: 'item', itemDataReduced: { itemType: 'misc', rating: 99, description: '1 of 2 78+ Gold Player Pick' } }, tt), '1 of 2 78+ Gold Player Pick');
   assert.equal(awardText({ value: 1, awardType: 'item', itemDataReduced: { itemType: 'misc', rating: 99, description: 'AcademySlotEVO' } }, tt), 'obj.award.item');

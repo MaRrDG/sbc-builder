@@ -7,6 +7,25 @@ export const SHARED_OBJECTIVES_KEY = 'shared/objectives';
 const list = <T>(x: unknown): T[] => (Array.isArray(x) ? x : []);
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
 
+const pick = <T extends object>(src: Record<string, unknown>, keys: (keyof T)[]): Partial<T> => {
+  const out: Record<string, unknown> = {};
+  for (const k of keys) if (src[k as string] !== undefined) out[k as string] = src[k as string];
+  return out as Partial<T>;
+};
+
+/**
+ * A reward with only the fields the site reads (a whitelist): EA's item data also carries the account's own
+ * state (isCollected ...) and art / stats we never show. Used for the shared copy and for every answer.
+ */
+export function trimAward(a: EaAward): EaAward {
+  const out = pick<EaAward>(a as unknown as Record<string, unknown>, ['value', 'awardType', 'count', 'untradeable']) as EaAward;
+  const r = a.itemDataReduced;
+  if (isObj(r)) out.itemDataReduced = pick<NonNullable<EaAward['itemDataReduced']>>(r, ['itemType', 'assetId', 'rating', 'preferredPosition', 'description']);
+  return out;
+}
+
+const awards = (x: unknown) => list<EaAward>(x).filter(isObj).map(trimAward);
+
 /**
  * Only the fields that describe the catalogue are kept (a whitelist, so a new personal field from EA never
  * leaks): groups, titles, texts, targets, rewards and times. State, progress and completion counts go.
@@ -20,13 +39,13 @@ export function stripPersonal(categories: EaCategory[]): EaCategory[] {
       title: g.title,
       startTime: g.startTime,
       endTime: g.endTime,
-      awardsList: list<EaAward>(g.awardsList),
+      awardsList: awards(g.awardsList),
       objectives: list<EaObjective>(g.objectives).filter(isObj).map((o) => ({
         objectiveId: o.objectiveId,
         name: o.name,
         description: o.description,
         multiplier: o.multiplier,
-        awards: list<EaAward>(o.awards),
+        awards: awards(o.awards),
       })),
     })),
   }));

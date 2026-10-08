@@ -879,7 +879,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'obj.markedList_one': 'Marcat ca făcut de tine ({count})',
   'obj.markedList_few': 'Marcate ca făcute de tine ({count})',
   'obj.markedList_other': 'Marcate ca făcute de tine ({count})',
-  'obj.award.player': 'Jucător {rating} {position}',
+  'obj.award.player': 'Jucător {what}',
   'obj.award.item': 'Obiect',
   'obj.award.pack_one': 'Pachet',
   'obj.award.pack_few': '{count} × Pachet',
