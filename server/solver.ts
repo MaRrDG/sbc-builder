@@ -110,25 +110,26 @@ function ratingBounds(reqs: Requirement[]): { min: number | null; max: number | 
 
 const OP = ['>=', '<=', '='] as const;
 
+/** A player's chemistry groups and per-group contribution, as the CP-SAT model wants them. */
+export function playerChem(p: Player, meta: Meta) {
+  const groupOf = (param: ParamId) => (param === CLUB ? normClub(meta, p.club) : param === LEAGUE ? p.league : p.nation);
+  const prof = profileFor(p, meta);
+  const contrib = (param: ParamId) => {
+    if (param === CLUB && RESTRICTED_CLUBS.has(p.club)) return 0;
+    if (param === LEAGUE && p.league === LEGENDS_LEAGUE_ID) return 0;
+    return prof.rules[param]?.value ?? 0;
+  };
+  return {
+    groups: { 1: groupOf(NATION), 2: groupOf(LEAGUE), 3: groupOf(CLUB) },
+    contrib: { 1: contrib(NATION), 2: contrib(LEAGUE), 3: contrib(CLUB) },
+    maxChem: prof.maxChem || isLegend(p) || isHero(p),
+  };
+}
+
 function buildProblem(
   pool: Player[], slotTypes: number[], reqs: Requirement[], meta: Meta, timeLimit: number,
   bricks: BrickSlot[] = [], fixed: Map<number, number> = new Map(),
 ) {
-  const groupOf = (p: Player, param: ParamId) =>
-    param === CLUB ? normClub(meta, p.club) : param === LEAGUE ? p.league : p.nation;
-  const chemOf = (p: Player) => {
-    const prof = profileFor(p, meta);
-    const contrib = (param: ParamId) => {
-      if (param === CLUB && RESTRICTED_CLUBS.has(p.club)) return 0;
-      if (param === LEAGUE && p.league === LEGENDS_LEAGUE_ID) return 0;
-      return prof.rules[param]?.value ?? 0;
-    };
-    return {
-      groups: { 1: groupOf(p, NATION), 2: groupOf(p, LEAGUE), 3: groupOf(p, CLUB) },
-      contrib: { 1: contrib(NATION), 2: contrib(LEAGUE), 3: contrib(CLUB) },
-      maxChem: prof.maxChem || isLegend(p) || isHero(p),
-    };
-  };
   const locked = new Set(bricks.map((b) => b.index));
   const slotOfPlayer = new Map([...fixed].map(([slot, id]) => [id, slot]));
 
@@ -138,14 +139,14 @@ function buildProblem(
     asset: p.assetId,
     slots: slotTypes.flatMap((t, s) => (!locked.has(s) && p.positions.includes(t) ? [s] : [])),
     fixed: slotOfPlayer.get(p.id) ?? null,
-    ...chemOf(p),
+    ...playerChem(p, meta),
   }));
   // custom bricks: always there, in chemistry only
   const brickChem = bricks
     .filter((b) => b.custom)
     .map((b) => {
       const bp = brickPlayer(b, slotTypes[b.index]);
-      return { slot: b.index, inpos: bp.positions.includes(slotTypes[b.index]), ...chemOf(bp) };
+      return { slot: b.index, inpos: bp.positions.includes(slotTypes[b.index]), ...playerChem(bp, meta) };
     });
 
   const matching = (f: (p: Player) => boolean) => pool.flatMap((p, i) => (f(p) ? [i] : []));
@@ -208,7 +209,7 @@ function buildProblem(
   };
 }
 
-interface CpResult {
+export interface CpResult {
   picked?: number[]; // points mode: pool indexes
   status: string;
   slots?: (number | null)[];
@@ -217,7 +218,7 @@ interface CpResult {
   wallTime?: number;
 }
 
-function runCpSat(problem: unknown): Promise<CpResult> {
+export function runCpSat(problem: unknown): Promise<CpResult> {
   return new Promise((resolve, reject) => {
     const child = spawn(PYTHON, [SCRIPT], { stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
