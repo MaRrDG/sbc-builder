@@ -64,6 +64,61 @@ export interface GalleryResponse {
   sets: GallerySetResult[];
 }
 
+/** Objectives squads (same shapes as server/objectives/types.ts). xi: in the starting 11; score / assist: in a slot that scores / creates. */
+export type ObjRole = 'xi' | 'score' | 'assist';
+export interface ObjFilter {
+  nation?: number[];
+  league?: number[];
+  club?: number[];
+  rarity?: number[];
+  position?: string;
+  preferredOnly?: boolean;
+  attr?: { stat: 'PAC' | 'SHO' | 'PAS' | 'DRI' | 'DEF' | 'PHY'; min: number };
+}
+export interface ObjCondition {
+  filter: ObjFilter;
+  role: ObjRole;
+  min: number;
+}
+export interface ObjAward {
+  value: number;
+  awardType: string;
+  untradeable?: boolean;
+  itemDataReduced?: { description?: string; itemType?: string; rating?: number } | null;
+}
+export interface ObjectiveView {
+  id: number;
+  name: string;
+  description: string;
+  progress: number;
+  target: number;
+  awards: ObjAward[];
+  /** empty when the text has no squad condition we can read */
+  conditions: ObjCondition[];
+}
+export interface ObjectiveGroupView {
+  id: number;
+  title: string;
+  category: string;
+  endsAt: number | null; // ms
+  awards: ObjAward[];
+  objectives: ObjectiveView[];
+}
+export interface ObjectivesResponse {
+  fetchedAt: number | null;
+  formation: string | null; // the active squad's, if the web app loaded it
+  groups: ObjectiveGroupView[];
+}
+export interface ObjectivesSolve {
+  found: boolean;
+  ms: number;
+  formation: string;
+  slots: SlotResult[];
+  eval: { rating: number; chemistry: number; perSlotChem: number[]; allMet: boolean } | null;
+  covers: { objectiveId: number; condition: ObjCondition; itemIds: number[]; met: boolean }[];
+  reasons: ({ code: 'noMatch'; condition: ObjCondition } | { code: 'combo' })[];
+}
+
 export interface Account {
   personaId: number;
   personaName: string;
@@ -346,6 +401,9 @@ export const api = {
   solve: (setId: number, challengeId: number, options: SolveOptions, deep = false, useStorage = true) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep, useStorage } }),
   gallery: () => req<GalleryResponse>('/api/gallery'),
+  objectives: () => req<ObjectivesResponse>('/api/objectives'),
+  solveObjectives: (b: { objectiveIds: number[]; formation: string; options?: { excludeIds?: number[]; maxRating?: number } }) =>
+    req<ObjectivesSolve>('/api/objectives/solve', { method: 'POST', body: b }),
   adminOverview: (range: 7 | 30) => req<AdminOverview>(`/api/admin/overview?range=${range}`),
   adminUsers: (query: string) => req<Paged<AdminUserRow>>(`/api/admin/users${query ? `?${query}` : ''}`),
   adminUser: (id: string) => req<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(id)}`),

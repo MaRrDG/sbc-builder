@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, List, Prohibit, Question, SlidersHorizontal, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, List, Prohibit, Question, SlidersHorizontal, Target, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
   type Account, type Challenge, type GalleryResponse, type Meta, type Player, type PlanInfo, type Prefs, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
@@ -37,7 +37,9 @@ import { RefBanner } from './components/RefBanner';
 import { useFounders } from './landing/Founders';
 import { GalleryInfo } from './components/gallery/GalleryInfo';
 import { PremiumPreview } from './components/PremiumPreview';
-import { DEMO_GALLERY, DEMO_META } from './components/premiumDemo';
+import { DEMO_GALLERY, DEMO_META, DEMO_OBJECTIVES } from './components/premiumDemo';
+import { ObjectiveGroups, ObjectivesView } from './components/objectives/ObjectivesView';
+import { compareVersions } from './components/UpdateBanner';
 import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
 import { unlinkExtension, useExtensionLink } from './link';
@@ -380,7 +382,7 @@ export default function App({
   // the tab title follows the screen
   useEffect(() => {
     const name =
-      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'invite' ? 'Invite friends' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery'
+      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'invite' ? 'Invite friends' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery' : view === 'objectives' ? 'Objectives'
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
@@ -817,6 +819,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <FrameCorners weight="bold" aria-hidden="true" />
             <span>{t('nav.gallery')}</span>
           </button>
+          <button type="button" className="nav-item" aria-current={view === 'objectives' && !showGuide ? 'page' : undefined} onClick={() => go('objectives')}>
+            <Target weight="bold" aria-hidden="true" />
+            <span>{t('nav.objectives')}</span>
+          </button>
           <button type="button" className="nav-item" aria-current={view === 'invite' && !showGuide ? 'page' : undefined} onClick={() => go('invite')}>
             <Gift weight="bold" aria-hidden="true" />
             <span>{t('nav.invite')}</span>
@@ -933,6 +939,35 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
               <GallerySet set={gallerySet} meta={meta} onBack={() => navigate({ view: 'gallery', setId: null })} />
             ) : (
               <GalleryList data={gallery} meta={meta} onOpen={(id) => navigate({ view: 'gallery', setId: id })} onInfo={() => setGalleryInfo(true)} />
+            )
+          )}
+
+          {!showGuide && view === 'objectives' && meta && (
+            !premium ? (
+              <section className="objectives-view">
+                <header className="page-head">
+                  <div>
+                    <h1>{t('obj.title')}</h1>
+                    <p className="muted">{t('obj.lede')}</p>
+                  </div>
+                </header>
+                <PremiumPreview title={t('obj.lockedTitle')} body={t('obj.lockedBody')}>
+                  <ObjectiveGroups groups={DEMO_OBJECTIVES} meta={DEMO_META} picked={[11, 12]} onToggle={() => {}} now={now} />
+                </PremiumPreview>
+              </section>
+            ) : (
+              activeId && (
+                <ObjectivesView
+                  key={activeId}
+                  meta={meta}
+                  personaId={activeId}
+                  extVersionOk={!!account?.extVersion && compareVersions(account.extVersion, '0.9.0') >= 0}
+                  excludeIds={globalOptions.excludeIds}
+                  maxRating={globalOptions.maxRating}
+                  onError={onApiError}
+                  onSettings={() => go('settings')}
+                />
+              )
             )
           )}
 

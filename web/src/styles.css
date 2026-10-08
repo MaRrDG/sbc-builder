@@ -4098,3 +4098,55 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .adm-codes-form .adm-check { display: flex; align-items: center; gap: 8px; height: 36px; }
 .adm-codes-new > summary { cursor: pointer; font-weight: 600; }
 .adm-uses { margin: 0; padding-left: 18px; color: var(--ink-2); }
+
+/* ---------- Objectives squad ---------- */
+.objectives-view { display: grid; gap: 16px; padding-bottom: 88px; }
+.objectives-view .page-head { margin-bottom: 4px; }
+.objectives-view .page-head p { max-width: 70ch; }
+.obj-fetched { font-size: 13px; }
+.obj-groups { display: grid; gap: 16px; }
+.obj-group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-box); padding: 16px; }
+.obj-group h2 { margin: 0; font-family: var(--font-num); font-size: 18px; font-weight: 700; }
+.obj-group header p { margin: 2px 0 0; font-size: 13px; }
+.obj-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.obj-item { border-top: 1px solid var(--line); padding-top: 10px; }
+.obj-item.is-dim .obj-name, .obj-item.is-dim .obj-desc { color: var(--ink-3); }
+.obj-check { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 4px 6px; margin-left: -6px; border: 0; border-radius: var(--r-ctl); background: none; text-align: left; transition: background 160ms var(--ease); }
+.obj-check:hover:not(:disabled) { background: var(--surface-2); }
+.obj-check:disabled { opacity: 1; }
+.obj-check svg { flex: none; width: 20px; height: 20px; color: var(--ink-2); }
+.obj-check[aria-checked='true'] svg { color: var(--go); }
+.obj-name { flex: 1; min-width: 0; font-weight: 600; }
+.obj-progress { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; }
+.obj-desc { margin: 2px 0 0 28px; color: var(--ink-2); font-size: 13px; }
+.obj-pills { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0 28px; padding: 0; }
+.obj-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 13px; }
+.obj-none { margin: 6px 0 0 28px; font-size: 13px; }
+.obj-empty { display: flex; gap: 10px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
+.obj-empty p { margin: 0; }
+.obj-empty svg { flex: none; width: 20px; height: 20px; color: var(--ink-2); }
+.obj-result { display: grid; gap: 12px; scroll-margin-top: 76px; }
+.obj-result h2 { margin: 8px 0 0; font-family: var(--font-num); font-size: 24px; font-weight: 700; }
+.obj-pitch { width: 100%; max-width: 760px; }
+.obj-covers, .obj-reasons { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.obj-covers li { display: flex; gap: 8px; align-items: flex-start; }
+.obj-covers .tick { flex: none; }
+.obj-covers .is-met .tick { color: var(--go); }
+.obj-covers .is-miss .tick { color: var(--bad); }
+.obj-who { color: var(--ink-2); }
+.obj-reasons li { padding: 10px 12px; border: 1px solid oklch(0.7 0.18 25 / 0.5); border-radius: var(--r-ctl); background: oklch(0.7 0.18 25 / 0.1); }
+.obj-bar { position: fixed; left: 208px; right: 0; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: flex-end; padding: 10px 28px; border-top: 1px solid var(--line); background: oklch(0.2 0.028 222 / 0.96); backdrop-filter: blur(8px); }
+.obj-bar label { display: flex; gap: 8px; align-items: center; margin-right: auto; color: var(--ink-2); font-size: 13px; }
+.obj-bar select { height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface-2); color: var(--ink); }
+.obj-count { font-size: 13px; }
+.slot-badge { position: absolute; top: -6px; left: calc(50% - var(--card-w) / 2 - 4px); z-index: 2; display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: var(--go); font-size: 13px; }
+@media (max-width: 860px) {
+  .obj-bar { left: 0; padding: 10px 12px; }
+}
+@media (max-width: 480px) {
+  .obj-bar .solve-sm { flex: 1 0 100%; height: 40px; }
+  .objectives-view { padding-bottom: 120px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .obj-check { transition: none; }
+}
