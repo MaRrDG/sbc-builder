@@ -37,6 +37,11 @@ const PAGES: Record<string, PageMeta> = {
     title: 'Cookie policy · FC Solver',
     description: 'FC Solver uses only strictly necessary cookies and cookieless statistics: no advertising or tracking cookies, no consent banner.',
   },
+  '/daily': {
+    title: 'FC Solver Daily · Guess today\'s EA FC player',
+    description:
+      'A free daily EA FC guessing game: five tries to find the mystery player from nation, league, club, position, rating and card type. New player every evening, unlimited Practice.',
+  },
 };
 
 const LEGAL_PATHS = new Set(['/terms', '/privacy', '/cookies']);

@@ -1,8 +1,10 @@
 // Postgres side of the Daily game (rules live in server/daily/*).
-import { asc, eq, gte, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, isNotNull, sql } from 'drizzle-orm';
 import { db } from './index.js';
-import { dailyAnswers, players } from './schema.js';
+import { dailyAnswers, dailyPlays, players, pointLedger } from './schema.js';
 import type { PlayerRow } from '../daily/types.js';
+import { applyGuess, type GuessError, type Progress } from '../daily/game.js';
+import { pointsFor, streakOf, type Play } from '../daily/streak.js';
 
 const toRow = (r: typeof players.$inferSelect): PlayerRow => ({
   ...r, cardType: r.cardType as PlayerRow['cardType'], firstSeen: r.firstSeen.getTime(), lastSeen: r.lastSeen.getTime(),
@@ -42,4 +44,35 @@ export async function insertAnswer(a: { day: number; date: string; dropAt: numbe
 
 export async function answersSince(day: number): Promise<number[]> {
   return (await db.select({ a: dailyAnswers.assetId }).from(dailyAnswers).where(gte(dailyAnswers.day, day))).map((r) => r.a);
+}
+
+export async function playsOf(userId: string, tx: Pick<typeof db, 'select'> = db): Promise<Play[]> {
+  const rows = await tx.select({ day: dailyPlays.day, won: dailyPlays.won, guesses: dailyPlays.guesses }).from(dailyPlays)
+    .where(and(eq(dailyPlays.userId, userId), isNotNull(dailyPlays.finishedAt)));
+  return rows.map((r) => ({ day: r.day, won: r.won, guesses: r.guesses.length }));
+}
+
+export async function playOf(userId: string, day: number): Promise<number[]> {
+  const [r] = await db.select({ g: dailyPlays.guesses }).from(dailyPlays).where(and(eq(dailyPlays.userId, userId), eq(dailyPlays.day, day)));
+  return r?.g ?? [];
+}
+
+/** One guess of a signed-in user, under a row lock: two tabs cannot add two guesses or two point grants. */
+export async function guessDaily(userId: string, day: number, answer: number, guess: number, known: (id: number) => boolean):
+  Promise<{ progress: Progress; points: { added: number; streak: number } | null } | { error: GuessError }> {
+  return db.transaction(async (tx) => {
+    await tx.insert(dailyPlays).values({ userId, day }).onConflictDoNothing();
+    const [cur] = await tx.select({ g: dailyPlays.guesses }).from(dailyPlays)
+      .where(and(eq(dailyPlays.userId, userId), eq(dailyPlays.day, day))).for('update');
+    const res = applyGuess(cur?.g ?? [], guess, answer, known);
+    if ('error' in res) return res;
+    await tx.update(dailyPlays).set({ guesses: res.guesses, won: res.won, finishedAt: res.finished ? new Date() : null })
+      .where(and(eq(dailyPlays.userId, userId), eq(dailyPlays.day, day)));
+    if (!res.won) return { progress: res, points: null };
+    const streak = streakOf(await playsOf(userId, tx), day).current;
+    const added = pointsFor(streak);
+    if (added > 0)
+      await tx.insert(pointLedger).values({ userId, delta: added, reason: 'daily_streak', ref: String(day) }).onConflictDoNothing();
+    return { progress: res, points: { added, streak } };
+  });
 }

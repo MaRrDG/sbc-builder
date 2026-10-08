@@ -59,6 +59,16 @@ export async function siteUser(req: FastifyRequest): Promise<string> {
   return sub;
 }
 
+/** For public endpoints that do more when signed in (/api/daily): a missing or bad token is just "signed out". */
+export async function optionalSiteUser(req: FastifyRequest): Promise<string | null> {
+  if (!req.headers.authorization) return null;
+  try {
+    return await siteUser(req);
+  } catch {
+    return null;
+  }
+}
+
 /** The signed-in user and the EA persona (X-Persona) the call is about. */
 export async function siteContext(req: FastifyRequest): Promise<{ userId: string; acc: Account }> {
   const userId = await siteUser(req);
