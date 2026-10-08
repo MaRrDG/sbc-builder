@@ -68,6 +68,18 @@
   font-size: 13px;
 }
 .dg-sub::first-letter { text-transform: uppercase; }
+/* permanent note under the title: how many players the game knows */
+.dg-base {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 68ch;
+  margin: 10px 0 0;
+  color: var(--ink-2);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.dg-base svg { flex: none; margin-top: 1px; font-size: 16px; }
 .dg-actions { display: flex; align-items: center; gap: 6px; }
 .dg-tabs {
   display: inline-flex;

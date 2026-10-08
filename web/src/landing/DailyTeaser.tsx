@@ -38,11 +38,16 @@ export function DailyTeaser({ link }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const seen = useInView(ref);
   const [day, setDay] = useState<number | null>(null);
+  const [players, setPlayers] = useState<number | null>(null);
   useEffect(() => {
     let live = true;
     api.daily
       .info()
-      .then((i) => live && Number.isInteger(i.day) && i.day > 0 && setDay(i.day))
+      .then((i) => {
+        if (!live) return;
+        if (Number.isInteger(i.day) && i.day > 0) setDay(i.day);
+        if (Number.isInteger(i.players) && i.players > 0) setPlayers(i.players);
+      })
       .catch(() => {}); // no number is fine: the teaser stands without it
     return () => {
       live = false;
@@ -131,6 +136,7 @@ export function DailyTeaser({ link }: Props) {
             ))}
           </ul>
         </div>
+        {players !== null && <p className="lp-dly-count">{t('landing.daily.count', { count: players })}</p>}
       </div>
     </section>
   );
