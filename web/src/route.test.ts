@@ -104,3 +104,10 @@ test('invite route', () => {
   assert.equal(routePath({ view: 'invite' }), '/dashboard/invite');
   assert.deepEqual(parseRoute(routePath({ view: 'invite' })), { view: 'invite' });
 });
+
+test('daily routes', () => {
+  assert.deepEqual(parseRoute('/daily'), { view: 'daily', practice: false });
+  assert.deepEqual(parseRoute('/daily/practice'), { view: 'daily', practice: true });
+  assert.equal(routePath({ view: 'daily', practice: false }), '/daily');
+  assert.equal(routePath({ view: 'daily', practice: true }), '/daily/practice');
+});

@@ -16,6 +16,8 @@ export const en = {
   'meta.landing': 'FC Solver · EA FC 27 SBC solver for your own club',
   'meta.guide': 'How FC Solver works · EA FC 27 SBC solver',
   'meta.setup': 'Install the FC Solver extension · EA FC 27',
+  'meta.daily': "FC Solver Daily · Guess today's EA FC player",
+  'daily.name': 'FC Solver Daily',
   'meta.signin': 'Sign in · FC Solver',
 
   // top bar

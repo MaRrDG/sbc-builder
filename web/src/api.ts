@@ -396,7 +396,29 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
   return data as T;
 }
 
+export type DailyTileState = 'hit' | 'near' | 'miss';
+export interface DailyTile { state: DailyTileState; dir?: 'up' | 'down' }
+export interface DailyTiles { nation: DailyTile; league: DailyTile; club: DailyTile; position: DailyTile; rating: DailyTile; cardType: DailyTile }
+export type DailyCardType = 'normal' | 'icon' | 'hero';
+export interface DailyPlayer { id: number; name: string; nation: number; league: number; club: number; position: string; rating: number; cardType: DailyCardType }
+export interface DailyAnswer extends DailyPlayer { fullName: string; rareflag: number }
+export interface DailySilhouette { rating: number; position: string; rareflag: number; cardType: DailyCardType }
+export interface DailyRow { player: DailyPlayer; tiles: DailyTiles }
+export interface DailyStats { played: number; won: number; current: number; best: number; dist: number[]; next: { target: number; points: number } }
+export interface DailyGame { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; stats: DailyStats }
+export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; game?: DailyGame }
+export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
+export interface DailyName { i: number; n: string; f: string; c: number }
+
 export const api = {
+  daily: {
+    info: () => req<DailyInfo>('/api/daily'),
+    players: () => req<{ v: number; players: DailyName[] }>('/api/daily/players'),
+    guess: (assetId: number, state?: string) => req<DailyGuess>('/api/daily/guess', { method: 'POST', body: { assetId, state } }),
+    practice: () => req<{ token: string }>('/api/daily/practice', { method: 'POST' }),
+    practiceGuess: (token: string, assetId: number, state?: string) =>
+      req<DailyGuess>('/api/daily/practice/guess', { method: 'POST', body: { token, assetId, state } }),
+  },
   me: () =>
     req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; takenOver: boolean; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null }>('/api/me'),
   onboarding: (a: ({ heardFrom: HeardFrom; futYears: FutYears } | { skip: true }) & { code?: string }) =>

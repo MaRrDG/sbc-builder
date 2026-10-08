@@ -546,7 +546,7 @@ export default function App({
     setError(null);
   };
 
-  const go = (v: Exclude<View, 'signin' | 'ssoCallback' | 'legal'>) => {
+  const go = (v: Exclude<View, 'signin' | 'ssoCallback' | 'legal' | 'daily'>) => {
     setShowOptions(false);
     setMenuOpen(false);
     // pressing SBCs again goes back to the list

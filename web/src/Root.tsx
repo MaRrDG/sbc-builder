@@ -16,6 +16,7 @@ import { SetupGuide } from './components/SetupGuide';
 // the signed-in app loads after the sign-in screen, which stays small
 const App = lazy(() => import('./App'));
 const Landing = lazy(() => import('./landing/Landing'));
+const Daily = lazy(() => import('./daily/Daily'));
 
 const here = () => window.location.pathname + window.location.search;
 
@@ -35,7 +36,7 @@ export default function Root() {
     isSignedIn ? () => setRefused(true) : () => navigate(toSignIn(), true),
   );
 
-  const publicView = route.view === 'landing' || route.view === 'legal' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup';
+  const publicView = route.view === 'landing' || route.view === 'legal' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup' || route.view === 'daily';
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn && !publicView) navigate(toSignIn(), true);
@@ -45,8 +46,8 @@ export default function Root() {
   // public pages name the tab themselves (the server fills <head> only on a full load, see server/seo.ts);
   // the signed-in app sets its own titles
   useEffect(() => {
-    const titled = route.view === 'landing' || route.view === 'guide' || route.view === 'setup' || route.view === 'signin';
-    if (titled && (route.view === 'landing' || !isSignedIn)) document.title = t(`meta.${route.view}`);
+    const titled = route.view === 'landing' || route.view === 'guide' || route.view === 'setup' || route.view === 'signin' || route.view === 'daily';
+    if (titled && (route.view === 'landing' || route.view === 'daily' || !isSignedIn)) document.title = t(`meta.${route.view}`);
   }, [route.view, isSignedIn, t]);
 
   // legal pages, like the landing page, are for everyone and do not wait for Clerk
@@ -57,6 +58,14 @@ export default function Root() {
     return (
       <Suspense fallback={<div className="boot" aria-busy="true" />}>
         <Landing signedIn={!!isSignedIn} authReady={isLoaded} navigate={navigate} />
+      </Suspense>
+    );
+
+  // the Daily game is public; it waits for Clerk only to know whether stats are saved to an account
+  if (route.view === 'daily')
+    return (
+      <Suspense fallback={<div className="boot" aria-busy="true" />}>
+        <Daily signedIn={!!isSignedIn} authReady={isLoaded} practice={route.practice} navigate={navigate} />
       </Suspense>
     );
 
