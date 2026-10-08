@@ -7,6 +7,7 @@ import { LangMenu } from '../components/LangMenu';
 import { routePath, type Route } from '../route';
 import { Hero } from './Hero';
 import { Pillars } from './Pillars';
+import { Objectives } from './Objectives';
 import { Steps } from './Steps';
 import { Pricing } from './Pricing';
 import { Faq } from './Faq';
@@ -75,6 +76,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
           </a>
           <nav className="lp-nav" aria-label={t('landing.nav.label')}>
             <a href="#why">{t('landing.nav.why')}</a>
+            <a href="#objectives">{t('landing.nav.objectives')}</a>
             <a href="#how">{t('landing.nav.how')}</a>
             <a href="#pricing">{t('landing.nav.pricing')}</a>
             <a href="#faq">{t('landing.nav.faq')}</a>
@@ -91,6 +93,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
       <main id="main">
         <Hero cta={cta()} founders={founders} />
         <Pillars />
+        <Objectives />
         <Steps link={link} />
         <Pricing cta={cta()} founders={founders} />
         <Invite cta={!authReady ? placeholder('lp-btn', t('landing.invite.cta')) : link(signedIn ? { view: 'invite' } : signin, 'lp-btn', t('landing.invite.cta'))} />
