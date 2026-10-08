@@ -1,7 +1,7 @@
 // "Objectives" (Premium): three objective rows tick one after another, then the demo squad's real cards
-// light up where they cover one (Ronaldo scores for Portugal, Lamine Yamal is the LALIGA starter, Messi
-// assists as a CAM). Each row and its player carry the same number, so the link is never colour alone;
-// the other cards stay dimmed. Everything is visible by default; `is-in` only replays the motion once the
+// light up where they cover one (Ronaldo scores for Portugal, Lamine Yamal and Pau Cubarsí are the two LALIGA
+// starters, Kelly assists for England). Each row and its players carry the same number, so the link is never
+// colour alone; the other cards (Messi, Dybala, Carnesecchi) meet no row and stay dimmed. Everything is visible by default; `is-in` only replays the motion once the
 // demo scrolls in (reduced motion: the final state only).
 import { useRef, type CSSProperties } from 'react';
 import { Check, Crown } from '@phosphor-icons/react';
@@ -10,12 +10,13 @@ import { useI18n } from '../i18n';
 import { DEMO_META, DEMO_SQUAD } from './demo';
 import { useInView } from './motion';
 
-// i18n: landing.obj.card.<key>; `player` = index into DEMO_SQUAD of the card that covers it
-const ROWS = [
-  { key: 'score', player: 0 }, // Ronaldo, Portugal
-  { key: 'xi', player: 1 }, // Lamine Yamal, LALIGA EA SPORTS
-  { key: 'assist', player: 3 }, // Messi, CAM
-] as const;
+// i18n: landing.obj.card.<key>; `players` = indexes into DEMO_SQUAD of the cards that cover it (and only they:
+// no dimmed card may match a row's nation / league / position)
+const ROWS: { key: 'score' | 'xi' | 'assist'; players: number[] }[] = [
+  { key: 'score', players: [0] }, // Ronaldo, Portugal (ST)
+  { key: 'xi', players: [1, 5] }, // Lamine Yamal + Pau Cubarsí, LALIGA EA SPORTS
+  { key: 'assist', players: [2] }, // Kelly, England (LM / LW)
+];
 
 // where each DEMO_SQUAD card stands (ST, RW, LW, CAM, CAM, CB, GK), in % of a flat pitch, attack at the top
 const SPOTS: [number, number][] = [[50, 15], [82, 25], [18, 25], [35, 47], [65, 47], [50, 67], [50, 89]];
@@ -50,7 +51,7 @@ export function Objectives() {
         </ol>
         <div className="lp-obj-pitch">
           {DEMO_SQUAD.map((p, n) => {
-            const hit = ROWS.findIndex((r) => r.player === n);
+            const hit = ROWS.findIndex((r) => r.players.includes(n));
             return (
               <div
                 key={p.id}

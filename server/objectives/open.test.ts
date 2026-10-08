@@ -58,6 +58,33 @@ test('done: COMPLETED or REDEEMED, or progress at / past the target', () => {
   assert.equal(done({ ...obj(1, 'x', 'IN_PROGRESS'), currentProgress: 7 }), true);
 });
 
+test('odd EA shapes: a broken objective or group is skipped or gets no conditions, never a throw', () => {
+  const good = obj(1798, 'Score 6 goals using a Dutch player in any FUT game mode.', 'IN_PROGRESS');
+  const odd = [
+    null,
+    { ...good, objectiveId: 2, description: null },
+    { ...good, objectiveId: 3, description: 42, awards: 'x' },
+    { ...good, objectiveId: 'x' },
+    good,
+  ] as unknown as EaObjective[];
+  const g = openGroups(cats(0, odd), NOW, names);
+  // no id: skipped; no text: kept with no conditions (not solvable); awards not a list: none
+  assert.deepEqual(g[0].objectives.map((o) => [o.id, o.conditions.length, o.description]), [[2, 0, ''], [3, 0, ''], [1798, 1, good.description]]);
+  assert.deepEqual(g[0].objectives[1].awards, []);
+  // groups: missing / non-list objectives, null group, groupsList not a list, null category
+  const broken = [
+    null,
+    { categoryId: 1, name: 'A', groupsList: 'x' },
+    { categoryId: 2, name: 'B', groupsList: [null, { groupId: 7, title: 'T', startTime: 0, endTime: 0, awardsList: null, objectives: { a: 1 } }] },
+    ...cats(0, [good]),
+  ] as unknown as EaCategory[];
+  const h = openGroups(broken, NOW, names);
+  assert.deepEqual(h.map((x) => x.id), [120]);
+  // a group with a bad awardsList still shows, without group awards
+  const noAwards = [{ categoryId: 3, name: 'C', groupsList: [{ groupId: 8, title: 'T', startTime: 0, endTime: 0, awardsList: null, objectives: [good] }] }] as unknown as EaCategory[];
+  assert.deepEqual(openGroups(noAwards, NOW, names)[0].awards, []);
+});
+
 test('solvable: only open objectives with a squad condition', () => {
   const cond = [{ role: 'score' as const, min: 1, filter: { nation: [34] } }];
   assert.equal(solvable({ done: false, conditions: cond }), true);

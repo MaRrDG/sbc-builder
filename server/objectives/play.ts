@@ -38,7 +38,6 @@ export function roleSlots(c: Condition, slotTypes: number[]): number[] {
   return slotTypes.flatMap((t, s) => (types === null || types.includes(t) ? [s] : []));
 }
 
-/** The club as a playing squad sees it: storage is out, loans are in, the user's exclusions apply. */
 /** Who may play: club players (no storage), not excluded, not over max OVR; loans only when asked (they run out). */
 export function playPool(players: Player[], o: { excludeIds: number[]; maxRating: number; includeLoans?: boolean }): Player[] {
   const excluded = new Set(o.excludeIds);
@@ -116,10 +115,13 @@ export function checkCovers(slots: (Player | null)[], slotTypes: number[], conds
  * Why an objective is out. objectiveId: the uncovered objective (absent on the old whole-problem diagnosis).
  * noSlot: the formation has no slot where the condition can be met (formations: up to 2 that have one);
  * noMatch: the slots exist, nobody in the pool fits them; combo: proven not to fit with the other picks;
- * selfClash: proven that its own conditions cannot all be met at once here; timeout: not fitted, nothing proven.
+ * selfClash: proven that its own conditions cannot all be met at once here; timeout: not fitted, nothing proven;
+ * noXi: the pool cannot field a full in-position XI in this formation at all (whatever the objectives).
+ * hidden: how many more players the user's settings (exclusions, max OVR, loans off) keep out.
  */
 export type PlayReason =
-  | { code: 'noMatch'; condition: Condition; objectiveId?: number }
+  | { code: 'noMatch'; condition: Condition; objectiveId?: number; hidden?: number }
+  | { code: 'noXi'; short: ShortPosition[]; objectiveId?: number }
   | { code: 'noSlot'; condition: Condition; formations: string[]; objectiveId?: number }
   | { code: 'combo' | 'selfClash' | 'timeout'; objectiveId?: number };
 
@@ -137,8 +139,43 @@ function slotChanges(a: number[], b: number[]): number {
   return a.length - same;
 }
 
+/** A slot type the pool has too few in-position cards for (have < need); hidden: more the settings keep out. */
+export interface ShortPosition {
+  position: string;
+  need: number;
+  have: number;
+  hidden: number;
+}
+
+const POSITION_NAME = Object.fromEntries(Object.entries(T).map(([name, id]) => [id, name]));
+const distinctAssets = (ps: Player[]) => new Set(ps.map((p) => p.assetId)).size;
+/** Extra cards `everyone` has over `pool` (the ones the settings hide), 0 without `everyone`. */
+const hiddenBy = (pool: Player[], everyone: Player[] | undefined, fits: (p: Player) => boolean) =>
+  everyone ? Math.max(0, distinctAssets(everyone.filter(fits)) - distinctAssets(pool.filter(fits))) : 0;
+
+/**
+ * Why the pool cannot field a full XI: per slot type, in-position cards vs slots of that type, in formation
+ * order. everyone: the club before the settings (no storage), for the hidden counts. An empty list means each
+ * type is covered on its own and the players overlap (one card for two slot types).
+ */
+export function noXiReason(pool: Player[], slotTypes: number[], everyone?: Player[]): { code: 'noXi'; short: ShortPosition[] } {
+  const need = new Map<number, number>();
+  for (const t of slotTypes) need.set(t, (need.get(t) ?? 0) + 1);
+  const short: ShortPosition[] = [];
+  for (const [t, n] of need) {
+    const fits = (p: Player) => p.positions.includes(t);
+    const have = distinctAssets(pool.filter(fits));
+    if (have < n) short.push({ position: POSITION_NAME[t] ?? String(t), need: n, have, hidden: hiddenBy(pool, everyone, fits) });
+  }
+  return { code: 'noXi', short };
+}
+
 /** Why there is no squad: a condition with no slot in the formation or nobody to meet it, else the conditions clash. */
-export function diagnosePlay(pool: Player[], slotTypes: number[], conds: Condition[], formations: Record<string, number[]> = {}): PlayReason[] {
+export function diagnosePlay(
+  pool: Player[], slotTypes: number[], conds: Condition[], formations: Record<string, number[]> = {},
+  /** the club before the settings (no storage): noMatch says how many more the settings hide */
+  everyone?: Player[],
+): PlayReason[] {
   const out: PlayReason[] = [];
   for (const c of conds) {
     const slots = roleSlots(c, slotTypes);
@@ -152,8 +189,11 @@ export function diagnosePlay(pool: Player[], slotTypes: number[], conds: Conditi
       out.push({ code: 'noSlot', condition: c, formations: others.slice(0, 2) });
       continue;
     }
-    const fits = pool.filter((p) => matchesFilter(p, c.filter) && slots.some((s) => p.positions.includes(slotTypes[s])));
-    if (new Set(fits.map((p) => p.assetId)).size < c.min) out.push({ code: 'noMatch', condition: c });
+    const fits = (p: Player) => matchesFilter(p, c.filter) && slots.some((s) => p.positions.includes(slotTypes[s]));
+    if (distinctAssets(pool.filter(fits)) < c.min) {
+      const hidden = hiddenBy(pool, everyone, fits);
+      out.push(hidden ? { code: 'noMatch', condition: c, hidden } : { code: 'noMatch', condition: c });
+    }
   }
   return out.length ? out : [{ code: 'combo' }];
 }
@@ -165,14 +205,14 @@ export function diagnosePlay(pool: Player[], slotTypes: number[], conds: Conditi
  */
 export function uncoveredReasons(
   pool: Player[], slotTypes: number[], conds: Condition[], groups: number[], covers: Cover[],
-  o: { optimal: boolean; formations?: Record<string, number[]> },
+  o: { optimal: boolean; formations?: Record<string, number[]>; everyone?: Player[] },
 ): PlayReason[] {
   const ids = [...new Set(groups)];
   const covered = (id: number) => conds.every((_c, i) => groups[i] !== id || covers[i].met);
   const anyCovered = ids.some(covered);
   return ids.flatMap((objectiveId): PlayReason[] => {
     if (covered(objectiveId)) return [];
-    const own = diagnosePlay(pool, slotTypes, conds.filter((_c, i) => groups[i] === objectiveId), o.formations);
+    const own = diagnosePlay(pool, slotTypes, conds.filter((_c, i) => groups[i] === objectiveId), o.formations, o.everyone);
     const why = own[0].code === 'combo' ? [{ code: !o.optimal ? 'timeout' : anyCovered ? 'combo' : 'selfClash' } as PlayReason] : own;
     return why.map((r) => ({ ...r, objectiveId }));
   });

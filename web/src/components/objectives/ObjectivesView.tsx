@@ -3,13 +3,13 @@
 // (/dashboard/objectives[/formation|/squad]), so browser Back goes back a step. Objective names / texts and
 // player / nation / league names are EA's; only our own labels are translated.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowsClockwise, Check, HourglassMedium, CheckCircle, CheckSquare, Gift, HandPointing, SoccerBall, Square, UsersThree, Warning, XCircle } from '@phosphor-icons/react';
+import { ArrowsClockwise, Check, HourglassMedium, CheckCircle, CheckSquare, Gift, HandPointing, SlidersHorizontal, SoccerBall, Square, UsersThree, Warning, XCircle } from '@phosphor-icons/react';
 import { api, ApiError, type Challenge, type Meta, type ObjAward, type ObjCondition, type Player, type ObjectiveGroupView, type ObjectiveView, type ObjectivesResponse, type ObjectivesSolve, type SolveResult } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
 import { errorText } from '../../messages';
 import type { ObjStep } from '../../route';
 import { layout, Pitch } from '../Pitch';
-import { awardText, conditionLabel, doneKey, loansKey, formationKey, formationLabel, isStale, pickKey, pruneManual, radioMove, reachableStep, resultKey, splitGroups, timeLeft, objectiveCoverage, dropUncovered, type GroupSplit } from './objectives';
+import { awardText, conditionLabel, doneKey, loansKey, formationKey, formationLabel, isStale, settingsSummary, pickKey, pruneManual, radioMove, reachableStep, resultKey, splitGroups, timeLeft, objectiveCoverage, dropUncovered, type GroupSplit } from './objectives';
 
 const ROLE_ICON = { score: SoccerBall, assist: HandPointing, xi: UsersThree } as const;
 const NO_IDS = new Set<number>();
@@ -17,7 +17,7 @@ const NO_PLACED = new Map<number, Player>();
 const STEPS: ObjStep[] = ['pick', 'formation', 'squad'];
 
 /** The last answer plus the ticks it was solved for (saves from before this have no `picked`). */
-type Saved = ObjectivesSolve & { picked?: number[]; loans?: boolean };
+type Saved = ObjectivesSolve & { picked?: number[]; loans?: boolean; excludeIds?: number[]; maxRating?: number };
 
 /** EA's reward texts as sent, in one quiet line. */
 function Rewards({ awards }: { awards: ObjAward[] }) {
@@ -382,7 +382,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
     if (step !== 'squad') onStep('squad');
     try {
       const r = await api.solveObjectives({ objectiveIds: active, formation, options: { excludeIds, maxRating, includeLoans: loans } });
-      const saved: Saved = { ...r, picked: active, loans };
+      const saved: Saved = { ...r, picked: active, loans, excludeIds, maxRating };
       setResult(saved);
       writeJson(resultKey(personaId), saved);
     } catch (e) {
@@ -453,6 +453,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       </section>
     );
 
+  const settings = settingsSummary(excludeIds, maxRating);
   if (shownStep === 'formation')
     return (
       <section className="objectives-view">
@@ -467,6 +468,17 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
           <p className="obj-summary-loans">
             <HourglassMedium weight="bold" aria-hidden="true" /> {loans ? t('obj.loansOn') : t('obj.loansOff')}
           </p>
+          {settings && (
+            <p className="obj-summary-loans">
+              <SlidersHorizontal weight="bold" aria-hidden="true" />{' '}
+              {t('obj.settingsOn', {
+                list: [
+                  settings.excluded ? t('obj.settingsExcluded', { count: settings.excluded }) : '',
+                  settings.maxRating !== null ? t('obj.settingsMax', { max: settings.maxRating }) : '',
+                ].filter(Boolean).join(', '),
+              })}
+            </p>
+          )}
         </div>
         <div className="obj-step-head">
           <h2 ref={headRef} tabIndex={-1} id="obj-formation-title">{t('obj.formationTitle')}</h2>
@@ -491,7 +503,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   // Step 3. While solving: the picked conditions on an empty squad; after: the answer (or why there is none).
   const shown = result && !solving && buildError === null ? result : null;
   // the stale hint is for someone who comes back to an older squad, never right after Build
-  const stale = !!shown && !fresh && isStale(shown, active, formation, loans);
+  const stale = !!shown && !fresh && isStale(shown, active, formation, loans, { excludeIds, maxRating });
   // partial: a full XI that covers some of the picks (as many as fit); failed: no XI, or none of the picks covered
   const partial = !!shown && !shown.found && shown.partial === true;
   const failed = !!shown && !shown.found && !partial;
@@ -523,11 +535,25 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       <button type="button" className="ghost" onClick={() => onStep('pick')}>{t('obj.editObjectives')}</button>
     </>
   );
+  // players the user's settings (exclusions, max OVR, loans off) keep out of a reason
+  const hiddenText = (n: number) => (n > 0 ? ` ${t('obj.reason.hidden', { count: n })}` : '');
   // many: more than one objective picked (only then can a reason point at "your other picks")
   const reasonText = (r: ObjectivesSolve['reasons'][number], formationName: string, many: boolean): string => {
     switch (r.code) {
       case 'noMatch':
-        return t('obj.reason.noMatch', { what: conditionLabel(r.condition, meta, t) });
+        // the settings hid the only matches: say so, not "nobody in your club"
+        return r.hidden
+          ? `${t('obj.reason.noMatchSettings', { what: conditionLabel(r.condition, meta, t) })}${hiddenText(r.hidden)}`
+          : t('obj.reason.noMatch', { what: conditionLabel(r.condition, meta, t) });
+      case 'noXi': {
+        const head = r.short.length
+          ? t('obj.reason.noXi', {
+              formation: formationName,
+              list: r.short.map((x) => t('obj.reason.noXiItem', { position: x.position, have: x.have, need: x.need })).join(', '),
+            })
+          : t('obj.reason.noXiOverlap', { formation: formationName });
+        return `${head}${hiddenText(r.short.reduce((n, x) => n + x.hidden, 0))}`;
+      }
       case 'noSlot': {
         const pos = r.condition.filter.position;
         const head = pos
@@ -541,6 +567,8 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       case 'selfClash':
         return t('obj.reason.selfClash', { formation: formationName });
       case 'timeout':
+        // without objectiveId: the solver found no squad at all in time
+        if (r.objectiveId === undefined) return t('obj.reason.timeoutAll', { formation: formationName });
         return many ? t('obj.reason.timeout', { formation: formationName }) : t('obj.reason.timeoutAlone', { formation: formationName });
       default: // combo: per objective it clashes with the others; the old whole-problem answer has no objectiveId
         return r.objectiveId !== undefined && many

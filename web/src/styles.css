@@ -4264,6 +4264,14 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-stepper :focus-visible, .obj-tile:focus-visible, .obj-check:focus-visible, .obj-link:focus-visible, .obj-other > summary:focus-visible, .obj-done > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .slot-loan { position: absolute; top: -8px; right: calc(50% - var(--card-w) / 2 - 6px); z-index: 2; display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 11px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
 .slot-loan svg { flex: none; width: 11px; height: 11px; }
+.slot-loan-short { display: none; }
+/* tiny cards (phones): icon + matches left, inside the card's top edge, clear of the target badge on the left */
+@media (max-width: 560px) {
+  .slot-loan { right: calc(50% - var(--card-w) / 2 - 2px); gap: 2px; padding: 0 4px; font-size: 10px; }
+  .slot-loan svg { width: 10px; height: 10px; }
+  .slot-loan-full { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .slot-loan-short { display: inline; }
+}
 .slot-badge { position: absolute; top: -6px; left: calc(50% - var(--card-w) / 2 - 4px); z-index: 2; display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: var(--go); font-size: 13px; }
 @media (max-width: 860px) {
   .obj-bar { left: 0; padding: 10px 12px; }

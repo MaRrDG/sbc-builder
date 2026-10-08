@@ -756,8 +756,9 @@
 }
 
 /* ---------- invite (Invite.tsx) ----------
-   The base styles are the opened pack (the reduced-motion state). With motion, the stage starts
-   closed and plays one sequence when it scrolls in: shake, tear, walkout, +1 point. */
+   The base styles are the revealed card (the reduced-motion state). With motion, the card starts face
+   down and plays one sequence when it scrolls in: it lifts, the gold glow blooms, it flips face up, a sheen
+   sweeps across it, then the points chip drops and ticks +1. */
 .lp-invite-grid { display: grid; grid-template-columns: var(--lp-cols); column-gap: var(--col-gap); row-gap: 48px; align-items: center; }
 .lp-invite-copy { grid-column: 1 / 6; display: grid; justify-items: start; }
 .lp-invite-copy .lp-h2 { max-width: 12ch; }

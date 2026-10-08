@@ -562,42 +562,52 @@ app.get('/api/objectives', async (req) => {
   return { ...(await objectiveGroups(acc, meta)), formation: squad?.formation ?? null };
 });
 
+// one objectives solve per user at a time (a CP-SAT run takes up to 10 s on 8 workers)
+const objectivesSolving = new Set<string>();
+
 app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excludeIds?: unknown; maxRating?: unknown; includeLoans?: unknown } } }>(
   '/api/objectives/solve',
   async (req, reply) => {
     const { userId, acc } = await siteContext(req);
     if ((await planFor(userId)).tier !== 'premium') throw new SessionError('Objectives squads are a Premium feature.', 403, 'premiumOnly');
-    const meta = await metaFor(acc);
-    const ids = Array.isArray(req.body?.objectiveIds) ? req.body.objectiveIds.filter((x): x is number => Number.isInteger(x)) : [];
-    const formation = typeof req.body?.formation === 'string' ? req.body.formation : '';
-    if (!Object.hasOwn(meta.formations, formation)) return reply.code(400).send({ error: 'unknown formation', code: 'badFormation', params: {} });
-    const { groups } = await objectiveGroups(acc, meta);
-    const picked = groups.flatMap((g) => g.objectives).filter((o) => ids.includes(o.id) && solvable(o));
-    if (picked.length === 0) return reply.code(400).send({ error: 'pick at least one objective with a squad condition', code: 'noObjectives', params: {} });
-    const { players } = await clubPlayers(acc);
-    if (players.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)', code: 'clubEmpty', params: {} });
-    const o = req.body?.options ?? {};
-    const options = {
-      excludeIds: Array.isArray(o.excludeIds) ? o.excludeIds.filter((x): x is number => Number.isInteger(x)) : [],
-      maxRating: typeof o.maxRating === 'number' && Number.isFinite(o.maxRating) ? o.maxRating : 99,
-      includeLoans: o.includeLoans === true, // loans run out after a few matches: only when asked
-    };
-    const conds: { objectiveId: number; condition: Condition }[] = picked.flatMap((ob) => ob.conditions.map((condition) => ({ objectiveId: ob.id, condition })));
-    const t0 = Date.now();
-    // soft solve: each objective is a group, as many covered as possible, then the strongest squad
-    const r = await solveObjectives(players, formation, conds.map((c) => c.condition), meta, options, undefined, undefined, conds.map((c) => c.objectiveId));
-    logEvent({ type: 'solve', userId, personaId: acc.id, data: { kind: 'objectives', found: r.found, partial: r.partial, optimal: r.optimal, objectives: picked.length } });
-    return {
-      found: r.found,
-      partial: r.partial,
-      optimal: r.optimal,
-      ms: Date.now() - t0,
-      formation,
-      slots: meta.formations[formation].map((position, i) => ({ position, player: r.slots[i], chem: r.eval?.perSlotChem[i] ?? 0 })),
-      eval: r.eval,
-      covers: r.covers.map((c, i) => ({ objectiveId: conds[i].objectiveId, condition: c.condition, itemIds: c.itemIds, met: c.met })),
-      reasons: r.reasons,
-    };
+    const key = String(userId);
+    if (objectivesSolving.has(key)) return reply.code(429).send({ error: 'a solve is already running', code: 'busy', params: {} });
+    objectivesSolving.add(key);
+    try {
+      const meta = await metaFor(acc);
+      const ids = Array.isArray(req.body?.objectiveIds) ? req.body.objectiveIds.filter((x): x is number => Number.isInteger(x)) : [];
+      const formation = typeof req.body?.formation === 'string' ? req.body.formation : '';
+      if (!Object.hasOwn(meta.formations, formation)) return reply.code(400).send({ error: 'unknown formation', code: 'badFormation', params: {} });
+      const { groups } = await objectiveGroups(acc, meta);
+      const picked = groups.flatMap((g) => g.objectives).filter((o) => ids.includes(o.id) && solvable(o));
+      if (picked.length === 0) return reply.code(400).send({ error: 'pick at least one objective with a squad condition', code: 'noObjectives', params: {} });
+      const { players } = await clubPlayers(acc);
+      if (players.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)', code: 'clubEmpty', params: {} });
+      const o = req.body?.options ?? {};
+      const options = {
+        excludeIds: Array.isArray(o.excludeIds) ? o.excludeIds.filter((x): x is number => Number.isInteger(x)) : [],
+        maxRating: typeof o.maxRating === 'number' && Number.isFinite(o.maxRating) ? o.maxRating : 99,
+        includeLoans: o.includeLoans === true, // loans run out after a few matches: only when asked
+      };
+      const conds: { objectiveId: number; condition: Condition }[] = picked.flatMap((ob) => ob.conditions.map((condition) => ({ objectiveId: ob.id, condition })));
+      const t0 = Date.now();
+      // soft solve: each objective is a group, as many covered as possible, then the strongest squad
+      const r = await solveObjectives(players, formation, conds.map((c) => c.condition), meta, options, undefined, undefined, conds.map((c) => c.objectiveId));
+      logEvent({ type: 'solve', userId, personaId: acc.id, data: { kind: 'objectives', found: r.found, partial: r.partial, optimal: r.optimal, objectives: picked.length } });
+      return {
+        found: r.found,
+        partial: r.partial,
+        optimal: r.optimal,
+        ms: Date.now() - t0,
+        formation,
+        slots: meta.formations[formation].map((position, i) => ({ position, player: r.slots[i], chem: r.eval?.perSlotChem[i] ?? 0 })),
+        eval: r.eval,
+        covers: r.covers.map((c, i) => ({ objectiveId: conds[i].objectiveId, condition: c.condition, itemIds: c.itemIds, met: c.met })),
+        reasons: r.reasons,
+      };
+    } finally {
+      objectivesSolving.delete(key);
+    }
   },
 );
 

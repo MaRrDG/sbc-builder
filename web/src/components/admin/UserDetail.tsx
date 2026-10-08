@@ -66,7 +66,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
   const eventText = (e: AdminEvent) => {
     const x = e.data as Record<string, string | number | boolean>;
     if (e.type === 'solve' && x.kind === 'objectives')
-      return t(x.found ? 'admin.event.solveObjectivesFound' : 'admin.event.solveObjectivesMiss', { n: Number(x.objectives ?? 0), count: Number(x.objectives ?? 0) });
+      return t(x.found ? 'admin.event.solveObjectivesFound' : x.partial ? 'admin.event.solveObjectivesPartial' : 'admin.event.solveObjectivesMiss', { n: Number(x.objectives ?? 0), count: Number(x.objectives ?? 0) });
     if (e.type === 'solve') return t(x.found ? 'admin.event.solveFound' : 'admin.event.solveMiss', { set: String(x.setId), ch: String(x.challengeId) });
     if (e.type === 'sync') return t(x.ok ? 'admin.event.syncOk' : 'admin.event.syncFail', { what: whatText(x.what), error: String(x.error ?? '') });
     if (e.type === 'ea_error') return t('admin.event.throttle');

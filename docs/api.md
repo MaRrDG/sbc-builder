@@ -371,12 +371,13 @@ Partial (`found: false`, `partial: true`): a playable XI that covers at least on
 
 `reasons` (per uncovered objective, with `objectiveId`, when the solver found an XI; without `objectiveId` when it found none):
 - `{ "code": "noSlot", "condition": {...}, "formations": ["f433c", "f4312"] }`: this formation has no slot where the condition can be met (e.g. a CAM in 4-3-3); `formations` names up to two that have one, closest first.
-- `{ "code": "noMatch", "condition": {...} }`: the slots exist, nobody in the club can meet it there.
+- `{ "code": "noMatch", "condition": {...}, "hidden": 2 }`: the slots exist, nobody in the playable pool can meet it there; `hidden` (only when > 0): how many more cards the club (no storage) has that the settings keep out (`excludeIds`, `maxRating`, loans off).
+- `{ "code": "noXi", "short": [{ "position": "LWB", "need": 1, "have": 0, "hidden": 1 }] }` (no `objectiveId`): the pool cannot field a full in-position XI in this formation whatever the objectives (the soft solve was INFEASIBLE); `short` lists each slot type with fewer in-position cards than slots (`hidden`: more the settings keep out); empty when every type is covered on its own but the same players would be needed twice.
 - `{ "code": "combo" }`: proven (optimal) not to fit together with the other covered picks in this formation (without `objectiveId`: the old whole-problem "these do not fit together").
 - `{ "code": "selfClash" }`: proven (optimal, nothing covered) that its own conditions cannot all be met at once in this formation.
-- `{ "code": "timeout" }`: not fitted before the time limit; nothing is proven, more may fit.
+- `{ "code": "timeout" }`: not fitted before the time limit; nothing is proven, more may fit (without `objectiveId`: no squad at all within the limit).
 
-Errors: `400 badFormation`, `400 noObjectives`, `409 clubEmpty`, `403 premiumOnly`. Logged as a `solve` event with `kind: "objectives"` (+ `found`, `partial`, `optimal`, `objectives`); no quota.
+Errors: `400 badFormation`, `400 noObjectives`, `409 clubEmpty`, `403 premiumOnly`, `429 busy` (one objectives solve per user at a time: another one sent while it runs is refused). Logged as a `solve` event with `kind: "objectives"` (+ `found`, `partial`, `optimal`, `objectives`); no quota.
 
 ### `GET /api/sets` (site)
 

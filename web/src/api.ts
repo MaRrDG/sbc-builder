@@ -96,7 +96,8 @@ export interface ObjectiveView {
   target: number;
   awards: ObjAward[];
   /** empty when the text has no squad condition we can read */
-  conditions: ObjCondition[];  /** EA says COMPLETED / REDEEMED, or progress >= target */
+  conditions: ObjCondition[];
+  /** EA says COMPLETED / REDEEMED, or progress >= target */
   done: boolean;
 }
 export interface ObjectiveGroupView {
@@ -121,11 +122,15 @@ export interface ObjectivesSolve {
   /** a full XI that leaves some objective uncovered; missing in answers saved before partial coverage */
   partial?: boolean;
   covers: { objectiveId: number; condition: ObjCondition; itemIds: number[]; met: boolean }[];
-  /** objectiveId: which uncovered objective a reason is about (partial answers) */
   /** false: the solver stopped on its time limit, more objectives might fit; missing in older saved answers */
   optimal?: boolean;
+  /**
+   * objectiveId: which uncovered objective a reason is about (partial answers); hidden: more players the
+   * user's settings keep out; noXi: the pool cannot field an in-position XI (short: the slot types it lacks)
+   */
   reasons: (
-    | { code: 'noMatch'; condition: ObjCondition; objectiveId?: number }
+    | { code: 'noMatch'; condition: ObjCondition; objectiveId?: number; hidden?: number }
+    | { code: 'noXi'; short: { position: string; need: number; have: number; hidden: number }[]; objectiveId?: number }
     | { code: 'noSlot'; condition: ObjCondition; formations: string[]; objectiveId?: number }
     | { code: 'combo' | 'selfClash' | 'timeout'; objectiveId?: number }
   )[];

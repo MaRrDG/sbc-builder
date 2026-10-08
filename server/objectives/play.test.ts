@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loanMatches } from '../squad.js';
-import { matchesFilter, roleSlots, playPool, checkCovers, diagnosePlay, buildPlayProblem, uncoveredReasons, playableXi } from './play.js';
+import { matchesFilter, roleSlots, playPool, checkCovers, diagnosePlay, buildPlayProblem, uncoveredReasons, playableXi, noXiReason } from './play.js';
 import type { Player } from '../squad.js';
 import type { Condition } from './types.js';
 import { POSITION_IDS } from '../meta.js';
@@ -189,4 +189,35 @@ test('playableXi: every slot filled, in position, no asset twice', () => {
   assert.equal(playableXi([st, gk], types), false); // out of position
   const twin = { ...st, id: st.id + 1000 }; // another copy of the same card
   assert.equal(playableXi([gk, st, twin], [...types, POSITION_IDS.ST]), false);
+});
+
+test('noXiReason: names the slot types the pool cannot fill, with how many the settings hide', () => {
+  const gk = pl({ positions: [POSITION_IDS.GK], preferredPosition: 'GK', possiblePositions: ['GK'] });
+  const cb = () => pl({ positions: [POSITION_IDS.CB], preferredPosition: 'CB', possiblePositions: ['CB'] });
+  const st = pl();
+  const types = [POSITION_IDS.GK, POSITION_IDS.CB, POSITION_IDS.CB, POSITION_IDS.ST, POSITION_IDS.LWB];
+  const cb1 = cb();
+  const cb2 = cb();
+  const lwbLoan = pl({ positions: [POSITION_IDS.LWB], preferredPosition: 'LWB', possiblePositions: ['LWB'], isLoan: true });
+  // pool: one CB (the other excluded), no LWB (the only one is a loan); the club has both
+  assert.deepEqual(noXiReason([gk, cb1, st], types, [gk, cb1, cb2, st, lwbLoan]), {
+    code: 'noXi',
+    short: [
+      { position: 'CB', need: 2, have: 1, hidden: 1 },
+      { position: 'LWB', need: 1, have: 0, hidden: 1 },
+    ],
+  });
+  // the same card twice counts once
+  const twin = { ...cb1, id: cb1.id + 1000 };
+  assert.deepEqual(noXiReason([gk, cb1, twin, st, lwbLoan], types).short, [{ position: 'CB', need: 2, have: 1, hidden: 0 }]);
+  // every type has enough on its own: noXi with an empty list (the players overlap)
+  assert.deepEqual(noXiReason([gk, cb1, cb2, st, lwbLoan], types), { code: 'noXi', short: [] });
+});
+
+test('diagnosePlay: noMatch says how many the settings hide', () => {
+  const dutchSt = pl({ nation: 34 });
+  const dutch = c('score', { nation: [34] });
+  assert.deepEqual(diagnosePlay([], F433, [dutch], {}, [dutchSt]), [{ code: 'noMatch', condition: dutch, hidden: 1 }]);
+  // nothing hidden: no count
+  assert.deepEqual(diagnosePlay([], F433, [dutch], {}, []), [{ code: 'noMatch', condition: dutch }]);
 });

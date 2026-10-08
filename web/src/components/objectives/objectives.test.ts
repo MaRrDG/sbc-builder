@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { awardText, conditionLabel, doneKey, loansKey, formationKey, pruneManual, formationLabel, isStale, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups, objectiveCoverage, dropUncovered } from './objectives.js';
+import { awardText, conditionLabel, doneKey, loansKey, formationKey, pruneManual, formationLabel, isStale, settingsSummary, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups, objectiveCoverage, dropUncovered } from './objectives.js';
 
 const meta = { names: { nation: { 34: 'Netherlands' }, league: { 10: 'Eredivisie' }, club: {}, rarity: { 151: 'Ultimate Scream' } } };
 const t = (k: string, p?: Record<string, unknown>) => `${k}${p ? JSON.stringify(p) : ''}`;
@@ -56,6 +56,18 @@ test('isStale compares the last solve with the current ticks and formation', () 
   assert.equal(isStale({ picked: [1], formation: 'f433', loans: true }, [1], 'f433', true), false);
   assert.equal(isStale({ picked: [1], formation: 'f433', loans: false }, [1], 'f433'), false);
   assert.equal(isStale({ picked: [1], formation: 'f433' }, [1], 'f433', true), false);
+  // the solver settings count too (excluded players in any order, max OVR); older saves are not judged on them
+  const last = { picked: [1], formation: 'f433', loans: false, excludeIds: [5, 3], maxRating: 88 };
+  assert.equal(isStale(last, [1], 'f433', false, { excludeIds: [3, 5], maxRating: 88 }), false);
+  assert.equal(isStale(last, [1], 'f433', false, { excludeIds: [3], maxRating: 88 }), true);
+  assert.equal(isStale(last, [1], 'f433', false, { excludeIds: [3, 5], maxRating: 99 }), true);
+  assert.equal(isStale({ picked: [1], formation: 'f433' }, [1], 'f433', false, { excludeIds: [3], maxRating: 80 }), false);
+});
+
+test('settingsSummary: what the solver settings take out, null when nothing', () => {
+  assert.equal(settingsSummary([], 99), null);
+  assert.deepEqual(settingsSummary([1, 2], 99), { excluded: 2, maxRating: null });
+  assert.deepEqual(settingsSummary([], 85), { excluded: 0, maxRating: 85 });
 });
 
 test('reachableStep: deep links fall back to the earliest incomplete step', () => {
