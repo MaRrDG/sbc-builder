@@ -658,6 +658,7 @@ export const en = {
   'landing.nav.objectives': 'Objectives',
   'landing.nav.how': 'How it works',
   'landing.nav.pricing': 'Pricing',
+  'landing.nav.invite': 'Invite',
   'landing.nav.faq': 'FAQ',
   'landing.signIn': 'Sign in',
   'landing.start': 'Start free',

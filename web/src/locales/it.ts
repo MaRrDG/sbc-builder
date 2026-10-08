@@ -662,6 +662,7 @@ export const it: Record<Keys, string> = {
   'landing.nav.objectives': 'Obiettivi',
   'landing.nav.how': 'Come funziona',
   'landing.nav.pricing': 'Prezzi',
+  'landing.nav.invite': 'Invita',
   'landing.nav.faq': 'FAQ',
   'landing.signIn': 'Accedi',
   'landing.start': 'Inizia gratis',

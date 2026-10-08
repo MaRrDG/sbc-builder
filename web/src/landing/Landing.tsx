@@ -79,6 +79,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
             <a href="#objectives">{t('landing.nav.objectives')}</a>
             <a href="#how">{t('landing.nav.how')}</a>
             <a href="#pricing">{t('landing.nav.pricing')}</a>
+            <a href="#invite">{t('landing.nav.invite')}</a>
             <a href="#faq">{t('landing.nav.faq')}</a>
           </nav>
           <div className="lp-top-end">
