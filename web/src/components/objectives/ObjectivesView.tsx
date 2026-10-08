@@ -3,13 +3,13 @@
 // (/dashboard/objectives[/formation|/squad]), so browser Back goes back a step. Objective names / texts and
 // player / nation / league names are EA's; only our own labels are translated.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { ArrowsClockwise, Check, CheckCircle, CheckSquare, Gift, HandPointing, SoccerBall, Square, UsersThree, Warning, XCircle } from '@phosphor-icons/react';
+import { ArrowsClockwise, Check, HourglassMedium, CheckCircle, CheckSquare, Gift, HandPointing, SoccerBall, Square, UsersThree, Warning, XCircle } from '@phosphor-icons/react';
 import { api, ApiError, type Challenge, type Meta, type ObjAward, type ObjCondition, type Player, type ObjectiveGroupView, type ObjectiveView, type ObjectivesResponse, type ObjectivesSolve, type SolveResult } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
 import { errorText } from '../../messages';
 import type { ObjStep } from '../../route';
 import { layout, Pitch } from '../Pitch';
-import { awardText, conditionLabel, doneKey, formationKey, formationLabel, isStale, pickKey, pruneManual, radioMove, reachableStep, resultKey, splitGroups, timeLeft, type GroupSplit } from './objectives';
+import { awardText, conditionLabel, doneKey, loansKey, formationKey, formationLabel, isStale, pickKey, pruneManual, radioMove, reachableStep, resultKey, splitGroups, timeLeft, type GroupSplit } from './objectives';
 
 const ROLE_ICON = { score: SoccerBall, assist: HandPointing, xi: UsersThree } as const;
 const NO_IDS = new Set<number>();
@@ -17,7 +17,7 @@ const NO_PLACED = new Map<number, Player>();
 const STEPS: ObjStep[] = ['pick', 'formation', 'squad'];
 
 /** The last answer plus the ticks it was solved for (saves from before this have no `picked`). */
-type Saved = ObjectivesSolve & { picked?: number[] };
+type Saved = ObjectivesSolve & { picked?: number[]; loans?: boolean };
 
 /** EA's reward texts as sent, in one quiet line. */
 function Rewards({ awards }: { awards: ObjAward[] }) {
@@ -286,6 +286,8 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   });
   // objectives the user marked done (played on console, EA's progress not refreshed yet)
   const [manual, setManual] = useState<number[]>(() => readJson(doneKey(personaId), []));
+  // loan players run out after a few matches: only used when the user says so
+  const [loans, setLoans] = useState<boolean>(() => readJson<unknown>(loansKey(personaId), false) === true);
   const [solving, setSolving] = useState(false);
   // the last Build failed outright (network / server): shown on step 3 instead of an older squad
   const [buildError, setBuildError] = useState<unknown>(null);
@@ -322,6 +324,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
 
   useEffect(() => writeJson(pickKey(personaId), picked), [personaId, picked]);
   useEffect(() => writeJson(doneKey(personaId), manual), [personaId, manual]);
+  useEffect(() => writeJson(loansKey(personaId), loans), [personaId, loans]);
   useEffect(() => {
     if (chosen) writeJson(formationKey(personaId), chosen);
   }, [personaId, chosen]);
@@ -378,8 +381,8 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
     setFresh(true);
     if (step !== 'squad') onStep('squad');
     try {
-      const r = await api.solveObjectives({ objectiveIds: active, formation, options: { excludeIds, maxRating } });
-      const saved: Saved = { ...r, picked: active };
+      const r = await api.solveObjectives({ objectiveIds: active, formation, options: { excludeIds, maxRating, includeLoans: loans } });
+      const saved: Saved = { ...r, picked: active, loans };
       setResult(saved);
       writeJson(resultKey(personaId), saved);
     } catch (e) {
@@ -461,11 +464,21 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
             <button type="button" className="obj-link" onClick={() => onStep('pick')}>{t('obj.edit')}</button>
           </div>
           <Pills conditions={active.flatMap((id) => open.get(id)?.conditions ?? [])} meta={meta} />
+          <p className="obj-summary-loans">
+            <HourglassMedium weight="bold" aria-hidden="true" /> {loans ? t('obj.loansOn') : t('obj.loansOff')}
+          </p>
         </div>
         <div className="obj-step-head">
           <h2 ref={headRef} tabIndex={-1} id="obj-formation-title">{t('obj.formationTitle')}</h2>
         </div>
         <FormationTiles meta={meta} formations={formations} value={formation} mine={mine} onChange={setChosen} labelledBy="obj-formation-title" />
+        <label className="obj-setting">
+          <input type="checkbox" checked={loans} onChange={(e) => setLoans(e.target.checked)} aria-describedby="obj-loans-hint" />
+          <span>
+            <span className="obj-setting-label">{t('obj.useLoans')}</span>
+            <span className="obj-setting-hint" id="obj-loans-hint">{t('obj.useLoansHint')}</span>
+          </span>
+        </label>
         <div className="obj-bar">
           <button type="button" className="ghost" onClick={() => onStep('pick')}>{t('obj.back')}</button>
           <button type="button" className="solve-sm" disabled={!active.length || solving} onClick={() => void build()}>
@@ -478,7 +491,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   // Step 3. While solving: the picked conditions on an empty squad; after: the answer (or why there is none).
   const shown = result && !solving && buildError === null ? result : null;
   // the stale hint is for someone who comes back to an older squad, never right after Build
-  const stale = !!shown && !fresh && isStale(shown, active, formation);
+  const stale = !!shown && !fresh && isStale(shown, active, formation, loans);
   const failed = !!shown && !shown.found;
   const conds: ObjCondition[] = shown ? shown.covers.map((c) => c.condition) : active.flatMap((id) => open.get(id)?.conditions ?? []);
   const challenge: Challenge = {
@@ -579,6 +592,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
               marked={NO_IDS}
               cheaper={false}
               corners={false}
+              loanBadge
               badges={badges}
             />
           </div>

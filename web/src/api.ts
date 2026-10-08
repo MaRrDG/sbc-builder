@@ -16,6 +16,8 @@ export interface Player {
   untradeable: boolean;
   state: string;
   isLoan: boolean;
+  /** matches left on a match loan; absent otherwise */
+  loanMatches?: number;
   guidAssetId?: string;
   fullName: string;
   rarityName: string;
@@ -403,7 +405,7 @@ export const api = {
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep, useStorage } }),
   gallery: () => req<GalleryResponse>('/api/gallery'),
   objectives: () => req<ObjectivesResponse>('/api/objectives'),
-  solveObjectives: (b: { objectiveIds: number[]; formation: string; options?: { excludeIds?: number[]; maxRating?: number } }) =>
+  solveObjectives: (b: { objectiveIds: number[]; formation: string; options?: { excludeIds?: number[]; maxRating?: number; includeLoans?: boolean } }) =>
     req<ObjectivesSolve>('/api/objectives/solve', { method: 'POST', body: b }),
   adminOverview: (range: 7 | 30) => req<AdminOverview>(`/api/admin/overview?range=${range}`),
   adminUsers: (query: string) => req<Paged<AdminUserRow>>(`/api/admin/users${query ? `?${query}` : ''}`),

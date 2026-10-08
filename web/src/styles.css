@@ -4187,6 +4187,13 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-summary-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
 .obj-link { min-height: 32px; padding: 0 8px; margin-right: -8px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--ink); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .obj-link:hover { background: var(--surface-2); }
+.obj-summary-loans { display: flex; gap: 6px; align-items: center; margin: 0; color: var(--ink-2); font-size: 13px; }
+.obj-setting { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); cursor: pointer; }
+.obj-setting input { flex: none; width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--go); cursor: pointer; }
+.obj-setting input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.obj-setting > span { display: grid; gap: 2px; }
+.obj-setting-label { font-size: 15px; font-weight: 600; }
+.obj-setting-hint { color: var(--ink-2); font-size: 13px; }
 .obj-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
 .obj-tile { position: relative; display: grid; justify-items: center; align-content: start; gap: 6px; padding: 12px 8px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface); color: var(--ink-2); cursor: pointer; transition: border-color 160ms var(--ease), background 160ms var(--ease); }
 .obj-tile:hover { border-color: var(--ink-3); background: var(--surface-2); }
@@ -4248,6 +4255,8 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-bar-left .ghost { border-color: var(--line); }
 .obj-count { color: var(--ink-2); font-size: 13px; }
 .obj-stepper :focus-visible, .obj-tile:focus-visible, .obj-check:focus-visible, .obj-link:focus-visible, .obj-other > summary:focus-visible, .obj-done > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.slot-loan { position: absolute; top: -8px; right: calc(50% - var(--card-w) / 2 - 6px); z-index: 2; display: inline-flex; align-items: center; gap: 3px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 11px; font-weight: 600; line-height: 1.4; white-space: nowrap; }
+.slot-loan svg { flex: none; width: 11px; height: 11px; }
 .slot-badge { position: absolute; top: -6px; left: calc(50% - var(--card-w) / 2 - 4px); z-index: 2; display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: var(--go); font-size: 13px; }
 @media (max-width: 860px) {
   .obj-bar { left: 0; padding: 10px 12px; }

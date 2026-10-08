@@ -38,10 +38,11 @@ export function awardText(a: ObjAward): string {
   return d || `${a.value} ${a.awardType}`;
 }
 
-/** The shown answer was solved for other ticks or another formation. Saves without `picked` are not judged. */
-export function isStale(last: { picked?: number[]; formation: string }, active: number[], formation: string): boolean {
+/** The shown answer was solved for other ticks, another formation or another loan setting. Older saves without `picked` / `loans` are not judged on them. */
+export function isStale(last: { picked?: number[]; formation: string; loans?: boolean }, active: number[], formation: string, loans = false): boolean {
   if (!last.picked) return false;
   if (last.formation !== formation) return true;
+  if (last.loans !== undefined && last.loans !== loans) return true;
   const a = [...last.picked].sort((x, y) => x - y);
   const b = [...active].sort((x, y) => x - y);
   return a.length !== b.length || a.some((x, i) => x !== b[i]);
@@ -58,6 +59,7 @@ export function reachableStep(want: ObjStep, picked: number, hasResult: boolean)
   return want;
 }
 
+export const loansKey = (personaId: number) => `sbc-objectives-loans-${personaId}`;
 export const doneKey = (personaId: number) => `sbc-objectives-done-${personaId}`;
 
 export type GroupSplit = ObjectiveGroupView & { done: ObjectiveView[] };

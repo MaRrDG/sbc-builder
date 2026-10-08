@@ -16,7 +16,7 @@ export interface ObjectivesSolution {
 
 export async function solveObjectives(
   players: Player[], formation: string, conds: Condition[], meta: Meta,
-  options: { excludeIds: number[]; maxRating: number }, timeLimit = 10, chemWeight = CHEM_WEIGHT,
+  options: { excludeIds: number[]; maxRating: number; includeLoans?: boolean }, timeLimit = 10, chemWeight = CHEM_WEIGHT,
 ): Promise<ObjectivesSolution> {
   const slotTypes = meta.formations[formation]?.map((s) => s.typeId);
   if (!slotTypes) throw new Error(`Unknown formation ${formation}`);

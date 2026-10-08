@@ -562,7 +562,7 @@ app.get('/api/objectives', async (req) => {
   return { ...(await objectiveGroups(acc, meta)), formation: squad?.formation ?? null };
 });
 
-app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excludeIds?: unknown; maxRating?: unknown } } }>(
+app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excludeIds?: unknown; maxRating?: unknown; includeLoans?: unknown } } }>(
   '/api/objectives/solve',
   async (req, reply) => {
     const { userId, acc } = await siteContext(req);
@@ -580,6 +580,7 @@ app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excl
     const options = {
       excludeIds: Array.isArray(o.excludeIds) ? o.excludeIds.filter((x): x is number => Number.isInteger(x)) : [],
       maxRating: typeof o.maxRating === 'number' && Number.isFinite(o.maxRating) ? o.maxRating : 99,
+      includeLoans: o.includeLoans === true, // loans run out after a few matches: only when asked
     };
     const conds: { objectiveId: number; condition: Condition }[] = picked.flatMap((ob) => ob.conditions.map((condition) => ({ objectiveId: ob.id, condition })));
     const t0 = Date.now();
