@@ -85,6 +85,16 @@ export function buildPlayProblem(
   };
 }
 
+/** Our own check that the solver's XI can be played: every slot filled, in position, no card twice. */
+export function playableXi(slots: (Player | null)[], slotTypes: number[]): slots is Player[] {
+  const assets = new Set<number>();
+  return slots.every((p, s) => {
+    if (!p || !p.positions.includes(slotTypes[s]) || assets.has(p.assetId)) return false;
+    assets.add(p.assetId);
+    return true;
+  });
+}
+
 export interface Cover {
   condition: Condition;
   itemIds: number[]; // players in the squad that satisfy it
@@ -102,28 +112,68 @@ export function checkCovers(slots: (Player | null)[], slotTypes: number[], conds
   });
 }
 
-/** objectiveId: the uncovered objective of a partial squad (absent when there is no squad at all). */
-export type PlayReason = { code: 'noMatch'; condition: Condition; objectiveId?: number } | { code: 'combo'; objectiveId?: number };
+/**
+ * Why an objective is out. objectiveId: the uncovered objective (absent on the old whole-problem diagnosis).
+ * noSlot: the formation has no slot where the condition can be met (formations: up to 2 that have one);
+ * noMatch: the slots exist, nobody in the pool fits them; combo: proven not to fit with the other picks;
+ * selfClash: proven that its own conditions cannot all be met at once here; timeout: not fitted, nothing proven.
+ */
+export type PlayReason =
+  | { code: 'noMatch'; condition: Condition; objectiveId?: number }
+  | { code: 'noSlot'; condition: Condition; formations: string[]; objectiveId?: number }
+  | { code: 'combo' | 'selfClash' | 'timeout'; objectiveId?: number };
 
-/** Why there is no squad: a condition nobody can meet in its slots, else the conditions clash. */
-export function diagnosePlay(pool: Player[], slotTypes: number[], conds: Condition[]): PlayReason[] {
-  const missing = conds.filter((c) => {
+/** How many slots of formation a would have to change position to become formation b. */
+function slotChanges(a: number[], b: number[]): number {
+  const left = [...b];
+  let same = 0;
+  for (const t of a) {
+    const k = left.indexOf(t);
+    if (k >= 0) {
+      left.splice(k, 1);
+      same++;
+    }
+  }
+  return a.length - same;
+}
+
+/** Why there is no squad: a condition with no slot in the formation or nobody to meet it, else the conditions clash. */
+export function diagnosePlay(pool: Player[], slotTypes: number[], conds: Condition[], formations: Record<string, number[]> = {}): PlayReason[] {
+  const out: PlayReason[] = [];
+  for (const c of conds) {
     const slots = roleSlots(c, slotTypes);
+    if (slots.length === 0) {
+      // formations that have the slot, closest to this one first (fewest slots to change)
+      const others = Object.entries(formations)
+        .filter(([, types]) => roleSlots(c, types).length > 0)
+        .map(([f, types]) => ({ f, d: slotChanges(slotTypes, types) }))
+        .sort((a, b) => a.d - b.d)
+        .map((x) => x.f);
+      out.push({ code: 'noSlot', condition: c, formations: others.slice(0, 2) });
+      continue;
+    }
     const fits = pool.filter((p) => matchesFilter(p, c.filter) && slots.some((s) => p.positions.includes(slotTypes[s])));
-    return new Set(fits.map((p) => p.assetId)).size < c.min;
-  });
-  return missing.length ? missing.map((condition) => ({ code: 'noMatch' as const, condition })) : [{ code: 'combo' }];
+    if (new Set(fits.map((p) => p.assetId)).size < c.min) out.push({ code: 'noMatch', condition: c });
+  }
+  return out.length ? out : [{ code: 'combo' }];
 }
 
 /**
- * Why each objective a squad leaves uncovered (some condition not met) is out: a condition nobody in the pool
- * can meet in its slots, else it clashes with the other picks in this formation. groups[i]: objective of conds[i].
+ * Why each objective a squad leaves uncovered (some condition not met) is out, groups[i] being the objective of
+ * conds[i]: noSlot / noMatch for a condition, else (only when the solve is proven optimal) combo if another
+ * objective is covered, selfClash if none is (then each one fails even alone); not optimal: timeout.
  */
-export function uncoveredReasons(pool: Player[], slotTypes: number[], conds: Condition[], groups: number[], covers: Cover[]): PlayReason[] {
+export function uncoveredReasons(
+  pool: Player[], slotTypes: number[], conds: Condition[], groups: number[], covers: Cover[],
+  o: { optimal: boolean; formations?: Record<string, number[]> },
+): PlayReason[] {
   const ids = [...new Set(groups)];
-  return ids.flatMap((objectiveId) => {
-    const mine = conds.flatMap((c, i) => (groups[i] === objectiveId ? [i] : []));
-    if (mine.every((i) => covers[i].met)) return [];
-    return diagnosePlay(pool, slotTypes, mine.map((i) => conds[i])).map((r) => ({ ...r, objectiveId }));
+  const covered = (id: number) => conds.every((_c, i) => groups[i] !== id || covers[i].met);
+  const anyCovered = ids.some(covered);
+  return ids.flatMap((objectiveId): PlayReason[] => {
+    if (covered(objectiveId)) return [];
+    const own = diagnosePlay(pool, slotTypes, conds.filter((_c, i) => groups[i] === objectiveId), o.formations);
+    const why = own[0].code === 'combo' ? [{ code: !o.optimal ? 'timeout' : anyCovered ? 'combo' : 'selfClash' } as PlayReason] : own;
+    return why.map((r) => ({ ...r, objectiveId }));
   });
 }

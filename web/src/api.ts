@@ -122,7 +122,13 @@ export interface ObjectivesSolve {
   partial?: boolean;
   covers: { objectiveId: number; condition: ObjCondition; itemIds: number[]; met: boolean }[];
   /** objectiveId: which uncovered objective a reason is about (partial answers) */
-  reasons: ({ code: 'noMatch'; condition: ObjCondition; objectiveId?: number } | { code: 'combo'; objectiveId?: number })[];
+  /** false: the solver stopped on its time limit, more objectives might fit; missing in older saved answers */
+  optimal?: boolean;
+  reasons: (
+    | { code: 'noMatch'; condition: ObjCondition; objectiveId?: number }
+    | { code: 'noSlot'; condition: ObjCondition; formations: string[]; objectiveId?: number }
+    | { code: 'combo' | 'selfClash' | 'timeout'; objectiveId?: number }
+  )[];
 }
 
 export interface Account {
