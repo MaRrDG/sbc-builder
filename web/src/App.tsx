@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, List, Prohibit, Question, SlidersHorizontal, Target, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
   type Account, type Challenge, type GalleryResponse, type Meta, type Player, type PlanInfo, type Prefs, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
@@ -827,6 +827,19 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           <button type="button" className="nav-item" aria-current={view === 'objectives' && !showGuide ? 'page' : undefined} onClick={() => go('objectives')}>
             <Target weight="bold" aria-hidden="true" />
             <span>{t('nav.objectives')}</span>
+          </button>
+          {/* the Daily is its own public page (/daily), outside the dashboard layout */}
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() => {
+              setMenuOpen(false);
+              navigate({ view: 'daily', practice: false });
+              window.scrollTo(0, 0);
+            }}
+          >
+            <SoccerBall weight="bold" aria-hidden="true" />
+            <span>{t('nav.daily')}</span>
           </button>
           <button type="button" className="nav-item" aria-current={view === 'invite' && !showGuide ? 'page' : undefined} onClick={() => go('invite')}>
             <Gift weight="bold" aria-hidden="true" />

@@ -151,8 +151,54 @@
   .lp-nav { gap: 0; margin-left: 8px; }
   .lp-nav a { padding-inline: 6px; }
 }
-@media (max-width: 860px) {
+/* the Daily link is a page, not an anchor: always its name (with a small ball and a "New" pill), and it stays
+   in the bar when the anchors go */
+.lp-nav .lp-nav-daily { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); }
+.lp-nav-daily svg { flex: none; font-size: 15px; }
+.lp-new {
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--ink);
+  font: 600 11px/1.1 var(--font-ui);
+}
+/* 861-1240px: the Daily link and six anchors don't fit in Romanian / Italian; the last anchors go
+   (Invite, then FAQ: both are further down the page, and FAQ also in the 969px rule below) */
+@media (min-width: 861px) and (max-width: 1240px) {
+  .lp-nav a[href='#invite'],
+  .lp-nav a[href='#faq'] { display: none; }
+}
+/* phones: the bar keeps logo, language and CTA; the Daily link moves to its own row under it */
+.lp-strip { display: none; }
+@media (max-width: 600px) {
   .lp-nav { display: none; }
+  .lp-strip {
+    display: block;
+    border-bottom: 1px solid var(--line);
+    background: oklch(0.17 0.025 222 / 0.9);
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .lp-strip-in {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: calc(var(--lp-max) + 2 * var(--gutter));
+    min-height: 44px;
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+    font-size: 14px;
+  }
+  .lp-strip-in > svg { flex: none; font-size: 16px; }
+  .lp-strip-in b { font-weight: 600; white-space: nowrap; }
+  .lp-strip-t { overflow: hidden; margin-left: auto; color: var(--ink-2); text-overflow: ellipsis; white-space: nowrap; }
+  .lp-strip:hover .lp-strip-t { color: var(--ink); }
+  .lp-strip:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+}
+@media (max-width: 860px) {
+  .lp-nav { margin-left: 4px; }
+  .lp-nav a:not(.lp-nav-daily) { display: none; }
   .lp-signin { display: inline; } /* room again once the anchors are gone */
   .lp-footer img,
   .lp-footer nav,
@@ -570,6 +616,165 @@
 @media (min-width: 861px) and (max-width: 969px) {
   .lp-nav a { padding-inline: 5px; font-size: 13px; }
   .lp-nav a[href='#faq'] { display: none; }
+  /* the Daily link keeps its name; its ball and "New" pill go so Italian still fits at 861px */
+  .lp-nav-daily svg,
+  .lp-nav-daily .lp-new { display: none; }
+}
+
+/* ---------- daily teaser: copy on columns 1-5, the game's mystery card + one example guess on 7-12 ----------
+   Same pieces as /daily (shield card, ✓ ≈ ✕ tiles, --near amber). Everything is visible by default; .is-in
+   (useInView) only replays the card rising and the tiles flipping in, then the card floats and catches a sheen. */
+.lp-dly {
+  --near: oklch(0.78 0.14 62);
+  --near-ink: oklch(0.24 0.05 60);
+  --shield: polygon(0 8%, 14% 0, 86% 0, 100% 8%, 100% 88%, 50% 100%, 0 88%);
+  display: grid;
+  grid-template-columns: var(--lp-cols);
+  column-gap: var(--col-gap);
+  row-gap: 40px;
+  align-items: center;
+}
+.lp-dly-copy { grid-column: 1 / 6; }
+.lp-dly .lp-h2 + .lp-lede { margin-top: 18px; } /* lede under its heading, not a section-content gap */
+.lp-dly .lp-lede { margin-bottom: 32px; }
+.lp-dly-demo {
+  grid-column: 7 / -1;
+  container-type: inline-size;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  background: var(--surface);
+}
+
+/* the card on a strip of pitch, as on /daily */
+.lp-dly-pitch {
+  --card-w: clamp(116px, 30cqi, 164px);
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: clamp(28px, 7cqi, 44px) 16px clamp(24px, 6cqi, 36px);
+  background:
+    radial-gradient(42% 66% at 50% 48%, oklch(0.44 0.08 178 / 0.55), transparent 72%),
+    linear-gradient(180deg, var(--pitch-a), var(--pitch-b));
+}
+.lp-dly-pitch::before { content: ''; position: absolute; inset: 50% 0 auto; height: 1px; background: var(--pitch-line); }
+.lp-dly-pitch::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44cqi; aspect-ratio: 1; border: 1px solid var(--pitch-line); border-radius: 50%; translate: -50% -50%; }
+.lp-dly-day {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 14px;
+  margin: 0;
+  padding: 4px 9px;
+  border-radius: var(--r-ctl);
+  background: oklch(0.17 0.025 222 / 0.72);
+  color: var(--ink);
+  font: 700 16px/1 var(--font-num);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+.lp-dly-float { position: relative; z-index: 1; }
+.lp-dly-card { filter: drop-shadow(0 14px 18px oklch(0.12 0.03 220 / 0.6)); }
+.lp-dly-face {
+  position: absolute;
+  top: 20%;
+  right: 7%;
+  width: 56%;
+  color: oklch(0.17 0.025 222 / 0.82);
+}
+.lp-dly-card .card-name { font-size: calc(var(--card-w) * 0.15); }
+/* the sheen: a light band that crosses the shield; it waits off the card unless it moves */
+.lp-dly-gleam { position: absolute; inset: 0; overflow: hidden; clip-path: var(--shield); pointer-events: none; }
+.lp-dly-gleam::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 50%;
+  background: linear-gradient(105deg, transparent 20%, oklch(0.97 0.09 92 / 0.5) 50%, transparent 80%);
+}
+
+/* one example guess: the name, then six tiles in the game's column order */
+.lp-dly-guess { padding: 14px 16px 16px; border-top: 1px solid var(--line); }
+.lp-dly-cap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin: 0 0 10px;
+  color: var(--ink-2);
+  font-size: 13px;
+}
+.lp-dly-name { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-size: 15px; font-weight: 600; }
+.lp-dly-chip {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  color: var(--ink-2);
+  font: 600 13px/1 var(--font-num);
+  letter-spacing: 0.02em;
+}
+.lp-dly-chip b { color: var(--ink); }
+.lp-dly-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.lp-dly-tile {
+  --c: var(--surface-3);
+  position: relative;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) 16px;
+  height: 64px;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--surface-2);
+}
+.lp-dly-tile.is-hit {
+  --c: var(--go);
+  border-color: oklch(0.84 0.17 163 / 0.7);
+  background: linear-gradient(oklch(0.84 0.17 163 / 0.16), oklch(0.84 0.17 163 / 0.16)), var(--surface-2);
+}
+.lp-dly-tile.is-near {
+  --c: var(--near);
+  border-color: oklch(0.78 0.14 62 / 0.7);
+  background: linear-gradient(oklch(0.78 0.14 62 / 0.16), oklch(0.78 0.14 62 / 0.16)), var(--surface-2);
+}
+.lp-dly-col { position: absolute; top: 4px; left: 4px; color: var(--ink-3); font-size: 11px; }
+.lp-dly-v { display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; padding: 8px 4px 0; }
+.lp-dly-v img { display: block; max-width: 72%; height: 26px; object-fit: contain; }
+.lp-dly-val { font: 700 21px/1 var(--font-num); }
+.lp-dly-val-sm { overflow: hidden; font: 600 12px/1.1 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+.lp-dly-dir { flex: none; font-size: 15px; }
+.lp-dly-s { display: grid; place-items: center; background: var(--c); color: var(--go-ink); font-size: 11px; font-weight: 800; line-height: 1; }
+.lp-dly-tile.is-near .lp-dly-s { color: var(--near-ink); }
+.lp-dly-tile.is-miss .lp-dly-s { color: var(--ink); }
+
+/* the one moment: the card rises, the tiles turn over left to right, then the card floats and gleams */
+.lp-dly-demo.is-in .lp-dly-card { animation: lp-dly-rise 700ms var(--ease) both 150ms; }
+.lp-dly-demo.is-in .lp-dly-tile { animation: lp-dly-flip 450ms var(--ease) both; animation-delay: calc(600ms + var(--i) * 110ms); }
+.lp-dly-demo.is-in .lp-dly-float { animation: lp-dly-float 6s ease-in-out 1.6s infinite; }
+.lp-dly-demo.is-in .lp-dly-gleam::before { animation: lp-dly-sheen 7s ease-in-out 1.5s infinite; }
+@keyframes lp-dly-rise { from { opacity: 0; translate: 0 22px; } }
+@keyframes lp-dly-flip { from { transform: perspective(500px) rotateX(90deg); } }
+@keyframes lp-dly-float { 50% { translate: 0 -7px; } }
+@keyframes lp-dly-sheen {
+  0% { translate: 0 0; }
+  16%, 100% { translate: 340% 0; }
+}
+
+@media (max-width: 860px) {
+  .lp-dly-copy,
+  .lp-dly-demo { grid-column: 1 / -1; }
+}
+@media (max-width: 420px) {
+  .lp-dly-guess { padding-inline: 12px; }
+  .lp-dly-row { gap: 4px; }
+  .lp-dly-tile { height: 56px; grid-template-rows: minmax(0, 1fr) 14px; }
+  .lp-dly-v { padding-inline: 2px; }
+  .lp-dly-v img { height: 22px; max-width: 80%; }
+  .lp-dly-val { font-size: 19px; }
+  .lp-dly-val-sm { font-size: 11px; }
 }
 
 /* ---------- how: plain steps + one browser window that follows them ---------- */
