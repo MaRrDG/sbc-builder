@@ -36,6 +36,10 @@ def solve(p):
     for s in range(n_slots):
         m.Add(sum(x[i][s] for i in idx if s in x[i]) <= 1)
     m.Add(sum(used) == len(open_slots))
+    play = p.get("mode") == "play"
+    if play:  # a playable squad: nobody out of position
+        for i in idx:
+            m.Add(off[i] == 0)
 
     # Players the user already placed in the web app: keep as many as possible in their slot
     # (a preference, not a rule, since the placed squad may not meet the requirements).
@@ -196,15 +200,26 @@ def solve(p):
                 m.Add(cnt == 0).OnlyEnforceIf(b.Not())
                 present.append(b)
             m.Add(OPS[op](sum(present), v))
+        elif kind == "slotCount":
+            slots = set(c["slots"])
+            m.Add(OPS[op](sum(x[i][s] for i in c["players"] for s in x[i] if s in slots), v))
         else:
             raise ValueError(f"unknown constraint {kind}")
 
-    # Costs are floats; CP-SAT wants integers. Keeping a placed player outweighs any cost.
     keep_bonus = 10_000_000
-    m.Minimize(
-        sum(int(round(pl["cost"] * 100)) * used[i] for i, pl in enumerate(players))
-        - keep_bonus * sum(k for _s, k in keep.values())
-    )
+    if play:
+        # strongest squad: ratings plus chemistry (0-3 per player) weighted by chemWeight
+        w = int(p.get("chemWeight", 4))
+        m.Maximize(
+            sum(pl["rating"] * used[i] for i, pl in enumerate(players))
+            + (w * (sum(ch) + sum(brick_ch)) if ch is not None else 0)
+        )
+    else:
+        # Costs are floats; CP-SAT wants integers. Keeping a placed player outweighs any cost.
+        m.Minimize(
+            sum(int(round(pl["cost"] * 100)) * used[i] for i, pl in enumerate(players))
+            - keep_bonus * sum(k for _s, k in keep.values())
+        )
 
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = float(p.get("timeLimit", 10))
@@ -234,7 +249,7 @@ def solve(p):
         "status": solver.StatusName(status),
         "slots": slots,
         "kept": kept,
-        "cost": (solver.ObjectiveValue() + keep_bonus * len(kept)) / 100,
+        "cost": solver.ObjectiveValue() if play else (solver.ObjectiveValue() + keep_bonus * len(kept)) / 100,
         "wallTime": solver.WallTime(),
     }
 
