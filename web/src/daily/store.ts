@@ -29,6 +29,13 @@ export const loadGame = (day: number): SavedGame | null => {
   return g && g.day === day && Array.isArray(g.rows) ? g : null;
 };
 export const saveGame = (g: SavedGame) => write(GAME, g);
+export function clearGame() {
+  try {
+    localStorage.removeItem(GAME);
+  } catch {
+    /* blocked storage: nothing saved anyway */
+  }
+}
 export const loadPlays = (): LocalPlay[] => {
   const p = read<LocalPlay[]>(PLAYS);
   return Array.isArray(p) ? p : [];
