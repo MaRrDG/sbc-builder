@@ -36,6 +36,12 @@ export async function personasOf(userId: string): Promise<number[]> {
   return rows.map((r) => r.id);
 }
 
+/** Taken over: personas this user owned until another user proved them with EA (the "taken over" notice). */
+export async function takenOverFrom(userId: string): Promise<boolean> {
+  const [row] = await db.select({ id: personas.personaId }).from(personas).where(eq(personas.previousUserId, userId)).limit(1);
+  return !!row;
+}
+
 export async function setOwner(personaId: number, userId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx

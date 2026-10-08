@@ -318,7 +318,7 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
 
 export const api = {
   me: () =>
-    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null }>('/api/me'),
+    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; takenOver: boolean; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null }>('/api/me'),
   onboarding: (a: ({ heardFrom: HeardFrom; futYears: FutYears } | { skip: true }) & { code?: string }) =>
     req<{ ok: true; redeem?: RedeemResult | { error: string } }>('/api/me/onboarding', { method: 'PUT', body: a }),
   prefs: (p: { lang?: string; evoEmails?: boolean }) => req<{ ok: true }>('/api/me/prefs', { method: 'PUT', body: p }),

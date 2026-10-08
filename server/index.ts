@@ -28,6 +28,7 @@ import {
   personaLinkUsers,
   personaRow,
   personasOf,
+  takenOverFrom,
   saveOnboarding,
   setOwner,
   unlinkPersona,
@@ -222,6 +223,8 @@ app.get('/api/me', async (req) => {
     return a ? [a.toJSON()] : [];
   });
   return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId), prefs: await prefsOf(userId), onboarding: { done: !!row?.onboardedAt },
+    // an EA account of mine that another user has since proved with EA: why the setup screen is back
+    takenOver: personas.length === 0 && (await takenOverFrom(userId)),
     // a link refused for the persona limit (cleared by any successful link): who to write to
     linkBlocked: row?.linkBlockedAt ? { at: row.linkBlockedAt.getTime(), limit: PERSONA_USER_LIMIT, supportEmail: process.env.SUPPORT_EMAIL ?? null } : null };
 });
