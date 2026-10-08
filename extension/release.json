@@ -1,4 +1,7 @@
 {
+  "0.9.0": [
+    "Reads your Objectives when you open them in the web app, so FC Solver Premium can build a squad for them"
+  ],
   "0.8.9": [
     "Reads your Evolutions, so FC Solver Premium can email you when a player's training is over"
   ],

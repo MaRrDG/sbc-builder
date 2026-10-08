@@ -56,6 +56,7 @@ export function playerCost(p: Player): number {
 export interface ActiveSquad {
   starters: number[];
   bench: number[];
+  formation?: string; // e.g. "f433", from the web app active squad
 }
 
 export function eligiblePool(players: Player[], reqs: Requirement[], o: SolveOptions, squad: ActiveSquad | null): Player[] {
