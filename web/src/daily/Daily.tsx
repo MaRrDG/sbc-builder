@@ -2,7 +2,7 @@
 // Signed in, the server keeps today's game and stats; signed out, the browser keeps them (store.ts)
 // and sends back the server's signed state token. Practice lives in memory only.
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ChartBar, Question, Ranking } from '@phosphor-icons/react';
+import { ChartBar, Database, Question, Ranking } from '@phosphor-icons/react';
 import { api, ApiError, type DailyAnswer, type DailyGuess, type DailyInfo, type DailyName, type DailyProfile, type DailyRow, type DailySilhouette, type DailyStats, type Meta } from '../api';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
@@ -260,6 +260,12 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
             </button>
           </div>
         </div>
+        {names.length > 0 && (
+          <p className="dg-base">
+            <Database weight="bold" aria-hidden="true" />
+            <span>{t('daily.base.line', { count: names.length })}</span>
+          </p>
+        )}
 
         {loadError ? (
           <p className="dg-load-err" role="alert">

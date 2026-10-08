@@ -118,7 +118,7 @@ export function Search({ index, exclude, meta, busy, disabled, left, error, shak
           })}
           {shown && results.length === 0 && (
             <li className="dg-opt dg-opt-none" role="option" aria-selected={false} aria-disabled="true">
-              {t('daily.search.none')}
+              {t('daily.search.notInBase')}
             </li>
           )}
         </ul>

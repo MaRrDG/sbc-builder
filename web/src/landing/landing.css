@@ -687,6 +687,13 @@
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
+.lp-dly-count {
+  margin: 0;
+  padding: 10px 16px 14px;
+  color: var(--ink-2);
+  font-size: 13px;
+  text-align: center;
+}
 .lp-dly-float { position: relative; z-index: 1; }
 .lp-dly-card { filter: drop-shadow(0 14px 18px oklch(0.12 0.03 220 / 0.6)); }
 .lp-dly-face {
