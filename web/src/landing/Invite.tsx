@@ -1,13 +1,13 @@
-// "Bring a mate": the invite program as a pack opening. When the stage scrolls in, a gold pack
-// tears open and walks out a reward card (7 days of Premium), and a +1 point drops into the
-// inviter's counter. Spending points is shown as the web app's own SBC tiles: points in, Premium out.
-// One orchestrated moment, played once; reduced motion shows the opened pack at once.
+// "Bring a mate": the invite program as a pack opening. When the stage scrolls in, a face-down
+// card lifts out of a gold glow and flips to its front, a special gold item worth 7 days of Premium,
+// and a +1 point drops into the inviter's counter. Spending points is shown as the web app's own SBC tiles: points in, Premium out.
+// One orchestrated moment, played once; reduced motion shows the revealed card at once.
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Crown, Gift } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
-import { useInView } from './motion';
+import { useInView, useTilt } from './motion';
+import { PremiumCard } from './PremiumCard';
 
-const GOLD_BG = '/landing/items/images/backgrounds/itemBGs/929f3299-a61e-4ff1-abda-7663f1c835db/cards_bg_e_1_0_3.png';
 const STEPS = ['s1', 's2', 's3'] as const;
 const OFFERS = [
   { days: 7, price: 2 },
@@ -21,6 +21,7 @@ export function Invite({ cta }: { cta: ReactNode }) {
   const { t } = useI18n();
   const stage = useRef<HTMLDivElement>(null);
   const live = useInView(stage);
+  useTilt(stage, 9);
   // opened in a background tab: useInView never fires there, so show the opened pack instead of a closed one
   const [hidden] = useState(() => document.visibilityState === 'hidden');
   return (
@@ -44,21 +45,14 @@ export function Invite({ cta }: { cta: ReactNode }) {
         </div>
 
         <div ref={stage} className={`lp-pack-stage${live ? ' is-live' : hidden ? ' is-open' : ''}`} aria-hidden="true">
-          <div className="lp-pack-rays" />
-          <div className="lp-pack">
-            <span className="lp-pack-top" />
-            <span className="lp-pack-body">
-              <img src="/brand/icon-green.svg" alt="" width="44" height="44" />
-            </span>
-          </div>
-          <div className="lp-reward" style={{ backgroundImage: `url(${GOLD_BG})` }}>
-            <span className="lp-reward-ovr">7</span>
-            <span className="lp-reward-pos">{t('landing.invite.card.days')}</span>
-            <Crown className="lp-reward-face" weight="fill" />
-            <span className="lp-reward-name">Premium</span>
-            <span className="lp-reward-sub">{t('landing.invite.card.for')}</span>
+          <div className="lp-halo" />
+          <div className="lp-reward">
+            <div className="lp-reward-tilt">
+              <PremiumCard />
+            </div>
           </div>
           <div className="lp-pts">
+            <span className="lp-pts-coin" />
             <span className="lp-pts-drop">+1</span>
             <span className="lp-pts-label">{t('landing.invite.points')}</span>
             <span className="lp-pts-num">
