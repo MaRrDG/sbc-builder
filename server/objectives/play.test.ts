@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loanMatches } from '../squad.js';
-import { matchesFilter, roleSlots, playPool, checkCovers, diagnosePlay, buildPlayProblem } from './play.js';
+import { matchesFilter, roleSlots, playPool, checkCovers, diagnosePlay, buildPlayProblem, uncoveredReasons } from './play.js';
 import type { Player } from '../squad.js';
 import type { Condition } from './types.js';
 import { POSITION_IDS } from '../meta.js';
@@ -99,4 +99,39 @@ test('buildPlayProblem: count for xi, slotCount for roles, play mode, no cost', 
     { kind: 'slotCount', op: '>=', value: 1, players: [1], slots: [8, 9, 10] },
   ]);
   assert.deepEqual(prob.players[0].slots, [9]); // a ST fits only the ST slot of 4-3-3
+});
+
+test('buildPlayProblem with groups: soft problem, each constraint tagged with its objective', () => {
+  const meta = { formations: {}, names: {}, thresholds: { 1: [], 2: [], 3: [] } } as never;
+  const dutch = pl({ nation: 34 });
+  const chem = (p: Player) => ({ groups: { 1: p.nation, 2: p.league, 3: p.club }, contrib: { 1: 1, 2: 1, 3: 1 }, maxChem: false });
+  const conds = [c('xi', { nation: [34] }), c('score', { nation: [34] }), c('score', { nation: [18] })];
+  const prob = buildPlayProblem([dutch], F433, conds, meta, 10, chem, 4, [1798, 1798, 1797]) as { soft?: boolean; constraints: { group?: number }[] };
+  assert.equal(prob.soft, true);
+  assert.deepEqual(prob.constraints.map((x) => x.group), [1798, 1798, 1797]);
+  const hard = buildPlayProblem([dutch], F433, conds, meta, 10, chem) as { soft?: boolean; constraints: { group?: number }[] };
+  assert.equal('soft' in hard, false); // hard problems stay exactly as before
+  assert.ok(hard.constraints.every((x) => !('group' in x)));
+});
+
+test('uncoveredReasons: per uncovered objective, noMatch for a condition nobody can meet, else combo', () => {
+  const dutchSt = pl({ nation: 34 });
+  const germanSt = pl({ nation: 18 });
+  const dutch = c('score', { nation: [34] });
+  const german = c('score', { nation: [18] });
+  const dutchXi = c('xi', { nation: [34] });
+  const french = c('xi', { nation: [21] });
+  // objective 1: a Dutch scorer; 2: a German scorer + a Dutch player in the XI; 3: a French player
+  const conds = [dutch, german, dutchXi, french];
+  const groups = [1, 2, 2, 3];
+  const slots: (Player | null)[] = F433.map(() => null);
+  slots[9] = dutchSt;
+  const covers = checkCovers(slots, F433, conds);
+  // 1 is covered; 2 is half met and could be done, it clashes; nobody in the club is French
+  assert.deepEqual(uncoveredReasons([dutchSt, germanSt], F433, conds, groups, covers), [
+    { code: 'combo', objectiveId: 2 },
+    { code: 'noMatch', condition: french, objectiveId: 3 },
+  ]);
+  // everything covered: no reasons
+  assert.deepEqual(uncoveredReasons([dutchSt], F433, [dutch], [1], checkCovers(slots, F433, [dutch])), []);
 });

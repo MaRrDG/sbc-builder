@@ -584,10 +584,12 @@ app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excl
     };
     const conds: { objectiveId: number; condition: Condition }[] = picked.flatMap((ob) => ob.conditions.map((condition) => ({ objectiveId: ob.id, condition })));
     const t0 = Date.now();
-    const r = await solveObjectives(players, formation, conds.map((c) => c.condition), meta, options);
-    logEvent({ type: 'solve', userId, personaId: acc.id, data: { kind: 'objectives', found: r.found, objectives: picked.length } });
+    // soft solve: each objective is a group, as many covered as possible, then the strongest squad
+    const r = await solveObjectives(players, formation, conds.map((c) => c.condition), meta, options, undefined, undefined, conds.map((c) => c.objectiveId));
+    logEvent({ type: 'solve', userId, personaId: acc.id, data: { kind: 'objectives', found: r.found, partial: r.partial, objectives: picked.length } });
     return {
       found: r.found,
+      partial: r.partial,
       ms: Date.now() - t0,
       formation,
       slots: meta.formations[formation].map((position, i) => ({ position, player: r.slots[i], chem: r.eval?.perSlotChem[i] ?? 0 })),

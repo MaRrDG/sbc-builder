@@ -50,15 +50,19 @@ type Chem = ReturnType<typeof playerChem>;
 export function buildPlayProblem(
   pool: Player[], slotTypes: number[], conds: Condition[], meta: Meta, timeLimit: number,
   chem: (p: Player) => Chem = (p) => playerChem(p, meta), chemWeight = CHEM_WEIGHT,
+  /** objective id per condition: soft problem, cover as many objectives as possible (all conditions of one id) */
+  groups?: number[],
 ) {
   const matching = (f: Filter) => pool.flatMap((p, i) => (matchesFilter(p, f) ? [i] : []));
-  const constraints = conds.map((c) =>
-    c.role === 'xi' && c.filter.position === undefined
+  const constraints = conds.map((c, i) => ({
+    ...(c.role === 'xi' && c.filter.position === undefined
       ? { kind: 'count', op: '>=', value: c.min, players: matching(c.filter) }
-      : { kind: 'slotCount', op: '>=', value: c.min, players: matching(c.filter), slots: roleSlots(c, slotTypes) },
-  );
+      : { kind: 'slotCount', op: '>=', value: c.min, players: matching(c.filter), slots: roleSlots(c, slotTypes) }),
+    ...(groups ? { group: groups[i] } : {}),
+  }));
   return {
     mode: 'play',
+    ...(groups ? { soft: true } : {}),
     chemWeight,
     players: pool.map((p) => ({
       rating: p.rating,
@@ -98,7 +102,8 @@ export function checkCovers(slots: (Player | null)[], slotTypes: number[], conds
   });
 }
 
-export type PlayReason = { code: 'noMatch'; condition: Condition } | { code: 'combo' };
+/** objectiveId: the uncovered objective of a partial squad (absent when there is no squad at all). */
+export type PlayReason = { code: 'noMatch'; condition: Condition; objectiveId?: number } | { code: 'combo'; objectiveId?: number };
 
 /** Why there is no squad: a condition nobody can meet in its slots, else the conditions clash. */
 export function diagnosePlay(pool: Player[], slotTypes: number[], conds: Condition[]): PlayReason[] {
@@ -108,4 +113,17 @@ export function diagnosePlay(pool: Player[], slotTypes: number[], conds: Conditi
     return new Set(fits.map((p) => p.assetId)).size < c.min;
   });
   return missing.length ? missing.map((condition) => ({ code: 'noMatch' as const, condition })) : [{ code: 'combo' }];
+}
+
+/**
+ * Why each objective a squad leaves uncovered (some condition not met) is out: a condition nobody in the pool
+ * can meet in its slots, else it clashes with the other picks in this formation. groups[i]: objective of conds[i].
+ */
+export function uncoveredReasons(pool: Player[], slotTypes: number[], conds: Condition[], groups: number[], covers: Cover[]): PlayReason[] {
+  const ids = [...new Set(groups)];
+  return ids.flatMap((objectiveId) => {
+    const mine = conds.flatMap((c, i) => (groups[i] === objectiveId ? [i] : []));
+    if (mine.every((i) => covers[i].met)) return [];
+    return diagnosePlay(pool, slotTypes, mine.map((i) => conds[i])).map((r) => ({ ...r, objectiveId }));
+  });
 }
