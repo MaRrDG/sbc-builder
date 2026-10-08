@@ -5,7 +5,7 @@
 // (reduced motion: the final state only). Today's number comes from /api/daily and simply stays hidden if
 // that call fails.
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowUp, Cards, Crosshair, Flag, Shield, Star, Trophy, type Icon } from '@phosphor-icons/react';
+import { ArrowUp, Cards, Crosshair, Crown, Flag, Shield, Star, Trophy, type Icon } from '@phosphor-icons/react';
 import { api } from '../api';
 import { cardArt } from '../components/Card';
 import { Silhouette } from '../daily/Silhouette';
@@ -75,11 +75,20 @@ export function DailyTeaser({ link }: Props) {
         <p className="lp-kicker">{t('landing.daily.kicker')}</p>
         <h2 id="lp-dly-title" className="lp-h2">{t('landing.daily.title')}</h2>
         <p className="lp-lede">{t('landing.daily.text')}</p>
+        <p className="lp-dly-prem">
+          <Crown weight="fill" aria-hidden="true" />
+          <span>{t('landing.daily.premium')}</span>
+        </p>
         <div className="lp-actions">{link({ view: 'daily', practice: false }, 'lp-btn', t('landing.daily.cta'))}</div>
       </div>
 
       <div ref={ref} className={`lp-dly-demo${seen ? ' is-in' : ''}`}>
         <div className="lp-dly-pitch">
+          {/* the penalty box at the top, as on /daily's stage */}
+          <svg className="pitch-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <rect x="20" y="0" width="60" height="34" />
+            <rect x="35" y="0" width="30" height="14" />
+          </svg>
           {day !== null && <p className="lp-dly-day">{t('landing.daily.day', { n: day })}</p>}
           <div className="lp-dly-float">
             <div className="card lp-dly-card" style={{ color: art.text }} role="img" aria-label={t('daily.mystery')}>

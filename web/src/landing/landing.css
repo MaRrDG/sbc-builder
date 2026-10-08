@@ -634,11 +634,27 @@
   row-gap: 40px;
   align-items: center;
 }
-.lp-dly-copy { grid-column: 1 / 6; }
+.lp-dly-copy { grid-column: 1 / 6; min-width: 0; }
 .lp-dly .lp-h2 + .lp-lede { margin-top: 18px; } /* lede under its heading, not a section-content gap */
-.lp-dly .lp-lede { margin-bottom: 32px; }
+/* free Premium through streaks: a quiet gold note under the text; the CTA stays the one green thing */
+.lp-dly-prem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 52ch;
+  margin: 20px 0 28px;
+  padding: 10px 14px;
+  border: 1px solid oklch(0.8 0.13 72 / 0.45);
+  border-radius: var(--r-box);
+  background: oklch(0.8 0.13 72 / 0.07);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.lp-dly-prem svg { flex: none; margin-top: 2px; color: var(--gold); font-size: 17px; }
 .lp-dly-demo {
   grid-column: 7 / -1;
+  min-width: 0;
   container-type: inline-size;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -657,8 +673,6 @@
     radial-gradient(42% 66% at 50% 48%, oklch(0.44 0.08 178 / 0.55), transparent 72%),
     linear-gradient(180deg, var(--pitch-a), var(--pitch-b));
 }
-.lp-dly-pitch::before { content: ''; position: absolute; inset: 50% 0 auto; height: 1px; background: var(--pitch-line); }
-.lp-dly-pitch::after { content: ''; position: absolute; left: 50%; top: 50%; width: 44cqi; aspect-ratio: 1; border: 1px solid var(--pitch-line); border-radius: 50%; translate: -50% -50%; }
 .lp-dly-day {
   position: absolute;
   z-index: 1;
@@ -696,7 +710,7 @@
 }
 
 /* one example guess: the name, then six tiles in the game's column order */
-.lp-dly-guess { padding: 14px 16px 16px; border-top: 1px solid var(--line); }
+.lp-dly-guess { min-width: 0; padding: 14px 16px 16px; border-top: 1px solid var(--line); }
 .lp-dly-cap {
   display: flex;
   flex-wrap: wrap;
@@ -707,8 +721,10 @@
   color: var(--ink-2);
   font-size: 13px;
 }
-.lp-dly-name { display: inline-flex; align-items: center; gap: 8px; color: var(--ink); font-size: 15px; font-weight: 600; }
+.lp-dly-cap > * { min-width: 0; }
+.lp-dly-name { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--ink); font-size: 15px; font-weight: 600; }
 .lp-dly-chip {
+  flex: none;
   padding: 2px 6px;
   border-radius: 4px;
   background: var(--surface-3);
@@ -954,6 +970,8 @@
 .lp-feats { display: grid; gap: 10px; margin: 20px 0 24px; padding: 0; list-style: none; }
 .lp-feats li { display: flex; gap: 10px; line-height: 1.45; }
 .lp-feats svg { flex: none; margin-top: 3px; color: var(--go); }
+/* Free plan: Premium can also be earned with the Daily; a slightly lifted row, its game name a link */
+.lp-feats .lp-feat-daily { margin: 2px -10px 0; padding: 8px 10px; border-radius: var(--r-ctl); background: oklch(0.84 0.17 163 / 0.08); }
 .lp-plan .lp-btn { margin-top: auto; }
 
 @media (max-width: 1100px) {
