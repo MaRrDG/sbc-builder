@@ -473,7 +473,25 @@ export const api = {
   adminPlan: (userId: string, tier: 'free' | 'premium', premiumUntil: string | null) =>
     req<{ ok: true }>('/api/admin/plan', { method: 'POST', body: { userId, tier, premiumUntil } }),
   adminQuotaReset: (userId: string) => req<{ ok: true }>('/api/admin/quota-reset', { method: 'POST', body: { userId } }),
+  adminDaily: (day: number | null) => req<AdminDailyDay>(`/api/admin/daily${day === null ? '' : `?day=${day}`}`),
+  adminDailyLeaderboard: () => req<{ rows: AdminDailyLbRow[] }>('/api/admin/daily/leaderboard'),
+  adminDailyClearUsername: (userId: string) =>
+    req<{ ok: true }>(`/api/admin/daily/users/${encodeURIComponent(userId)}/clear-username`, { method: 'POST' }),
 };
+
+export interface AdminDailyDay {
+  days: { day: number; date: string }[];
+  day: number;
+  date: string;
+  answer: DailyAnswer | null;
+  summary: { finished: number; won: number; winPct: number; dist: number[]; signedIn: { finished: number; won: number }; anon: { finished: number; won: number } };
+  topGuessed: { id: number; name: string; count: number }[];
+  games: { userId: string; email: string; username: string | null; guesses: { id: number; name: string }[]; won: boolean; used: number; finishedAt: number | null }[];
+}
+export interface AdminDailyLbRow {
+  rank: number; userId: string; username: string | null; email: string; hidden: boolean;
+  wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number; reachedDay: number;
+}
 
 export interface AdminAccount {
   personaId: number;

@@ -4,14 +4,22 @@ import { useI18n } from '../../i18n';
 import { shortDay } from './format';
 
 type Tone = 'go' | 'ink' | 'muted' | 'bad';
-interface Props { title: string; days: string[]; series: { label: string; values: number[]; tone: Tone }[] }
+interface Props {
+  title: string;
+  days: string[];
+  series: { label: string; values: number[]; tone: Tone }[];
+  /** x-axis label and its column header in the hidden table; defaults to a short date and "Day" */
+  xLabel?: (d: string) => string;
+  xTitle?: string;
+}
 
 const DEFAULT_W = 600;
 const H = 180;
 const PAD = { l: 28, r: 6, t: 10, b: 22 };
 
-export function BarChart({ title, days, series }: Props) {
+export function BarChart({ title, days, series, xLabel, xTitle }: Props) {
   const { t, lang } = useI18n();
+  const label = xLabel ?? ((d: string) => shortDay(d, lang));
   const figRef = useRef<HTMLElement>(null);
   const [W, setW] = useState(DEFAULT_W);
   useEffect(() => {
@@ -51,7 +59,7 @@ export function BarChart({ title, days, series }: Props) {
           let acc = 0;
           return (
             <g key={d}>
-              <title>{`${shortDay(d, lang)}: ${series.map((s) => `${s.label} ${s.values[i]}`).join(', ')}`}</title>
+              <title>{`${label(d)}: ${series.map((s) => `${s.label} ${s.values[i]}`).join(', ')}`}</title>
               <rect x={PAD.l + i * bw} y={PAD.t} width={bw} height={ih} className="adm-hit" />
               {series.map((s) => {
                 const v = s.values[i];
@@ -60,7 +68,7 @@ export function BarChart({ title, days, series }: Props) {
                 acc += v;
                 return v ? <rect key={s.label} x={PAD.l + i * bw + bw * 0.15} y={top} width={bw * 0.7} height={Math.max(h, 1)} rx={2} className={`adm-bar ${s.tone}`} /> : null;
               })}
-              {i % every === 0 && <text x={PAD.l + i * bw + bw / 2} y={H - 6} className="adm-axis" textAnchor="middle">{shortDay(d, lang)}</text>}
+              {i % every === 0 && <text x={PAD.l + i * bw + bw / 2} y={H - 6} className="adm-axis" textAnchor="middle">{label(d)}</text>}
             </g>
           );
         })}
@@ -75,7 +83,7 @@ export function BarChart({ title, days, series }: Props) {
       <div className="sr-only">
         <table>
           <caption>{title}</caption>
-          <thead><tr><th scope="col">{t('admin.chart.day')}</th>{series.map((s) => <th key={s.label} scope="col">{s.label}</th>)}</tr></thead>
+          <thead><tr><th scope="col">{xTitle ?? t('admin.chart.day')}</th>{series.map((s) => <th key={s.label} scope="col">{s.label}</th>)}</tr></thead>
           <tbody>{days.map((d, i) => <tr key={d}><th scope="row">{d}</th>{series.map((s) => <td key={s.label}>{s.values[i]}</td>)}</tr>)}</tbody>
         </table>
       </div>

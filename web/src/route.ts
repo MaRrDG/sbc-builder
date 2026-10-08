@@ -6,7 +6,7 @@
 //   /dashboard/evolutions evolutions
 //   /dashboard/gallery    gallery list      /dashboard/gallery/<set>  a gallery set
 //   /dashboard/objectives[/formation|/squad]  objectives squad wizard: pick → formation → squad
-//   /dashboard/invite     invite friends     /dashboard/settings   settings          /dashboard/admin[/users[/:id]|/accounts][?filters]   admin panel (admins only)
+//   /dashboard/invite     invite friends     /dashboard/settings   settings          /dashboard/admin[/users[/:id]|/accounts|/codes|/daily][?filters]   admin panel (admins only)
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
 //   /terms  /privacy  /cookies              legal pages (public)
@@ -17,7 +17,7 @@ import type { LegalDoc } from './legal/docs';
 /** Objectives wizard steps: pick objectives, pick a formation, see the squad. */
 export type ObjStep = 'pick' | 'formation' | 'squad';
 
-export type AdminPage = 'overview' | 'users' | 'user' | 'accounts' | 'codes';
+export type AdminPage = 'overview' | 'users' | 'user' | 'accounts' | 'codes' | 'daily';
 
 export type Route =
   | { view: 'landing' }
@@ -44,13 +44,14 @@ export const ADMIN_TABS: { page: Exclude<AdminPage, 'user'>; key: string }[] = [
   { page: 'users', key: 'admin.tab.users' },
   { page: 'accounts', key: 'admin.tab.accounts' },
   { page: 'codes', key: 'admin.tab.codes' },
+  { page: 'daily', key: 'admin.tab.daily' },
 ];
 
 export const adminRoute = (page: AdminPage, extra: { userId?: string; query?: string } = {}): Route => ({
   view: 'admin',
   page,
   userId: page === 'user' ? extra.userId ?? null : null,
-  query: page === 'users' || page === 'accounts' ? extra.query ?? '' : '',
+  query: page === 'users' || page === 'accounts' || page === 'daily' ? extra.query ?? '' : '',
 });
 
 export function parseRoute(path: string, search = '', hash = ''): Route {
@@ -88,6 +89,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
     if (y === 'users') return adminRoute('users', { query });
     if (y === 'accounts') return adminRoute('accounts', { query });
     if (y === 'codes') return adminRoute('codes');
+    if (y === 'daily') return adminRoute('daily', { query });
     return adminRoute('overview');
   }
   if (x === 'sbc' && id(y) !== null) return { view: 'sbcs', setId: id(y), challengeId: id(z) };
