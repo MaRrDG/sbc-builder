@@ -55,7 +55,8 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
   const [fresh, setFresh] = useState<number | null>(null);
   const [reveal, setReveal] = useState(false);
   const [sheet, setSheet] = useState<'help' | 'stats' | null>(() => (seenHelp() ? null : 'help'));
-  const run = useRef(0); // drops answers of an older load
+  const run = useRef(0); // drops answers of an older load / game
+  const mode = useRef(practice); // the mode the current game belongs to
   const statsTimer = useRef<number | undefined>(undefined);
 
   const index = useMemo(() => indexNames(names), [names]);
@@ -72,7 +73,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
   };
 
   const startPractice = useCallback(async () => {
-    const id = run.current;
+    const id = ++run.current; // a guess still in flight belongs to the previous player
     resetGame();
     setToken(null);
     try {
@@ -86,6 +87,13 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
   const load = useCallback(async () => {
     const id = ++run.current;
     setLoadError(null);
+    if (mode.current !== practice) {
+      // Today <-> Practice: the old game must not stay guessable while the new one loads
+      mode.current = practice;
+      resetGame();
+      setToken(null);
+      setInfo(null);
+    }
     try {
       const [inf, pl, m] = await Promise.all([api.daily.info(), names.length ? null : api.daily.players(), meta ? null : api.meta()]);
       if (id !== run.current) return;
@@ -114,10 +122,21 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
 
   const guess = async (p: DailyName) => {
     if (busy || game.finished || !info || (practice && !token)) return;
+    const expired = () => {
+      const msg = errorText(new ApiError('', 'dailyExpired', {}), t);
+      setError(msg);
+      setShake((n) => n + 1);
+      // the day rolled over (or the token is no good): start clean, and keep saying why
+      if (!practice && !info.signedIn) clearGame();
+      void (practice ? startPractice() : load()).then(() => setError(msg));
+    };
+    if (!practice && Date.now() >= info.nextAt) return expired(); // the page stayed open past the drop
+    const id = run.current;
     setBusy(true);
     setError(null);
     try {
-      const r: DailyGuess = practice ? await api.daily.practiceGuess(token!, p.i, state) : await api.daily.guess(p.i, info.signedIn ? undefined : state);
+      const r: DailyGuess = practice ? await api.daily.practiceGuess(token!, p.i, state) : await api.daily.guess(p.i, info.signedIn ? undefined : state, info.day);
+      if (id !== run.current) return; // the mode or the game changed meanwhile
       const next: Game = {
         rows: [...game.rows, r.row],
         finished: r.finished,
@@ -146,14 +165,10 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
         statsTimer.current = window.setTimeout(() => setSheet((s) => s ?? 'stats'), reducedMotion() ? 0 : 1200);
       }
     } catch (e) {
-      const msg = errorText(e, t);
-      setError(msg);
+      if (id !== run.current) return;
+      if (e instanceof ApiError && e.code === 'dailyExpired') return expired();
+      setError(errorText(e, t));
       setShake((n) => n + 1);
-      if (e instanceof ApiError && e.code === 'dailyExpired') {
-        // the day rolled over (or the token is no good): start clean, and keep saying why
-        if (!practice) clearGame();
-        void (practice ? startPractice() : load()).then(() => setError(msg));
-      }
     } finally {
       setBusy(false);
     }
@@ -253,8 +268,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
                   onPick={guess}
                 />
               )}
-              <Grid rows={game.rows} max={max} fresh={fresh} meta={meta} />
-            </div>
+              <Grid rows={game.rows} max={max} fresh={fresh} meta={meta} />            </div>
           </div>
         )}
       </main>
