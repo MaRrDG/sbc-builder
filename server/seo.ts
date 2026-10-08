@@ -46,7 +46,11 @@ const PAGES: Record<string, PageMeta> = {
 
 const LEGAL_PATHS = new Set(['/terms', '/privacy', '/cookies']);
 
-export const pageMeta = (path: string): PageMeta | null => PAGES[path] ?? null;
+/** Public sub-pages that share a page's head and point their canonical link at it (not in the sitemap). */
+const SAME_AS: Record<string, string> = { '/daily/practice': '/daily' };
+const canonicalPath = (path: string) => SAME_AS[path] ?? path;
+
+export const pageMeta = (path: string): PageMeta | null => PAGES[canonicalPath(path)] ?? null;
 
 /** The canonical origin: SITE_URL when set (the domain to index), else the one this request came to. */
 export function siteUrl(requestOrigin: string): string {
@@ -74,7 +78,7 @@ const meta = (attr: 'name' | 'property', key: string) => new RegExp(`(<meta ${at
 export function renderHead(html: string, path: string, base: string, canonicalHost: boolean, imageVersion = ''): string {
   const page = pageMeta(path);
   const indexable = canonicalHost && !!page;
-  const url = `${base}${page ? path : '/'}`;
+  const url = `${base}${page ? canonicalPath(path) : '/'}`;
   const image = `${base}/og.png${imageVersion ? `?v=${imageVersion}` : ''}`;
   let out = html.replace(/__SITE__/g, base); // JSON-LD and anything else that needs the origin
   out = setAttr(out, meta('name', 'robots'), indexable ? 'index, follow' : 'noindex, nofollow');

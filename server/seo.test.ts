@@ -40,6 +40,14 @@ test('app pages and other hosts are noindex', () => {
   assert.match(renderHead(HTML, '/', 'https://old.example.com', false), /<meta name="robots" content="noindex, nofollow" \/>/);
 });
 
+test('/daily/practice shares the /daily head and canonical, and stays out of the sitemap', () => {
+  assert.deepEqual(pageMeta('/daily/practice'), pageMeta('/daily'));
+  const out = renderHead(HTML, '/daily/practice', 'https://fcsolver.gg', true);
+  assert.match(out, /<link rel="canonical" href="https:\/\/fcsolver\.gg\/daily" \/>/);
+  assert.match(out, /<meta name="robots" content="index, follow" \/>/);
+  assert.doesNotMatch(sitemapXml('https://fcsolver.gg'), /daily\/practice/);
+});
+
 test('meta text is escaped', () => {
   assert.doesNotMatch(renderHead(HTML, '/', 'https://a.b', true), /content="[^"]*<[^"]*"/);
 });
