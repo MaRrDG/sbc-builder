@@ -663,6 +663,119 @@
   font-size: 13px;
 }
 
+/* ---------- leaderboard question ---------- */
+.dg-prompt-text {
+  max-width: 52ch;
+  margin: 0 0 16px;
+  color: var(--ink-2);
+  line-height: 1.55;
+}
+.dg-uname label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.dg-uname input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: oklch(0.17 0.025 222);
+  font-size: 16px; /* no iOS zoom on focus */
+}
+.dg-uname input:hover { border-color: var(--ink-3); }
+.dg-uname.bad input { border-color: var(--bad); }
+.dg-uname-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 0;
+  color: var(--ink-3);
+  font-size: 12.5px;
+}
+.dg-uname.bad .dg-uname-hint { color: var(--ink-2); }
+.dg-uname-hint svg { flex: none; color: var(--bad); font-size: 15px; }
+.dg-prompt-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+/* ---------- leaderboard ---------- */
+.dg-lb-note {
+  margin: 4px 0 0;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.dg-lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+.dg-lb-table th,
+.dg-lb-table td {
+  height: 40px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+  white-space: nowrap;
+}
+.dg-lb-table thead th {
+  height: auto;
+  padding-bottom: 8px;
+  color: var(--ink-3);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  vertical-align: bottom;
+}
+.dg-lb-table thead th.dg-lb-opt { white-space: normal; } /* "Avg guesses" may wrap; the short headers stay on one line */
+.dg-lb-table td { font: 600 16px / 1 var(--font-num); }
+.dg-lb-table .dg-lb-rank { width: 34px; padding-left: 0; text-align: left; }
+.dg-lb-table .dg-lb-name {
+  max-width: 0; /* take the room that is left, ellipsis past it */
+  width: 100%;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+.dg-lb-table td.dg-lb-name { font: 600 14px / 1.2 var(--font-ui); }
+.dg-lb-rank span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: var(--ink-2);
+}
+/* top 3: a tinted chip around the number; the number itself stays */
+.dg-lb-rank .dg-medal { color: var(--ink); }
+.dg-medal.m1 { border-color: oklch(0.8 0.13 72 / 0.7); background: oklch(0.8 0.13 72 / 0.2); }
+.dg-medal.m2 { border-color: oklch(0.84 0.02 230 / 0.6); background: oklch(0.84 0.02 230 / 0.16); }
+.dg-medal.m3 { border-color: oklch(0.66 0.11 50 / 0.7); background: oklch(0.66 0.11 50 / 0.2); }
+.dg-lb-streak { display: inline-flex; align-items: center; gap: 3px; }
+.dg-lb-streak svg { color: var(--near); font-size: 14px; }
+.dg-lb-table tr.me td { background: var(--surface-2); }
+.dg-lb-table tr.me td:first-child { box-shadow: inset 2px 0 0 var(--go); }
+.dg-lb-you th {
+  height: auto;
+  padding: 16px 0 6px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+}
+.dg-lb-foot {
+  margin: 16px 0 0;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.dg-lb-foot p { margin: 0 0 10px; }
+
 /* ---------- narrow ---------- */
 /* under 860px styles.css straightens the header strip into a full-width band above the pitch */
 @media (max-width: 860px) {
@@ -695,6 +808,10 @@
     border-radius: var(--r-box) var(--r-box) 0 0;
   }
   .dg-sheet-in { padding: 24px 16px calc(22px + env(safe-area-inset-bottom)); }
+  /* phone tap targets */
+  .dg-icon-btn { width: 44px; height: 44px; }
+  .dg-prompt-bar .dg-btn,
+  .dg-lb-foot .dg-btn { flex: 1 1 auto; height: 44px; }
   /* grab handle: this one slid up from the bottom */
   .dg-sheet-in::before {
     content: '';
@@ -740,6 +857,7 @@
   .dg-dir { font-size: 12px; }
   .dg-nums div { padding: 0 8px; }
   .dg-nums dd { font-size: 28px; }
+  .dg-lb-table .dg-lb-opt { display: none; }
 }
 
 /* ---------- motion ---------- */
