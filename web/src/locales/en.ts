@@ -1171,6 +1171,8 @@ export const en = {
   'admin.daily.viewDay': "Day",
   'admin.daily.viewLb': "Leaderboard",
   'admin.daily.hidden': "hidden",
+  'admin.daily.prevDay': "Previous day",
+  'admin.daily.nextDay': "Next day",
   'admin.daily.clear': "Clear username",
   'admin.daily.clearConfirm': "Click again to clear",
   'err.codeTaken': "That code already exists.",

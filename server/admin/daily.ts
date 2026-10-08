@@ -3,12 +3,13 @@
 import { anonDay, anonGuessCounts, answerDays, signedGamesOf } from '../db/daily.js';
 import { leaderboardSource } from '../db/dailyProfile.js';
 import { rankLeaderboard } from '../daily/leaderboard.js';
-import { todayGame } from '../daily/service.js';
+import { currentDay, todayGame } from '../daily/service.js';
 import { loadPlayers, playerById } from '../daily/store.js';
 import { daySummary, topGuessed } from '../daily/summary.js';
 
 export async function adminDay(dayParam: unknown) {
   await loadPlayers();
+  await todayGame().catch(() => null); // make sure today's answer exists even if nobody opened /daily since the drop
   const days = await answerDays();
   const want = Number(dayParam);
   const cur = days.find((d) => d.day === want) ?? days[0];
@@ -31,8 +32,8 @@ export async function adminDay(dayParam: unknown) {
 export async function adminLeaderboard() {
   const src = await leaderboardSource(true);
   const by = new Map(src.map((s) => [s.userId, s]));
-  const t = await todayGame();
-  const rows = rankLeaderboard(src.map((s) => ({ userId: s.userId, username: s.username ?? s.email, plays: s.plays })), t.day);
+  const day = await currentDay();
+  const rows = rankLeaderboard(src.map((s) => ({ userId: s.userId, username: s.username ?? s.email, plays: s.plays })), day);
   return {
     rows: rows.map((r) => {
       const s = by.get(r.userId)!;

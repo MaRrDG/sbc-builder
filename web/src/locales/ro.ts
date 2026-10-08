@@ -1209,6 +1209,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'admin.daily.viewDay': "Zi",
   'admin.daily.viewLb': "Clasament",
   'admin.daily.hidden': "ascuns",
+  'admin.daily.prevDay': "Ziua anterioară",
+  'admin.daily.nextDay': "Ziua următoare",
   'admin.daily.clear': "Șterge username",
   'admin.daily.clearConfirm': "Apasă din nou ca să ștergi",
   'err.codeTaken': "Codul există deja.",
