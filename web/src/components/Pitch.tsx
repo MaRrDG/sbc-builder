@@ -233,9 +233,11 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
                 </span>
               )}
               {loanBadge && player?.isLoan && !solving && (
-                <span className="slot-loan">
+                // narrow pitches show icon + matches left only; the full text stays for screen readers and on hover
+                <span className="slot-loan" title={player.loanMatches !== undefined ? t('pitch.loanMatches', { count: player.loanMatches }) : t('pitch.loan')}>
                   <HourglassMedium weight="bold" aria-hidden="true" />
-                  {player.loanMatches !== undefined ? t('pitch.loanMatches', { count: player.loanMatches }) : t('pitch.loan')}
+                  <span className="slot-loan-full">{player.loanMatches !== undefined ? t('pitch.loanMatches', { count: player.loanMatches }) : t('pitch.loan')}</span>
+                  {player.loanMatches !== undefined && <span className="slot-loan-short" aria-hidden="true">{player.loanMatches}</span>}
                 </span>
               )}
               {brick ? (

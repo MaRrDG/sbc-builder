@@ -3,6 +3,7 @@
 import type { ClubItem, Challenge, SbcSet, ChemProfilesResponse } from './ea.js';
 import { SessionError } from './ea.js';
 import { readCache, writeCache, type Cached } from './store.js';
+import type { ActiveSquad } from './solver.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
 import { versionLess } from './admin/query.js';
@@ -224,10 +225,11 @@ export async function applySubmittedSbc(acc: Account, challengeId: number, itemI
     removed += storage.data.length - left.length;
     if (left.length !== storage.data.length) await writeCache(acc.key('storage'), left, storage.fetchedAt);
   }
-  const squad = await readCache<{ starters: number[]; bench: number[] }>(acc.key('squad'));
+  const squad = await readCache<ActiveSquad>(acc.key('squad'));
   if (squad) {
     const keep = (ids: number[]) => ids.filter((id) => !used.has(id));
-    await writeCache(acc.key('squad'), { starters: keep(squad.data.starters), bench: keep(squad.data.bench) }, squad.fetchedAt);
+    // only the used players go: formation (and any other field the relay stored) stays
+    await writeCache(acc.key('squad'), { ...squad.data, starters: keep(squad.data.starters), bench: keep(squad.data.bench) }, squad.fetchedAt);
   }
 
   // Find the set that owns the challenge and bump its progress.

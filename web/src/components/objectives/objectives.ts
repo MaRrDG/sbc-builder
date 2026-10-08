@@ -38,14 +38,38 @@ export function awardText(a: ObjAward): string {
   return d || `${a.value} ${a.awardType}`;
 }
 
-/** The shown answer was solved for other ticks, another formation or another loan setting. Older saves without `picked` / `loans` are not judged on them. */
-export function isStale(last: { picked?: number[]; formation: string; loans?: boolean }, active: number[], formation: string, loans = false): boolean {
+/** The solver settings a squad was built with (global exclusions and max OVR). */
+export interface SolveSettings {
+  excludeIds: number[];
+  maxRating: number;
+}
+
+const sameIds = (a: number[], b: number[]) => {
+  const x = [...a].sort((p, q) => p - q);
+  const y = [...b].sort((p, q) => p - q);
+  return x.length === y.length && x.every((v, i) => v === y[i]);
+};
+
+/**
+ * The shown answer was solved for other ticks, another formation, another loan setting or other solver settings.
+ * Older saves without `picked` / `loans` / settings are not judged on them.
+ */
+export function isStale(
+  last: { picked?: number[]; formation: string; loans?: boolean; excludeIds?: number[]; maxRating?: number },
+  active: number[], formation: string, loans = false, settings?: SolveSettings,
+): boolean {
   if (!last.picked) return false;
   if (last.formation !== formation) return true;
   if (last.loans !== undefined && last.loans !== loans) return true;
-  const a = [...last.picked].sort((x, y) => x - y);
-  const b = [...active].sort((x, y) => x - y);
-  return a.length !== b.length || a.some((x, i) => x !== b[i]);
+  if (settings && last.excludeIds !== undefined && !sameIds(last.excludeIds, settings.excludeIds)) return true;
+  if (settings && last.maxRating !== undefined && last.maxRating !== settings.maxRating) return true;
+  return !sameIds(last.picked, active);
+}
+
+/** What the solver settings keep out of the squad (for the step 2 line); null when they take nothing out. */
+export function settingsSummary(excludeIds: number[], maxRating: number): { excluded: number; maxRating: number | null } | null {
+  const max = maxRating < 99 ? maxRating : null;
+  return excludeIds.length || max !== null ? { excluded: excludeIds.length, maxRating: max } : null;
 }
 
 export const pickKey = (personaId: number) => `sbc-objectives-pick-${personaId}`;
