@@ -9,7 +9,7 @@ import { useAgo, useI18n } from '../../i18n';
 import { errorText } from '../../messages';
 import type { ObjStep } from '../../route';
 import { layout, Pitch } from '../Pitch';
-import { awardText, conditionLabel, doneKey, loansKey, formationKey, formationLabel, isStale, pickKey, pruneManual, radioMove, reachableStep, resultKey, splitGroups, timeLeft, type GroupSplit } from './objectives';
+import { awardText, conditionLabel, doneKey, loansKey, formationKey, formationLabel, isStale, pickKey, pruneManual, radioMove, reachableStep, resultKey, splitGroups, timeLeft, objectiveCoverage, dropUncovered, type GroupSplit } from './objectives';
 
 const ROLE_ICON = { score: SoccerBall, assist: HandPointing, xi: UsersThree } as const;
 const NO_IDS = new Set<number>();
@@ -492,7 +492,10 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   const shown = result && !solving && buildError === null ? result : null;
   // the stale hint is for someone who comes back to an older squad, never right after Build
   const stale = !!shown && !fresh && isStale(shown, active, formation, loans);
-  const failed = !!shown && !shown.found;
+  // partial: a full XI that covers some of the picks (as many as fit); failed: no XI at all
+  const partial = !!shown && !shown.found && shown.partial === true;
+  const failed = !!shown && !shown.found && !partial;
+  const coverage = shown ? objectiveCoverage(shown.covers) : [];
   const conds: ObjCondition[] = shown ? shown.covers.map((c) => c.condition) : active.flatMap((id) => open.get(id)?.conditions ?? []);
   const challenge: Challenge = {
     challengeId: 0, setId: 0, name: '', description: '', status: '', formation: shown?.formation ?? formation,
@@ -519,6 +522,43 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       <button type="button" className="ghost" onClick={() => onStep('formation')}>{t('obj.changeFormation')}</button>
       <button type="button" className="ghost" onClick={() => onStep('pick')}>{t('obj.editObjectives')}</button>
     </>
+  );
+  const reasonText = (r: ObjectivesSolve['reasons'][number], formationName: string) =>
+    r.code === 'noMatch' ? t('obj.reason.noMatch', { what: conditionLabel(r.condition, meta, t) }) : t('obj.reason.clash', { formation: formationName });
+  const partialPanel = partial && shown && (
+    <div className="obj-partial" role="status">
+      <h3>
+        <Warning weight="fill" aria-hidden="true" />{' '}
+        {t('obj.partialTitle', { covered: coverage.filter((c) => c.met).length, count: coverage.length })}
+      </h3>
+      <ul className="obj-covers">
+        {coverage.map((c) => (
+          <li key={c.objectiveId} className={c.met ? 'is-met' : 'is-miss'}>
+            {c.met ? <CheckCircle className="tick" weight="fill" aria-label={t('obj.met')} /> : <XCircle className="tick" weight="fill" aria-label={t('obj.notMet')} />}
+            <span>
+              <strong>{nameOf(c.objectiveId) || `#${c.objectiveId}`}</strong>
+              {!c.met &&
+                shown.reasons
+                  .filter((r) => r.objectiveId === c.objectiveId)
+                  .map((r, i) => <span key={i} className="obj-why">{reasonText(r, formationLabel(shown.formation))}</span>)}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <div className="obj-fail-actions">
+        <button type="button" className="ghost" onClick={() => onStep('formation')}>{t('obj.changeFormation')}</button>
+        <button
+          type="button"
+          className="ghost"
+          onClick={() => {
+            setPicked((p) => dropUncovered(p, coverage));
+            onStep('pick');
+          }}
+        >
+          {t('obj.dropUncovered')}
+        </button>
+      </div>
+    </div>
   );
   const buildAgain = (
     <button type="button" className="solve-sm" disabled={!active.length || solving} onClick={() => void build()}>
@@ -562,7 +602,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
               {shown.reasons.map((r, i) => (
                 <li key={i}>
                   {r.code === 'noMatch'
-                    ? t('obj.reason.noMatch', { what: conditionLabel(r.condition, meta, t) })
+                    ? reasonText(r, '')
                     : t('obj.reason.combo', { formation: formationLabel(shown.formation) })}
                 </li>
               ))}
@@ -574,64 +614,67 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
           </div>
         </div>
       ) : (
-        <div className="obj-result">
-          <div className="obj-pitch">
-            <Pitch
-              meta={meta}
-              challenge={challenge}
-              result={pitchResult}
-              solving={solving}
-              onSolve={() => void build()}
-              onToggleOptions={() => {}}
-              lock={null}
-              localOptions={false}
-              placed={NO_PLACED}
-              selectedId={null}
-              onPlayerClick={() => {}}
-              outOfSolves={!active.length}
-              marked={NO_IDS}
-              cheaper={false}
-              corners={false}
-              loanBadge
-              badges={badges}
-            />
+        <>
+          {partialPanel}
+          <div className="obj-result">
+            <div className="obj-pitch">
+              <Pitch
+                meta={meta}
+                challenge={challenge}
+                result={pitchResult}
+                solving={solving}
+                onSolve={() => void build()}
+                onToggleOptions={() => {}}
+                lock={null}
+                localOptions={false}
+                placed={NO_PLACED}
+                selectedId={null}
+                onPlayerClick={() => {}}
+                outOfSolves={!active.length}
+                marked={NO_IDS}
+                cheaper={false}
+                corners={false}
+                loanBadge
+                badges={badges}
+              />
+            </div>
+            <aside className="obj-side" aria-label={t('obj.summary')}>
+              {solving || !shown ? (
+                <p className="muted" role="status">{t('obj.solving')}</p>
+              ) : (
+                <>
+                  <dl className="obj-stats">
+                    <div>
+                      <dt>{t('pitch.rating')}</dt>
+                      <dd>{shown.eval?.rating ?? 0}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('pitch.chemistry')}</dt>
+                      <dd>{shown.eval?.chemistry ?? 0}/33</dd>
+                    </div>
+                  </dl>
+                  <h3>{t('obj.step.pick')}</h3>
+                  <ul className="obj-covers">
+                    {shown.covers.map((c, i) => {
+                      const ids = new Set(c.itemIds);
+                      const who = shown.slots.flatMap((s) => (s.player && ids.has(s.player.id) ? [`${s.player.name} (${s.position.name})`] : []));
+                      return (
+                        <li key={i} className={c.met ? 'is-met' : 'is-miss'}>
+                          {c.met ? <CheckCircle className="tick" weight="fill" aria-label={t('obj.met')} /> : <XCircle className="tick" weight="fill" aria-label={t('obj.notMet')} />}
+                          <span>
+                            {nameOf(c.objectiveId) && <strong>{nameOf(c.objectiveId)}: </strong>}
+                            {conditionLabel(c.condition, meta, t)}
+                            {who.length ? <span className="obj-who"> → {who.join(', ')}</span> : null}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </>
+              )}
+            </aside>
           </div>
-          <aside className="obj-side" aria-label={t('obj.summary')}>
-            {solving || !shown ? (
-              <p className="muted" role="status">{t('obj.solving')}</p>
-            ) : (
-              <>
-                <dl className="obj-stats">
-                  <div>
-                    <dt>{t('pitch.rating')}</dt>
-                    <dd>{shown.eval?.rating ?? 0}</dd>
-                  </div>
-                  <div>
-                    <dt>{t('pitch.chemistry')}</dt>
-                    <dd>{shown.eval?.chemistry ?? 0}/33</dd>
-                  </div>
-                </dl>
-                <h3>{t('obj.step.pick')}</h3>
-                <ul className="obj-covers">
-                  {shown.covers.map((c, i) => {
-                    const ids = new Set(c.itemIds);
-                    const who = shown.slots.flatMap((s) => (s.player && ids.has(s.player.id) ? [`${s.player.name} (${s.position.name})`] : []));
-                    return (
-                      <li key={i} className={c.met ? 'is-met' : 'is-miss'}>
-                        {c.met ? <CheckCircle className="tick" weight="fill" aria-label={t('obj.met')} /> : <XCircle className="tick" weight="fill" aria-label={t('obj.notMet')} />}
-                        <span>
-                          {nameOf(c.objectiveId) && <strong>{nameOf(c.objectiveId)}: </strong>}
-                          {conditionLabel(c.condition, meta, t)}
-                          {who.length ? <span className="obj-who"> → {who.join(', ')}</span> : null}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </>
-            )}
-          </aside>
-        </div>
+        </>
       )}
 
       {!failed && buildError === null && (

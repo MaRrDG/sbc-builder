@@ -118,8 +118,11 @@ export interface ObjectivesSolve {
   formation: string;
   slots: SlotResult[];
   eval: { rating: number; chemistry: number; perSlotChem: number[]; allMet: boolean } | null;
+  /** a full XI that leaves some objective uncovered; missing in answers saved before partial coverage */
+  partial?: boolean;
   covers: { objectiveId: number; condition: ObjCondition; itemIds: number[]; met: boolean }[];
-  reasons: ({ code: 'noMatch'; condition: ObjCondition } | { code: 'combo' })[];
+  /** objectiveId: which uncovered objective a reason is about (partial answers) */
+  reasons: ({ code: 'noMatch'; condition: ObjCondition; objectiveId?: number } | { code: 'combo'; objectiveId?: number })[];
 }
 
 export interface Account {

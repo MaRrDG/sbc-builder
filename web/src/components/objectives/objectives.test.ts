@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { awardText, conditionLabel, doneKey, loansKey, formationKey, pruneManual, formationLabel, isStale, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups } from './objectives.js';
+import { awardText, conditionLabel, doneKey, loansKey, formationKey, pruneManual, formationLabel, isStale, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups, objectiveCoverage, dropUncovered } from './objectives.js';
 
 const meta = { names: { nation: { 34: 'Netherlands' }, league: { 10: 'Eredivisie' }, club: {}, rarity: { 151: 'Ultimate Scream' } } };
 const t = (k: string, p?: Record<string, unknown>) => `${k}${p ? JSON.stringify(p) : ''}`;
@@ -102,4 +102,20 @@ test('radioMove: arrows move and wrap, Home / End jump, other keys do nothing', 
   assert.equal(radioMove(1, 'End', 5), 4);
   assert.equal(radioMove(1, 'a', 5), null);
   assert.equal(radioMove(0, 'ArrowRight', 0), null);
+});
+
+test('objectiveCoverage: one entry per objective in order, covered only when every condition is met', () => {
+  const cov = (objectiveId: number, met: boolean) => ({ objectiveId, met });
+  assert.deepEqual(objectiveCoverage([cov(5, true), cov(3, true), cov(3, false), cov(9, true)]), [
+    { objectiveId: 5, met: true },
+    { objectiveId: 3, met: false },
+    { objectiveId: 9, met: true },
+  ]);
+  assert.deepEqual(objectiveCoverage([]), []);
+});
+
+test('dropUncovered: unticks the objectives the squad does not cover, keeps the rest in order', () => {
+  const coverage = [{ objectiveId: 5, met: true }, { objectiveId: 3, met: false }];
+  assert.deepEqual(dropUncovered([3, 7, 5], coverage), [7, 5]);
+  assert.deepEqual(dropUncovered([7], []), [7]);
 });
