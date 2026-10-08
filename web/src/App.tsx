@@ -17,7 +17,7 @@ import { AdminLayout } from './components/admin/AdminLayout';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';
 import { EaRequestsCard } from './components/EaRequestsCard';
-import { ADMIN_TABS, adminRoute, canGoBack, routePath, type Route } from './route';
+import { ADMIN_TABS, adminRoute, canGoBack, routePath, type ObjStep, type Route } from './route';
 import { useAgo, useI18n, type Lang } from './i18n';
 import { LangMenu } from './components/LangMenu';
 import { Guide } from './components/Guide';
@@ -38,7 +38,8 @@ import { useFounders } from './landing/Founders';
 import { GalleryInfo } from './components/gallery/GalleryInfo';
 import { PremiumPreview } from './components/PremiumPreview';
 import { DEMO_GALLERY, DEMO_META, DEMO_OBJECTIVES } from './components/premiumDemo';
-import { ObjectiveGroups, ObjectivesView } from './components/objectives/ObjectivesView';
+import { ObjectiveGroups, ObjectivesView, ObjStepper } from './components/objectives/ObjectivesView';
+import { splitGroups } from './components/objectives/objectives';
 import { compareVersions } from './components/UpdateBanner';
 import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
@@ -556,10 +557,14 @@ export default function App({
           ? adminRoute('overview')
           : v === 'gallery'
             ? { view: 'gallery', setId: null }
-            : { view: v }
+            : v === 'objectives'
+              ? { view: 'objectives', step: 'pick' }
+              : { view: v }
     );
     setError(null);
   };
+
+  const objStep = useCallback((step: ObjStep, replace?: boolean) => navigate({ view: 'objectives', step }, replace), [navigate]);
 
   // admin sidebar sub-items: real links (ctrl/cmd-click opens a new tab), otherwise navigate in place
   const goAdmin = (r: Route) => (e: MouseEvent) => {
@@ -952,7 +957,8 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                   </div>
                 </header>
                 <PremiumPreview title={t('obj.lockedTitle')} body={t('obj.lockedBody')}>
-                  <ObjectiveGroups groups={DEMO_OBJECTIVES} meta={DEMO_META} picked={[11, 12]} onToggle={() => {}} now={now} />
+                  <ObjStepper step="pick" reach="formation" />
+                  <ObjectiveGroups groups={splitGroups(DEMO_OBJECTIVES).squad} meta={DEMO_META} picked={[11, 12]} onToggle={() => {}} now={now} />
                 </PremiumPreview>
               </section>
             ) : (
@@ -964,8 +970,9 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                   extVersionOk={!!account?.extVersion && compareVersions(account.extVersion, '0.9.0') >= 0}
                   excludeIds={globalOptions.excludeIds}
                   maxRating={globalOptions.maxRating}
+                  step={route.view === 'objectives' ? route.step : 'pick'}
+                  onStep={objStep}
                   onError={onApiError}
-                  onSettings={() => go('settings')}
                 />
               )
             )

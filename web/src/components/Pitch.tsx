@@ -149,9 +149,11 @@ interface Props {
   cheaper?: boolean;
   /** player id -> what they cover (target badge, objectives squads) */
   badges?: Map<number, string>;
+  /** show the Options / Solve corner buttons; default true (screens with their own solve action hide them) */
+  corners?: boolean;
 }
 
-export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, marked, cheaper = true, badges }: Props) {
+export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, marked, cheaper = true, badges, corners = true }: Props) {
   const { t } = useI18n();
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
@@ -258,10 +260,12 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
         )}
       </div>
 
-      <PitchCorners
-        lock={lock} solving={solving} outOfSolves={outOfSolves} hasResult={!!result} localOptions={localOptions}
-        onSolve={onSolve} onToggleOptions={onToggleOptions} cheaper={cheaper}
-      />
+      {corners && (
+        <PitchCorners
+          lock={lock} solving={solving} outOfSolves={outOfSolves} hasResult={!!result} localOptions={localOptions}
+          onSolve={onSolve} onToggleOptions={onToggleOptions} cheaper={cheaper}
+        />
+      )}
     </div>
   );
 }

@@ -4099,58 +4099,135 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .adm-codes-new > summary { cursor: pointer; font-weight: 600; }
 .adm-uses { margin: 0; padding-left: 18px; color: var(--ink-2); }
 
-/* ---------- Objectives squad ---------- */
+/* ---------- Objectives squad (wizard: pick → formation → squad) ---------- */
 .objectives-view { display: grid; gap: 16px; padding-bottom: 88px; }
-.objectives-view .page-head { margin-bottom: 4px; }
+.objectives-view .page-head { margin-bottom: 0; }
 .objectives-view .page-head p { max-width: 70ch; }
 .obj-fetched { font-size: 13px; }
+
+/* stepper: numbered because it is a real sequence; done = tick, current = filled, locked = dim (never colour alone) */
+.obj-stepper ol { list-style: none; display: flex; align-items: center; margin: 0; padding: 0; }
+.obj-step { display: flex; align-items: center; min-width: 0; }
+.obj-step:not(:last-child) { flex: 1; }
+.obj-step:not(:last-child)::after { content: ''; flex: 1; min-width: 12px; height: 1px; margin: 0 10px; background: var(--line); }
+.obj-step.is-done:not(:last-child)::after { background: var(--ink-3); }
+.obj-step > button, .obj-step > span { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 4px 8px; margin: 0 -8px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--ink-2); font-size: 15px; white-space: nowrap; }
+.obj-step > button { cursor: pointer; transition: background 160ms var(--ease), color 160ms var(--ease); }
+.obj-step > button:hover { background: var(--surface-2); color: var(--ink); }
+.obj-step-mark { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border: 1px solid var(--ink-3); border-radius: 50%; font-family: var(--font-num); font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.obj-step-mark svg { width: 14px; height: 14px; }
+.obj-step.is-current > span { color: var(--ink); font-weight: 600; }
+.obj-step.is-current .obj-step-mark { border-color: var(--ink); background: var(--ink); color: var(--bg-0); }
+.obj-step.is-done .obj-step-mark { border-color: var(--ink-2); color: var(--ink); }
+.obj-step.is-locked > span { color: var(--ink-3); }
+
+.obj-step-head h2 { margin: 0; font-family: var(--font-num); font-size: 24px; font-weight: 700; }
+.obj-step-head h2:focus { outline: none; }
+.obj-step-head p { margin: 2px 0 0; font-size: 13px; }
+
+/* step 1: groups, one calm row per objective */
 .obj-groups { display: grid; gap: 16px; }
 .obj-group { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-box); padding: 16px; }
-.obj-group h2 { margin: 0; font-family: var(--font-num); font-size: 18px; font-weight: 700; }
-.obj-group header p { margin: 2px 0 0; font-size: 13px; }
-.obj-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
-.obj-item { border-top: 1px solid var(--line); padding-top: 10px; }
-.obj-item.is-dim .obj-name, .obj-item.is-dim .obj-desc { color: var(--ink-3); }
-.obj-check { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 32px; padding: 4px 6px; margin-left: -6px; border: 0; border-radius: var(--r-ctl); background: none; text-align: left; transition: background 160ms var(--ease); }
-.obj-check:hover:not(:disabled) { background: var(--surface-2); }
-.obj-check:disabled { opacity: 1; }
+.obj-group h3 { margin: 0; font-family: var(--font-num); font-size: 18px; font-weight: 700; }
+.obj-group-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
+.obj-group-meta span + span { padding-left: 12px; border-left: 1px solid var(--line); }
+.obj-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; }
+.obj-item { padding: 6px 8px 10px; margin: 0 -8px; border-radius: var(--r-ctl); transition: background 160ms var(--ease); }
+.obj-item + .obj-item { box-shadow: 0 -1px 0 var(--line); }
+.obj-item.is-on { background: oklch(0.27 0.03 220 / 0.6); }
+.obj-check { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 36px; padding: 4px 6px; margin-left: -6px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--ink); text-align: left; cursor: pointer; }
+.obj-check:hover { background: var(--surface-2); }
 .obj-check svg { flex: none; width: 20px; height: 20px; color: var(--ink-2); }
 .obj-check[aria-checked='true'] svg { color: var(--go); }
-.obj-name { flex: 1; min-width: 0; font-weight: 600; }
-.obj-progress { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 13px; }
-.obj-desc { margin: 2px 0 0 28px; color: var(--ink-2); font-size: 13px; }
-.obj-pills { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0 28px; padding: 0; }
-.obj-pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); font-size: 13px; }
-.obj-none { margin: 6px 0 0 28px; font-size: 13px; }
-.obj-rewards { display: flex; gap: 6px; align-items: baseline; margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
-.obj-rewards svg { flex: none; position: relative; top: 2px; color: var(--ink-3); }
-.obj-item .obj-rewards { margin-left: 28px; }
-.obj-stale { display: flex; gap: 6px; align-items: center; margin: 0; font-size: 13px; }
+.obj-name { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; }
+.obj-progress { flex: none; font-family: var(--font-num); font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-2); }
+.obj-body { display: grid; gap: 8px; margin-left: 28px; }
+.obj-desc { margin: 0; color: var(--ink-2); font-size: 13px; max-width: 70ch; }
+.obj-pills { list-style: none; display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; }
+.obj-pill { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 2px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); color: var(--ink); font-size: 13px; }
+.obj-pill svg { flex: none; color: var(--ink-2); }
+.obj-rewards { display: flex; gap: 6px; align-items: baseline; margin: 0; color: var(--ink-3); font-size: 13px; }
+.obj-rewards svg { flex: none; position: relative; top: 2px; }
+.obj-group header .obj-rewards { margin-top: 6px; }
+
+/* objectives FC Solver cannot build for: folded away */
+.obj-other { border: 1px solid var(--line); border-radius: var(--r-box); padding: 0 16px; }
+.obj-other > summary { display: flex; align-items: center; min-height: 48px; color: var(--ink-2); font-size: 15px; cursor: pointer; }
+.obj-other > summary:hover { color: var(--ink); }
+.obj-other[open] > summary { border-bottom: 1px solid var(--line); }
+.obj-other section { padding: 12px 0; }
+.obj-other section + section { border-top: 1px solid var(--line); }
+.obj-other h3 { margin: 0 0 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.obj-other ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.obj-other li { display: flex; flex-wrap: wrap; gap: 2px 8px; }
+.obj-other li .obj-name { font-size: 13px; color: var(--ink-2); }
+.obj-other li .obj-progress { font-size: 13px; }
+.obj-other li .obj-desc { flex-basis: 100%; color: var(--ink-3); }
+
+/* step 2: what was picked, then the formation tiles */
+.obj-summary { display: grid; gap: 10px; padding: 12px 16px 14px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
+.obj-summary-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.obj-summary-head h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.obj-link { min-height: 32px; padding: 0 8px; margin-right: -8px; border: 0; border-radius: var(--r-ctl); background: none; color: var(--ink); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+.obj-link:hover { background: var(--surface-2); }
+.obj-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 10px; }
+.obj-tile { position: relative; display: grid; justify-items: center; align-content: start; gap: 6px; padding: 12px 8px 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface); color: var(--ink-2); cursor: pointer; transition: border-color 160ms var(--ease), background 160ms var(--ease); }
+.obj-tile:hover { border-color: var(--ink-3); background: var(--surface-2); }
+.obj-tile.is-on { border-color: var(--go); box-shadow: inset 0 0 0 1px var(--go); background: var(--surface-2); color: var(--ink); }
+.obj-tile-tick { position: absolute; top: 6px; right: 6px; width: 18px; height: 18px; color: var(--go); }
+.obj-tile-label { font-family: var(--font-num); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.obj-tile-tag { padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--ink-2); }
+.obj-mini { width: 60px; height: auto; }
+.obj-mini rect, .obj-mini line { fill: none; stroke: oklch(0.55 0.05 190 / 0.45); stroke-width: 1; }
+.obj-mini > rect:first-child { fill: oklch(0.3 0.06 192); }
+.obj-mini circle { fill: var(--ink-2); }
+.obj-tile.is-on .obj-mini circle { fill: var(--ink); }
+
+/* step 3: the squad */
+.obj-stale { display: flex; gap: 8px; align-items: center; margin: 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface); font-size: 13px; }
+.obj-stale svg { flex: none; }
+.obj-fail { display: grid; gap: 10px; padding: 14px 16px; border: 1px solid oklch(0.7 0.18 25 / 0.5); border-radius: var(--r-box); background: oklch(0.7 0.18 25 / 0.08); }
+.obj-fail h3 { display: flex; gap: 8px; align-items: center; margin: 0; font-size: 15px; font-weight: 600; }
+.obj-fail h3 svg { flex: none; width: 20px; height: 20px; color: var(--bad); }
+.obj-fail ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--ink-2); }
+.obj-fail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.obj-fail-actions .ghost { border-color: var(--line); }
 .obj-empty { display: flex; gap: 10px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
 .obj-empty p { margin: 0; }
 .obj-empty svg { flex: none; width: 20px; height: 20px; color: var(--ink-2); }
-.obj-result { display: grid; gap: 12px; scroll-margin-top: 76px; }
-.obj-result h2 { margin: 8px 0 0; font-family: var(--font-num); font-size: 24px; font-weight: 700; }
+.obj-result { display: grid; gap: 14px; }
 .obj-pitch { width: 100%; max-width: 760px; }
-.obj-covers, .obj-reasons { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.obj-covers { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 760px; }
 .obj-covers li { display: flex; gap: 8px; align-items: flex-start; }
-.obj-covers .tick { flex: none; }
+.obj-covers .tick { flex: none; position: relative; top: 2px; }
 .obj-covers .is-met .tick { color: var(--go); }
 .obj-covers .is-miss .tick { color: var(--bad); }
 .obj-who { color: var(--ink-2); }
-.obj-reasons li { padding: 10px 12px; border: 1px solid oklch(0.7 0.18 25 / 0.5); border-radius: var(--r-ctl); background: oklch(0.7 0.18 25 / 0.1); }
+
+/* one action bar per step */
 .obj-bar { position: fixed; left: 208px; right: 0; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: flex-end; padding: 10px 28px; border-top: 1px solid var(--line); background: oklch(0.2 0.028 222 / 0.96); backdrop-filter: blur(8px); }
-.obj-bar label { display: flex; gap: 8px; align-items: center; margin-right: auto; color: var(--ink-2); font-size: 13px; }
-.obj-bar select { height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--surface-2); color: var(--ink); }
-.obj-count { font-size: 13px; }
+.obj-bar .solve-sm { height: 36px; padding: 0 18px; }
+.obj-bar .solve-sm:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+.obj-bar > :first-child:not(:only-child) { margin-right: auto; }
+.obj-bar-left { display: flex; flex-wrap: wrap; gap: 8px; }
+.obj-bar-left .ghost { border-color: var(--line); }
+.obj-count { color: var(--ink-2); font-size: 13px; }
+.obj-stepper :focus-visible, .obj-tile:focus-visible, .obj-check:focus-visible, .obj-link:focus-visible, .obj-other > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .slot-badge { position: absolute; top: -6px; left: calc(50% - var(--card-w) / 2 - 4px); z-index: 2; display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: var(--go); font-size: 13px; }
 @media (max-width: 860px) {
   .obj-bar { left: 0; padding: 10px 12px; }
 }
 @media (max-width: 480px) {
-  .obj-bar .solve-sm { flex: 1 0 100%; height: 40px; }
-  .objectives-view { padding-bottom: 120px; }
+  .obj-step > button, .obj-step > span { gap: 6px; font-size: 13px; }
+  .obj-step:not(:last-child)::after { margin: 0 6px; }
+  .obj-group, .obj-summary { padding-left: 12px; padding-right: 12px; }
+  .obj-body { margin-left: 0; }
+  .obj-tiles { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .obj-bar .solve-sm { flex: 1 0 auto; height: 44px; }
+  .obj-bar-left { flex: 1 0 100%; }
+  .obj-bar-left .ghost { flex: 1; justify-content: center; }
+  .objectives-view { padding-bottom: 132px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .obj-check { transition: none; }
+  .obj-item, .obj-tile, .obj-step > button { transition: none; }
 }

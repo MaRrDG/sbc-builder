@@ -57,10 +57,19 @@ test('gallery routes', () => {
   assert.equal(routePath({ view: 'gallery', setId: 'a-b' }), '/dashboard/gallery/a-b');
 });
 
-test('objectives route', () => {
-  assert.deepEqual(parseRoute('/dashboard/objectives'), { view: 'objectives' });
-  assert.deepEqual(parseRoute('/objectives'), { view: 'objectives' });
-  assert.equal(routePath({ view: 'objectives' }), '/dashboard/objectives');
+test('objectives wizard: one URL per step, round-trips', () => {
+  assert.deepEqual(parseRoute('/dashboard/objectives'), { view: 'objectives', step: 'pick' });
+  assert.deepEqual(parseRoute('/objectives'), { view: 'objectives', step: 'pick' });
+  assert.deepEqual(parseRoute('/dashboard/objectives/formation'), { view: 'objectives', step: 'formation' });
+  assert.deepEqual(parseRoute('/dashboard/objectives/squad'), { view: 'objectives', step: 'squad' });
+  // unknown step → step 1, and the address bar is fixed
+  assert.deepEqual(parseRoute('/dashboard/objectives/nope'), { view: 'objectives', step: 'pick' });
+  assert.equal(canonicalPath(parseRoute('/dashboard/objectives/nope'), '/dashboard/objectives/nope'), '/dashboard/objectives');
+  assert.equal(routePath({ view: 'objectives', step: 'pick' }), '/dashboard/objectives');
+  assert.equal(routePath({ view: 'objectives', step: 'formation' }), '/dashboard/objectives/formation');
+  assert.equal(routePath({ view: 'objectives', step: 'squad' }), '/dashboard/objectives/squad');
+  for (const step of ['pick', 'formation', 'squad'] as const)
+    assert.deepEqual(parseRoute(routePath({ view: 'objectives', step })), { view: 'objectives', step });
 });
 
 test('admin sub-routes keep their query', () => {
