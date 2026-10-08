@@ -268,7 +268,9 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
                   onPick={guess}
                 />
               )}
-              <Grid rows={game.rows} max={max} fresh={fresh} meta={meta} />            </div>
+              <Grid rows={game.rows} max={max} fresh={fresh} meta={meta} />
+              <p className="dg-data-note">{t('daily.dataNote')}</p>
+            </div>
           </div>
         )}
       </main>

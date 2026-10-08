@@ -52,6 +52,7 @@ export const en = {
   'daily.playPractice': 'Play Practice',
   'daily.another': 'Another one',
   'daily.practiceNote': 'Practice: unlimited players, no streak or points.',
+  'daily.dataNote': 'The game only uses players FC Solver has collected so far; the database grows over time.',
   'daily.help': 'How to play',
   'daily.stats': 'Stats',
   'daily.close': 'Close',
@@ -73,7 +74,7 @@ export const en = {
   'daily.how.reset': 'A new player every day at 20:01, Romania time.',
   'daily.how.practice': 'Practice: unlimited random players, no streak and no points.',
   'daily.how.points': 'Signed in, daily wins in a row build a streak: 7 wins +1 invite point, 14 wins +1, 30 wins +2, then again every 30 (37, 44, 60…). A lost or missed day resets it. Points can be withdrawn on abuse.',
-  'daily.how.source': "Players come from FC Solver's own database, built from the EA FC data the FC Solver extension sees. A very recent transfer can show the old club for a while.",
+  'daily.how.source': 'Players come only from what FC Solver has collected so far: its own database, built from the EA FC data the FC Solver extension sees. The database grows as more people use FC Solver, so more players will join the game over time. A very recent transfer can show the old club for a while.',
   'meta.signin': 'Sign in · FC Solver',
 
   // top bar

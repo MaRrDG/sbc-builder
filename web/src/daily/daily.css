@@ -317,6 +317,13 @@
   border-radius: var(--r-box);
   background: var(--surface);
 }
+.dg-data-note {
+  margin: 12px 0 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.45;
+  text-align: center;
+}
 .dg-search { margin-bottom: 14px; }
 .dg-search-top {
   display: flex;

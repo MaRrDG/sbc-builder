@@ -56,6 +56,7 @@ export const it: Record<Keys, string> = {
   'daily.playPractice': 'Gioca Allenamento',
   'daily.another': 'Un altro',
   'daily.practiceNote': 'Allenamento: giocatori illimitati, niente serie né punti.',
+  'daily.dataNote': 'Il gioco usa solo i giocatori raccolti finora da FC Solver; il database cresce nel tempo.',
   'daily.help': 'Come si gioca',
   'daily.stats': 'Statistiche',
   'daily.close': 'Chiudi',
@@ -77,7 +78,7 @@ export const it: Record<Keys, string> = {
   'daily.how.reset': 'Un nuovo giocatore ogni giorno alle 20:01, ora della Romania.',
   'daily.how.practice': 'Allenamento: giocatori casuali illimitati, niente serie e niente punti.',
   'daily.how.points': "Con l'accesso, le vittorie giornaliere di fila creano una serie: 7 vittorie +1 punto invito, 14 vittorie +1, 30 vittorie +2, poi di nuovo ogni 30 (37, 44, 60…). Un giorno perso o saltato la azzera. I punti possono essere ritirati in caso di abuso.",
-  'daily.how.source': "I giocatori vengono dal database di FC Solver, costruito con i dati EA FC che vede l'estensione FC Solver. Un trasferimento molto recente può mostrare per un po' il vecchio club.",
+  'daily.how.source': "I giocatori vengono solo da ciò che FC Solver ha raccolto finora: il suo database, costruito con i dati EA FC che vede l'estensione FC Solver. Il database cresce man mano che più persone usano FC Solver, quindi col tempo entreranno nel gioco sempre più giocatori. Un trasferimento molto recente può mostrare per un po' il vecchio club.",
   'meta.signin': 'Accedi · FC Solver',
 
   // top bar
