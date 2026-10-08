@@ -4131,6 +4131,7 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-group h3 { margin: 0; font-family: var(--font-num); font-size: 18px; font-weight: 700; }
 .obj-group-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
 .obj-group-meta span + span { padding-left: 12px; border-left: 1px solid var(--line); }
+.obj-unknown { margin: 4px 0 0; color: var(--ink-3); font-size: 13px; }
 .obj-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 4px; }
 .obj-item { padding: 6px 8px 10px; margin: 0 -8px; border-radius: var(--r-ctl); transition: background 160ms var(--ease); }
 .obj-item + .obj-item { box-shadow: 0 -1px 0 var(--line); }
@@ -4164,7 +4165,6 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-done li .obj-progress { font-size: 13px; color: var(--ink-3); }
 .obj-done-state { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--ink); }
 .obj-done-state svg { color: var(--go); }
-.obj-done-mine { display: inline-flex; flex-basis: 100%; align-items: center; gap: 8px; color: var(--ink-3); font-size: 12px; }
 .obj-other li .obj-mark { margin-left: auto; }
 
 /* objectives FC Solver cannot build for: folded away */

@@ -26,9 +26,12 @@ export type Names = Record<'nation' | 'league' | 'club' | 'rarity', Record<strin
 
 export interface EaAward {
   value: number;
-  awardType: string;
+  awardType: string; // "item" | "pack" | "coin" | "xp" | "event_token_1" ...
+  count?: number;
   untradeable?: boolean;
-  itemDataReduced?: { description?: string; itemType?: string; rating?: number } | null;
+  itemDataReduced?: { description?: string; itemType?: string; rating?: number; assetId?: number; preferredPosition?: string } | null;
+  /** ours, not EA's: the player's name for a player item (from the static player list) */
+  name?: string;
 }
 
 export interface EaObjective {
@@ -60,7 +63,8 @@ export interface ObjectiveView {
   id: number;
   name: string;
   description: string;
-  progress: number;
+  /** null: unknown (the group only comes from the shared catalogue) */
+  progress: number | null;
   target: number;
   awards: EaAward[];
   conditions: Condition[];
@@ -75,4 +79,6 @@ export interface ObjectiveGroupView {
   endsAt: number | null; // ms, null = no end
   awards: EaAward[];
   objectives: ObjectiveView[];
+  /** false: the group only comes from the shared catalogue, so this account's progress is unknown */
+  progressKnown: boolean;
 }

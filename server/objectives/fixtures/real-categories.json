@@ -1,0 +1,628 @@
+[
+ {
+  "categoryId": 0,
+  "priority": 0,
+  "name": "Foundations",
+  "groupsList": [
+   {
+    "groupId": 28,
+    "startTime": 1786986000,
+    "endTime": 1948640399,
+    "priority": 4,
+    "visibilityTime": 1786985999,
+    "title": "Total Football",
+    "subTitle": "Prove your worth by completing each of the Foundation Objectives groups to earn big rewards. All rewards are untradeable.",
+    "groupType": 8,
+    "subGroupType": 5,
+    "subGroupTypeAttribute": 1,
+    "timesCompleted": 1,
+    "repeatabilityMode": "NON_REPEATABLE",
+    "groupState": 4,
+    "awardsList": [
+     {
+      "value": 50405533,
+      "maxValue": null,
+      "untradeable": true,
+      "halId": 0,
+      "awardType": "item",
+      "assetId": 0,
+      "count": 1,
+      "setId": 10020842,
+      "itemData": null,
+      "priority": 0,
+      "itemDataReduced": {
+       "id": 0,
+       "untradeable": true,
+       "assetId": 73885,
+       "rating": 82,
+       "itemType": "player",
+       "resourceId": 50405533,
+       "discardValue": 0,
+       "cardsubtypeid": 3,
+       "preferredPosition": "ST",
+       "attributeArray": [
+        85,
+        79,
+        68,
+        81,
+        50,
+        79
+       ],
+       "teamId": 1808,
+       "rareflag": 87,
+       "leagueId": 13,
+       "nation": 22,
+       "guidAssetId": "3696bd28-fdd3-44a8-9f23-b21a2f4d6056",
+       "skillmoves": 2,
+       "weakfootabilitytypecode": 3,
+       "rankId": 0,
+       "possiblePositions": [
+        "ST"
+       ],
+       "plusPlusRoles": [
+        141,
+        142,
+        143,
+        144
+       ],
+       "baseTraits": [
+        1,
+        5,
+        24
+       ],
+       "gradingScore": 340,
+       "isCollected": true
+      }
+     },
+     {
+      "value": 304,
+      "maxValue": null,
+      "untradeable": true,
+      "halId": 3,
+      "awardType": "pack",
+      "assetId": 3,
+      "count": 1,
+      "setId": 10020842,
+      "itemData": null,
+      "priority": 0
+     }
+    ],
+    "objectives": [
+     {
+      "objectiveId": 152,
+      "name": "Complete 'Rising Through the Ranks'",
+      "description": "Fully complete the 'Rising Through the Ranks' Objectives Group.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "",
+      "isWeb": true,
+      "awards": [
+       {
+        "value": 1050,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 4,
+        "awardType": "pack",
+        "assetId": 4,
+        "count": 1,
+        "setId": 4021668,
+        "itemData": null,
+        "priority": 0
+       },
+       {
+        "value": 100,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 0,
+        "awardType": "xp",
+        "assetId": 0,
+        "count": 1,
+        "setId": 4021668,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "REDEEMED",
+      "currentProgress": 1,
+      "multiplier": 1,
+      "priority": 3,
+      "contentId": 22268
+     },
+     {
+      "objectiveId": 151,
+      "name": "Complete 'First Team Dreams'",
+      "description": "Fully complete the 'First Team Dreams' Objectives Group.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "",
+      "isWeb": true,
+      "awards": [
+       {
+        "value": 5004218,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 0,
+        "awardType": "item",
+        "assetId": 0,
+        "count": 1,
+        "setId": 4021667,
+        "itemData": null,
+        "priority": 0,
+        "itemDataReduced": {
+         "id": 0,
+         "untradeable": true,
+         "assetId": 0,
+         "rating": 99,
+         "itemType": "misc",
+         "resourceId": 5004218,
+         "discardValue": 0,
+         "cardsubtypeid": 237,
+         "attributeList": [],
+         "teamId": 0,
+         "rareflag": 1,
+         "leagueId": 0,
+         "cardassetid": 44,
+         "amount": 4135,
+         "description": "1 of 3 80+ Gold Player Pick"
+        }
+       },
+       {
+        "value": 100,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 0,
+        "awardType": "xp",
+        "assetId": 0,
+        "count": 1,
+        "setId": 4021667,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "REDEEMED",
+      "currentProgress": 1,
+      "multiplier": 1,
+      "priority": 2,
+      "contentId": 22267
+     },
+     {
+      "objectiveId": 150,
+      "name": "Complete 'The Journey Begins'",
+      "description": "Fully complete the 'The Journey Begins' Objectives Group.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "",
+      "isWeb": true,
+      "awards": [
+       {
+        "value": 5004217,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 0,
+        "awardType": "item",
+        "assetId": 0,
+        "count": 1,
+        "setId": 4021666,
+        "itemData": null,
+        "priority": 0,
+        "itemDataReduced": {
+         "id": 0,
+         "untradeable": true,
+         "assetId": 0,
+         "rating": 99,
+         "itemType": "misc",
+         "resourceId": 5004217,
+         "discardValue": 0,
+         "cardsubtypeid": 237,
+         "attributeList": [],
+         "teamId": 0,
+         "rareflag": 1,
+         "leagueId": 0,
+         "cardassetid": 44,
+         "amount": 4134,
+         "description": "1 of 3 75+ Gold Player Pick"
+        }
+       },
+       {
+        "value": 100,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 0,
+        "awardType": "xp",
+        "assetId": 0,
+        "count": 1,
+        "setId": 4021666,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "REDEEMED",
+      "currentProgress": 1,
+      "multiplier": 1,
+      "priority": 1,
+      "contentId": 22266
+     }
+    ],
+    "guidAssetId": "Foundations - Premier League",
+    "tileEnabled": true,
+    "headerAssetExists": false,
+    "backgroundAssetExists": true,
+    "tileAssetExists": true,
+    "contentId": 22269
+   }
+  ],
+  "type": 8
+ },
+ {
+  "categoryId": 3,
+  "priority": 1,
+  "name": "Seasonal",
+  "groupsList": [
+   {
+    "groupId": 62,
+    "startTime": 1790874000,
+    "endTime": 1791478799,
+    "priority": 1,
+    "visibilityTime": 1790873999,
+    "title": "Daily Objectives",
+    "subTitle": "Play, complete and earn SP from daily objective every 24 hours!",
+    "groupType": 6,
+    "timesCompleted": 1,
+    "repeats": 1,
+    "refreshInterval": 86400,
+    "repeatabilityMode": "REFRESH",
+    "groupState": 4,
+    "awardsList": [
+     {
+      "value": 10,
+      "maxValue": null,
+      "untradeable": false,
+      "halId": 0,
+      "awardType": "xp",
+      "assetId": 0,
+      "count": 1,
+      "setId": 10020683,
+      "itemData": null,
+      "priority": 0
+     }
+    ],
+    "objectives": [
+     {
+      "objectiveId": 466,
+      "name": "Play 1",
+      "description": "Play 1 match in any FUT game mode.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "GotoSquadBattle",
+      "isWeb": false,
+      "awards": [
+       {
+        "value": 10,
+        "maxValue": null,
+        "untradeable": false,
+        "halId": 0,
+        "awardType": "xp",
+        "assetId": 0,
+        "count": 1,
+        "setId": 4022134,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "REDEEMED",
+      "currentProgress": 1,
+      "multiplier": 1,
+      "priority": 2,
+      "contentId": 22758
+     },
+     {
+      "objectiveId": 465,
+      "name": "Scoring Success",
+      "description": "Score 2 goals in any FUT game mode.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "GotoSquadBattle",
+      "isWeb": false,
+      "awards": [
+       {
+        "value": 10,
+        "maxValue": null,
+        "untradeable": false,
+        "halId": 0,
+        "awardType": "xp",
+        "assetId": 0,
+        "count": 1,
+        "setId": 4022133,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "REDEEMED",
+      "currentProgress": 2,
+      "multiplier": 2,
+      "priority": 1,
+      "contentId": 22757
+     }
+    ],
+    "guidAssetId": "Daily",
+    "tileEnabled": true,
+    "headerAssetExists": false,
+    "backgroundAssetExists": true,
+    "tileAssetExists": true,
+    "contentId": 22759
+   }
+  ],
+  "type": 4
+ },
+ {
+  "categoryId": 5,
+  "priority": 2,
+  "name": "Campaigns",
+  "groupsList": [
+   {
+    "groupId": 120,
+    "startTime": 1791046800,
+    "endTime": 1791565199,
+    "priority": 1,
+    "visibilityTime": 1791046799,
+    "title": "Squad Foundations: Ringo Meerveld",
+    "subTitle": "Complete challenges below to earn Squad Foundations Ringo Meerveld & SP! All rewards are untradeable.",
+    "groupType": 6,
+    "timesCompleted": 0,
+    "repeatabilityMode": "NON_REPEATABLE",
+    "groupState": 1,
+    "awardsList": [
+     {
+      "value": 50596100,
+      "maxValue": null,
+      "untradeable": true,
+      "halId": 0,
+      "awardType": "item",
+      "assetId": 0,
+      "count": 1,
+      "setId": 10020810,
+      "itemData": null,
+      "priority": 0,
+      "itemDataReduced": {
+       "id": 0,
+       "untradeable": true,
+       "assetId": 264452,
+       "rating": 83,
+       "itemType": "player",
+       "resourceId": 50596100,
+       "discardValue": 0,
+       "cardsubtypeid": 2,
+       "preferredPosition": "CAM",
+       "attributeArray": [
+        88,
+        82,
+        80,
+        83,
+        60,
+        74
+       ],
+       "teamId": 1913,
+       "rareflag": 87,
+       "leagueId": 10,
+       "nation": 34,
+       "guidAssetId": "411e1ef0-bb1d-4b7b-a55b-b37c597efd36",
+       "skillmoves": 2,
+       "weakfootabilitytypecode": 3,
+       "rankId": 0,
+       "possiblePositions": [
+        "CDM",
+        "CM",
+        "LM",
+        "CAM",
+        "LW"
+       ],
+       "plusPlusRoles": [
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        127,
+        128,
+        129,
+        130,
+        131,
+        132,
+        133,
+        134,
+        138,
+        139,
+        140,
+        149
+       ],
+       "baseTraits": [
+        20,
+        22,
+        26
+       ],
+       "gradingScore": 410,
+       "isCollected": false
+      }
+     },
+     {
+      "value": 100,
+      "maxValue": null,
+      "untradeable": true,
+      "halId": 0,
+      "awardType": "xp",
+      "assetId": 0,
+      "count": 1,
+      "setId": 10020810,
+      "itemData": null,
+      "priority": 0
+     }
+    ],
+    "objectives": [
+     {
+      "objectiveId": 1799,
+      "name": "Eredivisie Brilliance",
+      "description": "Score and Assist in 3 separate matches using a Eredivisie player in any FUT game mode.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "GotoSquadBattle",
+      "isWeb": false,
+      "awards": [
+       {
+        "value": 20126,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 3,
+        "awardType": "pack",
+        "assetId": 4,
+        "count": 1,
+        "setId": 4022385,
+        "itemData": null,
+        "priority": 0
+       },
+       {
+        "value": 100,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 0,
+        "awardType": "xp",
+        "assetId": 0,
+        "count": 1,
+        "setId": 4022385,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "IN_PROGRESS",
+      "currentProgress": 1,
+      "multiplier": 3,
+      "priority": 5,
+      "contentId": 25225
+     },
+     {
+      "objectiveId": 1798,
+      "name": "The Dutch",
+      "description": "Score 6 goals using a Dutch player in any FUT game mode.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "GotoSquadBattle",
+      "isWeb": false,
+      "awards": [
+       {
+        "value": 1061,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 3,
+        "awardType": "pack",
+        "assetId": 4,
+        "count": 1,
+        "setId": 4022384,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "IN_PROGRESS",
+      "currentProgress": 3,
+      "multiplier": 6,
+      "priority": 4,
+      "contentId": 25224
+     },
+     {
+      "objectiveId": 1797,
+      "name": "Winner Mentality",
+      "description": "Win 4 matches while having min. 1 Dutch player in your starting 11 in any FUT game mode.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "GotoSquadBattle",
+      "isWeb": false,
+      "awards": [
+       {
+        "value": 1103,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 3,
+        "awardType": "pack",
+        "assetId": 4,
+        "count": 1,
+        "setId": 4022383,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "REDEEMED",
+      "currentProgress": 4,
+      "multiplier": 4,
+      "priority": 3,
+      "contentId": 25223
+     },
+     {
+      "objectiveId": 1796,
+      "name": "Playmaker",
+      "description": "Play 5 matches while having min. 1 Eredivisie player in your starting 11 in any FUT game mode.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "GotoSquadBattle",
+      "isWeb": false,
+      "awards": [
+       {
+        "value": 20123,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 3,
+        "awardType": "pack",
+        "assetId": 4,
+        "count": 1,
+        "setId": 4022382,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "REDEEMED",
+      "currentProgress": 5,
+      "multiplier": 5,
+      "priority": 2,
+      "contentId": 25222
+     },
+     {
+      "objectiveId": 1795,
+      "name": "Midfield Maestro",
+      "description": "Assist 5 goals using a CAM (Preferred position only) in any FUT game mode.",
+      "shortDescription": "*New Objective Description",
+      "imageBase": "",
+      "takeMeThereLink": "GotoSquadBattle",
+      "isWeb": false,
+      "awards": [
+       {
+        "value": 20124,
+        "maxValue": null,
+        "untradeable": true,
+        "halId": 3,
+        "awardType": "pack",
+        "assetId": 4,
+        "count": 1,
+        "setId": 4022381,
+        "itemData": null,
+        "priority": 0
+       }
+      ],
+      "state": "REDEEMED",
+      "currentProgress": 5,
+      "multiplier": 5,
+      "priority": 1,
+      "contentId": 25221
+     }
+    ],
+    "guidAssetId": "Foundation",
+    "tileEnabled": true,
+    "headerAssetExists": false,
+    "backgroundAssetExists": true,
+    "tileAssetExists": true,
+    "contentId": 25226
+   }
+  ],
+  "type": 4
+ }
+]

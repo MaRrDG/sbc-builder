@@ -85,14 +85,18 @@ export interface ObjCondition {
 export interface ObjAward {
   value: number;
   awardType: string;
+  count?: number;
   untradeable?: boolean;
-  itemDataReduced?: { description?: string; itemType?: string; rating?: number } | null;
+  itemDataReduced?: { description?: string; itemType?: string; rating?: number; assetId?: number; preferredPosition?: string } | null;
+  /** the player's name for a player item (filled in by the server) */
+  name?: string;
 }
 export interface ObjectiveView {
   id: number;
   name: string;
   description: string;
-  progress: number;
+  /** null: unknown (group only from the shared catalogue) */
+  progress: number | null;
   target: number;
   awards: ObjAward[];
   /** empty when the text has no squad condition we can read */
@@ -107,9 +111,13 @@ export interface ObjectiveGroupView {
   endsAt: number | null; // ms
   awards: ObjAward[];
   objectives: ObjectiveView[];
+  /** false: only from the shared catalogue, this account's progress is unknown (missing = known) */
+  progressKnown?: boolean;
 }
 export interface ObjectivesResponse {
   fetchedAt: number | null;
+  /** own: this account's list (+ shared groups it lacks); shared: only the shared catalogue; null: neither */
+  source?: 'own' | 'shared' | null;
   formation: string | null; // the active squad's, if the web app loaded it
   groups: ObjectiveGroupView[];
 }

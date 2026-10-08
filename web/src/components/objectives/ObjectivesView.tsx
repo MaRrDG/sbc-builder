@@ -19,15 +19,21 @@ const STEPS: ObjStep[] = ['pick', 'formation', 'squad'];
 /** The last answer plus the ticks it was solved for (saves from before this have no `picked`). */
 type Saved = ObjectivesSolve & { picked?: number[]; loans?: boolean; excludeIds?: number[]; maxRating?: number };
 
-/** EA's reward texts as sent, in one quiet line. */
+/** The rewards in words (player names, packs, coins ...), in one quiet line; unknown reward types are left out. */
 function Rewards({ awards }: { awards: ObjAward[] }) {
   const { t } = useI18n();
-  if (!awards.length) return null;
+  const list = awards.map((a) => awardText(a, t)).filter((x): x is string => !!x);
+  if (!list.length) return null;
   return (
     <p className="obj-rewards">
-      <Gift weight="bold" aria-hidden="true" /> {t('obj.rewards', { list: awards.map(awardText).join(', ') })}
+      <Gift weight="bold" aria-hidden="true" /> {t('obj.rewards', { list: list.join(', ') })}
     </p>
   );
+}
+
+/** "3/6", or nothing when this account's progress is unknown (the group only comes from the shared catalogue). */
+function Progress({ o }: { o: ObjectiveView }) {
+  return o.progress === null ? null : <span className="obj-progress">{o.progress}/{o.target}</span>;
 }
 
 function readJson<T>(key: string, fallback: T): T {
@@ -106,43 +112,33 @@ function MarkButton({ id, marked, onMark }: { id: number; marked: boolean; onMar
   );
 }
 
-/** Done objectives of one group (EA says so, or marked by the user), folded away: ✓ + "Done", never tickable. */
-function DoneObjectives({ objectives, manual, onMark }: {
-  objectives: ObjectiveView[]; manual: Set<number>; onMark?: (id: number, done: boolean) => void;
-}) {
+/** Objectives of one group the user marked done (EA-done ones are not shown at all), folded away for Undo. */
+function MarkedObjectives({ objectives, onMark }: { objectives: ObjectiveView[]; onMark?: (id: number, done: boolean) => void }) {
   const { t } = useI18n();
   if (!objectives.length) return null;
   return (
     <details className="obj-done">
-      <summary>{t('obj.doneList', { n: objectives.length })}</summary>
+      <summary>{t('obj.markedList', { count: objectives.length })}</summary>
       <ul>
-        {objectives.map((o) => {
-          const mine = manual.has(o.id) && !o.done;
-          return (
-            <li key={o.id}>
-              <span className="obj-done-state">
-                <CheckCircle weight="fill" aria-hidden="true" /> {t('obj.done')}
-              </span>
-              <span className="obj-name" id={`obj-name-${o.id}`}>{o.name}</span>
-              <span className="obj-progress">{o.progress}/{o.target}</span>
-              {mine && (
-                <span className="obj-done-mine">
-                  {t('obj.markedByYou')}
-                  {onMark && <MarkButton id={o.id} marked onMark={onMark} />}
-                </span>
-              )}
-            </li>
-          );
-        })}
+        {objectives.map((o) => (
+          <li key={o.id}>
+            <span className="obj-done-state">
+              <CheckCircle weight="fill" aria-hidden="true" /> {t('obj.done')}
+            </span>
+            <span className="obj-name" id={`obj-name-${o.id}`}>{o.name}</span>
+            <Progress o={o} />
+            {onMark && <MarkButton id={o.id} marked onMark={onMark} />}
+          </li>
+        ))}
       </ul>
     </details>
   );
 }
 
-/** The groups' tickable objectives, one checkbox each, done ones folded per group (also the Premium demo). Pass groups through splitGroups first. */
-export function ObjectiveGroups({ groups, meta, picked, onToggle, now, manual = NO_IDS, onMark }: {
+/** The groups' tickable objectives, one checkbox each, marked-done ones folded per group (also the Premium demo). Pass groups through splitGroups first. */
+export function ObjectiveGroups({ groups, meta, picked, onToggle, now, onMark }: {
   groups: GroupSplit[]; meta: Pick<Meta, 'names'>; picked: number[]; onToggle: (id: number) => void; now: number;
-  manual?: Set<number>; onMark?: (id: number, done: boolean) => void;
+  onMark?: (id: number, done: boolean) => void;
 }) {
   const { t } = useI18n();
   return (
@@ -157,6 +153,7 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now, manual = 
                 <span>{g.category}</span>
                 {left && <span>{t('obj.timeLeft', { days: left.days, hours: left.hours })}</span>}
               </p>
+              {g.progressKnown === false && <p className="obj-unknown">{t('obj.progressUnknown')}</p>}
               <Rewards awards={g.awards} />
             </header>
             {g.objectives.length > 0 && (
@@ -171,7 +168,7 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now, manual = 
                       >
                         {on ? <CheckSquare weight="fill" aria-hidden="true" /> : <Square weight="bold" aria-hidden="true" />}
                         <span className="obj-name" id={`obj-name-${o.id}`}>{o.name}</span>
-                        <span className="obj-progress">{o.progress}/{o.target}</span>
+                        <Progress o={o} />
                       </button>
                       <div className="obj-body">
                         <p className="obj-desc" id={`obj-desc-${o.id}`}>{o.description}</p>
@@ -188,7 +185,7 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now, manual = 
                 })}
               </ul>
             )}
-            <DoneObjectives objectives={g.done} manual={manual} onMark={onMark} />
+            <MarkedObjectives objectives={g.marked} onMark={onMark} />
           </article>
         );
       })}
@@ -210,7 +207,7 @@ function OtherObjectives({ groups, count, onMark }: { groups: ObjectiveGroupView
             {g.objectives.map((o) => (
               <li key={o.id}>
                 <span className="obj-name" id={`obj-name-${o.id}`}>{o.name}</span>
-                <span className="obj-progress">{o.progress}/{o.target}</span>
+                <Progress o={o} />
                 <MarkButton id={o.id} marked={false} onMark={onMark} />
                 <p className="obj-desc">{o.description}</p>
               </li>
@@ -269,9 +266,11 @@ function FormationTiles({ meta, formations, value, mine, onChange, labelledBy }:
   );
 }
 
-export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxRating, step, onStep, onError }: {
+export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxRating, step, onStep, onError, reload = 0 }: {
   meta: Meta; personaId: number; extVersionOk: boolean; excludeIds: number[]; maxRating: number;
   step: ObjStep; onStep: (s: ObjStep, replace?: boolean) => void; onError: (e: unknown) => void;
+  /** bumps when the account's cache changed (e.g. the web app relayed Objectives): refetch, keep ticks and step */
+  reload?: number;
 }) {
   const { t } = useI18n();
   const ago = useAgo();
@@ -320,7 +319,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
     return () => {
       alive = false;
     };
-  }, [personaId, tries]);
+  }, [personaId, tries, reload]);
 
   useEffect(() => writeJson(pickKey(personaId), picked), [personaId, picked]);
   useEffect(() => writeJson(doneKey(personaId), manual), [personaId, manual]);
@@ -330,7 +329,6 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   }, [personaId, chosen]);
 
   const split = useMemo(() => splitGroups(data?.groups ?? [], manual), [data, manual]);
-  const manualSet = useMemo(() => new Set(manual), [manual]);
   const open = useMemo(() => new Map(split.squad.flatMap((g) => g.objectives.map((o) => [o.id, o] as const))), [split]);
   // a ticked objective that has since been done (or has left the web app) drops out
   const active = picked.filter((id) => open.has(id));
@@ -409,7 +407,11 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
     <header className="page-head">
       <div>
         <h1>{t('obj.title')}</h1>
-        {data.fetchedAt ? <p className="muted obj-fetched">{t('obj.fetched', { ago: ago(data.fetchedAt) })}</p> : null}
+        {data.fetchedAt ? (
+          <p className="muted obj-fetched">
+            {data.source === 'shared' ? t('obj.fetchedShared', { ago: ago(data.fetchedAt) }) : t('obj.fetched', { ago: ago(data.fetchedAt) })}
+          </p>
+        ) : null}
       </div>
     </header>
   );
@@ -442,7 +444,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
             <p>{t('obj.noneTickable')}</p>
           </div>
         )}
-        <ObjectiveGroups groups={split.squad} meta={meta} picked={active} onToggle={toggle} now={now} manual={manualSet} onMark={mark} />
+        <ObjectiveGroups groups={split.squad} meta={meta} picked={active} onToggle={toggle} now={now} onMark={mark} />
         <OtherObjectives groups={split.other} count={split.otherCount} onMark={mark} />
         <div className="obj-bar">
           <span className="obj-count" aria-live="polite">{t('obj.picked', { count: active.length })}</span>
