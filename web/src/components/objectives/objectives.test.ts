@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { awardText, conditionLabel, formationLabel, isStale, timeLeft, pickKey, resultKey } from './objectives.js';
+import { awardText, conditionLabel, formationKey, formationLabel, isStale, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups } from './objectives.js';
 
 const meta = { names: { nation: { 34: 'Netherlands' }, league: { 10: 'Eredivisie' }, club: {}, rarity: { 151: 'Ultimate Scream' } } };
 const t = (k: string, p?: Record<string, unknown>) => `${k}${p ? JSON.stringify(p) : ''}`;
@@ -25,6 +25,7 @@ test('timeLeft in days and hours, null without an end or when over', () => {
 test('storage keys are per persona and keep the sbc- prefix', () => {
   assert.equal(pickKey(7), 'sbc-objectives-pick-7');
   assert.equal(resultKey(7), 'sbc-objectives-result-7');
+  assert.equal(formationKey(7), 'sbc-objectives-formation-7');
 });
 
 test('formationLabel reads like the web app: dashes, variants numbered', () => {
@@ -48,4 +49,35 @@ test('isStale compares the last solve with the current ticks and formation', () 
   assert.equal(isStale({ picked: [1, 2], formation: 'f433' }, [1, 2], 'f442'), true);
   // a save from before picks were stored: unknown, so no hint
   assert.equal(isStale({ formation: 'f433' }, [1], 'f433'), false);
+});
+
+test('reachableStep: deep links fall back to the earliest incomplete step', () => {
+  assert.equal(reachableStep('pick', 0, false), 'pick');
+  assert.equal(reachableStep('formation', 0, false), 'pick');
+  assert.equal(reachableStep('formation', 2, false), 'formation');
+  assert.equal(reachableStep('squad', 0, true), 'pick');
+  assert.equal(reachableStep('squad', 2, false), 'formation');
+  assert.equal(reachableStep('squad', 2, true), 'squad');
+});
+
+test('splitGroups keeps tickable objectives in their groups and folds the rest away', () => {
+  const o = (id: number, can: boolean) => ({ id, name: `o${id}`, description: '', progress: 0, target: 1, awards: [],
+    conditions: can ? [{ role: 'score' as const, min: 1, filter: { nation: [1] } }] : [] });
+  const g = (id: number, objectives: ReturnType<typeof o>[]) => ({ id, title: `g${id}`, category: 'c', endsAt: null, awards: [], objectives });
+  const { squad, other, otherCount } = splitGroups([g(1, [o(1, true), o(2, false)]), g(2, [o(3, false), o(4, false)]), g(3, [o(5, true)])]);
+  assert.deepEqual(squad.map((x) => [x.id, x.objectives.map((y) => y.id)]), [[1, [1]], [3, [5]]]);
+  assert.deepEqual(other.map((x) => [x.id, x.objectives.map((y) => y.id)]), [[1, [2]], [2, [3, 4]]]);
+  assert.equal(otherCount, 3);
+});
+
+test('radioMove: arrows move and wrap, Home / End jump, other keys do nothing', () => {
+  assert.equal(radioMove(0, 'ArrowRight', 5), 1);
+  assert.equal(radioMove(0, 'ArrowDown', 5), 1);
+  assert.equal(radioMove(4, 'ArrowRight', 5), 0);
+  assert.equal(radioMove(0, 'ArrowLeft', 5), 4);
+  assert.equal(radioMove(2, 'ArrowUp', 5), 1);
+  assert.equal(radioMove(3, 'Home', 5), 0);
+  assert.equal(radioMove(1, 'End', 5), 4);
+  assert.equal(radioMove(1, 'a', 5), null);
+  assert.equal(radioMove(0, 'ArrowRight', 0), null);
 });

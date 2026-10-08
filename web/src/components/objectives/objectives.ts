@@ -1,5 +1,6 @@
 // Pure helpers for the Objectives screen.
-import type { Meta, ObjAward, ObjCondition } from '../../api';
+import type { Meta, ObjAward, ObjCondition, ObjectiveGroupView } from '../../api';
+import type { ObjStep } from '../../route';
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
 
@@ -48,3 +49,34 @@ export function isStale(last: { picked?: number[]; formation: string }, active: 
 
 export const pickKey = (personaId: number) => `sbc-objectives-pick-${personaId}`;
 export const resultKey = (personaId: number) => `sbc-objectives-result-${personaId}`;
+export const formationKey = (personaId: number) => `sbc-objectives-formation-${personaId}`;
+
+/** The step a deep link may show: formation needs a tick, the squad also needs an answer. */
+export function reachableStep(want: ObjStep, picked: number, hasResult: boolean): ObjStep {
+  if (want === 'pick' || picked === 0) return 'pick';
+  if (want === 'squad' && !hasResult) return 'formation';
+  return want;
+}
+
+/** Groups cut in two: objectives with a squad condition (tickable) and the rest, each kept under its group. */
+export function splitGroups(groups: ObjectiveGroupView[]) {
+  const squad: ObjectiveGroupView[] = [];
+  const other: ObjectiveGroupView[] = [];
+  for (const g of groups) {
+    const can = g.objectives.filter((o) => o.conditions.length > 0);
+    const cannot = g.objectives.filter((o) => o.conditions.length === 0);
+    if (can.length) squad.push({ ...g, objectives: can });
+    if (cannot.length) other.push({ ...g, objectives: cannot });
+  }
+  return { squad, other, otherCount: other.reduce((n, g) => n + g.objectives.length, 0) };
+}
+
+/** Radio group keys: arrows move (and wrap), Home / End jump; null for any other key. */
+export function radioMove(i: number, key: string, count: number): number | null {
+  if (count <= 0) return null;
+  if (key === 'ArrowRight' || key === 'ArrowDown') return (i + 1) % count;
+  if (key === 'ArrowLeft' || key === 'ArrowUp') return (i - 1 + count) % count;
+  if (key === 'Home') return 0;
+  if (key === 'End') return count - 1;
+  return null;
+}

@@ -5,7 +5,7 @@
 //   /dashboard/sbc/16/39  a challenge       /dashboard/club        club
 //   /dashboard/evolutions evolutions
 //   /dashboard/gallery    gallery list      /dashboard/gallery/<set>  a gallery set
-//   /dashboard/objectives objectives squad finder
+//   /dashboard/objectives[/formation|/squad]  objectives squad wizard: pick → formation → squad
 //   /dashboard/invite     invite friends     /dashboard/settings   settings          /dashboard/admin[/users[/:id]|/accounts][?filters]   admin panel (admins only)
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
@@ -13,6 +13,9 @@
 // Old app paths without /dashboard (/sbc/16, /club, ...) still parse; useRoute rewrites the address bar.
 import { useCallback, useEffect, useState } from 'react';
 import type { LegalDoc } from './legal/docs';
+
+/** Objectives wizard steps: pick objectives, pick a formation, see the squad. */
+export type ObjStep = 'pick' | 'formation' | 'squad';
 
 export type AdminPage = 'overview' | 'users' | 'user' | 'accounts' | 'codes';
 
@@ -26,7 +29,7 @@ export type Route =
   | { view: 'setup' }
   | { view: 'guide' }
   | { view: 'gallery'; setId: string | null }
-  | { view: 'objectives' }
+  | { view: 'objectives'; step: ObjStep }
   | { view: 'admin'; page: AdminPage; userId: string | null; query: string }
   | { view: 'legal'; doc: LegalDoc }
   | { view: 'signin'; next: string }
@@ -67,7 +70,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (x === 'evolutions') return { view: 'evolutions' };
   if (x === 'settings') return { view: 'settings' };
   if (x === 'invite') return { view: 'invite' };
-  if (x === 'objectives') return { view: 'objectives' };
+  if (x === 'objectives') return { view: 'objectives', step: y === 'formation' || y === 'squad' ? y : 'pick' };
   if (x === 'gallery') return { view: 'gallery', setId: y && /^[a-z0-9-]+$/.test(y) ? y : null };
   if (x === 'admin') {
     const query = search.replace(/^\?/, '');
@@ -106,8 +109,9 @@ export function routePath(r: Route): string {
     case 'evolutions':
     case 'settings':
     case 'invite':
-    case 'objectives':
       return `/dashboard/${r.view}`;
+    case 'objectives':
+      return r.step === 'pick' ? '/dashboard/objectives' : `/dashboard/objectives/${r.step}`;
     case 'gallery':
       return r.setId ? `/dashboard/gallery/${r.setId}` : '/dashboard/gallery';
     case 'admin': {
