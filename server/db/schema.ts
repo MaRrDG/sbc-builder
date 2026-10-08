@@ -80,7 +80,14 @@ export const users = pgTable('users', {
   invitedBy: text('invited_by'), // userId whose invite code this user used (once per account)
   // last link refused because the EA account already had PERSONA_USER_LIMIT accounts; cleared on a link
   linkBlockedAt: timestamp('link_blocked_at', { withTimezone: true }),
-}, (t) => [uniqueIndex('users_founder_persona').on(t.founderPersona)]); // one spot per EA account, even without the lock
+  // FC Solver Daily leaderboard: public name (unique ignoring case), opt-in, and when we asked (asked once)
+  username: text('username'),
+  leaderboard: boolean('leaderboard').notNull().default(false),
+  leaderboardAskedAt: timestamp('leaderboard_asked_at', { withTimezone: true }),
+}, (t) => [
+  uniqueIndex('users_founder_persona').on(t.founderPersona),
+  uniqueIndex('users_username_lower').on(sql`lower(${t.username})`),
+]); // one spot per EA account, even without the lock
 
 /** Invite (one per user), promo (admin) and gift (bought with points) codes; server/referrals.ts. */
 export const codes = pgTable(
@@ -247,4 +254,23 @@ export const dailyPlays = pgTable(
     finishedAt: timestamp('finished_at', { withTimezone: true }),
   },
   (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
+/** Daily game: signed-out games, aggregate only (no IP, no id). Signed-in games are in daily_plays. */
+export const dailyAnonStats = pgTable('daily_anon_stats', {
+  day: integer('day').primaryKey(),
+  finished: integer('finished').notNull().default(0),
+  won: integer('won').notNull().default(0),
+  d1: integer('d1').notNull().default(0),
+  d2: integer('d2').notNull().default(0),
+  d3: integer('d3').notNull().default(0),
+  d4: integer('d4').notNull().default(0),
+  d5: integer('d5').notNull().default(0),
+});
+
+/** Daily game: how often each player was tried in signed-out games, per day. */
+export const dailyGuessCounts = pgTable(
+  'daily_guess_counts',
+  { day: integer('day').notNull(), assetId: integer('asset_id').notNull(), count: integer('count').notNull().default(0) },
+  (t) => [primaryKey({ columns: [t.day, t.assetId] })],
 );
