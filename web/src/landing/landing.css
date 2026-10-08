@@ -495,6 +495,81 @@
   .lp-owned-row li:nth-child(n + 4) { display: none; }
 }
 
+/* ---------- objectives (Premium): copy on columns 1-5, the demo on 7-12 ----------
+   Everything is visible by default; .is-in (useInView) only replays the ticks, then the lit players. */
+.lp-obj { display: grid; grid-template-columns: var(--lp-cols); column-gap: var(--col-gap); row-gap: 40px; align-items: center; }
+.lp-obj-copy { grid-column: 1 / 6; }
+.lp-obj .lp-h2 + .lp-lede { margin-top: 18px; } /* lede under its heading, not a section-content gap */
+.lp-obj-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 16px;
+  padding: 3px 10px;
+  border: 1px solid currentColor;
+  border-radius: var(--r-ctl);
+  color: var(--gold);
+  font: 600 13px/1.2 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.lp-obj-demo {
+  grid-column: 7 / -1;
+  container-type: inline-size;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--r-box);
+  background: var(--surface);
+}
+.lp-obj-rows { margin: 0; padding: 6px 16px; list-style: none; }
+.lp-obj-rows li { display: grid; grid-template-columns: 20px minmax(0, 1fr) 24px; gap: 12px; align-items: center; padding: 11px 0; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.4; }
+.lp-obj-rows li:first-child { border-top: 0; }
+.lp-obj-icon { width: 20px; height: 20px; color: var(--ink-2); }
+/* the empty ring stays; the green tick pops into it */
+.lp-obj-box { display: grid; place-items: center; width: 24px; height: 24px; border: 1.5px solid var(--ink-3); border-radius: 50%; }
+.lp-obj-tick { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--go); color: var(--go-ink); font-size: 14px; }
+
+/* flat pitch, attack at the top */
+.lp-obj-pitch {
+  --hit-w: clamp(38px, 11cqi, 60px);
+  position: relative;
+  aspect-ratio: 10 / 7.4;
+  border-top: 1px solid var(--line);
+  background: linear-gradient(180deg, var(--pitch-a), var(--pitch-b));
+}
+.lp-obj-pitch::before { content: ''; position: absolute; inset: 50% 4% auto; height: 1px; background: var(--pitch-line); }
+.lp-obj-pitch::after { content: ''; position: absolute; left: 50%; top: 50%; width: 18cqi; aspect-ratio: 1; border: 1px solid var(--pitch-line); border-radius: 50%; translate: -50% -50%; }
+.lp-obj-spot { position: absolute; z-index: 1; translate: -50% -50%; display: grid; place-items: center; }
+.lp-obj-dot {
+  display: grid;
+  place-items: center;
+  width: clamp(28px, 7.4cqi, 36px);
+  aspect-ratio: 1;
+  border: 1px solid var(--pitch-line);
+  border-radius: 50%;
+  background: oklch(0.2 0.03 215 / 0.75);
+  color: var(--ink-2);
+  font: 600 clamp(11px, 2.6cqi, 13px)/1 var(--font-num);
+}
+/* a lit player: a gold card over its dot, with the icon of the objective it covers */
+.lp-obj-hit { position: absolute; display: grid; place-items: center; width: var(--hit-w); aspect-ratio: 576 / 800; color: #3e281c; filter: drop-shadow(0 0 10px oklch(0.84 0.17 163 / 0.45)); }
+.lp-obj-hit img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.lp-obj-hit b { position: absolute; left: 17%; top: 23%; font: 700 calc(var(--hit-w) * 0.2)/1 var(--font-num); }
+.lp-obj-hit-icon { position: relative; width: 44%; height: 44%; margin-top: 12%; }
+
+.lp-obj-demo.is-in .lp-obj-tick { animation: lp-pop 320ms var(--ease) both; animation-delay: calc(250ms + var(--i) * 450ms); }
+.lp-obj-demo.is-in .lp-obj-hit { animation: lp-obj-light 520ms var(--ease) both; animation-delay: calc(1700ms + var(--i) * 160ms); }
+@keyframes lp-obj-light { from { opacity: 0; scale: 0.6; } }
+
+@media (max-width: 860px) {
+  .lp-obj-copy,
+  .lp-obj-demo { grid-column: 1 / -1; }
+}
+/* 861-1100px: five anchors + language flag + CTA don't fit in Romanian; FAQ (the last section) goes */
+@media (min-width: 861px) and (max-width: 1100px) {
+  .lp-nav a[href='#faq'] { display: none; }
+}
+
 /* ---------- how: plain steps + one browser window that follows them ---------- */
 .lp-how-grid { display: grid; grid-template-columns: var(--lp-cols); column-gap: var(--col-gap); }
 .lp-steps { grid-column: 1 / 6; margin: 0; padding: 0; list-style: none; }
