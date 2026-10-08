@@ -855,7 +855,7 @@ export const en = {
   'obj.progressUnknown': 'Progress unknown — open Objectives in the FC27 web app to see yours',
   'obj.markedList_one': 'Marked done by you ({count})',
   'obj.markedList_other': 'Marked done by you ({count})',
-  'obj.award.player': '{rating} {position} player',
+  'obj.award.player': '{what} player',
   'obj.award.item': 'Item',
   'obj.award.pack_one': 'Pack',
   'obj.award.pack_other': '{count} × Pack',

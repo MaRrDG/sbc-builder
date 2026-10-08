@@ -18,12 +18,12 @@ import { markEdited, type SetsData } from './sync.js';
 import { invalidateMeta } from './meta.js';
 import { parseLayout } from './layout.js';
 import { softly } from './db/index.js';
-import { reportBricks, saveChallenges, saveSets, trustedIds } from './db/sbcs.js';
+import { reportBricks, saveChallenges, saveSets } from './db/sbcs.js';
 import { findJob } from './jobs.js';
 import { parseAcademy, isFullList } from './evos.js';
 import { saveTrainings } from './db/evos.js';
 import type { EaCategory } from './objectives/types.js';
-import { SHARED_OBJECTIVES_KEY, stripPersonal } from './objectives/shared.js';
+import { shareObjectives } from './objectives/shared-io.js';
 import { addClubPage, assembleClub, loadedPlayers } from './club-pages.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
@@ -159,8 +159,7 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
     if (!Array.isArray(ev.response)) return null;
     await writeCache<{ categories: EaCategory[] }>(acc.key('objectives'), { categories: ev.response as EaCategory[] });
     // a trusted account's list is also the shared catalogue (nothing personal kept); no DB = not trusted
-    const trusted = await trustedIds().then((ids) => ids.has(acc.id), () => false);
-    if (trusted) await writeCache<{ categories: EaCategory[] }>(SHARED_OBJECTIVES_KEY, { categories: stripPersonal(ev.response as EaCategory[]) });
+    await shareObjectives(acc.id, ev.response as EaCategory[]);
     return 'Objectives updated from the web app';
   }
   const setId = ev.path.match(/^\/sbs\/setId\/(\d+)\/challenges$/)?.[1];

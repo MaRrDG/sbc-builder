@@ -1,5 +1,6 @@
 // The objectives of the active groups, with the squad condition we read from each and whether each is done.
 import { parseConditions } from './parse.js';
+import { trimAward } from './shared.js';
 import type { Condition, EaAward, EaCategory, EaGroup, EaObjective, Names, ObjectiveGroupView } from './types.js';
 
 /** EA says it is done (COMPLETED / REDEEMED), or the progress already reached the target. */
@@ -36,7 +37,7 @@ export function openGroups(categories: EaCategory[], now: number, names: Names):
             description,
             progress: num(o.currentProgress),
             target,
-            awards: list<EaAward>(o.awards),
+            awards: list<EaAward>(o.awards).filter(isObj).map(trimAward),
             conditions: description ? parseConditions(description, names) : [],
             done: isDone({ ...o, multiplier: target }),
           };
@@ -47,7 +48,7 @@ export function openGroups(categories: EaCategory[], now: number, names: Names):
         title: typeof g.title === 'string' ? g.title : '',
         category: typeof cat.name === 'string' ? cat.name : '',
         endsAt: num(g.endTime) > 0 ? num(g.endTime) * 1000 : null,
-        awards: list<EaAward>(g.awardsList),
+        awards: list<EaAward>(g.awardsList).filter(isObj).map(trimAward),
         objectives,
         progressKnown: true,
       });

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { openGroups } from './open.js';
-import { mergeGroups, nameAwards, stripPersonal } from './shared.js';
+import { mergeGroups, nameAwards, stripPersonal, trimAward } from './shared.js';
 import type { EaCategory, Names, ObjectiveGroupView } from './types.js';
 
 // trimmed from a real relayed payload (Foundations 28, Seasonal 62, Campaigns 120)
@@ -10,17 +10,30 @@ const real = JSON.parse(readFileSync(new URL('./fixtures/real-categories.json', 
 const names: Names = { nation: { 34: 'Netherlands' }, league: { 10: 'Eredivisie' }, club: {}, rarity: {} };
 const NOW = 1_791_454_527_913;
 
+const o1798 = (c: EaCategory[]) => c.find((x) => x.name === 'Campaigns')!.groupsList[0].objectives.find((x) => x.objectiveId === 1798)!;
+
+test('trimAward keeps only the reward fields the site reads', () => {
+  assert.deepEqual(trimAward({ value: 1, awardType: 'item', itemDataReduced: { itemType: 'misc', description: 'Boost', isCollected: true } as never }),
+    { value: 1, awardType: 'item', itemDataReduced: { itemType: 'misc', description: 'Boost' } });
+  assert.deepEqual(trimAward({ value: 5, awardType: 'coin', itemDataReduced: null }), { value: 5, awardType: 'coin' });
+});
+
 test('stripPersonal keeps the catalogue and drops the account\'s own state', () => {
   const s = stripPersonal(real);
   const text = JSON.stringify(s);
-  for (const k of ['"state"', '"currentProgress"', '"groupState"', '"timesCompleted"', '"objectivesCompletionCount"']) assert.ok(!text.includes(k), k);
+  for (const k of ['"state"', '"currentProgress"', '"groupState"', '"timesCompleted"', '"objectivesCompletionCount"', '"isCollected"', '"attributeArray"', '"guidAssetId"'])
+    assert.ok(!text.includes(k), k);
+  // the real fixture does carry them, so the check above means something
+  assert.ok(JSON.stringify(real).includes('"isCollected"'));
   const g = s.find((c) => c.name === 'Campaigns')!.groupsList[0];
   assert.equal(g.groupId, 120);
   assert.equal(g.title, 'Squad Foundations: Ringo Meerveld');
   assert.equal(g.startTime, 1791046800);
   assert.equal(g.endTime, 1791565199);
   assert.equal(g.awardsList[0].awardType, 'item');
-  assert.equal(g.awardsList[0].itemDataReduced?.assetId, 264452);
+  assert.deepEqual(g.awardsList[0], { value: 50596100, awardType: 'item', count: 1, untradeable: true,
+    itemDataReduced: { itemType: 'player', assetId: 264452, rating: 83, preferredPosition: 'CAM' } });
+  assert.deepEqual(o1798(s).awards[0], { value: o1798(real).awards[0].value, awardType: 'pack', count: 1, untradeable: true });
   const o = g.objectives.find((x) => x.objectiveId === 1798)!;
   assert.equal(o.name, 'The Dutch');
   assert.equal(o.multiplier, 6);
@@ -28,6 +41,11 @@ test('stripPersonal keeps the catalogue and drops the account\'s own state', () 
   assert.equal(o.awards[0].awardType, 'pack');
   // the stripped catalogue reads as "nothing done yet"
   assert.ok(openGroups(s, NOW, names).every((x) => x.objectives.every((y) => !y.done && y.progress === 0)));
+});
+
+test('the account\'s own answer carries trimmed rewards too', () => {
+  const text = JSON.stringify(openGroups(real, NOW, names));
+  for (const k of ['"isCollected"', '"attributeArray"', '"guidAssetId"', '"resourceId"']) assert.ok(!text.includes(k), k);
 });
 
 test('stripPersonal survives odd shapes', () => {

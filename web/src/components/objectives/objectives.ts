@@ -42,14 +42,16 @@ export function awardText(a: ObjAward, t: TFn): string | null {
   const count = n(a.count);
   if (a.awardType === 'item') {
     const r = a.itemDataReduced ?? {};
+    const times = (x: string) => (count > 1 ? `${count} × ${x}` : x);
     if (r.itemType === 'player') {
-      const pos = r.preferredPosition ?? '';
-      if (a.name) return [a.name, r.rating, pos].filter((x) => x !== undefined && x !== '').join(' ');
-      return t('obj.award.player', { rating: n(r.rating, 0), position: pos });
+      // only what is there: "Name 82 ST", else "82 ST player", else a generic item
+      const stats = [typeof r.rating === 'number' ? String(r.rating) : '', r.preferredPosition ?? ''].filter(Boolean).join(' ');
+      if (a.name) return times([a.name, stats].filter(Boolean).join(' '));
+      return times(stats ? t('obj.award.player', { what: stats }) : t('obj.award.item'));
     }
     // EA's description when it is words ("1 of 2 78+ Gold Player Pick"), not an internal name ("AcademySlotEVO")
     const d = r.description?.trim();
-    return d && !/^[A-Za-z]+[a-z][A-Z]\w*$/.test(d) ? d : t('obj.award.item');
+    return times(d && !/^[A-Za-z]+[a-z][A-Z]\w*$/.test(d) ? d : t('obj.award.item'));
   }
   // amounts (coins, XP, tokens, points) are in `value`; packs count in `count`
   const amount = n(a.value, 0) * count;

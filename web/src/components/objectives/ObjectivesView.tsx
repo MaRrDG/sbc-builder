@@ -136,9 +136,11 @@ function MarkedObjectives({ objectives, onMark }: { objectives: ObjectiveView[];
 }
 
 /** The groups' tickable objectives, one checkbox each, marked-done ones folded per group (also the Premium demo). Pass groups through splitGroups first. */
-export function ObjectiveGroups({ groups, meta, picked, onToggle, now, onMark }: {
+export function ObjectiveGroups({ groups, meta, picked, onToggle, now, onMark, groupHint = true }: {
   groups: GroupSplit[]; meta: Pick<Meta, 'names'>; picked: number[]; onToggle: (id: number) => void; now: number;
   onMark?: (id: number, done: boolean) => void;
+  /** false: the whole list is the shared catalogue and the page head already says progress is unknown */
+  groupHint?: boolean;
 }) {
   const { t } = useI18n();
   return (
@@ -153,7 +155,7 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now, onMark }:
                 <span>{g.category}</span>
                 {left && <span>{t('obj.timeLeft', { days: left.days, hours: left.hours })}</span>}
               </p>
-              {g.progressKnown === false && <p className="obj-unknown">{t('obj.progressUnknown')}</p>}
+              {groupHint && g.progressKnown === false && <p className="obj-unknown">{t('obj.progressUnknown')}</p>}
               <Rewards awards={g.awards} />
             </header>
             {g.objectives.length > 0 && (
@@ -194,12 +196,15 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now, onMark }:
 }
 
 /** Objectives FC Solver cannot build a squad for, folded into one block so they never mix with the tickable ones. */
-function OtherObjectives({ groups, count, onMark }: { groups: ObjectiveGroupView[]; count: number; onMark: (id: number, done: boolean) => void }) {
+function OtherObjectives({ groups, count, onMark, hint }: {
+  groups: ObjectiveGroupView[]; count: number; onMark: (id: number, done: boolean) => void; hint: boolean;
+}) {
   const { t } = useI18n();
   if (!count) return null;
   return (
     <details className="obj-other">
       <summary>{t('obj.other', { count })}</summary>
+      {hint && groups.some((g) => g.progressKnown === false) && <p className="obj-unknown">{t('obj.progressUnknown')}</p>}
       {groups.map((g) => (
         <section key={g.id}>
           <h3>{g.title}</h3>
@@ -298,6 +303,9 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   // a ref, so a language switch (new onError) does not refetch
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
+  // read by the fetch: a background refetch that fails must not replace data already shown
+  const hasData = useRef(false);
+  hasData.current = data !== null;
 
   useEffect(() => {
     let alive = true;
@@ -313,7 +321,8 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
         if (!alive) return;
         // persona errors also go to App (reloads who we are); either way the loading state ends
         if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onErrorRef.current(e);
-        setLoadError(e); // shown in place with "Try again"
+        // a failed background refetch (reload) keeps what is shown, a step-3 squad included; the next one may work
+        if (!hasData.current) setLoadError(e); // nothing to show yet: in place with "Try again"
       },
     );
     return () => {
@@ -403,15 +412,18 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
     );
   if (!data) return <p className="muted" role="status">{t('admin.loading')}</p>;
 
+  // the whole list is the shared catalogue: the progress hint is said once, in the head
+  const allShared = data.source === 'shared';
   const head = (
     <header className="page-head">
       <div>
         <h1>{t('obj.title')}</h1>
         {data.fetchedAt ? (
           <p className="muted obj-fetched">
-            {data.source === 'shared' ? t('obj.fetchedShared', { ago: ago(data.fetchedAt) }) : t('obj.fetched', { ago: ago(data.fetchedAt) })}
+            {allShared ? t('obj.fetchedShared', { ago: ago(data.fetchedAt) }) : t('obj.fetched', { ago: ago(data.fetchedAt) })}
           </p>
         ) : null}
+        {allShared && data.groups.length > 0 && <p className="obj-unknown">{t('obj.progressUnknown')}</p>}
       </div>
     </header>
   );
@@ -444,8 +456,8 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
             <p>{t('obj.noneTickable')}</p>
           </div>
         )}
-        <ObjectiveGroups groups={split.squad} meta={meta} picked={active} onToggle={toggle} now={now} onMark={mark} />
-        <OtherObjectives groups={split.other} count={split.otherCount} onMark={mark} />
+        <ObjectiveGroups groups={split.squad} meta={meta} picked={active} onToggle={toggle} now={now} onMark={mark} groupHint={!allShared} />
+        <OtherObjectives groups={split.other} count={split.otherCount} onMark={mark} hint={!allShared} />
         <div className="obj-bar">
           <span className="obj-count" aria-live="polite">{t('obj.picked', { count: active.length })}</span>
           <button type="button" className="solve-sm" disabled={!active.length} onClick={() => onStep('formation')}>
