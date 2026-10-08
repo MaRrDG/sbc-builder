@@ -120,7 +120,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         <Pillars />
         <Objectives />
         <Steps link={link} />
-        <Pricing cta={cta()} founders={founders} />
+        <Pricing cta={cta()} founders={founders} link={link} />
         <Invite cta={!authReady ? placeholder('lp-btn', t('landing.invite.cta')) : link(signedIn ? { view: 'invite' } : signin, 'lp-btn', t('landing.invite.cta'))} />
         <Faq />
       </main>
