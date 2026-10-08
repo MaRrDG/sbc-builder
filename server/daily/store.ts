@@ -14,10 +14,16 @@ let queue: Promise<unknown> = Promise.resolve();
 let names: { v: number; players: { i: number; n: string; f: string; c: number }[] } | null = null;
 
 export function loadPlayers(): Promise<void> {
-  return (loaded ??= allPlayers().then((all) => {
-    for (const r of all) rows.set(r.assetId, r);
-    version++;
-  }));
+  return (loaded ??= allPlayers().then(
+    (all) => {
+      for (const r of all) rows.set(r.assetId, r);
+      version++;
+    },
+    (err) => {
+      loaded = null; // a failed load must not stick: the next call retries
+      throw err;
+    },
+  ));
 }
 
 export const playerRows = (): Iterable<PlayerRow> => rows.values();

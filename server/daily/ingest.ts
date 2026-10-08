@@ -1,6 +1,7 @@
 // Which cache writes carry EA player items for the Daily players table, and where they sit.
 import { collectSquadItems } from '../gallery/ledger.js';
 
+// Mirrors the cache key layout written by server/events.ts / sync (accounts/<personaId>/<name>).
 const WATCHED = /^accounts\/\d+\/(club|storage|unassigned|objectives|challengeSquads\/\d+)$/;
 
 export function collectRewardItems(v: unknown, out: unknown[] = [], depth = 0): unknown[] {
