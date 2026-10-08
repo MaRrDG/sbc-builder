@@ -14,7 +14,8 @@
     "test": "node --import tsx --test 'server/**/*.test.ts' 'web/src/**/*.test.ts'",
     "db:generate": "drizzle-kit generate",
     "db:import": "tsx scripts/db-import.ts",
-    "db:trust": "tsx scripts/db-trust.ts"
+    "db:trust": "tsx scripts/db-trust.ts",
+    "daily:import": "tsx scripts/daily-import.ts"
   },
   "dependencies": {
     "@clerk/backend": "^3.18.1",

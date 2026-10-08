@@ -126,12 +126,14 @@ export const pointLedger = pgTable(
     id: serial('id').primaryKey(),
     userId: text('user_id').notNull(),
     delta: integer('delta').notNull(),
-    reason: text('reason').notNull(), // 'invite' | 'spend' | 'gift' | 'admin'
+    reason: text('reason').notNull(), // 'invite' | 'spend' | 'gift' | 'admin' | 'daily_streak'
     ref: text('ref').notNull().default(''), // invitee userId / days / gift code
     personaId: bigint('persona_id', { mode: 'number' }),
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index('point_ledger_user').on(t.userId), uniqueIndex('point_ledger_invite_persona').on(t.personaId).where(sql`reason = 'invite'`)],
+  (t) => [index('point_ledger_user').on(t.userId), uniqueIndex('point_ledger_invite_persona').on(t.personaId).where(sql`reason = 'invite'`),
+    uniqueIndex('point_ledger_daily').on(t.userId, t.ref).where(sql`reason = 'daily_streak'`),
+  ],
 );
 
 /** Which user owns an EA persona. One owner per persona; a takeover remembers the previous one. */
@@ -198,4 +200,51 @@ export const evoTrainings = pgTable(
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.personaId, t.slotId, t.level] }), index('evo_trainings_due').on(t.endsAt)],
+);
+
+/** Daily game: every player seen in any cached EA item (server/daily/players.ts merges them). */
+export const players = pgTable(
+  'players',
+  {
+    assetId: integer('asset_id').primaryKey(),
+    name: text('name').notNull(),
+    fullName: text('full_name').notNull(),
+    nation: integer('nation').notNull(),
+    league: integer('league').notNull(),
+    club: integer('club').notNull(),
+    position: text('position').notNull(),
+    rating: integer('rating').notNull(),
+    rareflag: integer('rareflag').notNull(),
+    cardType: text('card_type').notNull(), // 'normal' | 'icon' | 'hero'
+    baseClubs: jsonb('base_clubs').$type<{ club: number; league: number; lastSeen: number }[]>().notNull().default([]),
+    firstSeen: timestamp('first_seen', { withTimezone: true }).notNull(),
+    lastSeen: timestamp('last_seen', { withTimezone: true }).notNull(),
+  },
+  (t) => [index('players_league_rating').on(t.league, t.rating)],
+);
+
+/** Daily game: one secret player per drop; day 1 = the first row. */
+export const dailyAnswers = pgTable(
+  'daily_answers',
+  {
+    day: integer('day').primaryKey(),
+    date: text('date').notNull(), // YYYY-MM-DD in the drop time zone
+    dropAt: timestamp('drop_at', { withTimezone: true }).notNull(),
+    assetId: integer('asset_id').notNull(),
+    pickedAt: timestamp('picked_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('daily_answers_drop').on(t.dropAt)],
+);
+
+/** Daily game: a signed-in user's game of one day (guesses = asset ids in order). */
+export const dailyPlays = pgTable(
+  'daily_plays',
+  {
+    userId: text('user_id').notNull(),
+    day: integer('day').notNull(),
+    guesses: jsonb('guesses').$type<number[]>().notNull().default([]),
+    won: boolean('won').notNull().default(false),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
 );
