@@ -4,8 +4,10 @@ import { LegalLinks } from '../legal/LegalPage';
 import { useEffect, type MouseEvent, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
+import { CaretRight, SoccerBall } from '@phosphor-icons/react';
 import { routePath, type Route } from '../route';
 import { Hero } from './Hero';
+import { DailyTeaser } from './DailyTeaser';
 import { Pillars } from './Pillars';
 import { Objectives } from './Objectives';
 import { Steps } from './Steps';
@@ -75,6 +77,15 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
             <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="140" height="36" />
           </a>
           <nav className="lp-nav" aria-label={t('landing.nav.label')}>
+            {link(
+              { view: 'daily', practice: false },
+              'lp-nav-daily',
+              <>
+                <SoccerBall weight="bold" aria-hidden="true" />
+                {t('landing.nav.daily')}
+                <span className="lp-new">{t('landing.nav.new')}</span>
+              </>,
+            )}
             <a href="#why">{t('landing.nav.why')}</a>
             <a href="#objectives">{t('landing.nav.objectives')}</a>
             <a href="#how">{t('landing.nav.how')}</a>
@@ -90,9 +101,22 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
           </div>
         </div>
       </header>
+      {/* phones: no room in the bar, so the Daily link gets its own row right under it (scrolls away) */}
+      {link(
+        { view: 'daily', practice: false },
+        'lp-strip',
+        <span className="lp-strip-in">
+          <SoccerBall weight="bold" aria-hidden="true" />
+          <b>{t('landing.nav.daily')}</b>
+          <span className="lp-new">{t('landing.nav.new')}</span>
+          <span className="lp-strip-t">{t('landing.daily.title')}</span>
+          <CaretRight className="lp-strip-go" weight="bold" aria-hidden="true" />
+        </span>,
+      )}
 
       <main id="main">
         <Hero cta={cta()} founders={founders} />
+        <DailyTeaser link={link} />
         <Pillars />
         <Objectives />
         <Steps link={link} />
