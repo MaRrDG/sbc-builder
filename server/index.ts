@@ -51,6 +51,7 @@ import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
 import { openGroups, solvable } from './objectives/open.js';
 import { solveObjectives } from './objectives/solve.js';
+import { mergeGroups, nameAwards, SHARED_OBJECTIVES_KEY } from './objectives/shared.js';
 import type { Condition, EaCategory } from './objectives/types.js';
 import { db, initDb } from './db/index.js';
 import { logEvent, pruneEvents } from './db/events.js';
@@ -547,11 +548,17 @@ app.get('/api/gallery', async (req) => {
   return galleryFor(acc, await metaFor(acc));
 });
 
-// Objectives (Premium): the web app's objectives with the squad condition read from each
+// Objectives (Premium): the web app's objectives with the squad condition read from each, plus the groups of
+// the shared catalogue (relayed by trusted accounts) this account has not loaded itself, progress unknown
 async function objectiveGroups(acc: Account, meta: Meta) {
-  const cached = await readCache<{ categories: EaCategory[] }>(acc.key('objectives'));
-  const groups = cached ? openGroups(cached.data.categories, Date.now(), meta.names) : [];
-  return { fetchedAt: cached?.fetchedAt ?? null, groups };
+  const [own, shared] = await Promise.all([
+    readCache<{ categories: EaCategory[] }>(acc.key('objectives')),
+    readCache<{ categories: EaCategory[] }>(SHARED_OBJECTIVES_KEY),
+  ]);
+  const now = Date.now();
+  const open = (c: typeof own) => (c ? openGroups(c.data.categories, now, meta.names) : null);
+  const { source, groups } = mergeGroups(open(own), open(shared));
+  return { fetchedAt: own?.fetchedAt ?? shared?.fetchedAt ?? null, source, groups: nameAwards(groups, meta.players) };
 }
 
 app.get('/api/objectives', async (req) => {

@@ -49,6 +49,7 @@ export function openGroups(categories: EaCategory[], now: number, names: Names):
         endsAt: num(g.endTime) > 0 ? num(g.endTime) * 1000 : null,
         awards: list<EaAward>(g.awardsList),
         objectives,
+        progressKnown: true,
       });
     }
   }

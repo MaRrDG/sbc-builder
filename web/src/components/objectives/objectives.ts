@@ -17,9 +17,9 @@ export function conditionLabel(c: ObjCondition, meta: Pick<Meta, 'names'>, t: TF
   return c.role === 'xi' ? t('obj.role.xi', { what, count: c.min }) : t(`obj.role.${c.role}`, { what });
 }
 
-/** Whole days and hours until endsAt (ms); null without an end or once it is over. */
+/** Whole days and hours until endsAt (ms); null without an end, once it is over, or more than a year away (EA's "no end"). */
 export function timeLeft(endsAt: number | null, now: number): { days: number; hours: number } | null {
-  if (endsAt === null || endsAt <= now) return null;
+  if (endsAt === null || endsAt <= now || endsAt - now > 365 * 86_400_000) return null;
   const h = Math.floor((endsAt - now) / 3_600_000);
   return { days: Math.floor(h / 24), hours: h % 24 };
 }
@@ -32,10 +32,44 @@ export function formationLabel(f: string): string {
   return m[2] ? `${base} (${m[2].charCodeAt(0) - 95})` : base;
 }
 
-/** A reward as EA words it; without EA's description, its value and type ("500 coins"). */
-export function awardText(a: ObjAward): string {
-  const d = a.itemDataReduced?.description?.trim();
-  return d || `${a.value} ${a.awardType}`;
+/**
+ * One reward in words: a player item by name ("Ekitike 82 ST", the name filled in by the server), other items by
+ * EA's own text when it reads as one, packs / coins / XP / tokens translated. Never a raw id or type: an unknown
+ * type is null (hidden).
+ */
+export function awardText(a: ObjAward, t: TFn): string | null {
+  const n = (x: unknown, or = 1) => (typeof x === 'number' && Number.isFinite(x) ? x : or);
+  const count = n(a.count);
+  if (a.awardType === 'item') {
+    const r = a.itemDataReduced ?? {};
+    if (r.itemType === 'player') {
+      const pos = r.preferredPosition ?? '';
+      if (a.name) return [a.name, r.rating, pos].filter((x) => x !== undefined && x !== '').join(' ');
+      return t('obj.award.player', { rating: n(r.rating, 0), position: pos });
+    }
+    // EA's description when it is words ("1 of 2 78+ Gold Player Pick"), not an internal name ("AcademySlotEVO")
+    const d = r.description?.trim();
+    return d && !/^[A-Za-z]+[a-z][A-Z]\w*$/.test(d) ? d : t('obj.award.item');
+  }
+  // amounts (coins, XP, tokens, points) are in `value`; packs count in `count`
+  const amount = n(a.value, 0) * count;
+  switch (a.awardType) {
+    case 'pack':
+      return t('obj.award.pack', { count });
+    case 'coin':
+      return t('obj.award.coin', { count: amount });
+    case 'xp':
+      return t('obj.award.xp', { count: amount });
+    case 'event_token_1':
+    case 'event_token_2':
+      return t('obj.award.tokens', { count: amount });
+    case 'champions_qualification_points':
+      return t('obj.award.champions', { count: amount });
+    case 'graduated_access_transfer_market_entry':
+      return t('obj.award.market');
+    default:
+      return null; // a type we do not know: hidden, never the raw string
+  }
 }
 
 /** The solver settings a squad was built with (global exclusions and max OVR). */
@@ -86,23 +120,24 @@ export function reachableStep(want: ObjStep, picked: number, hasResult: boolean)
 export const loansKey = (personaId: number) => `sbc-objectives-loans-${personaId}`;
 export const doneKey = (personaId: number) => `sbc-objectives-done-${personaId}`;
 
-export type GroupSplit = ObjectiveGroupView & { done: ObjectiveView[] };
+export type GroupSplit = ObjectiveGroupView & { marked: ObjectiveView[] };
 
 /**
- * Groups cut three ways: open objectives with a squad condition (tickable, kept in their group), done ones
- * (EA says so, or marked done by the user in `manual`; kept per group, so an all-done group stays) and open
- * ones without a squad condition (folded away, still under their group).
+ * Groups cut three ways: open objectives with a squad condition (tickable, kept in their group), the ones the
+ * user marked done (kept per group for Undo) and open ones without a squad condition (folded away, still under
+ * their group). What EA says is done is gone, and so is a group with nothing else left.
  */
 export function splitGroups(groups: ObjectiveGroupView[], manual: number[] = []) {
-  const marked = new Set(manual);
+  const mine = new Set(manual);
   const squad: GroupSplit[] = [];
   const other: ObjectiveGroupView[] = [];
   for (const g of groups) {
-    const done = g.objectives.filter((o) => o.done || marked.has(o.id));
-    const open = g.objectives.filter((o) => !o.done && !marked.has(o.id));
+    const left = g.objectives.filter((o) => !o.done);
+    const marked = left.filter((o) => mine.has(o.id));
+    const open = left.filter((o) => !mine.has(o.id));
     const can = open.filter((o) => o.conditions.length > 0);
     const cannot = open.filter((o) => o.conditions.length === 0);
-    if (can.length || done.length) squad.push({ ...g, objectives: can, done });
+    if (can.length || marked.length) squad.push({ ...g, objectives: can, marked });
     if (cannot.length) other.push({ ...g, objectives: cannot });
   }
   return { squad, other, otherCount: other.reduce((n, g) => n + g.objectives.length, 0) };

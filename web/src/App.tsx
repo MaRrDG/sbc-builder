@@ -973,6 +973,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                   step={route.view === 'objectives' ? route.step : 'pick'}
                   onStep={objStep}
                   onError={onApiError}
+                  reload={dataVersion}
                 />
               )
             )

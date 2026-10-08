@@ -20,6 +20,9 @@ test('timeLeft in days and hours, null without an end or when over', () => {
   assert.deepEqual(timeLeft(1_000 + (33 * 3600 + 120) * 1000, 1_000), { days: 1, hours: 9 });
   assert.equal(timeLeft(null, 0), null);
   assert.equal(timeLeft(10, 20), null);
+  // a far-off end (Foundations end in years) is not a countdown worth showing
+  assert.deepEqual(timeLeft(365 * 86_400_000, 0), { days: 365, hours: 0 });
+  assert.equal(timeLeft(365 * 86_400_000 + 3_600_000, 0), null);
 });
 
 test('storage keys are per persona and keep the sbc- prefix', () => {
@@ -38,11 +41,27 @@ test('formationLabel reads like the web app: dashes, variants numbered', () => {
   assert.equal(formationLabel('weird'), 'weird');
 });
 
-test('awardText uses EA text as sent, else value + awardType', () => {
-  assert.equal(awardText({ value: 1, awardType: 'item', itemDataReduced: { description: 'Meerveld Player Item' } }), 'Meerveld Player Item');
-  assert.equal(awardText({ value: 500, awardType: 'coins' }), '500 coins');
-  assert.equal(awardText({ value: 1, awardType: 'pack', itemDataReduced: { description: '  ' } }), '1 pack');
-  assert.equal(awardText({ value: 1, awardType: 'pack', itemDataReduced: null }), '1 pack');
+test('awardText on the real reward shapes: player names, counts, no raw ids or types', () => {
+  const tt = (k: string, p?: Record<string, unknown>) => `${k}${p ? JSON.stringify(p) : ''}`;
+  const player = { value: 50405533, awardType: 'item', count: 1, untradeable: true, name: 'Ekitike',
+    itemDataReduced: { assetId: 73885, rating: 82, itemType: 'player', preferredPosition: 'ST' } };
+  assert.equal(awardText(player, tt), 'Ekitike 82 ST');
+  // a player we cannot name still reads as a player item, never as the resource id
+  assert.equal(awardText({ ...player, name: undefined }, tt), 'obj.award.player{"rating":82,"position":"ST"}');
+  // other items: EA's own wording when it is a readable text, else a generic item
+  assert.equal(awardText({ value: 1, awardType: 'item', itemDataReduced: { itemType: 'misc', rating: 99, description: '1 of 2 78+ Gold Player Pick' } }, tt), '1 of 2 78+ Gold Player Pick');
+  assert.equal(awardText({ value: 1, awardType: 'item', itemDataReduced: { itemType: 'misc', rating: 99, description: 'AcademySlotEVO' } }, tt), 'obj.award.item');
+  assert.equal(awardText({ value: 1, awardType: 'item', itemDataReduced: { itemType: 'training', rating: 95 } }, tt), 'obj.award.item');
+  assert.equal(awardText({ value: 304, awardType: 'pack', count: 1 }, tt), 'obj.award.pack{"count":1}');
+  assert.equal(awardText({ value: 304, awardType: 'pack', count: 3 }, tt), 'obj.award.pack{"count":3}');
+  assert.equal(awardText({ value: 200, awardType: 'coin', count: 1 }, tt), 'obj.award.coin{"count":200}');
+  assert.equal(awardText({ value: 100, awardType: 'xp', count: 1 }, tt), 'obj.award.xp{"count":100}');
+  assert.equal(awardText({ value: 5, awardType: 'event_token_1', count: 1 }, tt), 'obj.award.tokens{"count":5}');
+  assert.equal(awardText({ value: 25, awardType: 'event_token_2', count: 1 }, tt), 'obj.award.tokens{"count":25}');
+  assert.equal(awardText({ value: 100, awardType: 'champions_qualification_points', count: 1 }, tt), 'obj.award.champions{"count":100}');
+  assert.equal(awardText({ value: 1, awardType: 'graduated_access_transfer_market_entry', count: 1 }, tt), 'obj.award.market');
+  // unknown types are hidden, not shown raw
+  assert.equal(awardText({ value: 7, awardType: 'something_new' }, tt), null);
 });
 
 test('isStale compares the last solve with the current ticks and formation', () => {
@@ -79,22 +98,25 @@ test('reachableStep: deep links fall back to the earliest incomplete step', () =
   assert.equal(reachableStep('squad', 2, true), 'squad');
 });
 
-test('splitGroups: tickable open objectives per group, done ones (EA or marked by you) apart, the rest folded away', () => {
+test('splitGroups: tickable open objectives per group; EA-done ones gone, marked-by-you ones apart, the rest folded away', () => {
   const o = (id: number, can: boolean, done = false) => ({ id, name: `o${id}`, description: '', progress: 0, target: 1, awards: [], done,
     conditions: can ? [{ role: 'score' as const, min: 1, filter: { nation: [1] } }] : [] });
-  const g = (id: number, objectives: ReturnType<typeof o>[]) => ({ id, title: `g${id}`, category: 'c', endsAt: null, awards: [], objectives });
+  const g = (id: number, objectives: ReturnType<typeof o>[]) => ({ id, title: `g${id}`, category: 'c', endsAt: null, awards: [], objectives, progressKnown: true });
   const groups = [
     g(1, [o(1, true), o(2, false), o(6, true, true)]),
     g(2, [o(3, false), o(4, false)]),
-    g(3, [o(5, true)]),
-    g(4, [o(7, true, true), o(8, false, true)]), // all done: stays, only done ones
+    g(3, [o(5, true)]), // only a marked-by-you one left: stays, just for Undo
+    g(4, [o(7, true, true), o(8, false, true)]), // all done in EA: gone
+    g(5, [o(9, false), o(10, true, true)]), // EA-done + no condition: only in the folded block
   ];
   const { squad, other, otherCount } = splitGroups(groups, [5]);
-  assert.deepEqual(squad.map((x) => [x.id, x.objectives.map((y) => y.id), x.done.map((y) => y.id)]), [[1, [1], [6]], [3, [], [5]], [4, [], [7, 8]]]);
-  assert.deepEqual(other.map((x) => [x.id, x.objectives.map((y) => y.id)]), [[1, [2]], [2, [3, 4]]]);
-  assert.equal(otherCount, 3);
+  assert.deepEqual(squad.map((x) => [x.id, x.objectives.map((y) => y.id), x.marked.map((y) => y.id)]), [[1, [1], []], [3, [], [5]]]);
+  assert.deepEqual(other.map((x) => [x.id, x.objectives.map((y) => y.id)]), [[1, [2]], [2, [3, 4]], [5, [9]]]);
+  assert.equal(otherCount, 4);
   // without manual marks
-  assert.deepEqual(splitGroups(groups).squad.map((x) => x.id), [1, 3, 4]);
+  assert.deepEqual(splitGroups(groups).squad.map((x) => x.id), [1, 3]);
+  // a mark on something EA already calls done changes nothing
+  assert.deepEqual(splitGroups(groups, [7]).squad.map((x) => x.id), [1, 3]);
 });
 
 test('pruneManual drops ids EA now reports done and ids that are gone', () => {
