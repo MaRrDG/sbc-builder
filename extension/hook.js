@@ -7,7 +7,7 @@
 (() => {
   const SRC = 'sbc-builder-hook';
   const UTAS = /^(https:\/\/utas\.[^/]+\/ut\/game\/fc27)(\/[^?]*)/;
-  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*)$/;
+  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*|scmp\/objective\/categories\/all)$/;
   // Our requests go through one queue, one at a time, with a short random pause between them,
   // and only once the web app itself has been quiet for a moment, so they never pile up on its own.
   const GAP_MIN_MS = 1500;

@@ -22,11 +22,13 @@ import { reportBricks, saveChallenges, saveSets } from './db/sbcs.js';
 import { findJob } from './jobs.js';
 import { parseAcademy, isFullList } from './evos.js';
 import { saveTrainings } from './db/evos.js';
+import type { EaCategory } from './objectives/types.js';
 import { addClubPage, assembleClub, loadedPlayers } from './club-pages.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
+export const OBJECTIVES_PATH = '/scmp/objective/categories/all';
 export const WATCHED_PATH =
-  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*)$/;
+  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*|scmp\/objective\/categories\/all)$/;
 
 export interface WebAppEvent {
   method: string;
@@ -125,7 +127,7 @@ async function onClubPage(acc: Account, req: Record<string, unknown>, items: Clu
   return added.length ? `${added.length} new club player${added.length === 1 ? '' : 's'} seen in the web app` : null;
 }
 
-async function onSquad(acc: Account, squadId: number | 'active', res: { id?: number; players?: { index: number; itemData?: { id?: number } }[] }) {
+async function onSquad(acc: Account, squadId: number | 'active', res: { id?: number; formation?: unknown; players?: { index: number; itemData?: { id?: number } }[] }) {
   const known = activeSquadIds.get(acc.id) ?? (await readCache<{ squadId?: number }>(acc.key('squad')))?.data.squadId;
   if (squadId !== 'active' && squadId !== known) return null; // another saved squad, not the active one
   if (!Array.isArray(res.players)) return null;
@@ -137,6 +139,7 @@ async function onSquad(acc: Account, squadId: number | 'active', res: { id?: num
     squadId: squadId === 'active' ? res.id ?? known : squadId,
     starters: ids.filter((p) => p.index < 11).map((p) => p.id),
     bench: ids.filter((p) => p.index >= 11).map((p) => p.id),
+    formation: typeof res.formation === 'string' ? res.formation : undefined,
   });
   return 'Active squad updated from the web app';
 }
@@ -150,6 +153,11 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
     await writeCache<SetsData>(acc.key('sets'), { categories: res.categories as SetsData['categories'] });
     await softly('save sets', () => saveSets((res.categories as SetsData['categories']).flatMap((c) => c.sets ?? [])));
     return 'SBC list updated from the web app';
+  }
+  if (method === 'GET' && ev.path === OBJECTIVES_PATH) {
+    if (!Array.isArray(ev.response)) return null;
+    await writeCache<{ categories: EaCategory[] }>(acc.key('objectives'), { categories: ev.response as EaCategory[] });
+    return 'Objectives updated from the web app';
   }
   const setId = ev.path.match(/^\/sbs\/setId\/(\d+)\/challenges$/)?.[1];
   if (method === 'GET' && setId) {
