@@ -16,6 +16,7 @@ FC Solver. Logo files live in `web/public/brand/`:
 - Accent `--go` oklch(0.84 0.17 163), the EA green: primary action (Solve), met requirements, active selection. Nothing else.
 - Positional `--pos` oklch(0.86 0.16 88): ONLY position labels under cards (game convention).
 - `--bad` oklch(0.68 0.19 25): unmet requirement glyph + error banner.
+- `--near` oklch(0.78 0.14 62): Daily 'close' tiles only (amber, distinct from `--pos`).
 
 ## Type
 - Display / numbers: Barlow Condensed 600-700 (card rating, header values, set names in tabs).
