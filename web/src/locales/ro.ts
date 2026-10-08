@@ -671,6 +671,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.nav.objectives': 'Obiective',
   'landing.nav.how': 'Cum funcționează',
   'landing.nav.pricing': 'Prețuri',
+  'landing.nav.invite': 'Invită',
   'landing.nav.faq': 'Întrebări',
   'landing.signIn': 'Intră în cont',
   'landing.start': 'Începe gratuit',
