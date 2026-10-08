@@ -162,6 +162,32 @@ Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Pric
 
 `{ "days": 7|14|30, "gift": false }` → `{ "premiumUntil": ms|null }`, or with `"gift": true` → `{ "giftCode": "ABC234" }` (a code for another user, once). Bad body → `400 { "error": "invalid spend" }`; not enough points → `400 pointsLow`.
 
+## Daily game
+
+Public endpoints for the Daily player-guess game (`/daily`). Signed in (Clerk `Authorization: Bearer`, optional) only adds saved state, stats and points; none of them touches EA. The answer is picked at the SBC drop (or on the first request after it) and only appears in a response once the game is `finished`. Errors carry a translatable `code`: `dailyFinished` 409, `dailyRepeat` 409, `dailyUnknownPlayer` 400, `dailyNoPool` 503, `dailyExpired` 409, `rateLimited` 429.
+
+### `GET /api/daily`
+
+`{ day, date, nextAt, maxGuesses: 5, share, signedIn, game? }`. `nextAt`: ms of the next drop. `share`: host + `/daily` without protocol. `game` (signed in only): the saved `GameView` of today plus `stats`.
+
+### `GET /api/daily/players`
+
+`{ v, players: [{ i, n, f, c }] }`: asset id, display name, full name and club id, for the autocomplete. `ETag: "<v>"`, `Cache-Control: public, max-age=300`, `304` on a matching `If-None-Match`.
+
+### `POST /api/daily/guess`
+
+`{ assetId, state? }` -> `GuessResult = { row, finished, won, silhouette?, answer?, state?, stats?, points? }`. `row`: the compared tiles of this guess. `silhouette` and `answer` appear only when the game is finished. Signed in: state lives in `daily_plays` (one row lock per user and day), `stats` comes when finished and `points: { added, streak }` on a win (one grant per day). Signed out: send no `state` on the first guess, then send back the `state` of the last answer; it is a signed token, so replaying an older same-day token only buys extra tries, and anonymous games never earn points. A tampered or other-day token is `dailyExpired`.
+
+### `POST /api/daily/practice`
+
+-> `{ token }`: a random player (sealed, valid 24 h). Not tied to the day or to a user.
+
+### `POST /api/daily/practice/guess`
+
+`{ token, assetId, state? }` -> `GuessResult` without `stats` and `points`. Same signed `state` flow as the anonymous daily.
+
+Guess and practice calls are limited to 40 per minute per IP (`rateLimited`).
+
 ## Admin (site)
 
 Signed in with Clerk as a user whose email is in `ADMIN_EMAILS` (comma-separated, default `dragutmariotheodor1@gmail.com`); anyone else gets `403` `adminOnly` (`401` `signIn` when not signed in). The POSTs below are actions; after a successful one the next admin read is fresh (account rows are memoized 5 s otherwise).
