@@ -118,6 +118,7 @@ const en: Record<LegalDoc, Doc> = {
           '- Technical data: IP address and browser details in server and security logs, and to limit abuse.',
           '- In your browser only: solver settings, saved squads, language and similar preferences (see the cookie policy).',
           '- FC Solver Daily, when you play signed in: the day, your guesses and whether you won, to keep your stats and streak. Signed out, the game keeps its state only in your browser.',
+          '- FC Solver Daily leaderboard, only if you choose to appear: your username, wins, games played and streak are public on /daily. You can hide yourself or change the username in Settings at any time. Signed-out games are counted only as anonymous totals.',
         ],
       },
       {
@@ -302,6 +303,7 @@ const ro: Record<LegalDoc, Doc> = {
           '- Date tehnice: adresa IP și detalii despre browser în jurnalele serverului și de securitate, și pentru limitarea abuzurilor.',
           '- Doar în browserul tău: setările solverului, echipele salvate, limba și preferințe similare (vezi politica de cookie-uri).',
           '- FC Solver Daily, când joci autentificat: ziua, încercările tale și dacă ai câștigat, pentru statistici și serie. Neautentificat, jocul își păstrează starea doar în browserul tău.',
+          '- Clasamentul FC Solver Daily, doar dacă alegi să apari: username-ul, victoriile, jocurile și seria ta sunt publice pe /daily. Te poți ascunde sau poți schimba username-ul oricând din Setări. Jocurile fără cont sunt numărate doar ca totaluri anonime.',
         ],
       },
       {
@@ -486,6 +488,7 @@ const it: Record<LegalDoc, Doc> = {
           '- Dati tecnici: indirizzo IP e dettagli del browser nei log del server e di sicurezza, e per limitare gli abusi.',
           "- Solo nel tuo browser: impostazioni del solver, rose salvate, lingua e preferenze simili (vedi la cookie policy).",
           '- FC Solver Daily, quando giochi con l\'accesso: il giorno, i tuoi tentativi e se hai vinto, per statistiche e serie. Senza accesso, il gioco conserva lo stato solo nel tuo browser.',
+          '- Classifica di FC Solver Daily, solo se scegli di comparire: il tuo username, le vittorie, le partite giocate e la serie sono pubblici su /daily. Puoi nasconderti o cambiare username in qualsiasi momento nelle Impostazioni. Le partite senza accesso sono contate solo come totali anonimi.',
         ],
       },
       {
