@@ -36,7 +36,7 @@ export function Leaderboard({ signedIn, me, signIn, onJoin }: Props) {
   const mine = (r: DailyLbRow) => shown && r.username.toLowerCase() === me!.username!.toLowerCase();
 
   const row = (r: DailyLbRow, you = false) => (
-    <tr key={r.rank + r.username} className={you || mine(r) ? 'me' : undefined} aria-current={you || mine(r) ? 'true' : undefined}>
+    <tr key={r.username} className={you || mine(r) ? 'me' : undefined} aria-current={you || mine(r) ? 'true' : undefined}>
       <td className="dg-lb-rank">
         <span className={r.rank <= 3 ? `dg-medal m${r.rank}` : undefined}>{r.rank}</span>
       </td>

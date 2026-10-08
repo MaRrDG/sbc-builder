@@ -43,7 +43,7 @@ function UsernameField({ value, onChange, error }: { value: string; onChange: (v
   );
 }
 
-function PromptBody({ initial, onYes, onNo }: { initial: string; onYes: (p: DailyProfile) => void; onNo: () => void }) {
+function PromptBody({ initial, onStart, onYes, onFail, onNo }: { initial: string; onStart: () => void; onYes: (p: DailyProfile) => void; onFail: () => void; onNo: () => void }) {
   const { t } = useI18n();
   const [name, setName] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -52,9 +52,11 @@ function PromptBody({ initial, onYes, onNo }: { initial: string; onYes: (p: Dail
   const yes = async () => {
     setBusy(true);
     setError(null);
+    onStart();
     try {
       onYes(await api.daily.saveProfile({ username: v, leaderboard: true, asked: true }));
     } catch (e) {
+      onFail();
       setError(errorText(e, t));
       setBusy(false);
     }
@@ -117,11 +119,14 @@ export function ProfilePrompt({ open, username, onProfile, onClose }: Props) {
     <Sheet open={open} title={t('daily.prompt.title')} onClose={close}>
       <PromptBody
         initial={username ?? ''}
+        // a Yes in flight already marks the question answered: closing meanwhile sends no second PUT
+        onStart={() => (done.current = true)}
         onYes={(p) => {
           done.current = true;
           onProfile(p);
           onClose();
         }}
+        onFail={() => (done.current = false)}
         onNo={close}
       />
     </Sheet>

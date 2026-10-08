@@ -2,7 +2,7 @@
 // Signed in, the server keeps today's game and stats; signed out, the browser keeps them (store.ts)
 // and sends back the server's signed state token. Practice lives in memory only.
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ChartBar, Question, Trophy } from '@phosphor-icons/react';
+import { ChartBar, Question, Ranking } from '@phosphor-icons/react';
 import { api, ApiError, type DailyAnswer, type DailyGuess, type DailyInfo, type DailyName, type DailyProfile, type DailyRow, type DailySilhouette, type DailyStats, type Meta } from '../api';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
@@ -93,6 +93,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
   const load = useCallback(async () => {
     const id = ++run.current;
     setLoadError(null);
+    window.clearTimeout(statsTimer.current); // a prompt / stats sheet queued by the previous game must not open now
     if (mode.current !== practice) {
       // Today <-> Practice: the old game must not stay guessable while the new one loads
       mode.current = practice;
@@ -185,7 +186,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
         }
       }
       // after the reveal: the leaderboard question first (once per account), then the stats on phones
-      if (r.finished && info.signedIn && unasked(info)) later('prompt', phone() ? 'stats' : null);
+      if (r.finished && !practice && info.signedIn && unasked(info)) later('prompt', phone() ? 'stats' : null);
       else if (r.finished && phone()) later('stats', null);
     } catch (e) {
       if (id !== run.current) return;
@@ -255,7 +256,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
               <ChartBar weight="bold" aria-hidden="true" />
             </button>
             <button type="button" className="dg-icon-btn" aria-label={t('daily.lb.button')} title={t('daily.lb.button')} onClick={() => setSheet('lb')}>
-              <Trophy weight="bold" aria-hidden="true" />
+              <Ranking weight="bold" aria-hidden="true" />
             </button>
           </div>
         </div>
