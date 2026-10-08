@@ -1523,6 +1523,7 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
 .daily-saved svg { color: var(--go); font-size: 15px; }
 @media (max-width: 640px) {
   .daily-name-row input, .daily-name-row .ghost { height: 44px; }
+  .daily-name-row input { font-size: 16px; }
   .daily-card .switch { min-height: 44px; }
 }
 .locked-note {

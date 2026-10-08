@@ -66,6 +66,11 @@ export function todayGame(now = Date.now()): Promise<Today> {
   return p;
 }
 
+/** Today's day number without picking an answer or needing a pool (same computation as pick). */
+export async function currentDay(now = Date.now()): Promise<number> {
+  return dayFor(lastSbcDrop(new Date(now)), await firstAnswer());
+}
+
 async function pick(drop: number, now: number): Promise<Today> {
   await loadPlayers();
   const day = dayFor(drop, await firstAnswer());
@@ -109,15 +114,21 @@ export async function dailyInfo(userId: string | null) {
 }
 
 let lbCache: { at: number; rows: LbRow[] } | null = null;
-export const invalidateLeaderboard = () => { lbCache = null; };
+let lbGen = 0; // bumped on invalidation so an in-flight refill cannot overwrite it with stale rows
+export const invalidateLeaderboard = () => { lbGen++; lbCache = null; };
 
 export async function publicLeaderboard(userId: string | null) {
-  const t = await todayGame();
-  if (!lbCache || Date.now() - lbCache.at > 60_000)
-    lbCache = { at: Date.now(), rows: rankLeaderboard((await leaderboardSource(false)).map((s) => ({ userId: s.userId, username: s.username!, plays: s.plays })), t.day) };
+  const day = await currentDay();
+  let rows: LbRow[];
+  if (lbCache && Date.now() - lbCache.at <= 60_000) rows = lbCache.rows;
+  else {
+    const gen = lbGen;
+    rows = rankLeaderboard((await leaderboardSource(false)).map((s) => ({ userId: s.userId, username: s.username!, plays: s.plays })), day);
+    if (gen === lbGen) lbCache = { at: Date.now(), rows };
+  }
   const pub = (r: LbRow) => ({ rank: r.rank, username: r.username, wins: r.wins, played: r.played, winPct: r.winPct, avgGuesses: r.avgGuesses, streak: r.streak });
-  const mine = userId ? lbCache.rows.find((r) => r.userId === userId) : undefined;
-  return { rows: lbCache.rows.slice(0, 50).map(pub), me: mine ? { ...pub(mine), inTop: mine.rank <= 50 } : null, total: lbCache.rows.length };
+  const mine = userId ? rows.find((r) => r.userId === userId) : undefined;
+  return { rows: rows.slice(0, 50).map(pub), me: mine ? { ...pub(mine), inTop: mine.rank <= 50 } : null, total: rows.length };
 }
 
 export async function guessToday(userId: string | null, assetId: number, state: unknown, day?: unknown): Promise<GuessResult> {

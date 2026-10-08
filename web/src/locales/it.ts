@@ -1175,6 +1175,8 @@ export const it: Record<Keys, string> = {
   'admin.daily.viewDay': "Giorno",
   'admin.daily.viewLb': "Classifica",
   'admin.daily.hidden': "nascosto",
+  'admin.daily.prevDay': "Giorno precedente",
+  'admin.daily.nextDay': "Giorno successivo",
   'admin.daily.clear': "Cancella username",
   'admin.daily.clearConfirm': "Clicca di nuovo per cancellare",
   'err.codeTaken': "Questo codice esiste già.",

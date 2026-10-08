@@ -68,7 +68,7 @@ function DayView({ day, onDay, navigate }: { day: number | null; onDay: (d: numb
     <>
       {error && <p className="signin-error" role="alert">{error}</p>}
       <nav className="adm-daily-nav" aria-label={t('admin.daily.viewDay')}>
-        <button type="button" className="ghost" disabled={!prev} onClick={() => prev && onDay(prev.day)}>
+        <button type="button" className="ghost" aria-label={t('admin.daily.prevDay')} disabled={!prev} onClick={() => prev && onDay(prev.day)}>
           <CaretLeft aria-hidden="true" /> {prev ? t('admin.daily.day', { n: prev.day }) : ''}
         </button>
         <label>
@@ -79,7 +79,7 @@ function DayView({ day, onDay, navigate }: { day: number | null; onDay: (d: numb
             ))}
           </select>
         </label>
-        <button type="button" className="ghost" disabled={!next} onClick={() => next && onDay(next.day)}>
+        <button type="button" className="ghost" aria-label={t('admin.daily.nextDay')} disabled={!next} onClick={() => next && onDay(next.day)}>
           {next ? t('admin.daily.day', { n: next.day }) : ''} <CaretRight aria-hidden="true" />
         </button>
       </nav>
@@ -183,11 +183,11 @@ function LeaderboardView({ navigate }: { navigate: AdminProps['navigate'] }) {
     { key: 'wins', label: t('daily.lb.wins'), num: true, render: (r) => r.wins },
     { key: 'played', label: t('admin.daily.finished'), num: true, render: (r) => r.played },
     { key: 'winPct', label: t('admin.daily.winPct'), num: true, render: (r) => `${r.winPct}%` },
-    { key: 'avg', label: t('daily.lb.avg'), num: true, render: (r) => (r.avgGuesses === null ? '—' : r.avgGuesses.toFixed(2)) },
+    { key: 'avg', label: t('daily.lb.avg'), num: true, render: (r) => (r.avgGuesses === null ? '—' : r.avgGuesses.toFixed(1)) },
     { key: 'streak', label: t('daily.lb.streak'), num: true, render: (r) => r.streak },
-    { key: 'hidden', label: '', render: (r) => (r.hidden ? <span className="adm-badge">{t('admin.daily.hidden')}</span> : null) },
+    { key: 'hidden', label: t('admin.daily.hidden'), render: (r) => (r.hidden ? <span className="adm-badge">{t('admin.daily.hidden')}</span> : null) },
     {
-      key: 'actions', label: '', render: (r) =>
+      key: 'actions', label: t('admin.daily.clear'), render: (r) =>
         r.username === null ? null : (
           <button type="button" className="ghost adm-daily-clear" disabled={busy} onBlur={() => armed === r.userId && setArmed(null)} onClick={() => void clear(r)}>
             {armed === r.userId ? t('admin.daily.clearConfirm') : t('admin.daily.clear')}
