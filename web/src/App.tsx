@@ -206,7 +206,7 @@ export default function App({
 
   // Boot (and after the extension links a new EA account): who am I, which personas are mine.
   const loadMe = useCallback(async () => {
-    const { user, personas, admin, plan: p, prefs: pr, onboarding, linkBlocked: lb } = await api.me();
+    const { user, personas, admin, plan: p, prefs: pr, onboarding, takenOver: to, linkBlocked: lb } = await api.me();
     setMe(user);
     setAdmin(admin);
     const prev = prevPlan.current;
@@ -220,6 +220,7 @@ export default function App({
     setPrefs(pr);
     setOnboarded(onboarding.done);
     setLinkBlocked(lb);
+    if (to) setTakenOver(true);
     setLinked(personas);
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
