@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { SessionError, THROTTLE_CODES, type ClubItem, type Challenge } from './ea.js';
-import { loadMeta } from './meta.js';
+import { loadMeta, type Meta } from './meta.js';
 import { parseRequirements, serializeRequirement } from './sbc.js';
 import { toPlayer, evaluate } from './squad.js';
 import { solve, diagnose, pointsPool, solvePoints, NO_FILTERS, type SolveOptions, type ActiveSquad } from './solver.js';
@@ -49,6 +49,9 @@ import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
+import { openGroups } from './objectives/open.js';
+import { solveObjectives } from './objectives/solve.js';
+import type { Condition, EaCategory } from './objectives/types.js';
 import { db, initDb } from './db/index.js';
 import { logEvent, pruneEvents } from './db/events.js';
 import { isPointsChallenge, pointsTarget, usablePoints } from './points.js';
@@ -543,6 +546,56 @@ app.get('/api/gallery', async (req) => {
   if ((await planFor(userId)).tier !== 'premium') throw new SessionError('FUT Gallery is a Premium feature.', 403, 'premiumOnly');
   return galleryFor(acc, await metaFor(acc));
 });
+
+// Objectives (Premium): the web app's objectives with the squad condition read from each
+async function objectiveGroups(acc: Account, meta: Meta) {
+  const cached = await readCache<{ categories: EaCategory[] }>(acc.key('objectives'));
+  const groups = cached ? openGroups(cached.data.categories, Date.now(), meta.names) : [];
+  return { fetchedAt: cached?.fetchedAt ?? null, groups };
+}
+
+app.get('/api/objectives', async (req) => {
+  const { userId, acc } = await siteContext(req);
+  if ((await planFor(userId)).tier !== 'premium') throw new SessionError('Objectives squads are a Premium feature.', 403, 'premiumOnly');
+  const meta = await metaFor(acc);
+  const squad = (await readCache<ActiveSquad>(acc.key('squad')))?.data ?? null;
+  return { ...(await objectiveGroups(acc, meta)), formation: squad?.formation ?? null };
+});
+
+app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excludeIds?: unknown; maxRating?: unknown } } }>(
+  '/api/objectives/solve',
+  async (req, reply) => {
+    const { userId, acc } = await siteContext(req);
+    if ((await planFor(userId)).tier !== 'premium') throw new SessionError('Objectives squads are a Premium feature.', 403, 'premiumOnly');
+    const meta = await metaFor(acc);
+    const ids = Array.isArray(req.body?.objectiveIds) ? req.body.objectiveIds.filter((x): x is number => Number.isInteger(x)) : [];
+    const formation = typeof req.body?.formation === 'string' ? req.body.formation : '';
+    if (!Object.hasOwn(meta.formations, formation)) return reply.code(400).send({ error: 'unknown formation', code: 'badFormation', params: {} });
+    const { groups } = await objectiveGroups(acc, meta);
+    const picked = groups.flatMap((g) => g.objectives).filter((o) => ids.includes(o.id) && o.conditions.length > 0);
+    if (picked.length === 0) return reply.code(400).send({ error: 'pick at least one objective with a squad condition', code: 'noObjectives', params: {} });
+    const { players } = await clubPlayers(acc);
+    if (players.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)', code: 'clubEmpty', params: {} });
+    const o = req.body?.options ?? {};
+    const options = {
+      excludeIds: Array.isArray(o.excludeIds) ? o.excludeIds.filter((x): x is number => Number.isInteger(x)) : [],
+      maxRating: typeof o.maxRating === 'number' && Number.isFinite(o.maxRating) ? o.maxRating : 99,
+    };
+    const conds: { objectiveId: number; condition: Condition }[] = picked.flatMap((ob) => ob.conditions.map((condition) => ({ objectiveId: ob.id, condition })));
+    const t0 = Date.now();
+    const r = await solveObjectives(players, formation, conds.map((c) => c.condition), meta, options);
+    logEvent({ type: 'solve', userId, personaId: acc.id, data: { kind: 'objectives', found: r.found, objectives: picked.length } });
+    return {
+      found: r.found,
+      ms: Date.now() - t0,
+      formation,
+      slots: meta.formations[formation].map((position, i) => ({ position, player: r.slots[i], chem: r.eval?.perSlotChem[i] ?? 0 })),
+      eval: r.eval,
+      covers: r.covers.map((c, i) => ({ objectiveId: conds[i].objectiveId, condition: c.condition, itemIds: c.itemIds, met: c.met })),
+      reasons: r.reasons,
+    };
+  },
+);
 
 app.get('/api/sets', async (req) => {
   const acc = await siteAccount(req);

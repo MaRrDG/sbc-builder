@@ -359,6 +359,14 @@ FUT Gallery planner: for every set of the catalogue, the best lineup the account
 
 `inClub`: the item is still owned (club, storage or unassigned); otherwise it was owned before. `badge` is what the set's crest shows, taken from its filter: the first club, else the league, else the rarity (`id` = rareflag; a rarity kind such as TOTW or Heroes maps to its lowest rareflag); `null` when nothing fits (the site shows an icon). The answer is cached per account until the ledger or the club cache changes.
 
+### `GET /api/objectives` (site, Premium)
+
+The objectives the web app last loaded (`GET /scmp/objective/categories/all`, relayed by extension 0.9.0+; no EA call), active groups only, objectives not yet redeemed: `{ "fetchedAt": 1791000000000 | null, "formation": "f433" | null, "groups": [{ "id": 120, "title": "Squad Foundations: Ringo Meerveld", "category": "Campaigns", "endsAt": 1791565199000 | null, "awards": [...], "objectives": [{ "id": 1798, "name": "The Dutch", "description": "Score 6 goals using a Dutch player in any FUT game mode.", "progress": 3, "target": 6, "awards": [...], "conditions": [{ "role": "score", "min": 1, "filter": { "nation": [34] } }] }] }] }`. `conditions` is empty when the text has no squad condition we can read. `formation`: the active squad's, if the web app loaded it. Free: `403 premiumOnly`.
+
+### `POST /api/objectives/solve` (site, Premium)
+
+`{ "objectiveIds": [1798, 1797], "formation": "f433", "options": { "excludeIds": [], "maxRating": 99 } }` → the strongest in-position squad from the club (no storage, loans in) that covers every condition of the picked objectives: `{ "found": true, "ms": 2100, "formation": "f433", "slots": [{ "position": {...}, "player": {...} | null, "chem": 3 }], "eval": { "rating": 84, "chemistry": 31, ... }, "covers": [{ "objectiveId": 1798, "condition": {...}, "itemIds": [123], "met": true }], "reasons": [] }`. Not found: `reasons` is `[{ "code": "noMatch", "condition": {...} }]` (nobody in the club can meet it in its slots) or `[{ "code": "combo" }]` (each works alone, not together in this formation). Errors: `400 badFormation`, `400 noObjectives`, `409 clubEmpty`, `403 premiumOnly`. Logged as a `solve` event with `kind: "objectives"`; no quota.
+
 ### `GET /api/sets` (site)
 
 The cached SBC categories and sets exactly as EA returns them (`setId`, `name`, `challengesCount`, `challengesCompletedCount`, `repeatable`, `timesCompleted`, ...).

@@ -4,7 +4,11 @@ import type { Player } from '../squad.js';
 import { playerChem } from '../solver.js';
 import type { Condition, Filter, Stat } from './types.js';
 
-/** One chemistry point is worth this many rating points in the play objective (tuned on real clubs). */
+/**
+ * One chemistry point is worth this many rating points in the play objective. Tuned on a real club
+ * (2026-10-08): 0 gives 11-17 chem, 2 / 4 / 6 all give 30-33 chem at the same team rating (84-85, no
+ * 85+ swapped for a sub-82); 2 sits right at 30 on some picks, 4 keeps a margin without costing rating.
+ */
 export const CHEM_WEIGHT = 4;
 
 const T = POSITION_IDS;
