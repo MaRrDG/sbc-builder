@@ -34,7 +34,7 @@ interface Props {
 }
 
 export function DailyTeaser({ link }: Props) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   const seen = useInView(ref);
   const [day, setDay] = useState<number | null>(null);
@@ -136,7 +136,7 @@ export function DailyTeaser({ link }: Props) {
             ))}
           </ul>
         </div>
-        {players !== null && <p className="lp-dly-count">{t('landing.daily.count', { count: players })}</p>}
+        {players !== null && <p className="lp-dly-count">{t('landing.daily.count', { count: players, countText: players.toLocaleString(lang) })}</p>}
       </div>
     </section>
   );

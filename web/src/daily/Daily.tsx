@@ -263,7 +263,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
         {names.length > 0 && (
           <p className="dg-base">
             <Database weight="bold" aria-hidden="true" />
-            <span>{t('daily.base.line', { count: names.length })}</span>
+            <span>{t('daily.base.line', { count: names.length, countText: names.length.toLocaleString(lang) })}</span>
           </p>
         )}
 
