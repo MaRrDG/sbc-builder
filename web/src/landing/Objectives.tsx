@@ -1,37 +1,24 @@
-// "Objectives" (Premium): three objective rows tick one after another, then a flat pitch lights up
-// the players that cover them, each lit card carrying its objective's icon (the link is never colour
-// alone). The demo squad's real cards don't fit France / Eredivisie, so the lit players are blank
-// cards on the same gold art instead of made-up players. Everything is visible by default; `is-in`
-// only replays the motion once the demo scrolls in (reduced motion: the final state only).
+// "Objectives" (Premium): three objective rows tick one after another, then the demo squad's real cards
+// light up where they cover one (Ronaldo scores for Portugal, Lamine Yamal is the LALIGA starter, Messi
+// assists as a CAM). Each row and its player carry the same number, so the link is never colour alone;
+// the other cards stay dimmed. Everything is visible by default; `is-in` only replays the motion once the
+// demo scrolls in (reduced motion: the final state only).
 import { useRef, type CSSProperties } from 'react';
-import { Check, Crown, HandPointing, SoccerBall, UsersThree } from '@phosphor-icons/react';
+import { Check, Crown } from '@phosphor-icons/react';
+import { Card } from '../components/Card';
 import { useI18n } from '../i18n';
-import { DEMO_META } from './demo';
+import { DEMO_META, DEMO_SQUAD } from './demo';
 import { useInView } from './motion';
 
-// i18n: landing.obj.card.<key>
-const CARDS = [
-  { icon: SoccerBall, key: 'score' },
-  { icon: UsersThree, key: 'xi' },
-  { icon: HandPointing, key: 'assist' },
+// i18n: landing.obj.card.<key>; `player` = index into DEMO_SQUAD of the card that covers it
+const ROWS = [
+  { key: 'score', player: 0 }, // Ronaldo, Portugal
+  { key: 'xi', player: 1 }, // Lamine Yamal, LALIGA EA SPORTS
+  { key: 'assist', player: 3 }, // Messi, CAM
 ] as const;
 
-// 4-3-3, attack at the top as in the web app (x, y in % of the field). `hit` = index into CARDS.
-const SPOTS: { pos: string; x: number; y: number; hit?: number }[] = [
-  { pos: 'ST', x: 50, y: 12, hit: 2 },
-  { pos: 'LW', x: 17, y: 20, hit: 0 },
-  { pos: 'RW', x: 83, y: 20 },
-  { pos: 'CM', x: 28, y: 46 },
-  { pos: 'CM', x: 50, y: 52 },
-  { pos: 'CM', x: 72, y: 46, hit: 1 },
-  { pos: 'LB', x: 13, y: 72 },
-  { pos: 'CB', x: 37, y: 77 },
-  { pos: 'CB', x: 63, y: 77 },
-  { pos: 'RB', x: 87, y: 72 },
-  { pos: 'GK', x: 50, y: 93 },
-];
-
-const CARD_BG = `${DEMO_META.contentBase}/items/images/backgrounds/itemBGs/${DEMO_META.rarities[0].guid}/cards_bg_e_1_0_3.png`;
+// where each DEMO_SQUAD card stands (ST, RW, LW, CAM, CAM, CB, GK), in % of a flat pitch, attack at the top
+const SPOTS: [number, number][] = [[50, 15], [82, 25], [18, 25], [35, 47], [65, 47], [50, 67], [50, 89]];
 
 export function Objectives() {
   const { t } = useI18n();
@@ -49,9 +36,9 @@ export function Objectives() {
       </div>
       <div ref={ref} className={`lp-obj-demo${seen ? ' is-in' : ''}`} aria-hidden="true">
         <ol className="lp-obj-rows">
-          {CARDS.map(({ icon: Icon, key }, n) => (
+          {ROWS.map(({ key }, n) => (
             <li key={key} style={{ '--i': n } as CSSProperties}>
-              <Icon className="lp-obj-icon" weight="bold" />
+              <span className="lp-obj-num">{n + 1}</span>
               <span>{t(`landing.obj.card.${key}`)}</span>
               <span className="lp-obj-box">
                 <span className="lp-obj-tick">
@@ -62,18 +49,16 @@ export function Objectives() {
           ))}
         </ol>
         <div className="lp-obj-pitch">
-          {SPOTS.map(({ pos, x, y, hit }, n) => {
-            const Icon = hit === undefined ? null : CARDS[hit].icon;
+          {DEMO_SQUAD.map((p, n) => {
+            const hit = ROWS.findIndex((r) => r.player === n);
             return (
-              <div key={n} className="lp-obj-spot" style={{ left: `${x}%`, top: `${y}%`, '--i': hit ?? 0 } as CSSProperties}>
-                <span className="lp-obj-dot">{pos}</span>
-                {Icon && (
-                  <span className="lp-obj-hit">
-                    <img src={CARD_BG} alt="" loading="lazy" decoding="async" />
-                    <b>{pos}</b>
-                    <Icon className="lp-obj-hit-icon" weight="bold" />
-                  </span>
-                )}
+              <div
+                key={p.id}
+                className={`lp-obj-spot${hit < 0 ? '' : ' is-hit'}`}
+                style={{ left: `${SPOTS[n][0]}%`, top: `${SPOTS[n][1]}%`, '--i': Math.max(hit, 0) } as CSSProperties}
+              >
+                <Card player={p} meta={DEMO_META} selected={hit >= 0} />
+                {hit >= 0 && <span className="lp-obj-num">{hit + 1}</span>}
               </div>
             );
           })}
