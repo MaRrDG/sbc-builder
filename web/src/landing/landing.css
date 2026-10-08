@@ -769,51 +769,50 @@
 .lp-invite-steps li span:last-child { display: grid; gap: 4px; max-width: 40ch; color: var(--ink-2); line-height: 1.55; }
 .lp-invite-steps b { color: var(--ink); font-size: 17px; }
 
-/* the stage: rays, the pack (torn top + body), the reward card, the points chip */
-.lp-pack-stage { grid-column: 7 / -1; position: relative; height: clamp(380px, 38vw, 480px); display: grid; place-items: center; isolation: isolate; }
-.lp-pack-rays {
-  position: absolute; inset: 50% auto auto 50%; z-index: -1;
-  width: 150%; aspect-ratio: 1; translate: -50% -50%;
-  background: repeating-conic-gradient(from 0deg, color-mix(in oklch, var(--gold) 30%, transparent) 0deg 5deg, transparent 5deg 20deg);
-  mask: radial-gradient(closest-side, #000 18%, transparent 70%);
-  opacity: 0.55;
+/* the stage: a gold glow, the reward card (PremiumCard.tsx), the points chip */
+.lp-pack-stage { grid-column: 7 / -1; position: relative; height: clamp(400px, 40vw, 520px); display: grid; place-items: center; isolation: isolate; }
+.lp-halo { position: absolute; inset: 50% auto auto 50%; z-index: -1; width: min(150%, 640px); aspect-ratio: 1; translate: -50% -50%; pointer-events: none; }
+.lp-halo::before, .lp-halo::after { content: ""; position: absolute; inset: 0; border-radius: 50%; }
+/* a warm bloom and a fan of hairline light beams, like a walkout's backlight */
+.lp-halo::before { background: radial-gradient(closest-side, color-mix(in oklch, var(--gold-1) 28%, transparent), color-mix(in oklch, var(--gold-2) 10%, transparent) 55%, transparent); }
+.lp-halo::after {
+  background: repeating-conic-gradient(from 4deg, color-mix(in oklch, var(--gold-1) 55%, transparent) 0deg 0.6deg, transparent 0.6deg 9deg);
+  mask: radial-gradient(closest-side, transparent 22%, #000 34%, transparent 82%);
+  opacity: 0.32;
 }
-.lp-pack { position: absolute; left: 50%; top: 50%; width: clamp(170px, 15vw, 206px); translate: -50% -38%; display: grid; z-index: 0; }
-.lp-pack-top, .lp-pack-body {
-  background:
-    linear-gradient(115deg, transparent 32%, oklch(0.9 0.08 150 / 0.22) 44%, transparent 56%),
-    radial-gradient(120% 80% at 50% 0%, oklch(0.42 0.09 160), oklch(0.27 0.06 165) 60%, oklch(0.2 0.045 170));
-}
-.lp-pack-top { height: 22px; border-radius: 4px 4px 0 0; opacity: 0; box-shadow: inset 0 -2px 0 var(--gold);
-  mask: conic-gradient(from -45deg at 50% 0, #000 90deg, transparent 0) 0 0 / 10px 100%; }
-.lp-pack-body {
-  aspect-ratio: 0.68; display: grid; align-content: end; justify-items: center; padding-bottom: 18%;
-  border-radius: 4px 4px 10px 10px;
-  box-shadow: inset 0 0 0 1.5px color-mix(in oklch, var(--gold) 70%, transparent), 0 24px 44px oklch(0.08 0.02 220 / 0.65);
-}
-.lp-pack-body img { width: 26%; height: auto; filter: drop-shadow(0 2px 4px oklch(0.25 0.06 70 / 0.5)); }
 
-.lp-reward {
-  position: relative; z-index: 1; width: clamp(180px, 17vw, 236px); aspect-ratio: 576 / 800; translate: 0 -14%;
-  background: center / contain no-repeat;
-  color: #2d2410; rotate: -4deg;
-  filter: drop-shadow(0 22px 34px oklch(0.1 0.02 220 / 0.6)) drop-shadow(0 0 28px color-mix(in oklch, var(--gold) 45%, transparent));
+.lp-reward { position: relative; z-index: 1; width: clamp(220px, 20vw, 280px); aspect-ratio: 300 / 420; perspective: 1100px; }
+.lp-reward-tilt, .lp-reward-flip { position: absolute; inset: 0; transform-style: preserve-3d; }
+.lp-reward-tilt { transform: rotateX(var(--ry, 0deg)) rotateY(var(--rx, 0deg)); transition: transform 500ms var(--ease); }
+.lp-reward-side {
+  position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; backface-visibility: hidden;
+  filter: drop-shadow(0 26px 30px oklch(0.08 0.02 220 / 0.6)) drop-shadow(0 0 22px color-mix(in oklch, var(--gold-1) 28%, transparent));
 }
-.lp-reward-ovr { position: absolute; left: 19%; top: 17%; font: 700 clamp(40px, 4vw, 54px)/0.9 var(--font-num); }
-.lp-reward-pos { position: absolute; left: 19.5%; top: 34%; font: 600 clamp(13px, 1.2vw, 16px)/1 var(--font-num); text-transform: uppercase; }
-.lp-reward-face { position: absolute; left: 58%; top: 21%; width: 34%; height: auto; translate: -50% 0; opacity: 0.85; }
-.lp-reward-name { position: absolute; inset: 61% 0 auto; text-align: center; font: 700 clamp(20px, 2vw, 26px)/1 var(--font-num); text-transform: uppercase; }
-.lp-reward-sub { position: absolute; inset: 73% 12% auto; text-align: center; font: 500 clamp(11px, 1vw, 13px)/1.25 var(--font-ui); }
+.lp-reward-back { transform: rotateY(180deg); }
+.lp-rc-num { font-family: var(--font-num); font-weight: 700; fill: #3a2806; }
+.lp-rc-ovr { font-size: 74px; }
+.lp-rc-unit { font-size: 19px; letter-spacing: 0.04em; text-transform: uppercase; }
+.lp-rc-name { font-size: 40px; letter-spacing: 0.06em; text-transform: uppercase; }
+.lp-rc-sub { font-family: var(--font-ui); font-size: 15px; font-weight: 600; fill: #4a3408; }
+.lp-rc-lit { fill: #fff4cf; opacity: 0.75; }
+.lp-rc-sheen { transform: translateX(-120px); }
 
 .lp-pts {
-  position: absolute; left: calc(50% + clamp(90px, 9vw, 130px)); bottom: 12%; z-index: 2;
-  display: grid; grid-template-columns: auto auto; align-items: center; gap: 2px 12px;
-  padding: 12px 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface);
+  position: absolute; left: calc(50% + clamp(100px, 9.5vw, 140px)); bottom: 12%; z-index: 2;
+  display: grid; grid-template-columns: auto auto auto; align-items: center; gap: 12px;
+  padding: 12px 16px 12px 12px; border: 1px solid color-mix(in oklch, var(--gold-2) 45%, var(--line)); border-radius: var(--r-box);
+  background: var(--surface); box-shadow: 0 18px 30px oklch(0.08 0.02 220 / 0.5);
 }
-.lp-pts-label { color: var(--ink-3); font-size: 13px; white-space: nowrap; }
-.lp-pts-num { grid-row: 1; grid-column: 2; height: 1em; overflow: hidden; font: 700 34px/1 var(--font-num); }
+/* a minted point: gold coin with a struck inner ring */
+.lp-pts-coin {
+  width: 30px; aspect-ratio: 1; border-radius: 50%;
+  background: radial-gradient(circle at 34% 30%, #fff2c4, transparent 42%), linear-gradient(150deg, #f2d27f, #b98a2e 60%, #7d5714);
+  box-shadow: inset 0 0 0 3px #d7b05a, inset 0 0 0 4px #7d5714, 0 2px 6px oklch(0.1 0.02 220 / 0.5);
+}
+.lp-pts-label { color: var(--ink-2); font-size: 13px; white-space: nowrap; }
+.lp-pts-num { min-width: 0.55em; height: 1em; overflow: hidden; font: 700 34px/1 var(--font-num); color: var(--gold-1); }
 .lp-pts-num span { display: block; translate: 0 -100%; }
-.lp-pts-drop { position: absolute; right: 18px; top: -30px; color: var(--gold); font: 700 22px/1 var(--font-num); opacity: 0; }
+.lp-pts-drop { position: absolute; right: 18px; top: -30px; color: var(--gold-1); font: 700 22px/1 var(--font-num); opacity: 0; }
 
 /* points to spend, as the web app's SBC tiles */
 .lp-xchg { margin-top: clamp(56px, 7vw, 88px); }
@@ -831,37 +830,34 @@
 .lp-xchg-gift svg { flex: none; color: var(--gold); }
 
 @media (prefers-reduced-motion: no-preference) {
-  .lp-pack-stage:not(.is-live, .is-open) .lp-reward { opacity: 0; }
+  /* closed: the card waits face down, the glow is off */
+  .lp-pack-stage:not(.is-live, .is-open) .lp-reward-flip { transform: rotateY(180deg); }
+  .lp-pack-stage:not(.is-live, .is-open) .lp-reward { translate: 0 10px; scale: 0.94; }
+  .lp-pack-stage:not(.is-live, .is-open) .lp-halo { opacity: 0; }
   .lp-pack-stage:not(.is-live, .is-open) .lp-pts-num span { translate: 0 0; }
-  .lp-pack-stage:not(.is-live, .is-open) .lp-pack-top { opacity: 1; }
-  .lp-pack-stage:not(.is-live, .is-open) .lp-pack-rays { opacity: 0; }
-  .lp-pack-stage:not(.is-live, .is-open) .lp-pack { translate: -50% -50%; }
-  .lp-pack-stage.is-live .lp-pack { animation: lp-pack-shake 520ms var(--ease) both, lp-pack-settle 700ms 1000ms var(--ease) both; }
-  .lp-pack-stage.is-live .lp-pack-top { animation: lp-pack-tear 520ms 560ms cubic-bezier(0.3, 0, 0.6, 1) both; }
-  .lp-pack-stage.is-live .lp-pack-rays { animation: lp-rays 2600ms 700ms var(--ease) both; }
-  .lp-pack-stage.is-live .lp-reward { animation: lp-walkout 900ms 900ms cubic-bezier(0.2, 1.1, 0.4, 1) both; }
-  .lp-pack-stage.is-live .lp-pts-drop { animation: lp-pts-drop 900ms 1900ms var(--ease) both; }
-  .lp-pack-stage.is-live .lp-pts-num span { animation: lp-pts-tick 360ms 2450ms var(--ease) both; }
+  .lp-pack-stage.is-live .lp-reward { animation: lp-lift 760ms var(--ease) both; }
+  .lp-pack-stage.is-live .lp-halo { animation: lp-halo 1600ms 300ms var(--ease) both; }
+  .lp-pack-stage.is-live .lp-reward-flip { animation: lp-flip 1000ms 760ms cubic-bezier(0.3, 0.7, 0.2, 1) both; }
+  .lp-pack-stage.is-live .lp-rc-sheen { animation: lp-sheen 1100ms 1500ms cubic-bezier(0.4, 0, 0.3, 1) both; }
+  .lp-pack-stage.is-live .lp-pts-drop { animation: lp-pts-drop 900ms 2100ms var(--ease) both; }
+  .lp-pack-stage.is-live .lp-pts-num span { animation: lp-pts-tick 360ms 2650ms var(--ease) both; }
 }
-@keyframes lp-pack-shake {
-  0%, 100% { rotate: 0deg; }
-  20% { rotate: -3deg; } 40% { rotate: 3deg; } 60% { rotate: -2deg; } 80% { rotate: 1.5deg; }
+@keyframes lp-lift {
+  from { translate: 0 10px; scale: 0.94; }
+  60% { translate: 0 -6px; scale: 1.01; }
+  to { translate: 0 0; scale: 1; }
 }
-@keyframes lp-pack-settle { from { translate: -50% -50%; } to { translate: -50% -38%; } }
-@keyframes lp-pack-tear {
-  from { opacity: 1; translate: 0 0; rotate: 0deg; }
-  to { opacity: 0; translate: 40px -70px; rotate: 24deg; }
+@keyframes lp-halo {
+  from { opacity: 0; scale: 0.55; }
+  45% { opacity: 1; scale: 1.06; }
+  to { opacity: 1; scale: 1; }
 }
-@keyframes lp-rays {
-  from { opacity: 0; scale: 0.4; rotate: -30deg; }
-  30% { opacity: 1; }
-  to { opacity: 0.55; scale: 1; rotate: 0deg; }
+@keyframes lp-flip {
+  from { transform: rotateY(180deg); }
+  70% { transform: rotateY(-8deg); }
+  to { transform: rotateY(0deg); }
 }
-@keyframes lp-walkout {
-  from { opacity: 0; translate: 0 30%; scale: 0.82; rotate: 0deg; }
-  25% { opacity: 1; }
-  to { opacity: 1; translate: 0 -14%; scale: 1; rotate: -4deg; }
-}
+@keyframes lp-sheen { from { transform: translateX(-120px); } to { transform: translateX(420px); } }
 @keyframes lp-pts-drop {
   from { opacity: 0; translate: 0 -40px; }
   30% { opacity: 1; }
@@ -876,10 +872,10 @@
 }
 @media (max-width: 860px) {
   .lp-invite-copy, .lp-pack-stage { grid-column: 1 / -1; }
-  .lp-pack-stage { grid-row: 1; height: 380px; }
-  .lp-reward { width: 190px; }
-  .lp-pack { width: 170px; }
-  .lp-pts { left: auto; right: 0; bottom: 6%; padding: 10px 12px; }
+  .lp-pack-stage { grid-row: 1; height: 430px; }
+  .lp-reward { width: 220px; }
+  .lp-pts { left: auto; right: 0; bottom: 0; padding: 8px 12px 8px 8px; gap: 10px; }
+  .lp-pts-coin { width: 24px; }
   .lp-xchg-list { grid-template-columns: 1fr; gap: 12px; }
 }
 
