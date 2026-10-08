@@ -1,5 +1,5 @@
 // Pure helpers for the Objectives screen.
-import type { Meta, ObjAward, ObjCondition, ObjectiveGroupView } from '../../api';
+import type { Meta, ObjAward, ObjCondition, ObjectiveGroupView, ObjectiveView } from '../../api';
 import type { ObjStep } from '../../route';
 
 type TFn = (key: string, params?: Record<string, string | number>) => string;
@@ -58,17 +58,34 @@ export function reachableStep(want: ObjStep, picked: number, hasResult: boolean)
   return want;
 }
 
-/** Groups cut in two: objectives with a squad condition (tickable) and the rest, each kept under its group. */
-export function splitGroups(groups: ObjectiveGroupView[]) {
-  const squad: ObjectiveGroupView[] = [];
+export const doneKey = (personaId: number) => `sbc-objectives-done-${personaId}`;
+
+export type GroupSplit = ObjectiveGroupView & { done: ObjectiveView[] };
+
+/**
+ * Groups cut three ways: open objectives with a squad condition (tickable, kept in their group), done ones
+ * (EA says so, or marked done by the user in `manual`; kept per group, so an all-done group stays) and open
+ * ones without a squad condition (folded away, still under their group).
+ */
+export function splitGroups(groups: ObjectiveGroupView[], manual: number[] = []) {
+  const marked = new Set(manual);
+  const squad: GroupSplit[] = [];
   const other: ObjectiveGroupView[] = [];
   for (const g of groups) {
-    const can = g.objectives.filter((o) => o.conditions.length > 0);
-    const cannot = g.objectives.filter((o) => o.conditions.length === 0);
-    if (can.length) squad.push({ ...g, objectives: can });
+    const done = g.objectives.filter((o) => o.done || marked.has(o.id));
+    const open = g.objectives.filter((o) => !o.done && !marked.has(o.id));
+    const can = open.filter((o) => o.conditions.length > 0);
+    const cannot = open.filter((o) => o.conditions.length === 0);
+    if (can.length || done.length) squad.push({ ...g, objectives: can, done });
     if (cannot.length) other.push({ ...g, objectives: cannot });
   }
   return { squad, other, otherCount: other.reduce((n, g) => n + g.objectives.length, 0) };
+}
+
+/** Marked-done ids still worth keeping: the objective still exists and EA does not say it is done yet. */
+export function pruneManual(manual: number[], groups: ObjectiveGroupView[]): number[] {
+  const open = new Set(groups.flatMap((g) => g.objectives.filter((o) => !o.done).map((o) => o.id)));
+  return manual.filter((id) => open.has(id));
 }
 
 /** Radio group keys: arrows move (and wrap), Home / End jump; null for any other key. */

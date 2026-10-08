@@ -94,7 +94,8 @@ export interface ObjectiveView {
   target: number;
   awards: ObjAward[];
   /** empty when the text has no squad condition we can read */
-  conditions: ObjCondition[];
+  conditions: ObjCondition[];  /** EA says COMPLETED / REDEEMED, or progress >= target */
+  done: boolean;
 }
 export interface ObjectiveGroupView {
   id: number;

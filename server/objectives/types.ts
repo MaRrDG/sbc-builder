@@ -64,6 +64,8 @@ export interface ObjectiveView {
   target: number;
   awards: EaAward[];
   conditions: Condition[];
+  /** EA says COMPLETED / REDEEMED, or progress >= target: shown as done, never solvable */
+  done: boolean;
 }
 
 export interface ObjectiveGroupView {

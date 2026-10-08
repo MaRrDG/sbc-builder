@@ -4149,6 +4149,23 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-rewards { display: flex; gap: 6px; align-items: baseline; margin: 0; color: var(--ink-3); font-size: 13px; }
 .obj-rewards svg { flex: none; position: relative; top: 2px; }
 .obj-group header .obj-rewards { margin-top: 6px; }
+.obj-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
+.obj-foot .obj-mark { margin-left: auto; }
+.obj-link.obj-mark { min-height: 28px; color: var(--ink-2); }
+.obj-link.obj-mark:hover { color: var(--ink); }
+
+/* done objectives (EA's or marked by you): folded per group, ✓ + "Done", no checkbox */
+.obj-done { margin-top: 12px; border-top: 1px solid var(--line); }
+.obj-done > summary { display: flex; align-items: center; min-height: 40px; color: var(--ink-2); font-size: 13px; cursor: pointer; }
+.obj-done > summary:hover { color: var(--ink); }
+.obj-done ul { list-style: none; margin: 0 0 4px; padding: 0; display: grid; gap: 8px; }
+.obj-done li { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 10px; }
+.obj-done li .obj-name { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.obj-done li .obj-progress { font-size: 13px; color: var(--ink-3); }
+.obj-done-state { display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; color: var(--ink); }
+.obj-done-state svg { color: var(--go); }
+.obj-done-mine { display: inline-flex; flex-basis: 100%; align-items: center; gap: 8px; color: var(--ink-3); font-size: 12px; }
+.obj-other li .obj-mark { margin-left: auto; }
 
 /* objectives FC Solver cannot build for: folded away */
 .obj-other { border: 1px solid var(--line); border-radius: var(--r-box); padding: 0 16px; }
@@ -4192,12 +4209,30 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-fail ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; color: var(--ink-2); }
 .obj-fail-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .obj-fail-actions .ghost { border-color: var(--line); }
+.obj-fail-actions .solve-sm { height: 36px; padding: 0 18px; }
 .obj-empty { display: flex; gap: 10px; align-items: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
 .obj-empty p { margin: 0; }
 .obj-empty svg { flex: none; width: 20px; height: 20px; color: var(--ink-2); }
-.obj-result { display: grid; gap: 14px; }
-.obj-pitch { width: 100%; max-width: 760px; }
-.obj-covers { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-width: 760px; }
+.obj-fail-text { margin: 0; color: var(--ink-2); }
+/* pitch + summary: one centred column, two columns once there is room; cards sized from the pitch's own width */
+.obj-result { display: grid; gap: 16px; align-items: start; }
+.obj-pitch { width: 100%; max-width: 780px; justify-self: center; container-type: inline-size; }
+.obj-pitch .pitch { --card-w: clamp(30px, 10.5cqi, 86px); }
+.obj-pitch .pitch[data-lines='5'] { --card-w: clamp(28px, 9.5cqi, 80px); }
+.obj-pitch .pitch[data-lines='6'] { --card-w: clamp(26px, 8.5cqi, 72px); }
+.obj-side { display: grid; gap: 12px; align-content: start; width: 100%; max-width: 780px; justify-self: center; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
+.obj-side h3 { margin: 4px 0 0; font-size: 15px; font-weight: 600; }
+.obj-side > p { margin: 0; }
+.obj-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0; }
+.obj-stats div { padding: 8px 12px; border-radius: var(--r-ctl); background: var(--surface-2); }
+.obj-stats dt { color: var(--ink-2); font-size: 13px; }
+.obj-stats dd { margin: 0; font-family: var(--font-num); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+@media (min-width: 1180px) {
+  .obj-result { grid-template-columns: minmax(0, 1fr) 300px; }
+  .obj-pitch { max-width: none; }
+  .obj-side { position: sticky; top: 76px; }
+}
+.obj-covers { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 13px; }
 .obj-covers li { display: flex; gap: 8px; align-items: flex-start; }
 .obj-covers .tick { flex: none; position: relative; top: 2px; }
 .obj-covers .is-met .tick { color: var(--go); }
@@ -4212,7 +4247,7 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .obj-bar-left { display: flex; flex-wrap: wrap; gap: 8px; }
 .obj-bar-left .ghost { border-color: var(--line); }
 .obj-count { color: var(--ink-2); font-size: 13px; }
-.obj-stepper :focus-visible, .obj-tile:focus-visible, .obj-check:focus-visible, .obj-link:focus-visible, .obj-other > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.obj-stepper :focus-visible, .obj-tile:focus-visible, .obj-check:focus-visible, .obj-link:focus-visible, .obj-other > summary:focus-visible, .obj-done > summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .slot-badge { position: absolute; top: -6px; left: calc(50% - var(--card-w) / 2 - 4px); z-index: 2; display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: var(--go); font-size: 13px; }
 @media (max-width: 860px) {
   .obj-bar { left: 0; padding: 10px 12px; }

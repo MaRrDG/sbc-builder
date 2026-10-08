@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { awardText, conditionLabel, formationKey, formationLabel, isStale, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups } from './objectives.js';
+import { awardText, conditionLabel, doneKey, formationKey, pruneManual, formationLabel, isStale, timeLeft, pickKey, radioMove, reachableStep, resultKey, splitGroups } from './objectives.js';
 
 const meta = { names: { nation: { 34: 'Netherlands' }, league: { 10: 'Eredivisie' }, club: {}, rarity: { 151: 'Ultimate Scream' } } };
 const t = (k: string, p?: Record<string, unknown>) => `${k}${p ? JSON.stringify(p) : ''}`;
@@ -26,6 +26,7 @@ test('storage keys are per persona and keep the sbc- prefix', () => {
   assert.equal(pickKey(7), 'sbc-objectives-pick-7');
   assert.equal(resultKey(7), 'sbc-objectives-result-7');
   assert.equal(formationKey(7), 'sbc-objectives-formation-7');
+  assert.equal(doneKey(7), 'sbc-objectives-done-7');
 });
 
 test('formationLabel reads like the web app: dashes, variants numbered', () => {
@@ -60,14 +61,29 @@ test('reachableStep: deep links fall back to the earliest incomplete step', () =
   assert.equal(reachableStep('squad', 2, true), 'squad');
 });
 
-test('splitGroups keeps tickable objectives in their groups and folds the rest away', () => {
-  const o = (id: number, can: boolean) => ({ id, name: `o${id}`, description: '', progress: 0, target: 1, awards: [],
+test('splitGroups: tickable open objectives per group, done ones (EA or marked by you) apart, the rest folded away', () => {
+  const o = (id: number, can: boolean, done = false) => ({ id, name: `o${id}`, description: '', progress: 0, target: 1, awards: [], done,
     conditions: can ? [{ role: 'score' as const, min: 1, filter: { nation: [1] } }] : [] });
   const g = (id: number, objectives: ReturnType<typeof o>[]) => ({ id, title: `g${id}`, category: 'c', endsAt: null, awards: [], objectives });
-  const { squad, other, otherCount } = splitGroups([g(1, [o(1, true), o(2, false)]), g(2, [o(3, false), o(4, false)]), g(3, [o(5, true)])]);
-  assert.deepEqual(squad.map((x) => [x.id, x.objectives.map((y) => y.id)]), [[1, [1]], [3, [5]]]);
+  const groups = [
+    g(1, [o(1, true), o(2, false), o(6, true, true)]),
+    g(2, [o(3, false), o(4, false)]),
+    g(3, [o(5, true)]),
+    g(4, [o(7, true, true), o(8, false, true)]), // all done: stays, only done ones
+  ];
+  const { squad, other, otherCount } = splitGroups(groups, [5]);
+  assert.deepEqual(squad.map((x) => [x.id, x.objectives.map((y) => y.id), x.done.map((y) => y.id)]), [[1, [1], [6]], [3, [], [5]], [4, [], [7, 8]]]);
   assert.deepEqual(other.map((x) => [x.id, x.objectives.map((y) => y.id)]), [[1, [2]], [2, [3, 4]]]);
   assert.equal(otherCount, 3);
+  // without manual marks
+  assert.deepEqual(splitGroups(groups).squad.map((x) => x.id), [1, 3, 4]);
+});
+
+test('pruneManual drops ids EA now reports done and ids that are gone', () => {
+  const o = (id: number, done: boolean) => ({ id, name: '', description: '', progress: 0, target: 1, awards: [], done, conditions: [] });
+  const groups = [{ id: 1, title: '', category: '', endsAt: null, awards: [], objectives: [o(1, false), o(2, true), o(3, false)] }];
+  assert.deepEqual(pruneManual([1, 2, 3, 9], groups), [1, 3]);
+  assert.deepEqual(pruneManual([], groups), []);
 });
 
 test('radioMove: arrows move and wrap, Home / End jump, other keys do nothing', () => {
