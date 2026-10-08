@@ -172,7 +172,7 @@ Public endpoints for the Daily player-guess game (`/daily`). Signed in (Clerk `A
 
 ### `GET /api/daily/players`
 
-`{ v, players: [{ i, n, f, c }] }`: asset id, display name, full name and club id, for the autocomplete. `ETag: "<v>"`, `Cache-Control: public, max-age=300`, `304` on a matching `If-None-Match`.
+`{ v, players: [{ i, n, f, c }] }`: asset id, display name, full name and club id, for the autocomplete. `ETag: "<boot>-<v>"` (unique per server start), `Cache-Control: no-cache` (always revalidated), `304` on a matching `If-None-Match`.
 
 ### `POST /api/daily/guess`
 
