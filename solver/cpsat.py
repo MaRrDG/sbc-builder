@@ -164,10 +164,22 @@ def solve(p):
             groups.setdefault(pl["groups"][par], []).append(i)
         return {g: sum(used[i] for i in ids) for g, ids in groups.items()}
 
+    # Soft play mode: each objective is a `group` of count / slotCount constraints, enforced only when
+    # its Bool met[g] is true; the objective below covers as many groups as it can.
+    soft = play and bool(p.get("soft"))
+    met = {}
+
+    def enforce(c, ct):
+        g = c.get("group") if soft else None
+        if g is not None:
+            if g not in met:
+                met[g] = m.NewBoolVar(f"met{g}")
+            ct.OnlyEnforceIf(met[g])
+
     for c in p["constraints"]:
         kind, op, v = c["kind"], c.get("op", ">="), c.get("value", 0)
         if kind == "count":
-            m.Add(OPS[op](sum(used[i] for i in c["players"]), v))
+            enforce(c, m.Add(OPS[op](sum(used[i] for i in c["players"]), v)))
         elif kind == "chemTotal":
             m.Add(OPS[op](sum(ch) + sum(brick_ch), v))
         elif kind == "chemEach":
@@ -202,7 +214,7 @@ def solve(p):
             m.Add(OPS[op](sum(present), v))
         elif kind == "slotCount":
             slots = set(c["slots"])
-            m.Add(OPS[op](sum(x[i][s] for i in c["players"] for s in x[i] if s in slots), v))
+            enforce(c, m.Add(OPS[op](sum(x[i][s] for i in c["players"] for s in x[i] if s in slots), v)))
         else:
             raise ValueError(f"unknown constraint {kind}")
 
@@ -210,10 +222,15 @@ def solve(p):
     if play:
         # strongest squad: ratings plus chemistry (0-3 per player) weighted by chemWeight
         w = int(p.get("chemWeight", 4))
-        m.Maximize(
-            sum(pl["rating"] * used[i] for i, pl in enumerate(players))
-            + (w * (sum(ch) + sum(brick_ch)) if ch is not None else 0)
+        strength = sum(pl["rating"] * used[i] for i, pl in enumerate(players)) + (
+            w * (sum(ch) + sum(brick_ch)) if ch is not None else 0
         )
+        if met:
+            # one more covered objective beats any rating + chemistry difference
+            cover_weight = 99 * n_slots + w * MAX_CHEM * (n_slots + len(bricks)) + 1
+            m.Maximize(cover_weight * sum(met.values()) + strength)
+        else:
+            m.Maximize(strength)
     else:
         # Costs are floats; CP-SAT wants integers. Keeping a placed player outweighs any cost.
         m.Minimize(
@@ -225,6 +242,11 @@ def solve(p):
     solver.parameters.max_time_in_seconds = float(p.get("timeLimit", 10))
     solver.parameters.num_workers = int(p.get("workers") or min(16, os.cpu_count() or 8))
     solver.parameters.relative_gap_limit = 0.005
+    if met:
+        # the cover bonus inflates the objective: a 0.5% gap of it would let the squad lose ~1 OVR, so
+        # stop at the gap a plain play solve allows on rating + chemistry alone (~0.5% of the most it can be)
+        solver.parameters.relative_gap_limit = 0
+        solver.parameters.absolute_gap_limit = 0.005 * cover_weight
     status = solver.Solve(m)
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         return {"status": solver.StatusName(status)}
@@ -245,13 +267,17 @@ def solve(p):
         if slots[s] is None:
             slots[s] = offs.pop()
     kept = [i for i, (_s, k) in keep.items() if solver.Value(k)]
-    return {
+    out = {
         "status": solver.StatusName(status),
         "slots": slots,
         "kept": kept,
         "cost": solver.ObjectiveValue() if play else (solver.ObjectiveValue() + keep_bonus * len(kept)) / 100,
         "wallTime": solver.WallTime(),
     }
+    if met:  # groups the solver says it covered (the server re-checks); cost stays rating + chemistry
+        out["groupsMet"] = sorted(g for g, b in met.items() if solver.Value(b))
+        out["cost"] -= cover_weight * len(out["groupsMet"])
+    return out
 
 
 def solve_points(p):
