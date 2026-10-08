@@ -20,6 +20,8 @@ export const it: Record<Keys, string> = {
   'meta.landing': 'FC Solver · risolvi le SBC di EA FC 27 con il tuo club',
   'meta.guide': 'Come funziona FC Solver · SBC di EA FC 27',
   'meta.setup': 'Installa l’estensione FC Solver · EA FC 27',
+  'meta.daily': 'FC Solver Daily · Indovina il giocatore EA FC di oggi',
+  'daily.name': 'FC Solver Daily',
   'meta.signin': 'Accedi · FC Solver',
 
   // top bar

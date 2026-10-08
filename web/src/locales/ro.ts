@@ -11,6 +11,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'meta.landing': 'FC Solver · soluții SBC EA FC 27 din clubul tău',
   'meta.guide': 'Cum funcționează FC Solver · SBC-uri EA FC 27',
   'meta.setup': 'Instalează extensia FC Solver · EA FC 27',
+  'meta.daily': 'FC Solver Daily · Ghicește jucătorul EA FC al zilei',
+  'daily.name': 'FC Solver Daily',
   'meta.signin': 'Autentificare · FC Solver',
   'time.never': 'niciodată',
   'time.justNow': 'chiar acum',

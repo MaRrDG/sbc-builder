@@ -28,6 +28,7 @@ export type Route =
   | { view: 'invite' }
   | { view: 'setup' }
   | { view: 'guide' }
+  | { view: 'daily'; practice: boolean }
   | { view: 'gallery'; setId: string | null }
   | { view: 'objectives'; step: ObjStep }
   | { view: 'admin'; page: AdminPage; userId: string | null; query: string }
@@ -64,6 +65,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (a === 'signin') return b === 'callback' ? { view: 'ssoCallback' } : { view: 'signin', next: new URLSearchParams(search).get('next') ?? '/dashboard' };
   if (a === 'setup') return { view: 'setup' };
   if (a === 'guide') return { view: 'guide' };
+  if (a === 'daily') return { view: 'daily', practice: b === 'practice' };
   if (a === 'terms' || a === 'privacy' || a === 'cookies') return { view: 'legal', doc: a };
   const [x, y, z] = a === 'dashboard' ? parts.slice(1) : parts;
   if (x === 'club') return { view: 'club' };
@@ -105,6 +107,8 @@ export function routePath(r: Route): string {
     case 'setup':
     case 'guide':
       return `/${r.view}`;
+    case 'daily':
+      return r.practice ? '/daily/practice' : '/daily';
     case 'club':
     case 'evolutions':
     case 'settings':
