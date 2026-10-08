@@ -3426,8 +3426,28 @@ button.card:active {
     transform: none;
   }
 
+  /* tap targets: the menu is a column with a max-height, so without flex: none the items squeezed
+     down to ~24px once the admin links made the list taller than the screen */
+  .sidebar > * {
+    flex: none;
+  }
+
   .nav-item {
-    height: 46px;
+    height: auto;
+    min-height: 46px;
+    padding-block: 10px;
+    font-size: 15px;
+  }
+
+  .nav-item svg {
+    font-size: 20px;
+  }
+
+  .nav-item.nav-sub-item {
+    height: auto;
+    min-height: 44px;
+    padding-left: 42px;
+    font-size: 15px;
   }
 
   .top-controls {
