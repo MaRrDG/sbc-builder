@@ -1502,6 +1502,29 @@ h3 {
 
 .settings-card.locked fieldset { opacity: 0.55; }
 fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
+.daily-card .muted { margin: 0 0 14px; }
+.daily-name label { display: block; margin-bottom: 6px; font-weight: 600; }
+.daily-name-row { display: flex; gap: 8px; }
+.daily-name-row input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--bg-0);
+}
+.daily-name-row input[aria-invalid='true'] { border-color: var(--bad); }
+.ghost.bordered { flex: none; border-color: var(--line); }
+.daily-name-hint, .daily-saved { display: flex; align-items: center; gap: 6px; margin: 6px 0 4px; color: var(--ink-3); font-size: 12.5px; }
+.daily-name-hint.bad { color: var(--ink-2); }
+.daily-name-hint svg { flex: none; color: var(--bad); font-size: 15px; }
+.daily-saved { margin: 4px 0 0; color: var(--ink-2); }
+.daily-saved svg { color: var(--go); font-size: 15px; }
+@media (max-width: 640px) {
+  .daily-name-row input, .daily-name-row .ghost { height: 44px; }
+  .daily-card .switch { min-height: 44px; }
+}
 .locked-note {
   display: flex;
   align-items: center;

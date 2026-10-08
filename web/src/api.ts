@@ -406,7 +406,10 @@ export interface DailySilhouette { rating: number; position: string; rareflag: n
 export interface DailyRow { player: DailyPlayer; tiles: DailyTiles }
 export interface DailyStats { played: number; won: number; current: number; best: number; dist: number[]; next: { target: number; points: number } }
 export interface DailyGame { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; stats: DailyStats }
-export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; game?: DailyGame }
+export interface DailyProfile { username: string | null; leaderboard: boolean; asked: boolean }
+export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; players: number; me?: DailyProfile; game?: DailyGame }
+export interface DailyLbRow { rank: number; username: string; wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number }
+export interface DailyLeaderboard { rows: DailyLbRow[]; me: (DailyLbRow & { inTop: boolean }) | null; total: number }
 export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
 export interface DailyName { i: number; n: string; f: string; c: number }
 
@@ -418,6 +421,8 @@ export const api = {
     practice: () => req<{ token: string }>('/api/daily/practice', { method: 'POST' }),
     practiceGuess: (token: string, assetId: number, state?: string) =>
       req<DailyGuess>('/api/daily/practice/guess', { method: 'POST', body: { token, assetId, state } }),
+    leaderboard: () => req<DailyLeaderboard>('/api/daily/leaderboard'),
+    saveProfile: (p: { username?: string; leaderboard?: boolean; asked?: true }) => req<DailyProfile>('/api/me/daily-profile', { method: 'PUT', body: p }),
   },
   me: () =>
     req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; takenOver: boolean; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null }>('/api/me'),

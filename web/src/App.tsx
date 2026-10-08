@@ -30,6 +30,7 @@ import { PlanCard } from './components/PlanCard';
 import { InvitePage } from './components/InvitePage';
 import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
+import { DailyProfileCard } from './components/DailyProfileCard';
 import { QuotaMeter } from './components/QuotaMeter';
 import { ClubSyncModal } from './components/ClubSyncModal';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -1018,6 +1019,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                 <div className="settings-side">
                 <PlanCard plan={effectivePlan} now={now} onInvite={() => navigate({ view: 'invite' })} />
                 {prefs && <EmailAlertsCard premium={premium} prefs={prefs} onChange={setPrefs} />}
+                <DailyProfileCard />
                 <AccountCard email={me?.email ?? ''} personas={linked} onUnlink={unlink} onSignOut={doSignOut} />
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
                 <aside className="settings-card">

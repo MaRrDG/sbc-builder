@@ -2,13 +2,15 @@
 // Signed in, the server keeps today's game and stats; signed out, the browser keeps them (store.ts)
 // and sends back the server's signed state token. Practice lives in memory only.
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ChartBar, Question } from '@phosphor-icons/react';
-import { api, ApiError, type DailyAnswer, type DailyGuess, type DailyInfo, type DailyName, type DailyRow, type DailySilhouette, type DailyStats, type Meta } from '../api';
+import { ChartBar, Question, Trophy } from '@phosphor-icons/react';
+import { api, ApiError, type DailyAnswer, type DailyGuess, type DailyInfo, type DailyName, type DailyProfile, type DailyRow, type DailySilhouette, type DailyStats, type Meta } from '../api';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { errorText } from '../messages';
 import { routePath, type Route } from '../route';
 import { Grid } from './Grid';
+import { Leaderboard } from './Leaderboard';
+import { ProfilePrompt } from './ProfilePrompt';
 import { Search } from './Search';
 import { Sheet, HowTo, StatsBody } from './Sheets';
 import { Stage } from './Stage';
@@ -37,6 +39,9 @@ const media = (q: string) => typeof window !== 'undefined' && !!window.matchMedi
 const reducedMotion = () => media('(prefers-reduced-motion: reduce)');
 /** phones get the stats as a sheet at the end; wider screens show them inline next to the card */
 const phone = () => media('(max-width: 640px)');
+type SheetKind = 'help' | 'stats' | 'lb' | 'prompt';
+/** a signed-in player who was never asked whether to appear on the leaderboard */
+const unasked = (inf: DailyInfo) => inf.signedIn && !!inf.me && !inf.me.asked;
 
 export default function Daily({ signedIn, authReady, practice, navigate }: Props) {
   const { t, lang, setLang } = useI18n();
@@ -54,7 +59,8 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
   const [shake, setShake] = useState(0);
   const [fresh, setFresh] = useState<number | null>(null);
   const [reveal, setReveal] = useState(false);
-  const [sheet, setSheet] = useState<'help' | 'stats' | null>(() => (seenHelp() ? null : 'help'));
+  const [sheet, setSheet] = useState<SheetKind | null>(() => (seenHelp() ? null : 'help'));
+  const afterPrompt = useRef<SheetKind | null>(null); // what opens when the leaderboard prompt closes
   const run = useRef(0); // drops answers of an older load / game
   const mode = useRef(practice); // the mode the current game belongs to
   const statsTimer = useRef<number | undefined>(undefined);
@@ -102,8 +108,10 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
       if (m) setMeta(m);
       setStats(inf.game?.stats ?? (inf.signedIn ? null : localStats(loadPlays(), inf.day)));
       if (practice) return void startPractice();
-      if (inf.signedIn) resetGame(inf.game ? { rows: inf.game.rows, finished: inf.game.finished, won: inf.game.won, silhouette: inf.game.silhouette, answer: inf.game.answer } : EMPTY);
-      else {
+      if (inf.signedIn) {
+        resetGame(inf.game ? { rows: inf.game.rows, finished: inf.game.finished, won: inf.game.won, silhouette: inf.game.silhouette, answer: inf.game.answer } : EMPTY);
+        if (inf.game?.finished && unasked(inf)) later('prompt', null);
+      } else {
         const saved = loadGame(inf.day);
         resetGame(saved ? { rows: saved.rows, finished: saved.finished, won: saved.won, silhouette: saved.silhouette, answer: saved.answer } : EMPTY);
         if (saved) setState(saved.state);
@@ -119,6 +127,22 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
   }, [authReady, signedIn, practice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => window.clearTimeout(statsTimer.current), []);
+
+  /** Opens a sheet once the reveal has played (at once without motion), unless another one is open. */
+  function later(s: SheetKind, then: SheetKind | null) {
+    window.clearTimeout(statsTimer.current);
+    statsTimer.current = window.setTimeout(
+      () =>
+        setSheet((cur) => {
+          if (cur) return cur;
+          afterPrompt.current = then;
+          return s;
+        }),
+      reducedMotion() ? 0 : 1200,
+    );
+  }
+
+  const setProfile = (me: DailyProfile) => setInfo((i) => (i ? { ...i, me } : i));
 
   const guess = async (p: DailyName) => {
     if (busy || game.finished || !info || (practice && !token)) return;
@@ -160,10 +184,9 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
           setStats(localStats(loadPlays(), info.day));
         }
       }
-      if (r.finished && phone()) {
-        window.clearTimeout(statsTimer.current);
-        statsTimer.current = window.setTimeout(() => setSheet((s) => s ?? 'stats'), reducedMotion() ? 0 : 1200);
-      }
+      // after the reveal: the leaderboard question first (once per account), then the stats on phones
+      if (r.finished && info.signedIn && unasked(info)) later('prompt', phone() ? 'stats' : null);
+      else if (r.finished && phone()) later('stats', null);
     } catch (e) {
       if (id !== run.current) return;
       if (e instanceof ApiError && e.code === 'dailyExpired') return expired();
@@ -231,6 +254,9 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
             <button type="button" className="dg-icon-btn" aria-label={t('daily.stats')} title={t('daily.stats')} onClick={() => setSheet('stats')}>
               <ChartBar weight="bold" aria-hidden="true" />
             </button>
+            <button type="button" className="dg-icon-btn" aria-label={t('daily.lb.button')} title={t('daily.lb.button')} onClick={() => setSheet('lb')}>
+              <Trophy weight="bold" aria-hidden="true" />
+            </button>
           </div>
         </div>
 
@@ -288,6 +314,27 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
       <Sheet open={sheet === 'stats'} title={t('daily.stats')} onClose={() => setSheet(null)}>
         <StatsBody stats={stats} signedIn={signedIn} today={!practice && game.finished && game.won ? game.rows.length : null} points={points} />
       </Sheet>
+      <Sheet open={sheet === 'lb'} title={t('daily.lb.title')} onClose={() => setSheet((s) => (s === 'lb' ? null : s))}>
+        <Leaderboard
+          signedIn={signedIn && !!info?.signedIn}
+          me={info?.me}
+          signIn={link({ view: 'signin', next: practice ? '/daily/practice' : '/daily' }, 'dg-invite-link', t('landing.signIn'))}
+          onJoin={() => {
+            afterPrompt.current = 'lb';
+            setSheet('prompt');
+          }}
+        />
+      </Sheet>
+      <ProfilePrompt
+        open={sheet === 'prompt'}
+        username={info?.me?.username ?? null}
+        onProfile={setProfile}
+        onClose={() => {
+          const next = afterPrompt.current;
+          afterPrompt.current = null;
+          setSheet((s) => (s === 'prompt' ? next : s));
+        }}
+      />
     </div>
   );
 }
