@@ -4,12 +4,12 @@
 // player / nation / league names are EA's; only our own labels are translated.
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { ArrowsClockwise, Check, CheckCircle, CheckSquare, Gift, HandPointing, SoccerBall, Square, UsersThree, Warning, XCircle } from '@phosphor-icons/react';
-import { api, ApiError, type Challenge, type Meta, type ObjAward, type ObjCondition, type Player, type ObjectiveGroupView, type ObjectivesResponse, type ObjectivesSolve, type SolveResult } from '../../api';
+import { api, ApiError, type Challenge, type Meta, type ObjAward, type ObjCondition, type Player, type ObjectiveGroupView, type ObjectiveView, type ObjectivesResponse, type ObjectivesSolve, type SolveResult } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
 import { errorText } from '../../messages';
 import type { ObjStep } from '../../route';
 import { layout, Pitch } from '../Pitch';
-import { awardText, conditionLabel, formationKey, formationLabel, isStale, pickKey, radioMove, reachableStep, resultKey, splitGroups, timeLeft } from './objectives';
+import { awardText, conditionLabel, doneKey, formationKey, formationLabel, isStale, pickKey, pruneManual, radioMove, reachableStep, resultKey, splitGroups, timeLeft, type GroupSplit } from './objectives';
 
 const ROLE_ICON = { score: SoccerBall, assist: HandPointing, xi: UsersThree } as const;
 const NO_IDS = new Set<number>();
@@ -96,9 +96,53 @@ export function ObjStepper({ step, reach, onStep }: { step: ObjStep; reach: ObjS
   );
 }
 
-/** The groups' tickable objectives, one checkbox each (also the Premium demo). Pass groups through splitGroups first. */
-export function ObjectiveGroups({ groups, meta, picked, onToggle, now }: {
-  groups: ObjectiveGroupView[]; meta: Pick<Meta, 'names'>; picked: number[]; onToggle: (id: number) => void; now: number;
+/** "Mark as done" / "Undo" for the user who plays on console while the web app (and EA's progress) stays shut. */
+function MarkButton({ id, marked, onMark }: { id: number; marked: boolean; onMark: (id: number, done: boolean) => void }) {
+  const { t } = useI18n();
+  return (
+    <button type="button" className="obj-link obj-mark" aria-describedby={`obj-name-${id}`} onClick={() => onMark(id, !marked)}>
+      {marked ? t('obj.undo') : t('obj.markDone')}
+    </button>
+  );
+}
+
+/** Done objectives of one group (EA says so, or marked by the user), folded away: ✓ + "Done", never tickable. */
+function DoneObjectives({ objectives, manual, onMark }: {
+  objectives: ObjectiveView[]; manual: Set<number>; onMark?: (id: number, done: boolean) => void;
+}) {
+  const { t } = useI18n();
+  if (!objectives.length) return null;
+  return (
+    <details className="obj-done">
+      <summary>{t('obj.doneList', { n: objectives.length })}</summary>
+      <ul>
+        {objectives.map((o) => {
+          const mine = manual.has(o.id) && !o.done;
+          return (
+            <li key={o.id}>
+              <span className="obj-done-state">
+                <CheckCircle weight="fill" aria-hidden="true" /> {t('obj.done')}
+              </span>
+              <span className="obj-name" id={`obj-name-${o.id}`}>{o.name}</span>
+              <span className="obj-progress">{o.progress}/{o.target}</span>
+              {mine && (
+                <span className="obj-done-mine">
+                  {t('obj.markedByYou')}
+                  {onMark && <MarkButton id={o.id} marked onMark={onMark} />}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </details>
+  );
+}
+
+/** The groups' tickable objectives, one checkbox each, done ones folded per group (also the Premium demo). Pass groups through splitGroups first. */
+export function ObjectiveGroups({ groups, meta, picked, onToggle, now, manual = NO_IDS, onMark }: {
+  groups: GroupSplit[]; meta: Pick<Meta, 'names'>; picked: number[]; onToggle: (id: number) => void; now: number;
+  manual?: Set<number>; onMark?: (id: number, done: boolean) => void;
 }) {
   const { t } = useI18n();
   return (
@@ -115,28 +159,36 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now }: {
               </p>
               <Rewards awards={g.awards} />
             </header>
-            <ul className="obj-list">
-              {g.objectives.map((o) => {
-                const on = picked.includes(o.id);
-                return (
-                  <li key={o.id} className={`obj-item${on ? ' is-on' : ''}`}>
-                    <button
-                      type="button" className="obj-check" role="checkbox" aria-checked={on}
-                      aria-describedby={`obj-desc-${o.id}`} onClick={() => onToggle(o.id)}
-                    >
-                      {on ? <CheckSquare weight="fill" aria-hidden="true" /> : <Square weight="bold" aria-hidden="true" />}
-                      <span className="obj-name">{o.name}</span>
-                      <span className="obj-progress">{o.progress}/{o.target}</span>
-                    </button>
-                    <div className="obj-body">
-                      <p className="obj-desc" id={`obj-desc-${o.id}`}>{o.description}</p>
-                      <Pills conditions={o.conditions} meta={meta} />
-                      <Rewards awards={o.awards} />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+            {g.objectives.length > 0 && (
+              <ul className="obj-list">
+                {g.objectives.map((o) => {
+                  const on = picked.includes(o.id);
+                  return (
+                    <li key={o.id} className={`obj-item${on ? ' is-on' : ''}`}>
+                      <button
+                        type="button" className="obj-check" role="checkbox" aria-checked={on}
+                        aria-describedby={`obj-desc-${o.id}`} onClick={() => onToggle(o.id)}
+                      >
+                        {on ? <CheckSquare weight="fill" aria-hidden="true" /> : <Square weight="bold" aria-hidden="true" />}
+                        <span className="obj-name" id={`obj-name-${o.id}`}>{o.name}</span>
+                        <span className="obj-progress">{o.progress}/{o.target}</span>
+                      </button>
+                      <div className="obj-body">
+                        <p className="obj-desc" id={`obj-desc-${o.id}`}>{o.description}</p>
+                        <Pills conditions={o.conditions} meta={meta} />
+                        {(o.awards.length > 0 || onMark) && (
+                          <div className="obj-foot">
+                            <Rewards awards={o.awards} />
+                            {onMark && <MarkButton id={o.id} marked={false} onMark={onMark} />}
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <DoneObjectives objectives={g.done} manual={manual} onMark={onMark} />
           </article>
         );
       })}
@@ -145,7 +197,7 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now }: {
 }
 
 /** Objectives FC Solver cannot build a squad for, folded into one block so they never mix with the tickable ones. */
-function OtherObjectives({ groups, count }: { groups: ObjectiveGroupView[]; count: number }) {
+function OtherObjectives({ groups, count, onMark }: { groups: ObjectiveGroupView[]; count: number; onMark: (id: number, done: boolean) => void }) {
   const { t } = useI18n();
   if (!count) return null;
   return (
@@ -157,8 +209,9 @@ function OtherObjectives({ groups, count }: { groups: ObjectiveGroupView[]; coun
           <ul>
             {g.objectives.map((o) => (
               <li key={o.id}>
-                <span className="obj-name">{o.name}</span>
+                <span className="obj-name" id={`obj-name-${o.id}`}>{o.name}</span>
                 <span className="obj-progress">{o.progress}/{o.target}</span>
+                <MarkButton id={o.id} marked={false} onMark={onMark} />
                 <p className="obj-desc">{o.description}</p>
               </li>
             ))}
@@ -231,7 +284,13 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
     const r = readJson<Saved | null>(resultKey(personaId), null);
     return r && Array.isArray(r.slots) && Array.isArray(r.covers) && Array.isArray(r.reasons) ? r : null; // ignore a damaged save
   });
+  // objectives the user marked done (played on console, EA's progress not refreshed yet)
+  const [manual, setManual] = useState<number[]>(() => readJson(doneKey(personaId), []));
   const [solving, setSolving] = useState(false);
+  // the last Build failed outright (network / server): shown on step 3 instead of an older squad
+  const [buildError, setBuildError] = useState<unknown>(null);
+  // step 3 was reached through Build: the stale hint is only for someone who comes back to an old squad
+  const [fresh, setFresh] = useState(false);
   const headRef = useRef<HTMLHeadingElement>(null);
   const firstStep = useRef(true);
   const now = Date.now();
@@ -246,6 +305,8 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       (d) => {
         if (!alive) return;
         setData(d);
+        // EA now says it is done, or it is gone: the manual mark is no longer needed
+        setManual((m) => pruneManual(m, d.groups));
       },
       (e) => {
         if (!alive) return;
@@ -260,15 +321,21 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   }, [personaId, tries]);
 
   useEffect(() => writeJson(pickKey(personaId), picked), [personaId, picked]);
+  useEffect(() => writeJson(doneKey(personaId), manual), [personaId, manual]);
   useEffect(() => {
     if (chosen) writeJson(formationKey(personaId), chosen);
   }, [personaId, chosen]);
 
-  const split = useMemo(() => splitGroups(data?.groups ?? []), [data]);
+  const split = useMemo(() => splitGroups(data?.groups ?? [], manual), [data, manual]);
+  const manualSet = useMemo(() => new Set(manual), [manual]);
   const open = useMemo(() => new Map(split.squad.flatMap((g) => g.objectives.map((o) => [o.id, o] as const))), [split]);
   // a ticked objective that has since been done (or has left the web app) drops out
   const active = picked.filter((id) => open.has(id));
   const toggle = (id: number) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+  const mark = (id: number, done: boolean) => {
+    setManual((m) => (done ? (m.includes(id) ? m : [...m, id]) : m.filter((x) => x !== id)));
+    if (done) setPicked((p) => p.filter((x) => x !== id));
+  };
 
   // picked here, else the active squad's (if the web app loaded it), else 4-3-3
   const valid = (f: string | null | undefined): f is string => !!f && Object.hasOwn(meta.formations, f);
@@ -280,8 +347,9 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
   );
 
   // a deep link past what is done lands on the earliest incomplete step (judged once the objectives are in)
-  const reach = reachableStep('squad', active.length, !!result || solving);
-  const shownStep = data ? reachableStep(step, active.length, !!result || solving) : step;
+  const hasSquad = !!result || solving || buildError !== null;
+  const reach = reachableStep('squad', active.length, hasSquad);
+  const shownStep = data ? reachableStep(step, active.length, hasSquad) : step;
   useEffect(() => {
     if (data && shownStep !== step) onStep(shownStep, true);
   }, [data, shownStep, step, onStep]);
@@ -296,9 +364,18 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
     headRef.current?.focus({ preventScroll: true });
   }, [shownStep]);
 
+  // leaving step 3 ends that visit: an outright failure is forgotten, a later return may see the stale hint
+  useEffect(() => {
+    if (shownStep === 'squad') return;
+    setFresh(false);
+    setBuildError(null);
+  }, [shownStep]);
+
   const build = async () => {
     if (!active.length || solving) return;
     setSolving(true);
+    setBuildError(null);
+    setFresh(true);
     if (step !== 'squad') onStep('squad');
     try {
       const r = await api.solveObjectives({ objectiveIds: active, formation, options: { excludeIds, maxRating } });
@@ -306,7 +383,9 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       setResult(saved);
       writeJson(resultKey(personaId), saved);
     } catch (e) {
-      onError(e);
+      // persona errors go to App (reloads who we are); anything else is shown in place on step 3
+      if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onError(e);
+      setBuildError(e);
     } finally {
       setSolving(false);
     }
@@ -354,15 +433,14 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
           <h2 ref={headRef} tabIndex={-1}>{t('obj.pickTitle')}</h2>
           <p className="muted">{t('obj.pickLede')}</p>
         </div>
-        {split.squad.length ? (
-          <ObjectiveGroups groups={split.squad} meta={meta} picked={active} onToggle={toggle} now={now} />
-        ) : (
+        {open.size === 0 && (
           <div className="obj-empty">
             <Warning weight="bold" aria-hidden="true" />
             <p>{t('obj.noneTickable')}</p>
           </div>
         )}
-        <OtherObjectives groups={split.other} count={split.otherCount} />
+        <ObjectiveGroups groups={split.squad} meta={meta} picked={active} onToggle={toggle} now={now} manual={manualSet} onMark={mark} />
+        <OtherObjectives groups={split.other} count={split.otherCount} onMark={mark} />
         <div className="obj-bar">
           <span className="obj-count" aria-live="polite">{t('obj.picked', { count: active.length })}</span>
           <button type="button" className="solve-sm" disabled={!active.length} onClick={() => onStep('formation')}>
@@ -397,9 +475,10 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       </section>
     );
 
-  // Step 3. While solving: the picked conditions on an empty squad; after: the answer.
-  const shown = result && !solving ? result : null;
-  const stale = !!shown && isStale(shown, active, formation);
+  // Step 3. While solving: the picked conditions on an empty squad; after: the answer (or why there is none).
+  const shown = result && !solving && buildError === null ? result : null;
+  // the stale hint is for someone who comes back to an older squad, never right after Build
+  const stale = !!shown && !fresh && isStale(shown, active, formation);
   const failed = !!shown && !shown.found;
   const conds: ObjCondition[] = shown ? shown.covers.map((c) => c.condition) : active.flatMap((id) => open.get(id)?.conditions ?? []);
   const challenge: Challenge = {
@@ -428,6 +507,11 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
       <button type="button" className="ghost" onClick={() => onStep('pick')}>{t('obj.editObjectives')}</button>
     </>
   );
+  const buildAgain = (
+    <button type="button" className="solve-sm" disabled={!active.length || solving} onClick={() => void build()}>
+      {t('obj.buildAgain')}
+    </button>
+  );
 
   return (
     <section className="objectives-view">
@@ -437,13 +521,25 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
         <h2 ref={headRef} tabIndex={-1}>{t('obj.resultTitle')}</h2>
         <p className="muted">{t('obj.inFormation', { formation: formationLabel(shown?.formation ?? formation) })}</p>
       </div>
-      {solving && <p className="sr-only" role="status">{t('obj.solving')}</p>}
       {stale && (
         <p className="obj-stale" role="status">
           <ArrowsClockwise weight="bold" aria-hidden="true" /> {t('obj.stale')}
         </p>
       )}
-      {failed && (
+
+      {buildError !== null && !solving ? (
+        <div className="obj-fail" role="alert">
+          <h3>
+            <XCircle weight="fill" aria-hidden="true" /> {t('obj.buildFailed')}
+          </h3>
+          <p className="obj-fail-text">{errorText(buildError, t)}</p>
+          <div className="obj-fail-actions">
+            {buildAgain}
+            {backActions}
+          </div>
+        </div>
+      ) : failed ? (
+        // no squad: the reasons and the ways out, not an empty pitch
         <div className="obj-fail" role="alert">
           <h3>
             <XCircle weight="fill" aria-hidden="true" /> {t('obj.failTitle')}
@@ -459,57 +555,75 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
               ))}
             </ul>
           )}
-          <div className="obj-fail-actions">{backActions}</div>
+          <div className="obj-fail-actions">
+            {stale && buildAgain}
+            {backActions}
+          </div>
+        </div>
+      ) : (
+        <div className="obj-result">
+          <div className="obj-pitch">
+            <Pitch
+              meta={meta}
+              challenge={challenge}
+              result={pitchResult}
+              solving={solving}
+              onSolve={() => void build()}
+              onToggleOptions={() => {}}
+              lock={null}
+              localOptions={false}
+              placed={NO_PLACED}
+              selectedId={null}
+              onPlayerClick={() => {}}
+              outOfSolves={!active.length}
+              marked={NO_IDS}
+              cheaper={false}
+              corners={false}
+              badges={badges}
+            />
+          </div>
+          <aside className="obj-side" aria-label={t('obj.summary')}>
+            {solving || !shown ? (
+              <p className="muted" role="status">{t('obj.solving')}</p>
+            ) : (
+              <>
+                <dl className="obj-stats">
+                  <div>
+                    <dt>{t('pitch.rating')}</dt>
+                    <dd>{shown.eval?.rating ?? 0}</dd>
+                  </div>
+                  <div>
+                    <dt>{t('pitch.chemistry')}</dt>
+                    <dd>{shown.eval?.chemistry ?? 0}/33</dd>
+                  </div>
+                </dl>
+                <h3>{t('obj.step.pick')}</h3>
+                <ul className="obj-covers">
+                  {shown.covers.map((c, i) => {
+                    const ids = new Set(c.itemIds);
+                    const who = shown.slots.flatMap((s) => (s.player && ids.has(s.player.id) ? [`${s.player.name} (${s.position.name})`] : []));
+                    return (
+                      <li key={i} className={c.met ? 'is-met' : 'is-miss'}>
+                        {c.met ? <CheckCircle className="tick" weight="fill" aria-label={t('obj.met')} /> : <XCircle className="tick" weight="fill" aria-label={t('obj.notMet')} />}
+                        <span>
+                          {nameOf(c.objectiveId) && <strong>{nameOf(c.objectiveId)}: </strong>}
+                          {conditionLabel(c.condition, meta, t)}
+                          {who.length ? <span className="obj-who"> → {who.join(', ')}</span> : null}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </>
+            )}
+          </aside>
         </div>
       )}
-      <div className="obj-result">
-        <div className="obj-pitch">
-          <Pitch
-            meta={meta}
-            challenge={challenge}
-            result={pitchResult}
-            solving={solving}
-            onSolve={() => void build()}
-            onToggleOptions={() => {}}
-            lock={null}
-            localOptions={false}
-            placed={NO_PLACED}
-            selectedId={null}
-            onPlayerClick={() => {}}
-            outOfSolves={!active.length}
-            marked={NO_IDS}
-            cheaper={false}
-            corners={false}
-            badges={badges}
-          />
-        </div>
-        {shown && (
-          <ul className="obj-covers">
-            {shown.covers.map((c, i) => {
-              const ids = new Set(c.itemIds);
-              const who = shown.slots.flatMap((s) => (s.player && ids.has(s.player.id) ? [`${s.player.name} (${s.position.name})`] : []));
-              return (
-                <li key={i} className={c.met ? 'is-met' : 'is-miss'}>
-                  {c.met ? <CheckCircle className="tick" weight="fill" aria-label={t('obj.met')} /> : <XCircle className="tick" weight="fill" aria-label={t('obj.notMet')} />}
-                  <span>
-                    {nameOf(c.objectiveId) && <strong>{nameOf(c.objectiveId)}: </strong>}
-                    {conditionLabel(c.condition, meta, t)}
-                    {who.length ? <span className="obj-who"> → {who.join(', ')}</span> : null}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-      {(!failed || stale) && (
+
+      {!failed && buildError === null && (
         <div className="obj-bar">
-          {!failed && <div className="obj-bar-left">{backActions}</div>}
-          {stale && (
-            <button type="button" className="solve-sm" disabled={!active.length || solving} onClick={() => void build()}>
-              {t('obj.buildAgain')}
-            </button>
-          )}
+          <div className="obj-bar-left">{backActions}</div>
+          {stale && buildAgain}
         </div>
       )}
     </section>

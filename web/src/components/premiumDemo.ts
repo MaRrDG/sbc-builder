@@ -60,10 +60,10 @@ export const DEMO_OBJECTIVES: ObjectiveGroupView[] = [
   {
     id: 1, title: 'Squad Foundations', category: 'Campaigns', endsAt: null, awards: [],
     objectives: [
-      { id: 11, name: 'Spanish Flair', description: 'Score 4 goals using a Spanish player in any FUT game mode.', progress: 1, target: 4, awards: [], conditions: [{ role: 'score', min: 1, filter: { nation: [45] } }] },
-      { id: 12, name: 'Serie A Starters', description: 'Win 2 matches with at least 3 Serie A Enilive players in your starting 11.', progress: 0, target: 2, awards: [], conditions: [{ role: 'xi', min: 3, filter: { league: [31] } }] },
-      { id: 13, name: 'Creator', description: 'Assist 3 goals using an English player.', progress: 2, target: 3, awards: [], conditions: [{ role: 'assist', min: 1, filter: { nation: [14] } }] },
-      { id: 14, name: 'Play Matches', description: 'Play 5 matches in any FUT game mode.', progress: 3, target: 5, awards: [], conditions: [] },
+      { id: 11, name: 'Spanish Flair', description: 'Score 4 goals using a Spanish player in any FUT game mode.', progress: 1, target: 4, awards: [], done: false, conditions: [{ role: 'score', min: 1, filter: { nation: [45] } }] },
+      { id: 12, name: 'Serie A Starters', description: 'Win 2 matches with at least 3 Serie A Enilive players in your starting 11.', progress: 0, target: 2, awards: [], done: false, conditions: [{ role: 'xi', min: 3, filter: { league: [31] } }] },
+      { id: 13, name: 'Creator', description: 'Assist 3 goals using an English player.', progress: 2, target: 3, awards: [], done: false, conditions: [{ role: 'assist', min: 1, filter: { nation: [14] } }] },
+      { id: 14, name: 'Play Matches', description: 'Play 5 matches in any FUT game mode.', progress: 3, target: 5, awards: [], done: false, conditions: [] },
     ],
   },
 ];

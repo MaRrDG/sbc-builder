@@ -49,7 +49,7 @@ import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
-import { openGroups } from './objectives/open.js';
+import { openGroups, solvable } from './objectives/open.js';
 import { solveObjectives } from './objectives/solve.js';
 import type { Condition, EaCategory } from './objectives/types.js';
 import { db, initDb } from './db/index.js';
@@ -572,7 +572,7 @@ app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excl
     const formation = typeof req.body?.formation === 'string' ? req.body.formation : '';
     if (!Object.hasOwn(meta.formations, formation)) return reply.code(400).send({ error: 'unknown formation', code: 'badFormation', params: {} });
     const { groups } = await objectiveGroups(acc, meta);
-    const picked = groups.flatMap((g) => g.objectives).filter((o) => ids.includes(o.id) && o.conditions.length > 0);
+    const picked = groups.flatMap((g) => g.objectives).filter((o) => ids.includes(o.id) && solvable(o));
     if (picked.length === 0) return reply.code(400).send({ error: 'pick at least one objective with a squad condition', code: 'noObjectives', params: {} });
     const { players } = await clubPlayers(acc);
     if (players.length === 0) return reply.code(409).send({ error: 'club is empty (sync your club first)', code: 'clubEmpty', params: {} });
