@@ -99,3 +99,16 @@ export function radioMove(i: number, key: string, count: number): number | null 
   if (key === 'End') return count - 1;
   return null;
 }
+
+/** One entry per objective (first-seen order): covered only when every one of its conditions is met. */
+export function objectiveCoverage(covers: { objectiveId: number; met: boolean }[]): { objectiveId: number; met: boolean }[] {
+  const out = new Map<number, boolean>();
+  for (const c of covers) out.set(c.objectiveId, (out.get(c.objectiveId) ?? true) && c.met);
+  return [...out].map(([objectiveId, met]) => ({ objectiveId, met }));
+}
+
+/** The ticked ids without the objectives this squad does not cover. */
+export function dropUncovered(picked: number[], coverage: { objectiveId: number; met: boolean }[]): number[] {
+  const out = new Set(coverage.filter((c) => !c.met).map((c) => c.objectiveId));
+  return picked.filter((id) => !out.has(id));
+}
