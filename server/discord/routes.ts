@@ -18,7 +18,7 @@ import { readCache } from '../store.js';
 import { getChallenges, type SetsData } from '../sync.js';
 import { runSolve } from '../solve-run.js';
 import { parseBoosters, reconcileBoosts, stopsAllowed } from './boost.js';
-import { discordAccountIds, discordAccountOf, isDiscordId, pickPersona } from './link.js';
+import { discordAccountIds, discordOnlyEmailIds, discordAccountOf, isDiscordId, pickPersona } from './link.js';
 import { clip, defaultChallenge, matchSets, setAvailable } from './pick.js';
 import { toBotSolution, type BotStats } from './solution.js';
 
@@ -187,6 +187,14 @@ export function registerDiscordSiteRoutes(app: FastifyInstance): void {
         }
       }
       throw new SessionError('This Discord account is already linked to another FC Solver account.', 409, 'discordTaken');
+    }
+    // Clerk imports the Discord email as an extra address; FC Solver must not keep it
+    try {
+      const user = await clerkApi().users.getUser(userId);
+      for (const id of discordOnlyEmailIds(user.emailAddresses, user.externalAccounts, user.primaryEmailAddressId))
+        await clerkApi().emailAddresses.deleteEmailAddress(id);
+    } catch (e) {
+      console.warn(`[discord] could not remove the email Clerk imported from Discord: ${(e as Error).name}`);
     }
     return discordView(userId);
   });
