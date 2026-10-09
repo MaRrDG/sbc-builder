@@ -1,7 +1,7 @@
 // "Join our Discord" for the public pages (landing, /daily). The invite comes from the public
 // /api/discord/invite; no invite (or the request failing) means no link at all.
 import { useEffect, useState } from 'react';
-import { DiscordLogo } from '@phosphor-icons/react';
+import { DiscordIcon } from './DiscordIcon';
 import { useI18n } from '../i18n';
 
 let cached: Promise<string | null> | null = null;
@@ -42,7 +42,7 @@ export function DiscordLink({ invite, variant }: { invite: string | null; varian
       rel="noopener noreferrer"
       aria-label={`${text} ${t('nav.newTab')}`}
     >
-      <DiscordLogo weight="fill" aria-hidden="true" />
+      <DiscordIcon />
       <span className="discord-link-text">{text}</span>
       <span className="sr-only"> {t('nav.newTab')}</span>
     </a>
