@@ -72,11 +72,11 @@ async function apply(guild: Guild) {
     if (a.op === 'createRole') created++;
     byName.set(a.role.name.toLowerCase(), id);
   }
-  // Discord's managed Server Booster role (exists once the server had a boost): pink, hoisted, between Moderator and Member
+  // Discord's managed Server Booster role (exists once the server had a boost): pink, not listed separately, between Moderator and Member
   const booster = guild.roles.premiumSubscriberRole;
   const roleNames = ROLES.map((r) => r.name);
   if (booster) {
-    await guild.roles.edit(booster.id, { colors: { primaryColor: BRAND.boost }, hoist: true, reason }).catch((e) => console.warn(`[setup] booster role: ${(e as Error).message}`));
+    await guild.roles.edit(booster.id, { colors: { primaryColor: BRAND.boost }, hoist: false, reason }).catch((e) => console.warn(`[setup] booster role: ${(e as Error).message}`));
     byName.set(booster.name.toLowerCase(), booster.id);
     roleNames.splice(2, 0, booster.name); // Admin, Moderator, Booster, Member, …
   }
