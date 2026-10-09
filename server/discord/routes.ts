@@ -18,6 +18,7 @@ import { discordAccountIds, discordAccountOf, isDiscordId, pickPersona } from '.
 import { clip, defaultChallenge, matchSets, setAvailable } from './pick.js';
 import { toBotSolution, type BotStats } from './solution.js';
 
+const solving = new Set<string>(); // Discord ids with a solve running: one at a time, so the quota check cannot race
 const solveLimit = createLimiter({ windowMs: 60_000, max: 6 }); // per Discord user, on top of the bot's 30 s cooldown
 
 /** The FC Solver user behind a Discord id and the EA account the bot uses for them. */
@@ -55,9 +56,11 @@ export function registerBotRoutes(app: FastifyInstance): void {
 
     s.get<{ Querystring: { discordId?: string; setId?: string } }>('/api/bot/challenges', async (req) => {
       const { acc } = await botUser(req.query.discordId);
-      const chs = (await getChallenges(acc, Number(req.query.setId)))?.data ?? [];
+      const setId = Number(req.query.setId);
+      if (!Number.isInteger(setId) || setId <= 0) throw new SessionError('Bad set id.', 400, 'badRequest');
+      const chs = ((await getChallenges(acc, setId))?.data ?? []).slice(0, 25); // Discord shows 25 choices; defaultId must be one of them
       return {
-        challenges: chs.slice(0, 25).map((c) => ({ challengeId: c.challengeId, name: clip(`${c.status === 'COMPLETED' ? '✓ ' : ''}${c.name}`), done: c.status === 'COMPLETED' })),
+        challenges: chs.map((c) => ({ challengeId: c.challengeId, name: clip(`${c.status === 'COMPLETED' ? '✓ ' : ''}${c.name}`), done: c.status === 'COMPLETED' })),
         defaultId: defaultChallenge(chs),
       };
     });
@@ -68,13 +71,23 @@ export function registerBotRoutes(app: FastifyInstance): void {
       const u = await botUser(b.discordId);
       if (!solveLimit(u.discordId)) throw new SessionError('Too many solves, wait a minute.', 429, 'botRateLimited');
       const setId = Number(b.setId);
+      if (!Number.isInteger(setId) || setId <= 0) throw new SessionError('Bad set id.', 400, 'badRequest');
+      if (b.challengeId !== undefined && b.challengeId !== null && !(Number.isInteger(b.challengeId) && (b.challengeId as number) > 0))
+        throw new SessionError('Bad challenge id.', 400, 'badRequest');
       const set = (await readCache<SetsData>(u.acc.key('sets')))?.data.categories.flatMap((c) => c.sets).find((x) => x.setId === setId);
       const chs = (await getChallenges(u.acc, setId))?.data ?? [];
-      const challengeId = Number.isInteger(b.challengeId) ? (b.challengeId as number) : defaultChallenge(chs);
+      const challengeId = typeof b.challengeId === 'number' ? b.challengeId : defaultChallenge(chs);
       const ch = chs.find((c) => c.challengeId === challengeId);
       if (!set || !ch) throw new SessionError('challenge not found (open it in the web app first)', 404, 'challengeNotFound');
       if (!setAvailable(set)) throw new SessionError('This SBC is done or cannot be repeated right now.', 409, 'setNotAvailable');
-      const answer = await runSolve(u.userId, u.acc, { setId, challengeId: ch.challengeId }, 'discord');
+      if (solving.has(u.discordId)) throw new SessionError('A solve is already running, wait for it.', 429, 'botRateLimited');
+      solving.add(u.discordId);
+      let answer;
+      try {
+        answer = await runSolve(u.userId, u.acc, { setId, challengeId: ch.challengeId }, 'discord');
+      } finally {
+        solving.delete(u.discordId);
+      }
       return toBotSolution(answer, { set: set.name, challenge: ch.name, setId, challengeId: ch.challengeId, lang: u.lang });
     });
 
