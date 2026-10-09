@@ -39,6 +39,8 @@ import { parseSpend } from './referrals.js';
 import { eq } from 'drizzle-orm';
 import { checkEvoAlerts, emailSecret } from './evo-alerts.js';
 import { asLang, checkUnsub } from './evo-rules.js';
+import { checkReminderUnsub } from './daily/reminder-rules.js';
+import { checkDailyReminders } from './daily/reminder.js';
 import { CARD_FILE } from './evo-card-svg.js';
 import { CARD_DIR } from './evo-card.js';
 import { prefsOf, setPrefs, trainingsOf } from './db/evos.js';
@@ -179,23 +181,36 @@ app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('
 
 // ---- users (site, Clerk session) --------------------------------------------------
 /**
- * From an evolution email: no sign-in, the HMAC proves the link came from us. GET only asks (mail link
- * scanners open links on their own); the POST, from the button or the RFC 8058 one-click header, turns emails off.
+ * From an evolution or Daily reminder email: no sign-in, the HMAC proves the link came from us. GET only asks
+ * (mail link scanners open links on their own); the POST, from the button or the RFC 8058 one-click header,
+ * turns that one kind of email off.
  */
 const UNSUB_TEXT = {
-  en: { ask: 'Stop the emails about evolution training?', button: 'Stop the emails', done: 'Done: no more evolution emails. You can turn them back on in FC Solver settings.' },
-  ro: { ask: 'Nu mai vrei emailuri despre antrenamentele evoluțiilor?', button: 'Oprește emailurile', done: 'Gata: nu mai primești emailuri despre evoluții. Le poți reporni din setările FC Solver.' },
-  it: { ask: 'Smettere di ricevere email sugli allenamenti delle evoluzioni?', button: 'Interrompi le email', done: 'Fatto: niente più email sulle evoluzioni. Puoi riattivarle nelle impostazioni di FC Solver.' },
+  evo: {
+    en: { ask: 'Stop the emails about evolution training?', button: 'Stop the emails', done: 'Done: no more evolution emails. You can turn them back on in FC Solver settings.' },
+    ro: { ask: 'Nu mai vrei emailuri despre antrenamentele evoluțiilor?', button: 'Oprește emailurile', done: 'Gata: nu mai primești emailuri despre evoluții. Le poți reporni din setările FC Solver.' },
+    it: { ask: 'Smettere di ricevere email sugli allenamenti delle evoluzioni?', button: 'Interrompi le email', done: 'Fatto: niente più email sulle evoluzioni. Puoi riattivarle nelle impostazioni di FC Solver.' },
+  },
+  daily: {
+    en: { ask: 'Stop the FC Solver Daily reminder emails?', button: 'Stop the reminders', done: 'Done: no more Daily reminders. You can turn them back on in FC Solver settings.' },
+    ro: { ask: 'Nu mai vrei memento-uri pe email pentru FC Solver Daily?', button: 'Oprește memento-urile', done: 'Gata: nu mai primești memento-uri pentru Daily. Le poți reporni din setările FC Solver.' },
+    it: { ask: 'Smettere di ricevere i promemoria di FC Solver Daily?', button: 'Interrompi i promemoria', done: 'Fatto: niente più promemoria del Daily. Puoi riattivarli nelle impostazioni di FC Solver.' },
+  },
 };
-const unsubscribe = async (req: FastifyRequest<{ Querystring: { u?: string; t?: string } }>, reply: FastifyReply) => {
+const UNSUB = {
+  evo: { path: '/api/evos/unsubscribe', check: checkUnsub, off: { evoEmails: false } },
+  daily: { path: '/api/daily/unsubscribe', check: checkReminderUnsub, off: { dailyReminder: false } },
+} as const;
+const unsubscribe = (kind: keyof typeof UNSUB) => async (req: FastifyRequest<{ Querystring: { u?: string; t?: string } }>, reply: FastifyReply) => {
+  const { path, check, off } = UNSUB[kind];
   const { u = '', t = '' } = req.query ?? {};
-  if (!u || !checkUnsub(u, t, emailSecret())) return reply.code(400).type('text/plain').send('Invalid link.');
-  const text = UNSUB_TEXT[(await prefsOf(u)).lang];
+  if (!u || !check(u, t, emailSecret())) return reply.code(400).type('text/plain').send('Invalid link.');
+  const text = UNSUB_TEXT[kind][(await prefsOf(u)).lang];
   if (req.method === 'POST') {
-    await setPrefs(u, { evoEmails: false });
+    await setPrefs(u, off);
     return reply.type('text/plain; charset=utf-8').send(text.done);
   }
-  const action = `/api/evos/unsubscribe?u=${encodeURIComponent(u)}&t=${encodeURIComponent(t)}`.replace(/&/g, '&amp;');
+  const action = `${path}?u=${encodeURIComponent(u)}&t=${encodeURIComponent(t)}`.replace(/&/g, '&amp;');
   return reply
     .type('text/html; charset=utf-8')
     .send(
@@ -208,8 +223,10 @@ const unsubscribe = async (req: FastifyRequest<{ Querystring: { u?: string; t?: 
 // query); the parser must not change how other routes treat form bodies. Root hooks (limits, headers) still apply.
 await app.register(async (s) => {
   s.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string', bodyLimit: 1024 }, (_req, _body, done) => done(null, null));
-  s.get('/api/evos/unsubscribe', unsubscribe);
-  s.post('/api/evos/unsubscribe', unsubscribe);
+  for (const kind of ['evo', 'daily'] as const) {
+    s.get(UNSUB[kind].path, unsubscribe(kind));
+    s.post(UNSUB[kind].path, unsubscribe(kind));
+  }
 });
 
 // Card images in evolution emails: public (mail clients fetch them without a session), unguessable names.
@@ -278,12 +295,13 @@ app.post('/api/points/spend', async (req, reply) => {
 const MAIL_LANGS = ['en', 'ro', 'it'];
 
 /** Email preferences. An unknown language is ignored (not coerced), a non-boolean flag too. */
-app.put<{ Body: { lang?: unknown; evoEmails?: unknown } }>('/api/me/prefs', async (req) => {
+app.put<{ Body: { lang?: unknown; evoEmails?: unknown; dailyReminder?: unknown } }>('/api/me/prefs', async (req) => {
   const userId = await siteUser(req);
   const b = req.body ?? {};
   await setPrefs(userId, {
     lang: typeof b.lang === 'string' && MAIL_LANGS.includes(b.lang) ? asLang(b.lang) : undefined,
     evoEmails: typeof b.evoEmails === 'boolean' ? b.evoEmails : undefined,
+    dailyReminder: typeof b.dailyReminder === 'boolean' ? b.dailyReminder : undefined,
   });
   return { ok: true };
 });
@@ -868,3 +886,4 @@ console.log(`FC Solver API on http://localhost:${PORT}`);
 void autoSyncAll();
 setInterval(() => void autoSyncAll(), 60 * 1000);
 setInterval(() => void checkEvoAlerts(), 60 * 1000);
+setInterval(() => void checkDailyReminders(), 60 * 1000);

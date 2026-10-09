@@ -73,6 +73,7 @@ export const users = pgTable('users', {
   founderPersona: bigint('founder_persona', { mode: 'number' }),
   lang: text('lang').notNull().default('en'), // 'en' | 'ro' | 'it', for emails; the site saves it on change
   evoEmails: boolean('evo_emails').notNull().default(true), // evolution training emails (Premium)
+  dailyReminder: boolean('daily_reminder').notNull().default(false), // Daily streak reminder email (Premium, opt-in)
   // onboarding survey (server/onboarding.ts); onboardedAt is set on answer or skip, answers stay null on a skip
   heardFrom: text('heard_from'),
   futYears: text('fut_years'),
@@ -252,6 +253,18 @@ export const dailyPlays = pgTable(
     guesses: jsonb('guesses').$type<number[]>().notNull().default([]),
     won: boolean('won').notNull().default(false),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.day] })],
+);
+
+/** Daily reminder emails (server/daily/reminder.ts): one row per user and day, so a day is never mailed twice. */
+export const dailyReminders = pgTable(
+  'daily_reminders',
+  {
+    userId: text('user_id').notNull(),
+    day: integer('day').notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }), // null: not sent yet (only failed tries)
+    tries: integer('tries').notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.userId, t.day] })],
 );

@@ -1569,6 +1569,22 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
   font-size: 13px;
 }
 .plan-card h2 { display: flex; align-items: center; gap: 8px; }
+.premium-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 600;
+  white-space: nowrap;
+  vertical-align: 1px;
+}
+.switch-hint { margin: -2px 0 4px; color: var(--ink-3); font-size: 12.5px; line-height: 1.4; }
 
 /* ---------- evolutions ---------- */
 .evo-list {

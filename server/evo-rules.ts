@@ -94,8 +94,8 @@ const TEXT: Record<MailLang, MailText> = {
 };
 
 const ENT: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ENT[c]);
-const fill = (s: string, p: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(p[k] ?? ''));
+export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ENT[c]);
+export const fill = (s: string, p: Record<string, string | number>) => s.replace(/\{(\w+)\}/g, (_, k) => String(p[k] ?? ''));
 
 export interface EvoItem { player: string; evo: string; level: number; levelCount: number; cardUrl?: string | null }
 export interface MailLinks { evosUrl: string; unsubUrl: string; logoUrl?: string }
@@ -104,17 +104,17 @@ export interface MailLinks { evosUrl: string; unsubUrl: string; logoUrl?: string
 export const isFinal = (i: { level: number; levelCount: number }) => i.levelCount > 0 && i.level >= i.levelCount;
 
 // Email palette: the site's OKLCH tokens (styles.css) as hex; mail clients don't know oklch().
-const C = { bg: '#061a20', panel: '#0d262c', line: '#24403f', ink: '#eef5f5', ink2: '#b3c4c7', go: '#35ecaa', goInk: '#002215' };
-const FONT = "font-family:'Barlow Condensed','Arial Narrow',Arial,Helvetica,sans-serif";
-const BODY_FONT = 'font-family:Arial,Helvetica,sans-serif';
+export const C = { bg: '#061a20', panel: '#0d262c', line: '#24403f', ink: '#eef5f5', ink2: '#b3c4c7', go: '#35ecaa', goInk: '#002215' };
+export const FONT = "font-family:'Barlow Condensed','Arial Narrow',Arial,Helvetica,sans-serif";
+export const BODY_FONT = 'font-family:Arial,Helvetica,sans-serif';
 
-const button = (href: string, label: string, primary: boolean) =>
+export const button = (href: string, label: string, primary: boolean) =>
   `<a href="${esc(href)}" style="display:inline-block;${BODY_FONT};font-size:15px;font-weight:700;line-height:20px;text-decoration:none;border-radius:8px;padding:12px 20px;${
     primary ? `background:${C.go};color:${C.goInk};border:1px solid ${C.go}` : `background:transparent;color:${C.ink};border:1px solid ${C.line}`
   }">${esc(label)}</a>`;
 
 /** State pill: says it in words (never by colour alone), the check mark only marks a finished evolution. */
-const badge = (label: string, done: boolean, small = false) =>
+export const badge = (label: string, done: boolean, small = false) =>
   `<span style="display:inline-block;${BODY_FONT};font-size:${small ? 12 : 13}px;font-weight:700;line-height:16px;border-radius:999px;padding:${small ? '3px 9px' : '5px 12px'};${
     done ? `background:${C.go};color:${C.goInk}` : `background:transparent;color:${C.go};border:1px solid ${C.go}`
   }">${done ? '&#10003; ' : ''}${esc(label)}</span>`;
@@ -145,8 +145,8 @@ function page(lang: MailLang, subject: string, preheader: string, inner: string,
   );
 }
 
-const h1 = (s: string) => `<h1 style="margin:0 0 18px;${FONT};font-size:28px;line-height:32px;font-weight:700;color:${C.ink}">${s}</h1>`;
-const para = (s: string, size = 15, color = C.ink) => `<p style="margin:16px 0 0;${BODY_FONT};font-size:${size}px;line-height:${Math.round(size * 1.5)}px;color:${color}">${s}</p>`;
+export const h1 = (s: string) => `<h1 style="margin:0 0 18px;${FONT};font-size:28px;line-height:32px;font-weight:700;color:${C.ink}">${s}</h1>`;
+export const para = (s: string, size = 15, color = C.ink) => `<p style="margin:16px 0 0;${BODY_FONT};font-size:${size}px;line-height:${Math.round(size * 1.5)}px;color:${color}">${s}</p>`;
 
 /** One training: the card big, what ended and how to claim it. */
 export function evoMail(lang: MailLang, d: EvoItem & MailLinks) {

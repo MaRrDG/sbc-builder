@@ -69,14 +69,15 @@ export async function ownersOf(personaIds: number[]) {
   return out;
 }
 
-export async function prefsOf(userId: string): Promise<{ lang: MailLang; evoEmails: boolean }> {
-  const [r] = await db.select({ lang: users.lang, evoEmails: users.evoEmails }).from(users).where(eq(users.id, userId));
-  return { lang: asLang(r?.lang), evoEmails: r?.evoEmails ?? true };
+export async function prefsOf(userId: string): Promise<{ lang: MailLang; evoEmails: boolean; dailyReminder: boolean }> {
+  const [r] = await db.select({ lang: users.lang, evoEmails: users.evoEmails, dailyReminder: users.dailyReminder }).from(users).where(eq(users.id, userId));
+  return { lang: asLang(r?.lang), evoEmails: r?.evoEmails ?? true, dailyReminder: r?.dailyReminder ?? false };
 }
 
-export async function setPrefs(userId: string, p: { lang?: MailLang; evoEmails?: boolean }) {
+export async function setPrefs(userId: string, p: { lang?: MailLang; evoEmails?: boolean; dailyReminder?: boolean }) {
   const set: Partial<typeof users.$inferInsert> = {};
   if (p.lang) set.lang = p.lang;
   if (typeof p.evoEmails === 'boolean') set.evoEmails = p.evoEmails;
+  if (typeof p.dailyReminder === 'boolean') set.dailyReminder = p.dailyReminder;
   if (Object.keys(set).length) await db.update(users).set(set).where(eq(users.id, userId));
 }
