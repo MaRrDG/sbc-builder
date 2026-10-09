@@ -15,7 +15,8 @@
     "db:generate": "drizzle-kit generate",
     "db:import": "tsx scripts/db-import.ts",
     "db:trust": "tsx scripts/db-trust.ts",
-    "daily:import": "tsx scripts/daily-import.ts"
+    "daily:import": "tsx scripts/daily-import.ts",
+    "history:baseline": "tsx scripts/history-baseline.ts"
   },
   "dependencies": {
     "@clerk/backend": "^3.18.1",

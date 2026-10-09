@@ -62,6 +62,14 @@ Until the answer pool has `DAILY_HARD_MIN_POOL` players, `/daily` and Practice a
 - `DAILY_MIN_RATING` (82): rating of the answer pool; it steps down to `DAILY_RATING_FLOOR` (75) until the pool has `DAILY_MIN_POOL` (150) players.
 - `DAILY_HARD_MIN_POOL` (30): below this many players there is no game at all.
 
+### Completion history
+
+The first deploy with the history tables starts counting from the cache once:
+
+```bash
+docker compose exec app npm run history:baseline   # safe to re-run
+```
+
 The server folder is a git checkout of `dev` (owned by root); `data/` is git-ignored and survives pulls and rebuilds.
 
 ## Clerk
