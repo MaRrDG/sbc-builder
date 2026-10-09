@@ -15,7 +15,7 @@ export function InvitePage({ plan, founders, onPlanChange }: { plan: PlanInfo; f
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const lifetime = plan.tier === 'premium' && plan.premiumUntil === null;
+  const lifetime = plan.tier === 'premium' && plan.source !== 'boost' && plan.premiumUntil === null;
 
   const load = () =>
     api.referral().then(

@@ -8,7 +8,7 @@ export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'cookies'];
 
 export const OPERATOR = 'Mario Dragut';
 export const CONTACT = 'dragutmariotheodor1@gmail.com';
-export const UPDATED = '2026-10-08';
+export const UPDATED = '2026-10-09';
 
 export interface Section {
   id: string;
@@ -84,7 +84,7 @@ const en: Record<LegalDoc, Doc> = {
         id: 'paid',
         h: 'Plans',
         p: [
-          'FC Solver has a Free plan and a Premium plan. Free includes a weekly number of solves (shown in the app next to the Solve button and in Settings); only a solve that finds a squad counts, and the week starts with your first counted solve and resets 7 days later. Premium removes the limit and adds global solver settings. We may grant or end Premium, and change the Free limit, with notice in the app.',
+          'FC Solver has a Free plan and a Premium plan. Free includes a weekly number of solves (shown in the app next to the Solve button and in Settings); only a solve that finds a squad counts, and the week starts with your first counted solve and resets 7 days later. Premium removes the limit and adds global solver settings. We may grant or end Premium, and change the Free limit, with notice in the app. Boosting the FC Solver Discord server with a connected Discord account gives Premium while the boost lasts and for 12 hours after it ends; it ends when the boost ends or Discord is disconnected, and it does not use up Premium days from codes or points.',
           'Prices shown on the website for Premium are indicative; paid plans are not on sale yet. When they are, their price, billing and cancellation terms will be shown before you pay, and these terms will be updated.',
         ],
       },
@@ -269,7 +269,7 @@ const ro: Record<LegalDoc, Doc> = {
         id: 'paid',
         h: 'Planuri',
         p: [
-          'FC Solver are un plan Free și un plan Premium. Free include un număr săptămânal de rezolvări (afișat în aplicație lângă butonul Rezolvă și în Setări); contează doar o rezolvare care găsește o echipă, iar săptămâna începe la prima rezolvare numărată și se resetează după 7 zile. Premium elimină limita și adaugă setări globale pentru solver. Putem acorda sau încheia Premium și putem schimba limita Free, cu anunț în aplicație.',
+          'FC Solver are un plan Free și un plan Premium. Free include un număr săptămânal de rezolvări (afișat în aplicație lângă butonul Rezolvă și în Setări); contează doar o rezolvare care găsește o echipă, iar săptămâna începe la prima rezolvare numărată și se resetează după 7 zile. Premium elimină limita și adaugă setări globale pentru solver. Putem acorda sau încheia Premium și putem schimba limita Free, cu anunț în aplicație. Un boost pe serverul de Discord FC Solver, cu contul de Discord conectat, oferă Premium cât timp durează boost-ul și încă 12 ore după ce se termină; se încheie când se termină boost-ul sau când Discord e deconectat și nu consumă zilele Premium din coduri sau puncte.',
           'Prețurile afișate pe site pentru Premium sunt orientative; planurile plătite nu sunt încă de vânzare. Când vor fi, prețul, facturarea și condițiile de anulare îți vor fi arătate înainte de plată, iar acești termeni vor fi actualizați.',
         ],
       },
@@ -454,7 +454,7 @@ const it: Record<LegalDoc, Doc> = {
         id: 'paid',
         h: 'Piani',
         p: [
-          "FC Solver ha un piano Free e un piano Premium. Il piano Free include un numero settimanale di risoluzioni (indicato nell'app accanto al pulsante Risolvi e nelle Impostazioni); conta solo una risoluzione che trova una rosa, e la settimana inizia con la tua prima risoluzione conteggiata e si azzera 7 giorni dopo. Premium elimina il limite e aggiunge le impostazioni globali del solver. Possiamo concedere o terminare Premium, e modificare il limite del piano Free, con un avviso nell'app.",
+          "FC Solver ha un piano Free e un piano Premium. Il piano Free include un numero settimanale di risoluzioni (indicato nell'app accanto al pulsante Risolvi e nelle Impostazioni); conta solo una risoluzione che trova una rosa, e la settimana inizia con la tua prima risoluzione conteggiata e si azzera 7 giorni dopo. Premium elimina il limite e aggiunge le impostazioni globali del solver. Possiamo concedere o terminare Premium, e modificare il limite del piano Free, con un avviso nell'app. Un boost al server Discord di FC Solver, con l'account Discord collegato, dà Premium finché dura il boost e per 12 ore dopo la sua fine; termina quando finisce il boost o quando Discord viene scollegato e non consuma i giorni Premium da codici o punti.",
           'I prezzi indicati sul sito per Premium sono indicativi; i piani a pagamento non sono ancora in vendita. Quando lo saranno, prezzo, fatturazione e condizioni di disdetta verranno mostrati prima del pagamento, e questi termini verranno aggiornati.',
         ],
       },

@@ -69,6 +69,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
       return t(x.found ? 'admin.event.solveObjectivesFound' : x.partial ? 'admin.event.solveObjectivesPartial' : 'admin.event.solveObjectivesMiss', { n: Number(x.objectives ?? 0), count: Number(x.objectives ?? 0) });
     if (e.type === 'solve') return t(x.found ? 'admin.event.solveFound' : 'admin.event.solveMiss', { set: String(x.setId), ch: String(x.challengeId) });
     if (e.type === 'sync') return t(x.ok ? 'admin.event.syncOk' : 'admin.event.syncFail', { what: whatText(x.what), error: String(x.error ?? '') });
+    if (e.type === 'boost') return t(x.via === 'unlink' ? 'admin.event.boostUnlink' : x.action === 'start' ? 'admin.event.boostStart' : 'admin.event.boostStop');
     if (e.type === 'ea_error') return t('admin.event.throttle');
     return t('admin.event.eaDay', { day: String(x.day), n: Number(x.count), count: Number(x.count) });
   };

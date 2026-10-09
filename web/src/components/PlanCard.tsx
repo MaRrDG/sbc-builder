@@ -13,7 +13,7 @@ export function PlanCard({ plan, now, onInvite }: { plan: PlanInfo | null; now: 
     <section className="settings-card plan-card">
       <h2>
         {plan.tier === 'premium' && <Crown weight="fill" aria-hidden="true" />}{' '}
-        {plan.tier === 'premium' ? (plan.premiumUntil === null ? t('plan.lifetime') : t('plan.premium')) : t('plan.free')}
+        {plan.tier === 'premium' ? (plan.source !== 'boost' && plan.premiumUntil === null ? t('plan.lifetime') : t('plan.premium')) : t('plan.free')}
         {plan.founder && <span className="founder-badge">{t('plan.founder')}</span>}
       </h2>
       {q ? (
@@ -32,15 +32,20 @@ export function PlanCard({ plan, now, onInvite }: { plan: PlanInfo | null; now: 
             {t('plan.inviteHint')}{' '}
             <button type="button" className="ghost" onClick={onInvite}>{t('plan.inviteLink')}</button>
           </p>
+          <p className="muted">{t('plan.boostHint')}</p>
           <p>
             <b>{t('plan.premiumAdds')}</b> {t('plan.premiumList')} <em>{t('plan.soon')}</em>
           </p>
         </>
       ) : (
-        <p className="muted">
-          {t('plan.unlimited')}
-          {plan.premiumUntil ? ` · ${t('plan.until', { date: new Date(plan.premiumUntil).toLocaleDateString() })}` : ''}
-        </p>
+        <>
+          <p className="muted">
+            {t('plan.unlimited')}
+            {plan.source !== 'boost' && plan.premiumUntil ? ` · ${t('plan.until', { date: new Date(plan.premiumUntil).toLocaleDateString() })}` : ''}
+          </p>
+          {plan.source === 'boost' && plan.boost?.since && <p className="plan-boost">{t('plan.boost')}</p>}
+          {plan.source === 'boost' && plan.boost?.graceUntil && <p className="plan-boost">{t('plan.boostGrace', { until: untilText(t, plan.boost.graceUntil, now) })}</p>}
+        </>
       )}
     </section>
   );

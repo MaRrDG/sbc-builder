@@ -302,6 +302,8 @@ export interface PlanInfo {
   premiumUntil: number | null;
   quota: Quota | null;
   founder: boolean;
+  source: 'admin' | 'paid' | 'boost' | null;
+  boost: { since: number | null; graceUntil: number | null } | null;
 }
 
 /** A server error; `code` + `params` let the UI say it in the user's language. */
@@ -543,7 +545,7 @@ export interface AdminUserDetail {
   latestExtension: string;
   referral: { points: number; invitedBy: { id: string; email: string } | null; invited: number; inviteCode: string | null };
 }
-export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day'; personaId: number | null; data: Record<string, unknown> }
+export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost'; personaId: number | null; data: Record<string, unknown> }
 export type AdminAttention =
   | { kind: 'error' | 'paused' | 'atLimit' | 'outdated'; personaId: number; personaName: string; userId: string | null; detail: string | null }
   | { kind: 'expiring'; userId: string; email: string; until: number };
