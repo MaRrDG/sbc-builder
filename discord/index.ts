@@ -177,13 +177,12 @@ client.on(Events.GuildMemberUpdate, async (before, after) => {
   }
 });
 
-// Welcome post for every new member (English line, then Romanian); a failure is logged and never stops the bot
+// Welcome post for every new member (English); a failure is logged and never stops the bot
 client.on(Events.GuildMemberAdd, async (member) => {
   if (member.guild.id !== cfg.guildId || member.user.bot) return;
   try {
     const ch = await findText(member.guild, CAT.info, CH.welcome);
-    const language = await findText(member.guild, CAT.info, CH.language);
-    await ch.send(memberWelcomeMessage(member.id, member.guild.memberCount, { language: language.id }, avatarUrl(client.user!)));
+    await ch.send(memberWelcomeMessage(member.id, member.guild.memberCount, avatarUrl(client.user!)));
   } catch (e) {
     console.warn(`[bot] member welcome: ${(e as Error).message}`);
   }

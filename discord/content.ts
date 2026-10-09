@@ -89,13 +89,9 @@ export function welcomeMessage(siteUrl: string, ch: { language: string; rules: s
   return { embeds: [e], components: [linkRow('FC Solver', siteUrl)] };
 }
 
-/** Posted in the welcome channel when someone joins: English line, then Romanian, member count, only that user can be mentioned. */
-export function memberWelcomeMessage(userId: string, count: number, ch: { language: string }, icon?: string) {
-  const user = `<@${userId}>`;
-  const text = [
-    `👋 Welcome ${user}! You are member **#${count}**. Start in <#${ch.language}>.`,
-    `👋 Bine ai venit ${user}! Ești membrul **#${count}**. Începe în <#${ch.language}>.`,
-  ].join('\n');
+/** Posted in the welcome channel when someone joins: one English line with the member count; only that user can be mentioned. */
+export function memberWelcomeMessage(userId: string, count: number, icon?: string) {
+  const text = `👋 Welcome <@${userId}>! You are member **#${count}**.`;
   return { embeds: [brandEmbed(icon, BRAND.lime).setDescription(text)], allowedMentions: { parse: [] as [], users: [userId] } };
 }
 
