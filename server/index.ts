@@ -8,7 +8,7 @@ import { SessionError, THROTTLE_CODES, type ClubItem, type Challenge } from './e
 import { loadMeta, type Meta } from './meta.js';
 import { parseRequirements, serializeRequirement } from './sbc.js';
 import { toPlayer, evaluate } from './squad.js';
-import { solve, diagnose, pointsPool, solvePoints, NO_FILTERS, type SolveOptions, type ActiveSquad } from './solver.js';
+import { solve, diagnose, pointsPool, pointsProblem, solvePoints, NO_FILTERS, type SolveOptions, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
@@ -699,10 +699,12 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
     if (isPointsChallenge(ch)) {
       const target = pointsTarget(ch);
       if (target === 0) return reply.code(409).send({ error: 'This challenge already has all its points.', code: 'pointsDone', params: {} });
-      const pool = pointsPool(players, reqs, options, squad);
+      // same settings as squads: the filtered pool, plus with keepPlaced the cards already in the web app's Work Area
+      const placed = options.keepPlaced ? ((await challengeLayout(acc, challengeId))?.placed ?? []) : [];
+      const { pool, keep, placedCount, missingPlaced } = pointsProblem(players, reqs, options, squad, placed);
       // the solver takes one card per assetId, so duplicates must not inflate what the club holds
       const have = usablePoints(pool);
-      const sol = have >= target ? await solvePoints(pool, reqs, target, req.body.deep ? 30 : 10) : null;
+      const sol = have >= target ? await solvePoints(pool, reqs, target, req.body.deep ? 30 : 10, keep) : null;
       const found = !!sol?.check.allMet;
       // only a found selection costs a token, like squads
       const quota = plan.quota && found ? planInfo(await countSolve(userId), false, Date.now()).quota : plan.quota;
@@ -734,6 +736,8 @@ app.post<{ Body: { setId: number; challengeId: number; options?: Partial<SolveOp
           cards: sol?.cards ?? [],
         },
         reasons,
+        missingPlaced,
+        placed: { kept: sol?.fixedIds.length ?? 0, total: placedCount },
         usedStorage: !!sol?.cards.some((p) => p.inStorage),
         clubOnly,
         quota,

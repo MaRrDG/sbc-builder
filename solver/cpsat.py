@@ -283,6 +283,9 @@ def solve(p):
 def solve_points(p):
     """Points SBC: pick cards with points >= target, least overshoot first, then the lowest cost.
 
+    With cards marked `keep` (placed in the web app, keepPlaced on) stage 0 first keeps as many of
+    them as the target allows; like squads, keeping beats overshoot and cost.
+
     Stage 1 minimises the total (so the overshoot); stage 2 keeps that total and minimises the cost.
     Items sharing a `group` (same player) are used at most once.
     """
@@ -299,10 +302,24 @@ def solve_points(p):
         if len(g) > 1:
             m.Add(sum(g) <= 1)
 
+    # cards placed in the web app with keepPlaced on: a preference, not a rule (stage 0)
+    keep = [i for i, it in enumerate(items) if it.get("keep")]
+
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = float(p.get("timeLimit", 10)) / 2
+    solver.parameters.max_time_in_seconds = float(p.get("timeLimit", 10)) / (3 if keep else 2)
     solver.parameters.num_workers = int(p.get("workers") or min(16, os.cpu_count() or 8))
     ok = (cp_model.OPTIMAL, cp_model.FEASIBLE)
+    wall = 0.0
+
+    if keep:
+        m.Maximize(sum(x[i] for i in keep))
+        status = solver.Solve(m)
+        if status not in ok:
+            return {"status": solver.StatusName(status)}
+        m.Add(sum(x[i] for i in keep) >= int(round(solver.ObjectiveValue())))
+        for i in range(len(items)):
+            m.AddHint(x[i], solver.Value(x[i]))
+        wall += solver.WallTime()
 
     m.Minimize(total)
     status = solver.Solve(m)
@@ -310,10 +327,11 @@ def solve_points(p):
         return {"status": solver.StatusName(status)}
     best = int(round(solver.ObjectiveValue()))
     picked = [i for i in range(len(items)) if solver.Value(x[i])]
-    wall = solver.WallTime()
+    wall += solver.WallTime()
 
     m.Add(total == best)
     m.Minimize(sum(int(round(it["cost"] * 100)) * x[i] for i, it in enumerate(items)))
+    m.ClearHints()
     for i in range(len(items)):
         m.AddHint(x[i], 1 if i in picked else 0)
     status2 = solver.Solve(m)
