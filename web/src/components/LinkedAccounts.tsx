@@ -24,9 +24,11 @@ function SignInCard({ onSignOut }: { onSignOut: () => void }) {
   const { user } = useUser();
   // Discord has its own card below
   const external = (user?.externalAccounts ?? []).filter((e) => e.provider !== 'discord');
-  // Clerk imports the Discord account's email too; only the primary one and addresses not tied to Discord show here
+  // Clerk imports the Discord account's email too (and keeps it while linked); anything that came from Discord stays hidden
   const emails = (user?.emailAddresses ?? []).filter(
-    (e) => e.id === user?.primaryEmailAddressId || !(e.linkedTo ?? []).some((l) => String(l.type).includes('discord')),
+    (e) =>
+      e.id === user?.primaryEmailAddressId ||
+      (!String(e.verification?.strategy ?? '').startsWith('from_oauth_discord') && !(e.linkedTo ?? []).some((l) => String(l.type).includes('discord'))),
   );
   return (
     <section className="settings-card">

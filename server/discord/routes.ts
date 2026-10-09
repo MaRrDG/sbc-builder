@@ -18,7 +18,7 @@ import { readCache } from '../store.js';
 import { getChallenges, type SetsData } from '../sync.js';
 import { runSolve } from '../solve-run.js';
 import { parseBoosters, reconcileBoosts, stopsAllowed } from './boost.js';
-import { discordAccountIds, discordOnlyEmailIds, discordAccountOf, isDiscordId, pickPersona } from './link.js';
+import { discordAccountIds, unlinkedDiscordEmailIds, discordAccountOf, isDiscordId, pickPersona } from './link.js';
 import { clip, defaultChallenge, matchSets, setAvailable } from './pick.js';
 import { toBotSolution, type BotStats } from './solution.js';
 
@@ -54,6 +54,24 @@ async function applyBoost(linked: Awaited<ReturnType<typeof boostRows>>, booster
     logEvent({ type: 'boost', userId: x.userId, data: { action: 'stop', via } });
   }
   return { started, stopped };
+}
+
+/** Clerk imports the Discord email as an extra address and refuses to delete it while Discord is linked, so this removes
+ * the unlinked leftovers (earlier Discord accounts, or the one just unlinked). Best effort: never fails the request. */
+async function removeDiscordEmails(userId: string): Promise<void> {
+  try {
+    const user = await clerkApi().users.getUser(userId);
+    for (const id of unlinkedDiscordEmailIds(user.emailAddresses, user.primaryEmailAddressId)) {
+      try {
+        await clerkApi().emailAddresses.deleteEmailAddress(id);
+      } catch (e) {
+        const err = e as { name?: string; errors?: { code?: string }[] };
+        console.warn(`[discord] could not remove a Discord email: ${err.name} ${err.errors?.[0]?.code ?? ''}`);
+      }
+    }
+  } catch (e) {
+    console.warn(`[discord] could not read the user to clean Discord emails: ${(e as Error).name}`);
+  }
 }
 
 export function registerBotRoutes(app: FastifyInstance): void {
@@ -188,14 +206,7 @@ export function registerDiscordSiteRoutes(app: FastifyInstance): void {
       }
       throw new SessionError('This Discord account is already linked to another FC Solver account.', 409, 'discordTaken');
     }
-    // Clerk imports the Discord email as an extra address; FC Solver must not keep it
-    try {
-      const user = await clerkApi().users.getUser(userId);
-      for (const id of discordOnlyEmailIds(user.emailAddresses, user.externalAccounts, user.primaryEmailAddressId))
-        await clerkApi().emailAddresses.deleteEmailAddress(id);
-    } catch (e) {
-      console.warn(`[discord] could not remove the email Clerk imported from Discord: ${(e as Error).name}`);
-    }
+    await removeDiscordEmails(userId);
     return discordView(userId);
   });
 
@@ -204,6 +215,7 @@ export function registerDiscordSiteRoutes(app: FastifyInstance): void {
     const user = await clerkApi().users.getUser(userId);
     for (const externalAccountId of discordAccountIds(user.externalAccounts))
       await clerkApi().users.deleteUserExternalAccount({ userId, externalAccountId });
+    await removeDiscordEmails(userId);
     if ((await planFor(userId)).boost?.since) logEvent({ type: 'boost', userId, data: { action: 'stop', via: 'unlink' } });
     await setDiscord(userId, null);
     return discordView(userId);
