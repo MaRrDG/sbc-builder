@@ -3,7 +3,7 @@
 import { Client, Events, GatewayIntentBits, MessageFlags, Partials, type Guild, type GuildMember } from 'discord.js';
 import { loadConfig, loadEnvFile } from './config.js';
 import { CAT, CH, PICKERS, ROLE } from './layout.js';
-import { RULES_TITLE, groupOf, pickerMenu } from './content.js';
+import { RULES_TITLE, avatarUrl, groupOf, pickerMenu } from './content.js';
 import { roleDiff } from './roles.js';
 import { langFor, tr } from './i18n.js';
 import { categoryOf, findOwnMessage, findText } from './guild.js';
@@ -39,7 +39,7 @@ async function announceDaily(guild: Guild): Promise<void> {
     const ch = await findText(guild, CAT.info, CH.daily);
     const recent = await ch.messages.fetch({ limit: 20 });
     const seen = [...recent.values()].map((m) => ({ authorId: m.author.id, content: m.content }));
-    if (!alreadyAnnounced(seen, d.day, client.user!.id)) await ch.send(dailyPost(d.day, cfg.siteUrl, client.user!.displayAvatarURL({ extension: 'png', size: 256 })));
+    if (!alreadyAnnounced(seen, d.day, client.user!.id)) await ch.send(dailyPost(d.day, cfg.siteUrl, avatarUrl(client.user!)));
     announced = d.day;
   } catch (e) {
     console.warn(`[bot] daily: ${(e as Error).message}`);
