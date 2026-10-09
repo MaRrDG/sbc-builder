@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BRAND } from './brand.js';
 import { PICKERS } from './layout.js';
-import { LANGUAGE_TITLE, RULES_TITLE, RULES_TITLE_RO, WELCOME_TITLE, groupOf, languageMessage, memberWelcomeMessage, pickerMenu, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
+import { BOOST_TITLE, LANGUAGE_TITLE, RULES_TITLE, RULES_TITLE_RO, WELCOME_TITLE, boostPerksMessage, boostThanks, groupOf, languageMessage, memberWelcomeMessage, pickerMenu, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
 
 test('rules: banner on top, then English and Romanian embeds with 8 rules each, brand author', () => {
   const m = rulesMessage('https://cdn/icon.png');
@@ -73,4 +73,28 @@ test('member welcome: mentions the member, English line then Romanian, count, on
   assert.ok(text.indexOf('Welcome') < text.indexOf('Bine ai venit'));
   assert.equal(e.author?.icon_url, 'https://cdn/icon.png');
   assert.deepEqual(m.allowedMentions, { parse: [], users: ['42'] });
+});
+
+test('boost perks: English first, then Romanian; Premium while boosting, 12 h grace, link to Settings', () => {
+  const m = boostPerksMessage('https://fcsolver.gg');
+  const e = m.embeds[0].toJSON();
+  assert.equal(e.title, BOOST_TITLE);
+  const d = e.description ?? '';
+  assert.match(d, /Premium/);
+  assert.match(d, /12 h/);
+  assert.ok(d.indexOf('while you boost') >= 0 && d.indexOf('while you boost') < d.indexOf('cât timp'));
+  assert.match(d, /https:\/\/fcsolver\.gg\/dashboard\/settings/);
+  assert.equal(m.components.length, 1);
+});
+
+test('thank-you: pings only the booster; active vs how to activate; English first', () => {
+  const on = boostThanks('42', true, 'https://fcsolver.gg');
+  assert.deepEqual(on.allowedMentions, { users: ['42'] });
+  assert.equal(on.content, '<@42>');
+  const d = on.embeds[0].toJSON().description ?? '';
+  assert.match(d, /Premium is active/);
+  assert.ok(d.indexOf('Thanks') < d.indexOf('Mulțumim'));
+  const off = boostThanks('42', false, 'https://fcsolver.gg').embeds[0].toJSON().description ?? '';
+  assert.match(off, /https:\/\/fcsolver\.gg\/dashboard\/settings/);
+  assert.doesNotMatch(off, /Premium is active/);
 });

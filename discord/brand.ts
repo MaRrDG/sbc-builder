@@ -7,6 +7,7 @@ export const BRAND = {
   cream: 0xf2efe8, // Member, neutral
   mod: 0x7fd1ae, // Moderator, a softer green
   red: 0xe5484d, // not found / errors
+  boost: 0xf47fff, // Discord's boost pink: the managed Server Booster role
 } as const;
 
 export const ASSETS = { avatar: 'avatar-fc.png', check: 'avatar-check.png', lime: 'avatar-fc-lime.png', banner: 'banner.png' } as const;

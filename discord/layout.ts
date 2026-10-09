@@ -27,6 +27,7 @@ export const CH = {
   announcements: textName('📢', 'announcements'),
   roles: textName('🎭', 'roles'),
   daily: textName('⚽', 'daily'),
+  boost: textName('💎', 'boost-perks'),
   sbcRo: textName('🧩', 'ajutor-sbc'),
   sbcEn: textName('🧩', 'sbc-help'),
   superliga: textName('🏟️', 'echipe-superliga'),
@@ -77,6 +78,7 @@ export const CATEGORIES: CategorySpec[] = [
       { name: CH.announcements, kind: 'announcement', readOnly: true, topic: 'FC Solver news (follow it from your own server) · Noutăți FC Solver' },
       { name: CH.roles, kind: 'text', readOnly: true, topic: 'Language and favourite teams · Limbă și echipe favorite' },
       { name: CH.daily, kind: 'text', readOnly: true, topic: 'FC Solver Daily: a new player every day · un jucător nou în fiecare zi' },
+      { name: CH.boost, kind: 'text', readOnly: true, topic: 'Premium while you boost · Premium cât timp dai boost' },
     ],
   },
   {

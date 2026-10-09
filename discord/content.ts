@@ -162,3 +162,26 @@ export function groupOf(customId: string, prefix: 'pick' | 'set'): PickerGroup |
   const [p, g] = customId.split(':');
   return p === prefix && (g === 'lang' || g === 'world' || g === 'superliga') ? g : null;
 }
+
+export const BOOST_TITLE = '💎 Boost = FC Solver Premium';
+
+export function boostPerksMessage(siteUrl: string, icon?: string) {
+  const settings = `${siteUrl}/dashboard/settings`;
+  const text = [
+    '**Boost the server = FC Solver Premium while you boost**, plus 12 h after the boost ends.',
+    `Connect Discord in the site Settings (${settings}); Premium starts within minutes. Paid or code Premium days are not used up.`,
+    '',
+    '**Dai boost serverului = FC Solver Premium cât timp dai boost**, plus 12 h după ce boost-ul se termină.',
+    `Conectează Discord în Setări pe site (${settings}); Premium pornește în câteva minute. Zilele Premium plătite sau din coduri nu se consumă.`,
+  ].join('\n');
+  return { embeds: [brandEmbed(icon, BRAND.boost).setTitle(BOOST_TITLE).setDescription(text)], components: [linkRow('Settings · Setări', settings)] };
+}
+
+/** Public thank-you in the welcome channel (English, then Romanian); pings only the booster. */
+export function boostThanks(userId: string, linked: boolean, siteUrl: string, icon?: string) {
+  const settings = `${siteUrl}/dashboard/settings`;
+  const text = linked
+    ? `Thanks <@${userId}>! FC Solver Premium is active while you boost.\nMulțumim <@${userId}>! FC Solver Premium e activ cât timp dai boost.`
+    : `Thanks <@${userId}>! Connect Discord in Settings to get Premium: ${settings}\nMulțumim <@${userId}>! Conectează Discord în Setări ca să primești Premium: ${settings}`;
+  return { content: `<@${userId}>`, embeds: [brandEmbed(icon, BRAND.boost).setTitle('💎 Boost').setDescription(text)], allowedMentions: { users: [userId] } };
+}
