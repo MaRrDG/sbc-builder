@@ -1,5 +1,5 @@
 // Settings card: connect Discord through Clerk (Discord connection, connect-only) so the bot knows who runs /sbc and /stats.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/react';
 import { ArrowSquareOut, DiscordLogo, LinkBreak } from '@phosphor-icons/react';
 import { api, type DiscordInfo } from '../api';
@@ -12,6 +12,7 @@ export function DiscordCard() {
   const [info, setInfo] = useState<DiscordInfo | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const synced = useRef<string | null>(null);
 
   const run = async (fn: () => Promise<DiscordInfo | void>) => {
     setBusy(true);
@@ -27,7 +28,8 @@ export function DiscordCard() {
   };
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || synced.current === user.id) return;
+    synced.current = user.id; // StrictMode runs effects twice: one sync (and one POST) per user
     const back = new URLSearchParams(window.location.search).has('discord');
     if (back) window.history.replaceState(window.history.state, '', window.location.pathname);
     const verified = user.externalAccounts.some((e) => e.provider === 'discord' && e.verification?.status === 'verified');
@@ -77,7 +79,7 @@ export function DiscordCard() {
         </>
       ) : (
         <div className="discord-actions">
-          <button type="button" className="ghost bordered" disabled={busy || !user || !info} onClick={() => void connect()}>
+          <button type="button" className="ghost bordered" disabled={busy || !user} onClick={() => void connect()}>
             <DiscordLogo weight="bold" aria-hidden="true" /> {t('settings.discord.connect')}
           </button>
           {join}
