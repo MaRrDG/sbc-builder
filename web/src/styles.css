@@ -892,6 +892,41 @@ h3 {
   }
 }
 
+/* compact (public top bars): the flag alone; footers open the list upwards */
+.lang-menu.compact .lang-name,
+.lang-menu.compact .chev { display: none; }
+.lang-menu.compact .lang-current { width: 40px; padding: 0; justify-content: center; }
+.lang-menu.up .lang-name { display: inline; } /* footers show the full picker, also on phones */
+.lang-menu.up .lang-list { top: auto; bottom: calc(100% + 6px); right: auto; left: 0; }
+
+/* Discord link on the public pages: quiet, never --go (that is the primary action) */
+.discord-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font-weight: 500;
+  text-decoration: none;
+}
+.discord-link svg { flex: none; }
+.discord-link:hover { color: var(--ink); }
+.discord-link:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.discord-link-bar {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  font-size: 14px;
+}
+.discord-link-bar svg { font-size: 18px; }
+.discord-link-bar:hover { background: var(--surface-2); }
+.discord-link-foot { text-decoration: underline; text-decoration-color: var(--ink-3); text-underline-offset: 4px; }
+.discord-link-foot svg { font-size: 18px; }
+@media (max-width: 600px) {
+  .discord-link-bar { width: 40px; padding: 0; justify-content: center; }
+  .discord-link-bar .discord-link-text { display: none; }
+}
+
 .onboarding-top {
   display: flex;
   align-items: center;

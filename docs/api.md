@@ -631,6 +631,10 @@ Returns `{ "ok": true, "summary": "1 added to club" }`. Items the server has no 
 
 Public, cached 30 s. Founding 50: `{ "limit": 50, "taken": 13, "left": 37 }`. The landing shows its hero board and the Premium ribbon while `left > 0`. A spot is given when a user links an EA persona through `POST /api/hello` (a new link, not `already`): lifetime Premium (`plan: "premium"`, `premium_until: null`), unless the user is an admin, already a founder, or that persona already earned a spot for someone. `FOUNDERS_LIMIT` (50) sets the number.
 
+### `GET /api/discord/invite`
+
+Public, no auth, `Cache-Control: public, max-age=300`, under the global per-IP `/api/` limit. `{ "invite": "https://discord.gg/…" | null }`: `DISCORD_INVITE_URL` when it is an `https://discord.gg/…` or `https://discord.com/invite/…` link, else `null`. The landing and `/daily` show their "Discord" links (header and footer) only when it is not `null`.
+
 ### `GET /api/extension/version`
 
 ```json

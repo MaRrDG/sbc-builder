@@ -4,6 +4,7 @@ import { LegalLinks } from '../legal/LegalPage';
 import { useEffect, type MouseEvent, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
+import { DiscordLink, useDiscordInvite } from '../components/DiscordLink';
 import { CaretRight, SoccerBall } from '@phosphor-icons/react';
 import { routePath, type Route } from '../route';
 import { Hero } from './Hero';
@@ -28,6 +29,7 @@ interface Props {
 export default function Landing({ signedIn, authReady, navigate }: Props) {
   const { t, lang, setLang } = useI18n();
   const founders = useFounders();
+  const invite = useDiscordInvite();
   const dailyOpen = useDailyPending(authReady, signedIn);
   // the page is lazy-loaded, so the browser's own jump to /#why happened before the section existed
   useEffect(() => {
@@ -101,7 +103,8 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
             <a href="#faq">{t('landing.nav.faq')}</a>
           </nav>
           <div className="lp-top-end">
-            <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
+            <LangMenu lang={lang} setLang={setLang} label={t('top.language')} compact />
+            <DiscordLink invite={invite} variant="bar" />
             {!authReady ? placeholder('lp-signin', t('landing.signIn'))
             : !signedIn && link(signin, 'lp-signin', t('landing.signIn'))}
             {cta('lp-btn lp-btn-sm')}
@@ -145,6 +148,10 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         </nav>
         <p>{t('landing.footer.legal')}</p>
         <LegalLinks navigate={navigate} className="lp-link" />
+        <div className="lp-footer-end">
+          <LangMenu lang={lang} setLang={setLang} label={t('top.language')} up />
+          <DiscordLink invite={invite} variant="foot" />
+        </div>
       </footer>
       <ToTop ctaKey={`${authReady}-${signedIn}`} />
     </div>

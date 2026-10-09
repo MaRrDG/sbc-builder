@@ -589,6 +589,7 @@ export const en = {
   'nav.accounts': 'Linked accounts',
   'nav.discord': 'Join our Discord',
   'nav.newTab': '(opens in a new tab)',
+  'discord.short': 'Discord',
   'accounts.title': 'Linked accounts',
   'accounts.lede': 'Everything connected to your FC Solver account.',
   'accounts.open': 'Open linked accounts',
