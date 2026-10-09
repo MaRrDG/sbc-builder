@@ -256,6 +256,7 @@
 @keyframes lp-spot { from { background: transparent; } to { background: oklch(0.86 0.12 88 / 0.18); } }
 
 .lp-plan-pro { position: relative; }
+.lp-boost-note { margin: 8px 0 0; font-size: 13px; color: var(--ink-2); }
 .lp-ribbon {
   position: absolute;
   top: -12px;

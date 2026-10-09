@@ -74,6 +74,7 @@ export function Pricing({ cta, founders, link }: Props) {
             {billing === 'monthly' ? t('landing.price.pro.billedMonthly') : t('landing.price.pro.billedYearly', { amount: eur(pro.billed) })}
           </p>
           {list([t('landing.price.pro.f1'), t('landing.price.pro.f2'), t('landing.price.pro.f4'), t('landing.price.pro.f5'), t('landing.price.pro.f6'), t('landing.price.pro.f3')])}
+          <p className="lp-boost-note">{t('landing.price.pro.boost')}</p>
           {founders && <p className="lp-founders-note">{t('landing.founders.planNote', { count: founders.left, limit: founders.limit })}</p>}
           <button type="button" className="lp-btn" disabled>
             {t('landing.price.pro.soon')}
