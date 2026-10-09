@@ -83,7 +83,7 @@ The EA accounts this user owns (same shape as `account` in `/api/status`). Also 
 
 ### `PUT /api/me/prefs`
 
-`{ "lang"?: "en"|"ro"|"it", "evoEmails"?: boolean, "dailyReminder"?: boolean }` → `{ "ok": true }`. Only the fields sent are changed; an unknown `lang` or a non-boolean flag is ignored.
+`{ "lang"?: "en"|"ro"|"it", "evoEmails"?: boolean, "dailyReminder"?: boolean }` → `{ "ok": true }`. Only the fields sent are changed; an unknown `lang` or a non-boolean flag is ignored. `"dailyReminder": true` from a Free user gets `403` with `code: "premiumOnly"` (turning it off is always allowed).
 
 ### `PUT /api/me/onboarding`
 
