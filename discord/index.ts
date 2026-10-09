@@ -9,6 +9,7 @@ import { langFor, tr } from './i18n.js';
 import { categoryOf, findOwnMessage, findText } from './guild.js';
 import { botApi } from './api.js';
 import { alreadyAnnounced, dailyPost } from './daily.js';
+import { onAutocomplete, onCommand } from './handlers.js';
 
 loadEnvFile();
 const cfg = loadConfig();
@@ -90,6 +91,8 @@ client.on(Events.InteractionCreate, async (i) => {
   if (i.guildId !== cfg.guildId) return;
   const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
   try {
+    if (i.isAutocomplete()) return void (await onAutocomplete(i, cfg));
+    if (i.isChatInputCommand()) return void (await onCommand(i, cfg));
     if (i.isButton()) {
       const g = groupOf(i.customId, 'pick');
       const m = g && (await memberOf(i.guildId, i.user.id));
