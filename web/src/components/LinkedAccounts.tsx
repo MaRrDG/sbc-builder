@@ -38,16 +38,18 @@ function SignInCard({ onSignOut }: { onSignOut: () => void }) {
         <ul className="local-list">
           {emails.map((e) => (
             <li key={e.id}>
-              <span>
-                <strong>{t('accounts.email')}</strong> · {e.emailAddress}
+              <span className="acct-id">
+                <strong>{t('accounts.email')}</strong>
+                <span>{e.emailAddress}</span>
               </span>
               <Verified ok={e.verification?.status === 'verified'} />
             </li>
           ))}
           {external.map((e) => (
             <li key={e.id}>
-              <span>
-                <strong>{providerName(e.provider)}</strong> · {e.emailAddress || e.username || ''}
+              <span className="acct-id">
+                <strong>{providerName(e.provider)}</strong>
+                <span>{e.emailAddress || e.username || ''}</span>
               </span>
               <Verified ok={e.verification?.status === 'verified'} />
             </li>
