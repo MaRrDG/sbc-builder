@@ -540,6 +540,14 @@ Not possible:
 
 ---
 
+## Discord bot (internal)
+
+Only the bot container calls these, over the compose network. Header `X-Bot-Token: <BOT_API_TOKEN>` (at least 32 characters); without a configured token, or with a wrong one, every `/api/bot/*` answers `404`. Apache denies `/api/bot/` from outside.
+
+### `GET /api/bot/daily`
+
+`{ "day": 42, "live": true }`: today's Daily number; `live` is `false` while the answer pool is not ready (the bot then posts nothing).
+
 ## Extension events
 
 ### `POST /api/sbc-submitted` (extension)

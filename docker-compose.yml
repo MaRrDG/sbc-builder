@@ -25,6 +25,8 @@ services:
       EMAIL_SECRET: ${EMAIL_SECRET:-}
       # OpenWebTrack <script> tag (cookieless); empty = no analytics
       ANALYTICS_SNIPPET: ${ANALYTICS_SNIPPET:-}
+      # Discord bot API (/api/bot/*); empty = off. The bot service gets the same value.
+      BOT_API_TOKEN: ${BOT_API_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy
