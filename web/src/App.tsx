@@ -36,6 +36,7 @@ import { ClubSyncModal } from './components/ClubSyncModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { RefBanner } from './components/RefBanner';
 import { useFounders } from './landing/Founders';
+import { useDailyPending } from './daily/usePending';
 import { GalleryInfo } from './components/gallery/GalleryInfo';
 import { PremiumPreview } from './components/PremiumPreview';
 import { DEMO_GALLERY, DEMO_META, DEMO_OBJECTIVES } from './components/premiumDemo';
@@ -126,6 +127,7 @@ export default function App({
   const [showOptions, setShowOptions] = useState(false);
   const [filter, setFilter] = useState('');
   const [menuOpen, setMenuOpen] = useState(false); // phone navigation menu
+  const dailyOpen = useDailyPending(true, true); // the dashboard is signed in only
   const [syncing, setSyncing] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -734,6 +736,8 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           onClick={() => setMenuOpen((v) => !v)}
         >
           {menuOpen ? <X weight="bold" /> : <List weight="bold" />}
+          {/* the Daily item inside carries the text; this one only hints the menu has something new */}
+          {dailyOpen && !menuOpen && <i className="new-dot hamburger-dot" aria-hidden="true" />}
         </button>
       </header>
 
@@ -841,6 +845,11 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           >
             <SoccerBall weight="bold" aria-hidden="true" />
             <span>{t('nav.daily')}</span>
+            {dailyOpen && (
+              <i className="new-dot">
+                <span className="sr-only">{t('daily.newGame')}</span>
+              </i>
+            )}
           </button>
           <button type="button" className="nav-item" aria-current={view === 'invite' && !showGuide ? 'page' : undefined} onClick={() => go('invite')}>
             <Gift weight="bold" aria-hidden="true" />

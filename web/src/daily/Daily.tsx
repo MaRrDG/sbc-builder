@@ -16,6 +16,7 @@ import { Sheet, HowTo, StatsBody } from './Sheets';
 import { Stage } from './Stage';
 import { indexNames } from './search';
 import { localStats } from './stats';
+import { DAILY_FINISHED } from './usePending';
 import { clearGame, loadGame, loadPlays, markHelpSeen, recordPlay, saveGame, seenHelp } from './store';
 import './daily.css';
 
@@ -175,6 +176,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
       setState(r.state);
       if (r.finished) setReveal(true);
       if (practice) return;
+      if (r.finished) window.dispatchEvent(new Event(DAILY_FINISHED)); // the nav dots go at once
       if (info.signedIn) {
         if (r.stats) setStats(r.stats);
         if (r.points) setPoints(r.points);
