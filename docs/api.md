@@ -554,6 +554,32 @@ Only the bot container calls these, over the compose network. Header `X-Bot-Toke
 
 `{ "day": 42, "live": true }`: today's Daily number; `live` is `false` while the answer pool is not ready (the bot then posts nothing).
 
+The other routes take the Discord user id (`discordId`, 17–20 digits; the user connected Discord in Settings) and use the user's most recently linked EA account. Errors: `400 badRequest`, `404 discordNotLinked`, `409 noPersona` (no EA account linked). Every answer that knows the user carries `lang` (`en` / `ro`, from the site language).
+
+### `GET /api/bot/sets?discordId=&q=`
+
+`{ "sets": [{ "setId": 16, "name": "Bronze Upgrade · Upgrades" }] }`: up to 25 sets of the cached SBC list whose name contains `q` (case and accents ignored, prefix matches first). Names at most 100 characters.
+
+### `GET /api/bot/challenges?discordId=&setId=`
+
+`{ "challenges": [{ "challengeId": 35, "name": "✓ Bronze", "done": true }], "defaultId": 36 }`: the set's cached challenges (`✓` = completed), `defaultId` = the first not completed, else the first. Cache only, never EA.
+
+### `POST /api/bot/solve`
+
+`{ "discordId": "…", "setId": 16, "challengeId": 35 }` (`challengeId` optional: `defaultId`). Runs the same solve as `POST /api/solve` (`runSolve`) with the default options, storage on, `deep: false`, and **the same quota**: a found squad counts one Free solve, Premium is unlimited, `403 quotaExhausted` before the solver when the week is used up. Logged as a `solve` event with `via: "discord"`. At most 6 a minute per Discord user (`429 botRateLimited`). A set that is done or not repeatable right now answers `409 setNotAvailable` before the solver. Other errors as `/api/solve` (`challengeNotFound`, `clubEmpty`, `needsLayout`, `pointsDone`).
+
+```json
+{ "found": true, "set": "Bronze Upgrade", "challenge": "Bronze", "setId": 16, "challengeId": 35, "rating": 64, "chemistry": 21,
+  "slots": [{ "pos": "GK", "name": "Ana", "rating": 64, "chem": 3, "storage": false, "brick": false }],
+  "points": null, "reasons": [], "quota": { "used": 5, "limit": 20, "resetsAt": 1790605200000 }, "lang": "ro" }
+```
+
+`points` (points challenges): `{ "target", "total", "cards": [{ "name", "rating", "points" }] }`. `reasons` (not found, at most 3): the solver's `{ code, req?, have?, need?, all? }`, worded by the bot.
+
+### `GET /api/bot/stats?discordId=`
+
+`{ "sbcs": 112, "challenges": 240, "objectives": 104, "club": 812, "streak": 4, "since": 1791500000000, "lang": "en" }`: completions counted by FC Solver (see architecture: Completion history; baseline included), players in the cached club, the current Daily streak, and when counting started (`null`: nothing counted yet).
+
 ## Extension events
 
 ### `POST /api/sbc-submitted` (extension)

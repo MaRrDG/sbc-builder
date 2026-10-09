@@ -5,8 +5,31 @@ import { botTokenOk } from './bot-auth.js';
 import { currentDay, todayGame } from '../daily/service.js';
 import { clerkApi, siteUser } from '../auth.js';
 import { SessionError } from '../ea.js';
-import { discordOf, setDiscord } from '../db/discord.js';
-import { discordAccountIds, discordAccountOf } from './link.js';
+import { accountById, type Account } from '../accounts.js';
+import { discordOf, ownedPersonas, setDiscord, userByDiscord } from '../db/discord.js';
+import { historyTotals } from '../db/history.js';
+import { playsOf } from '../db/daily.js';
+import { streakOf } from '../daily/streak.js';
+import { createLimiter } from '../limits.js';
+import { readCache } from '../store.js';
+import { getChallenges, type SetsData } from '../sync.js';
+import { runSolve } from '../solve-run.js';
+import { discordAccountIds, discordAccountOf, isDiscordId, pickPersona } from './link.js';
+import { clip, defaultChallenge, matchSets, setAvailable } from './pick.js';
+import { toBotSolution, type BotStats } from './solution.js';
+
+const solveLimit = createLimiter({ windowMs: 60_000, max: 6 }); // per Discord user, on top of the bot's 30 s cooldown
+
+/** The FC Solver user behind a Discord id and the EA account the bot uses for them. */
+async function botUser(discordId: unknown): Promise<{ userId: string; acc: Account; lang: 'en' | 'ro'; discordId: string }> {
+  if (typeof discordId !== 'string' || !isDiscordId(discordId)) throw new SessionError('Bad Discord id.', 400, 'badRequest');
+  const u = await userByDiscord(discordId);
+  if (!u) throw new SessionError('Connect Discord in FC Solver Settings first.', 404, 'discordNotLinked');
+  const pid = pickPersona(await ownedPersonas(u.userId));
+  const acc = pid ? accountById(pid) : null;
+  if (!acc) throw new SessionError('Link an EA account to FC Solver first.', 409, 'noPersona');
+  return { userId: u.userId, acc, lang: u.lang === 'ro' ? 'ro' : 'en', discordId };
+}
 
 export function registerBotRoutes(app: FastifyInstance): void {
   void app.register(async (s) => {
@@ -22,6 +45,47 @@ export function registerBotRoutes(app: FastifyInstance): void {
       } catch {
         return { day: await currentDay(), live: false };
       }
+    });
+
+    s.get<{ Querystring: { discordId?: string; q?: string } }>('/api/bot/sets', async (req) => {
+      const { acc } = await botUser(req.query.discordId);
+      const sets = await readCache<SetsData>(acc.key('sets'));
+      return { sets: matchSets(sets?.data.categories ?? [], String(req.query.q ?? '')) };
+    });
+
+    s.get<{ Querystring: { discordId?: string; setId?: string } }>('/api/bot/challenges', async (req) => {
+      const { acc } = await botUser(req.query.discordId);
+      const chs = (await getChallenges(acc, Number(req.query.setId)))?.data ?? [];
+      return {
+        challenges: chs.slice(0, 25).map((c) => ({ challengeId: c.challengeId, name: clip(`${c.status === 'COMPLETED' ? '✓ ' : ''}${c.name}`), done: c.status === 'COMPLETED' })),
+        defaultId: defaultChallenge(chs),
+      };
+    });
+
+    // the site's solve with default settings: same quota (a found squad counts), same re-check, cache only
+    s.post<{ Body: { discordId?: string; setId?: unknown; challengeId?: unknown } }>('/api/bot/solve', async (req) => {
+      const b = req.body ?? {};
+      const u = await botUser(b.discordId);
+      if (!solveLimit(u.discordId)) throw new SessionError('Too many solves, wait a minute.', 429, 'botRateLimited');
+      const setId = Number(b.setId);
+      const set = (await readCache<SetsData>(u.acc.key('sets')))?.data.categories.flatMap((c) => c.sets).find((x) => x.setId === setId);
+      const chs = (await getChallenges(u.acc, setId))?.data ?? [];
+      const challengeId = Number.isInteger(b.challengeId) ? (b.challengeId as number) : defaultChallenge(chs);
+      const ch = chs.find((c) => c.challengeId === challengeId);
+      if (!set || !ch) throw new SessionError('challenge not found (open it in the web app first)', 404, 'challengeNotFound');
+      if (!setAvailable(set)) throw new SessionError('This SBC is done or cannot be repeated right now.', 409, 'setNotAvailable');
+      const answer = await runSolve(u.userId, u.acc, { setId, challengeId: ch.challengeId }, 'discord');
+      return toBotSolution(answer, { set: set.name, challenge: ch.name, setId, challengeId: ch.challengeId, lang: u.lang });
+    });
+
+    s.get<{ Querystring: { discordId?: string } }>('/api/bot/stats', async (req) => {
+      const u = await botUser(req.query.discordId);
+      const [h, club, plays, day] = await Promise.all([historyTotals(u.acc.id), readCache<unknown[]>(u.acc.key('club')), playsOf(u.userId), currentDay()]);
+      const stats: BotStats = {
+        sbcs: h.set, challenges: h.challenge, objectives: h.objective,
+        club: club?.data.length ?? 0, streak: streakOf(plays, day).current, since: h.since, lang: u.lang,
+      };
+      return stats;
     });
   });
 }
