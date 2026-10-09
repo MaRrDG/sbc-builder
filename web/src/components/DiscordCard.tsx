@@ -1,10 +1,12 @@
 // Linked accounts card: connect Discord through Clerk (Discord connection, connect-only) so the bot knows who runs /sbc and /stats.
 import { useEffect, useRef, useState } from 'react';
-import { useUser } from '@clerk/react';
+import { useReverification, useUser } from '@clerk/react';
+import { isReverificationCancelledError } from '@clerk/react/errors';
 import { ArrowSquareOut, DiscordLogo, LinkBreak } from '@phosphor-icons/react';
 import { api, type DiscordInfo } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
+import { useReverifyDialog } from './Reverify';
 
 export function DiscordCard({ onChange }: { onChange?: () => void }) {
   const { t } = useI18n();
@@ -13,6 +15,10 @@ export function DiscordCard({ onChange }: { onChange?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const synced = useRef<string | null>(null);
+  const { dialog, options } = useReverifyDialog();
+  // creating (and removing) an external account is a sensitive Clerk action: it asks for a fresh verification
+  const createAccount = useReverification(() => user!.createExternalAccount({ strategy: 'oauth_discord', redirectUrl: `${window.location.origin}/dashboard/accounts?discord=connected` }), options);
+  const destroyAccount = useReverification((e: { destroy: () => Promise<unknown> }) => e.destroy(), options);
 
   const run = async (fn: () => Promise<DiscordInfo | void>) => {
     setBusy(true);
@@ -25,7 +31,7 @@ export function DiscordCard({ onChange }: { onChange?: () => void }) {
         if (changed) onChange?.(); // boost Premium shows in the plan without a reload
       }
     } catch (e) {
-      setError(errorText(e, t));
+      if (!isReverificationCancelledError(e)) setError(errorText(e, t));
     } finally {
       setBusy(false);
     }
@@ -52,8 +58,8 @@ export function DiscordCard({ onChange }: { onChange?: () => void }) {
     run(async () => {
       if (!user) return;
       // an abandoned attempt leaves an unverified Discord account that would block a new one
-      for (const e of user.externalAccounts) if (e.provider === 'discord' && e.verification?.status !== 'verified') await e.destroy();
-      const ext = await user.createExternalAccount({ strategy: 'oauth_discord', redirectUrl: `${window.location.origin}/dashboard/accounts?discord=connected` });
+      for (const e of user.externalAccounts) if (e.provider === 'discord' && e.verification?.status !== 'verified') await destroyAccount(e);
+      const ext = await createAccount();
       const url = ext.verification?.externalVerificationRedirectURL;
       if (!url) throw new Error(t('settings.discord.failed'));
       window.location.assign(url.href);
@@ -89,6 +95,7 @@ export function DiscordCard({ onChange }: { onChange?: () => void }) {
           {join}
         </div>
       )}
+      {dialog}
       {error && (
         <div className="banner" role="alert">
           {error}

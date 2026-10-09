@@ -4419,3 +4419,15 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .sidebar .discord-invite:hover { color: var(--ink); }
 .sidebar .discord-invite:focus-visible { color: var(--ink); outline: 2px solid var(--go); outline-offset: 2px; border-radius: 8px; }
 .sidebar .discord-invite + .legal-links { margin-top: 0; }
+
+/* ---------- session reverification dialog (reuses .club-sync) ---------- */
+.reverify form { text-align: left; }
+.reverify .rv-field { display: grid; gap: 6px; margin: 0 0 12px; font-size: 0.85rem; color: var(--ink-2); }
+.reverify .rv-field input {
+  height: 44px; padding: 0 12px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg-0); color: var(--ink);
+  font: inherit; font-size: 1rem; letter-spacing: 0.04em;
+}
+.reverify input[inputmode='numeric'] { text-align: center; font-size: 1.4rem; letter-spacing: 0.4em; font-variant-numeric: tabular-nums; }
+.reverify .rv-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.reverify .rv-actions .club-sync-close { margin-top: 0; }
+.reverify .rv-cancel { display: block; margin: 12px auto 0; }
