@@ -27,6 +27,7 @@ export const CH = {
   announcements: textName('📢', 'announcements'),
   roles: textName('🎭', 'roles'),
   daily: textName('⚽', 'daily'),
+  polls: textName('📊', 'polls'),
   boost: textName('💎', 'boost-perks'),
   sbcRo: textName('🧩', 'ajutor-sbc'),
   sbcEn: textName('🧩', 'sbc-help'),
@@ -78,6 +79,7 @@ export const CATEGORIES: CategorySpec[] = [
       { name: CH.announcements, kind: 'announcement', readOnly: true, topic: 'FC Solver news (follow it from your own server) · Noutăți FC Solver' },
       { name: CH.roles, kind: 'text', readOnly: true, topic: 'Language and favourite teams · Limbă și echipe favorite' },
       { name: CH.daily, kind: 'text', readOnly: true, topic: 'FC Solver Daily: a new player every day · un jucător nou în fiecare zi' },
+      { name: CH.polls, kind: 'text', readOnly: true, topic: 'Community polls: vote here (created by Admins and Moderators) · Sondaje: votează aici (create de Admini și Moderatori)' },
       { name: CH.boost, kind: 'text', readOnly: true, topic: 'Premium while you boost · Premium cât timp dai boost' },
     ],
   },
@@ -132,7 +134,7 @@ export function overwritesFor(access: Access, target: Target, readOnly: boolean,
   const see: PermissionsString[] = voice ? ['ViewChannel', 'Connect', 'Speak'] : ['ViewChannel', 'ReadMessageHistory'];
   const bot: Overwrite = {
     id: ids.bot,
-    allow: voice ? ['ViewChannel', 'Connect'] : ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles', 'ReadMessageHistory', 'AddReactions', 'ManageMessages'],
+    allow: voice ? ['ViewChannel', 'Connect'] : ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles', 'ReadMessageHistory', 'AddReactions', 'ManageMessages', 'SendPolls'],
     deny: [],
   };
   const noWrite = readOnly && !voice ? WRITE : [];
