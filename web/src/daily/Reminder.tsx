@@ -66,7 +66,7 @@ export function Reminder({ signedIn, link, next }: Props) {
         </span>
       </label>
       <p className="dg-remind-hint">
-        {state.premium ? t('daily.remind.hint') : <>{t('daily.remind.locked')} {link({ view: 'invite' }, 'dg-invite-link', t('daily.remind.more'))}</>}
+        {state.premium ? t('daily.remind.hint') : <>{t('daily.remind.locked')} <a className="dg-invite-link" href="/#pricing">{t('daily.remind.more')}</a></>}
       </p>
       {error && <p className="dg-remind-hint" role="alert">{error}</p>}
     </div>
