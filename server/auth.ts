@@ -17,6 +17,12 @@ export function initAuth(): void {
   clerk = createClerkClient({ secretKey });
 }
 
+/** The backend Clerk client (users, external accounts). Throws before initAuth(). */
+export function clerkApi(): ReturnType<typeof createClerkClient> {
+  if (!clerk) throw new Error('auth is not initialised');
+  return clerk;
+}
+
 const signIn = () => new SessionError('Sign in first.', 401, 'signIn');
 const seenAt = new Map<string, { at: number; done: Promise<void> }>();
 

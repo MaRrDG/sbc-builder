@@ -91,6 +91,12 @@ The onboarding survey (`server/onboarding.ts`): `{ "heardFrom": "tiktok"|"youtub
 
 Optional `"code"`: an invite, promo or gift code typed on the survey. The answer is saved first and a bad code never blocks it; the response then is `{ "ok": true, "redeem": { "kind", "days", "pending", "founder" } | { "error": "<code>" } }` (no `redeem` when no code was sent or the redeem limit was hit).
 
+### `GET /api/me/discord`, `POST /api/me/discord`, `DELETE /api/me/discord`
+
+`{ "discord": { "username": "mario" } | null, "invite": "https://discord.gg/…" | null }`. `invite` is `DISCORD_INVITE_URL`. The Discord bot (`/sbc`, `/stats`) uses the user's most recently linked EA account.
+
+Connecting runs in the browser with Clerk (`user.createExternalAccount({ strategy: 'oauth_discord' })`, Discord connection enabled in Clerk for connecting only). `POST` then reads the user's verified Discord account from Clerk server-side (the request body is ignored) and stores its id: `400 discordNotConnected` when Clerk has none, `409 discordTaken` when another FC Solver user already holds it. `DELETE` removes every Discord external account from the Clerk user and clears the link (idempotent).
+
 ### `GET /api/evos` (site, Premium)
 
 ```json
