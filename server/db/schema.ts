@@ -85,7 +85,11 @@ export const users = pgTable('users', {
   username: text('username'),
   leaderboard: boolean('leaderboard').notNull().default(false),
   leaderboardAskedAt: timestamp('leaderboard_asked_at', { withTimezone: true }),
+  // Discord (Clerk's Discord connection): the id the bot sees and its name
+  discordId: text('discord_id'),
+  discordName: text('discord_name'),
 }, (t) => [
+  uniqueIndex('users_discord_id').on(t.discordId),
   uniqueIndex('users_founder_persona').on(t.founderPersona),
   uniqueIndex('users_username_lower').on(sql`lower(${t.username})`),
 ]); // one spot per EA account, even without the lock
