@@ -41,6 +41,16 @@ export const SUPERLIGA = [
   'Universitatea Craiova', 'Universitatea Cluj', 'CFR Cluj', 'Dinamo București', 'Rapid București', 'FC Argeș', 'UTA Arad', 'FCSB',
   'Oțelul Galați', 'FC Botoșani', 'Csíkszereda', 'Petrolul Ploiești', 'Farul Constanța', 'FC Voluntari', 'Corvinul Hunedoara', 'Sepsi OSK',
 ];
+// Team role colours (hex ints), one per club, keyed by the names above. Main kit/crest colour, tuned to read on Discord's dark UI.
+// White/black primaries use the signature secondary (Real Madrid gold, Juventus silver, Milan red, Inter blue, Dortmund yellow...). Never 0 (Discord: "no colour").
+export const TEAM_COLORS: Record<string, number> = {
+  'Real Madrid': 0xfebe10, Barcelona: 0xa50044, 'Atlético Madrid': 0xe03a3e, 'Manchester City': 0x6cabdd, Liverpool: 0xc8102e,
+  Arsenal: 0xef0107, 'Manchester United': 0xda291c, Chelsea: 0x2a6ebb, 'Bayern München': 0xdc052d, 'Borussia Dortmund': 0xfde100,
+  PSG: 0x2f5fb3, Juventus: 0xb4b9c0, Inter: 0x1b5eb5, Milan: 0xfb090b, Napoli: 0x12a0d7,
+  'Universitatea Craiova': 0x2f6fd0, 'Universitatea Cluj': 0xc8c8c8, 'CFR Cluj': 0x8b1a3a, 'Dinamo București': 0xe30613, 'Rapid București': 0x9b2d43,
+  'FC Argeș': 0x7d5cc6, 'UTA Arad': 0xd9a400, FCSB: 0xd8202f, 'Oțelul Galați': 0x4a73c9, 'FC Botoșani': 0xf2c200, Csíkszereda: 0xd62a2a,
+  'Petrolul Ploiești': 0xf4c20d, 'Farul Constanța': 0x2c9fd9, 'FC Voluntari': 0xf28c28, 'Corvinul Hunedoara': 0xe34a4a, 'Sepsi OSK': 0x2fa04a,
+};
 export const PICKERS: Record<PickerGroup, string[]> = { lang: [ROLE.ro, ROLE.en], world: WORLD_CLUBS, superliga: SUPERLIGA };
 
 // order = hierarchy, top first (setup stacks them under the bot's role). A Premium role (later) goes after Moderator.
@@ -49,9 +59,9 @@ export const ROLES: RoleSpec[] = [
   { name: ROLE.mod, color: BRAND.mod, permissions: ['ManageMessages', 'ModerateMembers', 'KickMembers', 'ManageThreads', 'MuteMembers', 'MoveMembers'], hoist: true },
   { name: ROLE.member, color: BRAND.cream, permissions: [], hoist: false },
   ...PICKERS.lang.map((name): RoleSpec => ({ name, color: 0, permissions: [], hoist: false, group: 'lang' })),
-  // club roles: no colour; the ⚽ role icon is only applied on boost level 2 servers
-  ...WORLD_CLUBS.map((name): RoleSpec => ({ name, color: 0, permissions: [], hoist: false, group: 'world', icon: '⚽' })),
-  ...SUPERLIGA.map((name): RoleSpec => ({ name, color: 0, permissions: [], hoist: false, group: 'superliga', icon: '⚽' })),
+  // club roles: club colour (TEAM_COLORS); the ⚽ role icon is only applied on boost level 2 servers
+  ...WORLD_CLUBS.map((name): RoleSpec => ({ name, color: TEAM_COLORS[name], permissions: [], hoist: false, group: 'world', icon: '⚽' })),
+  ...SUPERLIGA.map((name): RoleSpec => ({ name, color: TEAM_COLORS[name], permissions: [], hoist: false, group: 'superliga', icon: '⚽' })),
 ];
 
 export const CATEGORIES: CategorySpec[] = [
