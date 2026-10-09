@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseBoosters, reconcileBoosts } from './boost.js';
+import { parseBoosters, reconcileBoosts, stopsAllowed } from './boost.js';
 
 const D1 = '111111111111111111', D2 = '222222222222222222', D3 = '333333333333333333';
 
@@ -32,4 +32,15 @@ test('booster list: valid ids and times only; anything else rejects the whole li
   assert.equal(parseBoosters({ boosters: [{ discordId: 'x', since: 5 }] }), null);
   assert.equal(parseBoosters({ boosters: [{ discordId: D1, since: -1 }] }), null);
   assert.equal(parseBoosters({}), null);
+});
+
+test('stop guard: a mass stop (empty or partial list) is refused unless forced; small normal stops pass', () => {
+  assert.equal(stopsAllowed(20, 20, false), false); // empty list while 20 boost
+  assert.equal(stopsAllowed(11, 20, false), false); // more than half
+  assert.equal(stopsAllowed(10, 20, false), true);
+  assert.equal(stopsAllowed(1, 3, false), true); // small guild: up to 5 always fine
+  assert.equal(stopsAllowed(5, 5, false), true);
+  assert.equal(stopsAllowed(6, 6, false), false);
+  assert.equal(stopsAllowed(20, 20, true), true); // force
+  assert.equal(stopsAllowed(0, 0, false), true);
 });

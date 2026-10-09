@@ -26,3 +26,9 @@ export function parseBoosters(body: unknown): Map<string, number> | null {
   }
   return out;
 }
+
+/** Safety net for the full list: a bot that sent an empty or partial list must not revoke everyone. More stops than
+ *  max(5, half of those boosting now) need `force`. */
+export function stopsAllowed(stops: number, boostingNow: number, force: boolean): boolean {
+  return force || stops <= Math.max(5, Math.floor(boostingNow / 2));
+}
