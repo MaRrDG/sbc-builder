@@ -66,7 +66,8 @@ export function registerBotRoutes(app: FastifyInstance): void {
     s.get('/api/bot/daily', async () => {
       try {
         return { day: (await todayGame()).day, live: true };
-      } catch {
+      } catch (e) {
+        console.warn(`[bot] daily: ${(e as Error).message}`);
         return { day: await currentDay(), live: false };
       }
     });

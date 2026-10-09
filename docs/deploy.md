@@ -88,10 +88,10 @@ The bot (`discord/`) runs from the same image as its own compose service `bot` (
 1. Discord Developer Portal → New Application ("FC Solver"). **Bot**: reset and copy the token (`DISCORD_TOKEN`). **General Information**: Application ID (`DISCORD_APP_ID`).
 2. OAuth2 → URL Generator: scopes `bot`, `applications.commands`; permissions Manage Server, Manage Roles, Manage Channels, Manage Expressions, Manage Messages, View Channels, Send Messages, Embed Links, Attach Files, Add Reactions, Read Message History. The privileged intent **Server Members** is on in the Developer Portal (Bot → Privileged Gateway Intents) and used (Phase 6, boosts). Open the URL and add the bot to the (empty) server.
 3. Discord → Settings → Advanced → Developer Mode; right-click the server → Copy Server ID (`DISCORD_GUILD_ID`).
-4. Put the three values in `.env` plus `BOT_API_TOKEN=$(openssl rand -hex 32)` (shared by the app and the bot; the app answers `404` on `/api/bot/*` without it) and `DISCORD_INVITE_URL` (Server Settings → Invites → a never-expiring link). The Apache vhost denies `/api/bot/` from outside (`<Location /api/bot/>` in `deploy/sbc-builder.conf`): copy it again, `apache2ctl configtest && systemctl reload apache2`. Then build the layout (re-runnable, never deletes anything):
+4. Put the three values in `.env` plus `SITE_URL` (required by the bot: its links point there; the bot exits without it) and `BOT_API_TOKEN=$(openssl rand -hex 32)` (required, at least 32 characters, the bot exits without it; shared by the app and the bot; the app answers `404` on `/api/bot/*` without it) and `DISCORD_INVITE_URL` (Server Settings → Invites → a never-expiring link). The Apache vhost denies `/api/bot/` from outside (`<Location /api/bot/>` in `deploy/sbc-builder.conf`): copy it again, `apache2ctl configtest && systemctl reload apache2`. Then build the layout (re-runnable, never deletes anything):
 
    ```bash
-   docker compose --profile discord run --rm bot node --import tsx discord/setup.ts
+   docker compose --profile discord run --rm --no-deps bot node --import tsx discord/setup.ts
    ```
 
 5. Server Settings → Roles: drag the bot's role to the top, run step 4 again (sets the role order).

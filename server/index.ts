@@ -80,7 +80,8 @@ const tooMany = () => new SessionError('Too many requests, slow down a little.',
 
 // The extension posts from a chrome-extension:// origin (unpacked, so its id differs per install).
 app.addHook('onRequest', async (req, reply) => {
-  if (req.url.startsWith('/api/') && !apiLimit(req.ip)) throw tooMany();
+  // /api/bot/* is guarded by its token and every Discord user shares the bot's IP
+  if (req.url.startsWith('/api/') && !req.url.startsWith('/api/bot/') && !apiLimit(req.ip)) throw tooMany();
   const origin = req.headers.origin;
   if (origin && (origin.startsWith('chrome-extension://') || (DEV && origin.startsWith('http://localhost')))) {
     reply.header('Access-Control-Allow-Origin', origin);

@@ -6,7 +6,7 @@ import { api, type DiscordInfo } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
 
-export function DiscordCard() {
+export function DiscordCard({ onChange }: { onChange?: () => void }) {
   const { t } = useI18n();
   const { user } = useUser();
   const [info, setInfo] = useState<DiscordInfo | null>(null);
@@ -19,7 +19,11 @@ export function DiscordCard() {
     setError(null);
     try {
       const r = await fn();
-      if (r) setInfo(r);
+      if (r) {
+        const changed = (info?.discord?.username ?? null) !== (r.discord?.username ?? null);
+        setInfo(r);
+        if (changed) onChange?.(); // boost Premium shows in the plan without a reload
+      }
     } catch (e) {
       setError(errorText(e, t));
     } finally {

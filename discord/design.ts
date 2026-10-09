@@ -24,6 +24,11 @@ export function emojiTag(emojis: ReadonlyMap<string, string>, name: string, fall
   return id ? `<:${name}:${id}>` : fallback;
 }
 
+/** Setup only raises these settings to the minimum it needs: a stricter value an admin set stays (all three enums grow with strictness). */
+export function atLeast(current: number | null | undefined, minimum: number): number {
+  return Math.max(current ?? minimum, minimum);
+}
+
 export const COMMUNITY_DESCRIPTION = 'Cheapest SBC squads from your own EA FC club. Cele mai ieftine loturi SBC din clubul tău.';
 
 export const WELCOME = {
@@ -63,9 +68,9 @@ export async function applyDesign(guild: Guild, opts: { icon: boolean; avatar: b
       systemChannel: welcome,
       // Discord's own boost messages stay on; setup tips, "wave to say hi" replies and the join message (the bot welcomes members itself) off
       systemChannelFlags: new SystemChannelFlagsBitField(['SuppressGuildReminderNotifications', 'SuppressJoinNotificationReplies', 'SuppressJoinNotifications']),
-      verificationLevel: GuildVerificationLevel.Low,
-      explicitContentFilter: GuildExplicitContentFilter.AllMembers,
-      defaultMessageNotifications: GuildDefaultMessageNotifications.OnlyMentions,
+      verificationLevel: atLeast(guild.verificationLevel, GuildVerificationLevel.Low),
+      explicitContentFilter: atLeast(guild.explicitContentFilter, GuildExplicitContentFilter.AllMembers),
+      defaultMessageNotifications: atLeast(guild.defaultMessageNotifications, GuildDefaultMessageNotifications.OnlyMentions),
       description: COMMUNITY_DESCRIPTION,
       reason: 'FC Solver setup',
     });

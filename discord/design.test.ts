@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { assetPath } from './brand.js';
 import { CATEGORIES } from './layout.js';
-import { COMMUNITY_DESCRIPTION, EMOJIS, WELCOME, emojiTag, missingEmojis } from './design.js';
+import { COMMUNITY_DESCRIPTION, atLeast, EMOJIS, WELCOME, emojiTag, missingEmojis } from './design.js';
 
 test('emojis: valid Discord names, files present, only missing ones uploaded', () => {
   for (const e of EMOJIS) {
@@ -28,4 +28,11 @@ test('welcome screen: at most 5 layout channels, short descriptions, unicode emo
     assert.ok(c.description.length <= 42, c.description);
     assert.match(c.emoji, /^\p{Extended_Pictographic}️?$/u);
   }
+});
+
+test('atLeast raises to the minimum and never lowers', () => {
+  assert.equal(atLeast(0, 1), 1);
+  assert.equal(atLeast(1, 1), 1);
+  assert.equal(atLeast(3, 1), 3);
+  assert.equal(atLeast(undefined, 2), 2);
 });
