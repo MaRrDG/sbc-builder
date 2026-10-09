@@ -8,7 +8,7 @@ export type Access = 'everyone' | 'rules' | 'member' | 'ro' | 'en' | 'staff';
 export type ChannelKind = 'text' | 'announcement' | 'voice';
 export type Target = 'category' | ChannelKind;
 export interface RoleSpec { name: string; color: number; permissions: PermissionsString[]; hoist: boolean; group?: PickerGroup; icon?: string; aliases?: string[] }
-export interface ChannelSpec { name: string; kind: ChannelKind; topic?: string; readOnly?: boolean; slowmode?: number; access?: Access; aliases?: string[] }
+export interface ChannelSpec { polls?: boolean; name: string; kind: ChannelKind; topic?: string; readOnly?: boolean; slowmode?: number; access?: Access; aliases?: string[] }
 export interface CategorySpec { name: string; access: Access; channels: ChannelSpec[]; aliases?: string[] }
 
 // one style everywhere: "📜・rules", "🔊 Lounge", "━━ INFO ━━"
@@ -79,7 +79,7 @@ export const CATEGORIES: CategorySpec[] = [
       { name: CH.announcements, kind: 'announcement', readOnly: true, topic: 'FC Solver news (follow it from your own server) · Noutăți FC Solver' },
       { name: CH.roles, kind: 'text', readOnly: true, topic: 'Language and favourite teams · Limbă și echipe favorite' },
       { name: CH.daily, kind: 'text', readOnly: true, topic: 'FC Solver Daily: a new player every day · un jucător nou în fiecare zi' },
-      { name: CH.polls, kind: 'text', readOnly: true, topic: 'Community polls: vote here (created by Admins and Moderators) · Sondaje: votează aici (create de Admini și Moderatori)' },
+      { name: CH.polls, kind: 'text', readOnly: true, polls: true, topic: 'Community polls: vote here (created by Admins and Moderators) · Sondaje: votează aici (create de Admini și Moderatori)' },
       { name: CH.boost, kind: 'text', readOnly: true, topic: 'Premium while you boost · Premium cât timp dai boost' },
     ],
   },
@@ -124,7 +124,7 @@ const WRITE: PermissionsString[] = ['SendMessages', 'SendMessagesInThreads', 'Cr
  * Discord ORs permissions across roles, so "RO and Member" cannot be an overwrite: the bot only hands out RO / EN together with
  * Member (✅ on the rules) and removes them when Member goes (discord/index.ts). The bot's own role is allowed everywhere so read-only stays writable for it.
  */
-export function overwritesFor(access: Access, target: Target, readOnly: boolean, ids: RoleIds): Overwrite[] {
+export function overwritesFor(access: Access, target: Target, readOnly: boolean, ids: RoleIds, polls = false): Overwrite[] {
   const id = (name: string) => {
     const v = ids.byName.get(name.toLowerCase());
     if (!v) throw new Error(`role "${name}" is missing, run setup again`);
@@ -134,7 +134,7 @@ export function overwritesFor(access: Access, target: Target, readOnly: boolean,
   const see: PermissionsString[] = voice ? ['ViewChannel', 'Connect', 'Speak'] : ['ViewChannel', 'ReadMessageHistory'];
   const bot: Overwrite = {
     id: ids.bot,
-    allow: voice ? ['ViewChannel', 'Connect'] : ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles', 'ReadMessageHistory', 'AddReactions', 'ManageMessages', 'SendPolls'],
+    allow: voice ? ['ViewChannel', 'Connect'] : ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles', 'ReadMessageHistory', 'AddReactions', 'ManageMessages', ...(polls ? ['SendPolls' as const] : [])],
     deny: [],
   };
   const noWrite = readOnly && !voice ? WRITE : [];

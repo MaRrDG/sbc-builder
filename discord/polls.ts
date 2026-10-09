@@ -3,7 +3,7 @@ import { MessageFlags, type ChatInputCommandInteraction, type Guild, type Messag
 import { categoryOf, findText } from './guild.js';
 import { langFor, tr } from './i18n.js';
 import { CAT, CH } from './layout.js';
-import { canPoll, pollResultMessage, validatePoll } from './poll.js';
+import { canPoll, isOurResult, pollResultMessage, validatePoll } from './poll.js';
 
 export async function onPoll(i: ChatInputCommandInteraction): Promise<void> {
   const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
@@ -18,8 +18,8 @@ export async function onPoll(i: ChatInputCommandInteraction): Promise<void> {
     multi: i.options.getBoolean('multi'),
   });
   if (!v.ok) return void (await i.editReply({ content: tr(lang, `poll.${v.code}`) }));
-  const channel = await findText(i.guild!, CAT.info, CH.polls);
   try {
+    const channel = await findText(i.guild!, CAT.info, CH.polls);
     const m = await channel.send({
       poll: { question: { text: v.poll.question }, answers: v.poll.answers.map((text) => ({ text })), duration: v.poll.hours, allowMultiselect: v.poll.multi },
       allowedMentions: { parse: [] },
@@ -27,20 +27,24 @@ export async function onPoll(i: ChatInputCommandInteraction): Promise<void> {
     await i.editReply({ content: tr(lang, 'poll.created', { url: m.url }) });
   } catch (e) {
     console.warn(`[bot] /poll: ${(e as Error).message}`);
-    await i.editReply({ content: tr(lang, 'poll.cannotPost', { channel: `<#${channel.id}>` }) });
+    await i.editReply({ content: tr(lang, 'poll.cannotPost', { channel: CH.polls }) }).catch(() => {});
   }
 }
 
 const handled = new Set<string>(); // polls answered by this process (the channel itself is the record across restarts)
 
-/** A reply of ours with an embed under the poll is the result post (Discord's own "poll ended" message has no embed). */
-const isResultOf = (m: Message, pollId: string, botId: string) => m.author.id === botId && m.reference?.messageId === pollId && m.embeds.length > 0;
+/** Our result post under the poll (not Discord's own "poll ended" message, which has the same author). */
+const isResultOf = (m: Message, pollId: string, botId: string) =>
+  isOurResult({ type: m.type, authorId: m.author.id, replyTo: m.reference?.messageId ?? null, embedAuthors: m.embeds.map((e) => e.author?.name ?? null) }, pollId, botId);
 
 /**
  * Posts the result of every poll the bot created that has ended and has no result post yet.
  * Runs on a timer: polls finalise after their end time, and a restart finds the missed ones. Fails soft.
  */
+let running = false;
 export async function postFinishedPolls(guild: Guild, botId: string, avatar: string): Promise<void> {
+  if (running) return;
+  running = true;
   try {
     const ch: TextChannel = await findText(guild, CAT.info, CH.polls);
     const recent = [...(await ch.messages.fetch({ limit: 50 })).values()];
@@ -56,5 +60,7 @@ export async function postFinishedPolls(guild: Guild, botId: string, avatar: str
     }
   } catch (e) {
     console.warn(`[bot] poll results: ${(e as Error).message}`);
+  } finally {
+    running = false;
   }
 }

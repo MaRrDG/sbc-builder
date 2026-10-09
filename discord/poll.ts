@@ -1,4 +1,5 @@
 // /poll rules and the "poll ended" post. Pure (no client): validation, who may create, winner calculation, the result embed.
+import { MessageType } from 'discord.js';
 import { brandEmbed } from './content.js';
 import { tr, type Lang } from './i18n.js';
 import { ROLE } from './layout.js';
@@ -56,3 +57,9 @@ export function pollResultMessage(question: string, answers: Tally[], icon?: str
     .addFields({ name: `${tr('en', 'poll.results')} · ${tr('ro', 'poll.results')}`, value: `\`\`\`\n${rows}\n\`\`\`` });
   return { embeds: [e], allowedMentions: { parse: [] as [] } };
 }
+
+export interface MessageShape { type: number; authorId: string; replyTo: string | null; embedAuthors: (string | null)[] }
+
+/** Our result post under a poll: a reply of ours carrying the FC Solver embed. Discord's own "poll ended" message (type PollResult, same author) is not it. */
+export const isOurResult = (m: MessageShape, pollId: string, botId: string): boolean =>
+  m.type !== MessageType.PollResult && m.authorId === botId && m.replyTo === pollId && m.embedAuthors.includes('FC Solver');
