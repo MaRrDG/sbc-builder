@@ -23,12 +23,18 @@
   --r-ctl: 8px;
   --r-box: 14px;
   --ease: cubic-bezier(0.25, 1, 0.5, 1); /* ease-out-quart */
+  /* public pages (landing, /daily): one container so edges line up from page to page */
+  --page-max: 1200px; /* content width, gutters excluded */
+  --gutter: clamp(16px, 4vw, 40px);
+  --page-bar: 64px; /* top bar height */
+  --page-logo: 32px; /* logo height in that bar, 28px under 480px (below) */
 
   --font-ui: 'Geist', system-ui, sans-serif;
   --font-num: 'Barlow Condensed', 'Geist', sans-serif;
 
   --card-w: clamp(50px, 9.5vw, 92px);
 }
+@media (max-width: 480px) { :root { --page-logo: 28px; } }
 
 *,
 *::before,

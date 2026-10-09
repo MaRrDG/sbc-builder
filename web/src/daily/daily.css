@@ -23,13 +23,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  max-width: 852px;
-  height: 56px;
-  margin: 0 auto;
-  padding: 0 16px;
+  height: var(--page-bar);
+}
+/* the landing's container (styles.css tokens): edges line up from / to /daily */
+.dg-top-in,
+.dg-main {
+  width: 100%;
+  max-width: calc(var(--page-max) + 2 * var(--gutter));
+  margin-inline: auto;
+  padding-inline: var(--gutter);
 }
 .dg-logo { display: flex; flex: none; border-radius: var(--r-ctl); }
-.dg-logo img { display: block; height: 28px; width: auto; }
+.dg-logo img { display: block; height: var(--page-logo); width: auto; }
 .dg-top-end { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 .dg-toplink {
   display: inline-flex;
@@ -44,10 +49,11 @@
 .dg-toplink:hover { background: var(--surface-2); color: var(--ink); }
 
 /* ---------- title row ---------- */
-.dg-main {
-  max-width: 852px;
-  margin: 0 auto;
-  padding: 18px 16px 64px;
+.dg-main { padding-block: clamp(14px, 3vw, 18px) 64px; }
+/* the game itself stays a centered column: tiles must not stretch with the wide container */
+.dg-board {
+  max-width: 820px;
+  margin-inline: auto;
 }
 .dg-titlebar {
   display: flex;
@@ -130,7 +136,7 @@
 }
 
 /* ---------- stage: the card on a pitch, under the web app's header strip ---------- */
-.dg-stage { --card-w: 150px; }
+.dg-stage { --card-w: clamp(120px, 30vw + 8px, 150px); }
 .dg-strip .hdr-value { min-height: 20px; }
 .dg-pitch {
   position: relative;
@@ -242,7 +248,7 @@
 }
 .dg-end { min-width: 0; }
 .dg-end-title {
-  font: 700 34px / 1 var(--font-num);
+  font: 700 clamp(28px, 18.6px + 2.4vw, 34px) / 1 var(--font-num);
   letter-spacing: 0.01em;
   text-transform: uppercase;
 }
@@ -254,7 +260,7 @@
   letter-spacing: 0;
   text-transform: none;
 }
-.dg-end-title strong { font-size: 40px; font-weight: 700; }
+.dg-end-title strong { font-size: clamp(34px, 24.6px + 2.4vw, 40px); font-weight: 700; }
 .dg-end-bar {
   display: flex;
   flex-wrap: wrap;
@@ -324,7 +330,7 @@
 /* ---------- search + grid panel ---------- */
 .dg-play {
   margin-top: 12px;
-  padding: 14px 16px 16px;
+  padding: clamp(12px, 3vw, 14px) clamp(10px, 3vw, 16px) clamp(14px, 3vw, 16px);
   border: 1px solid var(--line);
   border-radius: var(--r-box);
   background: var(--surface);
@@ -426,7 +432,7 @@
 .dg-row {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 6px;
+  gap: clamp(4px, 1.5vw, 6px);
 }
 .dg-head { padding-bottom: 2px; }
 .dg-head-c {
@@ -464,12 +470,13 @@
   letter-spacing: 0.02em;
 }
 .dg-chip b { color: var(--ink); }
+.dg-tile { --tile-h: clamp(50px, 12vw + 4px, 56px); }
 .dg-tile {
   --c: var(--surface-3);
   position: relative;
   display: grid;
   grid-template-rows: minmax(0, 1fr) 16px;
-  height: 56px;
+  height: var(--tile-h);
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--line);
@@ -489,7 +496,7 @@
 }
 .dg-tile.is-empty {
   display: block;
-  height: 56px;
+  height: var(--tile-h);
   border: 1.5px dashed var(--line);
   background: none;
 }
@@ -504,10 +511,10 @@
 .dg-tile-v img {
   display: block;
   max-width: 72%;
-  height: 26px;
+  height: clamp(22px, 6vw, 26px);
   object-fit: contain;
 }
-.dg-val { font: 700 21px / 1 var(--font-num); }
+.dg-val { font: 700 clamp(18px, 4.6vw, 21px) / 1 var(--font-num); }
 .dg-val-sm {
   overflow: hidden;
   font: 600 12px / 1.1 var(--font-ui);
@@ -543,7 +550,7 @@
 .dg-nums dd {
   order: -1;
   margin: 0;
-  font: 700 32px / 1 var(--font-num);
+  font: 700 clamp(28px, 7.5vw, 32px) / 1 var(--font-num);
 }
 .dg-nums dt {
   margin-top: 4px;
@@ -813,8 +820,6 @@
       linear-gradient(180deg, var(--pitch-a), var(--pitch-b));
     text-align: center;
   }
-  .dg-end-title { font-size: 28px; }
-  .dg-end-title strong { font-size: 34px; }
   .dg-end-bar { justify-content: center; }
   .dg-next-in { margin: 4px 0 0; width: 100%; justify-items: center; }
   .dg-end-stats { display: none; } /* phones get the Stats sheet instead */
@@ -849,15 +854,10 @@
   .dg-titlebar { align-items: flex-start; }
   .dg-actions { width: 100%; }
   .dg-tabs { margin-right: auto; }
-  .dg-play { padding: 12px 10px 14px; }
 }
 @media (max-width: 420px) {
-  .dg-main { padding-top: 14px; }
   .dg-top-end { gap: 2px; }
   .dg-toplink { padding: 0 8px; }
-  .dg-stage { --card-w: 120px; }
-  .dg-head,
-  .dg-row { gap: 4px; }
   .dg-head-l {
     position: absolute;
     width: 1px;
@@ -867,16 +867,12 @@
     white-space: nowrap;
   }
   .dg-head-c svg { font-size: 16px; }
-  .dg-tile,
-  .dg-tile.is-empty { height: 50px; }
   .dg-tile { grid-template-rows: minmax(0, 1fr) 14px; }
   .dg-tile-v { padding: 0 2px; }
-  .dg-tile-v img { height: 22px; max-width: 80%; }
-  .dg-val { font-size: 18px; }
+  .dg-tile-v img { max-width: 80%; }
   .dg-val-sm { font-size: 10px; }
   .dg-dir { font-size: 12px; }
   .dg-nums div { padding: 0 8px; }
-  .dg-nums dd { font-size: 28px; }
   .dg-lb-table .dg-lb-opt { display: none; }
   .dg-lb-table th,
   .dg-lb-table td { padding: 0 6px; }
