@@ -6,7 +6,7 @@
 //   /dashboard/evolutions evolutions
 //   /dashboard/gallery    gallery list      /dashboard/gallery/<set>  a gallery set
 //   /dashboard/objectives[/formation|/squad]  objectives squad wizard: pick → formation → squad
-//   /dashboard/invite     invite friends     /dashboard/settings   settings          /dashboard/admin[/users[/:id]|/accounts|/codes|/daily][?filters]   admin panel (admins only)
+//   /dashboard/invite     invite friends     /dashboard/settings   settings          /dashboard/accounts   linked accounts          /dashboard/admin[/users[/:id]|/accounts|/codes|/daily][?filters]   admin panel (admins only)
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
 //   /terms  /privacy  /cookies              legal pages (public)
@@ -25,6 +25,7 @@ export type Route =
   | { view: 'club' }
   | { view: 'evolutions' }
   | { view: 'settings' }
+  | { view: 'accounts' }
   | { view: 'invite' }
   | { view: 'setup' }
   | { view: 'guide' }
@@ -72,6 +73,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (x === 'club') return { view: 'club' };
   if (x === 'evolutions') return { view: 'evolutions' };
   if (x === 'settings') return { view: 'settings' };
+  if (x === 'accounts') return { view: 'accounts' };
   if (x === 'invite') return { view: 'invite' };
   if (x === 'objectives') return { view: 'objectives', step: y === 'formation' || y === 'squad' ? y : 'pick' };
   if (x === 'gallery') return { view: 'gallery', setId: y && /^[a-z0-9-]+$/.test(y) ? y : null };
@@ -114,6 +116,7 @@ export function routePath(r: Route): string {
     case 'club':
     case 'evolutions':
     case 'settings':
+    case 'accounts':
     case 'invite':
       return `/dashboard/${r.view}`;
     case 'objectives':

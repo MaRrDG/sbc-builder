@@ -1,4 +1,4 @@
-// Settings card: connect Discord through Clerk (Discord connection, connect-only) so the bot knows who runs /sbc and /stats.
+// Linked accounts card: connect Discord through Clerk (Discord connection, connect-only) so the bot knows who runs /sbc and /stats.
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '@clerk/react';
 import { ArrowSquareOut, DiscordLogo, LinkBreak } from '@phosphor-icons/react';
@@ -49,7 +49,7 @@ export function DiscordCard() {
       if (!user) return;
       // an abandoned attempt leaves an unverified Discord account that would block a new one
       for (const e of user.externalAccounts) if (e.provider === 'discord' && e.verification?.status !== 'verified') await e.destroy();
-      const ext = await user.createExternalAccount({ strategy: 'oauth_discord', redirectUrl: `${window.location.origin}/dashboard/settings?discord=connected` });
+      const ext = await user.createExternalAccount({ strategy: 'oauth_discord', redirectUrl: `${window.location.origin}/dashboard/accounts?discord=connected` });
       const url = ext.verification?.externalVerificationRedirectURL;
       if (!url) throw new Error(t('settings.discord.failed'));
       window.location.assign(url.href);

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, DiscordLogo, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
 import {
   api, ApiError, setPersona,
   type Account, type Challenge, type GalleryResponse, type Meta, type Player, type PlanInfo, type Prefs, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
@@ -31,7 +31,7 @@ import { InvitePage } from './components/InvitePage';
 import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
 import { DailyProfileCard } from './components/DailyProfileCard';
-import { DiscordCard } from './components/DiscordCard';
+import { LinkedAccounts } from './components/LinkedAccounts';
 import { QuotaMeter } from './components/QuotaMeter';
 import { ClubSyncModal } from './components/ClubSyncModal';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -103,6 +103,10 @@ export default function App({
   const prevPlan = useRef<PlanInfo | null>(null);
   const justLinked = useRef(false);
   const { signOut } = useClerk();
+  const [discordInvite, setDiscordInvite] = useState<string | null>(null);
+  useEffect(() => {
+    api.discord.get().then((r) => setDiscordInvite(r.invite), () => undefined); // the link is optional: no invite, no link
+  }, []);
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [meta, setMeta] = useState<Meta | null>(null);
   const [club, setClub] = useState<Player[]>([]);
@@ -387,7 +391,7 @@ export default function App({
   // the tab title follows the screen
   useEffect(() => {
     const name =
-      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'invite' ? 'Invite friends' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery' : view === 'objectives' ? 'Objectives'
+      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'accounts' ? 'Linked accounts' : view === 'invite' ? 'Invite friends' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery' : view === 'objectives' ? 'Objectives'
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
@@ -861,6 +865,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <span>{t('nav.settings')}</span>
             {exclusionCount(globalOptions) > 0 && <em className="badge">{exclusionCount(globalOptions)}</em>}
           </button>
+          <button type="button" className="nav-item" aria-current={view === 'accounts' && !showGuide ? 'page' : undefined} onClick={() => go('accounts')}>
+            <LinkSimple weight="bold" aria-hidden="true" />
+            <span>{t('nav.accounts')}</span>
+          </button>
           <button type="button" className="nav-item" aria-current={view === 'guide' ? 'page' : undefined} onClick={() => go('guide')}>
             <BookOpenText weight="bold" aria-hidden="true" />
             <span>{t('nav.guide')}</span>
@@ -896,6 +904,12 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             {accountPicker}
           </div>
           <button type="button" className="nav-item mobile-only" onClick={doSignOut}>{t('auth.signOut')}</button>
+          {discordInvite && (
+            <a className="discord-invite" href={discordInvite} target="_blank" rel="noopener noreferrer">
+              <DiscordLogo weight="fill" aria-hidden="true" /> {t('nav.discord')}
+              <span className="sr-only"> {t('nav.newTab')}</span>
+            </a>
+          )}
           <LegalLinks navigate={navigate} className="text legal-side" />
         </nav>
 
@@ -1007,6 +1021,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <InvitePage plan={effectivePlan} founders={founders} onPlanChange={() => void loadMe()} />
           )}
 
+          {!showGuide && view === 'accounts' && (
+            <LinkedAccounts personas={linked} activeId={activeId} onUnlink={unlink} onSignOut={doSignOut} />
+          )}
+
           {!showGuide && view === 'settings' && meta && (
             <section className="settings-page">
               <header className="page-head">
@@ -1030,8 +1048,13 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                 <PlanCard plan={effectivePlan} now={now} onInvite={() => navigate({ view: 'invite' })} />
                 {prefs && <EmailAlertsCard premium={premium} prefs={prefs} onChange={setPrefs} />}
                 <DailyProfileCard />
-                <DiscordCard />
-                <AccountCard email={me?.email ?? ''} personas={linked} onUnlink={unlink} onSignOut={doSignOut} />
+                <aside className="settings-card">
+                  <h2>{t('accounts.title')}</h2>
+                  <p className="muted">{t('settings.accountsLink')}</p>
+                  <button type="button" className="ghost bordered" onClick={() => go('accounts')}>
+                    <LinkSimple weight="bold" aria-hidden="true" /> {t('accounts.open')}
+                  </button>
+                </aside>
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
                 <aside className="settings-card">
                   <h2>{t('settings.ownTitle')}</h2>
@@ -1386,40 +1409,5 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
       <SetupGuide />
       {error && <p className="banner">{error}</p>}
     </div>
-  );
-}
-
-function AccountCard({ email, personas, onUnlink, onSignOut }: {
-  email: string; personas: Account[]; onUnlink: (id: number) => void; onSignOut: () => void;
-}) {
-  const { t } = useI18n();
-  const [asking, setAsking] = useState<number | null>(null);
-  return (
-    <aside className="settings-card account-card">
-      <h2>{t('account.title')}</h2>
-      {email && <p className="muted">{t('account.signedInAs', { email })}</p>}
-      <h3>{t('account.personas')}</h3>
-      {personas.length === 0 ? (
-        <p className="muted">{t('account.none')}</p>
-      ) : (
-        <ul className="local-list">
-          {personas.map((a) => (
-            <li key={a.personaId}>
-              <span>{a.personaName} · {a.clubName}</span>
-              {asking === a.personaId ? (
-                <span className="account-ask" role="group" aria-label={t('account.disconnectAsk', { name: a.personaName })}>
-                  <span>{t('account.disconnectAsk', { name: a.personaName })}</span>
-                  <button type="button" className="ghost" onClick={() => { setAsking(null); onUnlink(a.personaId); }}>{t('account.disconnectYes')}</button>
-                  <button type="button" className="ghost" onClick={() => setAsking(null)}>{t('account.cancel')}</button>
-                </span>
-              ) : (
-                <button type="button" className="ghost" onClick={() => setAsking(a.personaId)}>{t('account.disconnect')}</button>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      <button type="button" className="ghost wide" onClick={onSignOut}>{t('auth.signOut')}</button>
-    </aside>
   );
 }
