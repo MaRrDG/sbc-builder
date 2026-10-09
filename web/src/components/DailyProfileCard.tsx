@@ -1,10 +1,11 @@
-// Settings card: the public username of the FC Solver Daily leaderboard and whether to be shown on it.
+// Settings section: the public username of the FC Solver Daily leaderboard and whether to be shown on it.
 import { useEffect, useId, useState } from 'react';
 import { CheckCircle, WarningCircle } from '@phosphor-icons/react';
 import { api, type DailyProfile } from '../api';
 import { usernameOk } from '../daily/username';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
+import { Row, Section, SwitchRow } from './SettingsRows';
 
 export function DailyProfileCard() {
   const { t } = useI18n();
@@ -51,18 +52,15 @@ export function DailyProfileCard() {
   const changed = v !== (profile?.username ?? '');
 
   return (
-    <section className="settings-card daily-card">
-      <h2>{t('settings.daily.title')}</h2>
-      <p className="muted">{t('settings.daily.text')}</p>
-      <form
-        className="daily-name"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (usernameOk(v) && changed && !busy) void save({ username: v });
-        }}
-      >
-        <label htmlFor={id}>{t('daily.prompt.username')}</label>
-        <div className="daily-name-row">
+    <Section title={t('settings.daily.title')}>
+      <Row title={t('daily.prompt.username')} hint={t('daily.prompt.hint')} labelFor={id} hintId={`${id}-hint`} className="name-row">
+        <form
+          className="daily-name-row"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (usernameOk(v) && changed && !busy) void save({ username: v });
+          }}
+        >
           <input
             id={id}
             value={name}
@@ -77,38 +75,38 @@ export function DailyProfileCard() {
             spellCheck={false}
             disabled={!profile}
             aria-invalid={bad || !!error}
-            aria-describedby={`${id}-hint`}
+            aria-describedby={bad ? `${id}-hint ${id}-bad` : `${id}-hint`}
           />
           <button type="submit" className="ghost bordered" disabled={!profile || busy || !changed || !usernameOk(v)}>
             {t('settings.daily.save')}
           </button>
+        </form>
+        <div className="daily-name-status" aria-live="polite">
+          {bad && (
+            <p id={`${id}-bad`} className="daily-name-hint bad">
+              <WarningCircle weight="fill" aria-hidden="true" /> {t('settings.daily.bad')}
+            </p>
+          )}
+          {saved && (
+            <p className="daily-saved">
+              <CheckCircle weight="fill" aria-hidden="true" /> {t('settings.daily.saved')}
+            </p>
+          )}
         </div>
-        <p id={`${id}-hint`} className={`daily-name-hint${bad ? ' bad' : ''}`}>
-          {bad && <WarningCircle weight="fill" aria-hidden="true" />}
-          {t('daily.prompt.hint')}
-        </p>
-      </form>
-      <label className="switch">
-        <input
-          type="checkbox"
-          checked={!!profile?.leaderboard}
-          disabled={!profile?.username || busy}
-          onChange={(e) => void save({ leaderboard: e.target.checked })}
-        />
-        <span>{t('settings.daily.show')}</span>
-      </label>
-      <div aria-live="polite">
-        {saved && (
-          <p className="daily-saved">
-            <CheckCircle weight="fill" aria-hidden="true" /> {t('settings.daily.saved')}
-          </p>
-        )}
-      </div>
+      </Row>
+      <SwitchRow
+        title={t('settings.daily.show')}
+        hint={t('settings.daily.text')}
+        checked={!!profile?.leaderboard}
+        disabled={!profile?.username}
+        busy={busy}
+        onChange={(on) => void save({ leaderboard: on })}
+      />
       {error && (
         <div className="banner" role="alert">
           {error}
         </div>
       )}
-    </section>
+    </Section>
   );
 }
