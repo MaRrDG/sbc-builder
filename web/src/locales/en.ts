@@ -783,7 +783,7 @@ export const en = {
   'landing.optimal.first': 'First squad that works',
   'landing.optimal.best': 'Cheapest squad',
   'landing.optimal.unit': 'Value of the cards used, example SBC.',
-  'landing.safe.title': 'No ban risk',
+  'landing.safe.title': 'Safe',
   'landing.safe.body': 'FC Solver never writes anything to EA. Your web app tab reads, the extension passes that on, FC Solver solves. Every EA request leaves from your own tab, with your session and your IP, and results are cached, so EA sees only a few requests a day.',
   'landing.safe.diagram': 'Data goes one way: from your EA web app tab, through the extension, to FC Solver. Nothing is written back to EA.',
   'landing.safe.webApp': 'EA web app',

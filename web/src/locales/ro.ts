@@ -799,7 +799,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.optimal.first': 'Primul squad valid',
   'landing.optimal.best': 'Cel mai ieftin squad',
   'landing.optimal.unit': 'Valoarea cardurilor folosite, SBC de exemplu.',
-  'landing.safe.title': 'Fără risc de ban',
+  'landing.safe.title': 'Sigur',
   'landing.safe.body': 'FC Solver nu scrie nimic la EA. Tab-ul tău de web app citește, extensia transmite datele, FC Solver rezolvă. Fiecare cerere către EA pleacă din tab-ul tău, cu sesiunea și IP-ul tău, iar rezultatele sunt păstrate în cache, așa că EA vede doar câteva cereri pe zi.',
   'landing.safe.diagram': 'Datele merg într-o singură direcție: din tab-ul tău de web app EA, prin extensie, la FC Solver. Nimic nu este scris înapoi la EA.',
   'landing.safe.webApp': 'Web app EA',
