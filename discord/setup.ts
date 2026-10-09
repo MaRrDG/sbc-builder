@@ -47,10 +47,18 @@ async function apply(guild: Guild) {
   const botRole = me.roles.botRole;
   if (!botRole) throw new Error('the bot has no role of its own: invite it with the "bot" scope');
   const icon = client.user!.displayAvatarURL({ extension: 'png', size: 256 });
-  // roles must fit under the bot: checked before anything is created, so a failure leaves the guild untouched
   const roleNames = ROLES.map((r) => r.name);
-  rolePositions(roleNames, (await guild.roles.fetch(botRole.id))?.position ?? 0);
   const actions = planSync(await snapshot(guild), ROLES, CATEGORIES);
+  // Discord only lets the bot hand out permissions it holds itself
+  if (!me.permissions.has('Administrator')) {
+    const lacking = [...new Set(ROLES.flatMap((r) => r.permissions))].filter((p) => !me.permissions.has(p));
+    if (lacking.length) throw new Error(`The bot's role lacks permissions it must give to roles: ${lacking.join(', ')}. Grant them to the bot role (or Administrator), then run setup again.`);
+  }
+  // an existing role we manage at or above the bot cannot be edited: checked before anything is created
+  const botAt = (await guild.roles.fetch(botRole.id))?.position ?? 0;
+  for (const a of actions)
+    if (a.op === 'updateRole' && (guild.roles.cache.get(a.id)?.position ?? 0) >= botAt)
+      throw new Error(`The role "${a.role.name}" is above the bot's role: move the bot role to the top of the role list, then run setup again.`);
   let created = 0;
 
   // roles: name (aliases get renamed), colour, permissions; the ⚽ icon only where Discord allows role icons (boost level 2)
@@ -58,12 +66,13 @@ async function apply(guild: Guild) {
   const icons = guild.premiumTier >= 2;
   for (const a of actions) {
     if (a.op !== 'createRole' && a.op !== 'updateRole') continue;
-    const data = { name: a.role.name, color: a.role.color, permissions: a.role.permissions, hoist: a.role.hoist, mentionable: false, reason, ...(icons && a.role.icon ? { unicodeEmoji: a.role.icon } : {}) };
+    const data = { name: a.role.name, colors: { primaryColor: a.role.color }, permissions: a.role.permissions, hoist: a.role.hoist, mentionable: false, reason, ...(icons && a.role.icon ? { unicodeEmoji: a.role.icon } : {}) };
     const id = a.op === 'createRole' ? (await guild.roles.create(data)).id : (await guild.roles.edit(a.id, data)).id;
     if (a.op === 'createRole') created++;
     byName.set(a.role.name.toLowerCase(), id);
   }
-  const botPos = (await guild.roles.fetch(botRole.id))?.position ?? 0;
+  // new roles were inserted under the bot, which pushed its role up: read its position again
+  const botPos = (await guild.roles.fetch(botRole.id, { force: true }))?.position ?? 0;
   await guild.roles.setPositions(rolePositions(roleNames, botPos).map((p) => ({ role: byName.get(p.name.toLowerCase())!, position: p.position })));
   const ids: RoleIds = { everyone: guild.roles.everyone.id, bot: botRole.id, byName };
 
