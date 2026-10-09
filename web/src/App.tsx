@@ -168,6 +168,7 @@ export default function App({
   const local = setId ? localOptions[setId] ?? null : null;
   // global settings are Premium: a Free account solves with the defaults unless the SBC has its own
   const premium = plan?.tier === 'premium';
+  const planTag = plan && !premium ? <em className="premium-tag"><Crown weight="fill" aria-hidden="true" /> {t('settings.premiumTag')}</em> : null;
   const globalOptions = premium ? options : DEFAULT_OPTIONS;
   // an SBC with its own settings ignores the global ones entirely
   const effective = local ?? globalOptions;
@@ -829,15 +830,15 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           </button>
           <button type="button" className="nav-item" aria-current={view === 'evolutions' && !showGuide ? 'page' : undefined} onClick={() => go('evolutions')}>
             <Barbell weight="bold" aria-hidden="true" />
-            <span>{t('nav.evolutions')}</span>
+            <span>{t('nav.evolutions')}{planTag}</span>
           </button>
           <button type="button" className="nav-item" aria-current={view === 'gallery' && !showGuide ? 'page' : undefined} onClick={() => go('gallery')}>
             <FrameCorners weight="bold" aria-hidden="true" />
-            <span>{t('nav.gallery')}</span>
+            <span>{t('nav.gallery')}{planTag}</span>
           </button>
           <button type="button" className="nav-item" aria-current={view === 'objectives' && !showGuide ? 'page' : undefined} onClick={() => go('objectives')}>
             <Target weight="bold" aria-hidden="true" />
-            <span>{t('nav.objectives')}</span>
+            <span>{t('nav.objectives')}{planTag}</span>
           </button>
           {/* the Daily is its own public page (/daily), outside the dashboard layout */}
           <button
