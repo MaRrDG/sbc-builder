@@ -414,7 +414,14 @@ export interface DailyLeaderboard { rows: DailyLbRow[]; me: (DailyLbRow & { inTo
 export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
 export interface DailyName { i: number; n: string; f: string; c: number }
 
+export interface DiscordInfo { discord: { username: string } | null; invite: string | null }
+
 export const api = {
+  discord: {
+    get: () => req<DiscordInfo>('/api/me/discord'),
+    connect: () => req<DiscordInfo>('/api/me/discord', { method: 'POST' }),
+    disconnect: () => req<DiscordInfo>('/api/me/discord', { method: 'DELETE' }),
+  },
   daily: {
     info: () => req<DailyInfo>('/api/daily'),
     players: () => req<{ v: number; players: DailyName[] }>('/api/daily/players'),

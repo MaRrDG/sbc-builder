@@ -1558,6 +1558,13 @@ fieldset.plain { border: 0; margin: 0; padding: 0; min-width: 0; }
   .daily-name-row input { font-size: 16px; }
   .daily-card .switch { min-height: 44px; }
 }
+.discord-card .muted { margin: 0 0 14px; }
+.discord-who { display: flex; align-items: center; gap: 8px; margin: 0 0 12px; font-weight: 600; overflow-wrap: anywhere; }
+.discord-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.discord-actions a { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+@media (max-width: 640px) {
+  .discord-actions .ghost { min-height: 44px; }
+}
 .locked-note {
   display: flex;
   align-items: center;
