@@ -1,5 +1,6 @@
 // /api/bot/*: what the Discord bot (discord/, its own container) may ask. Token-only; Apache denies the path
 // from outside. The bot never reaches EA or the database itself, everything goes through here.
+import { publicInvite } from './invite.js';
 import type { FastifyInstance } from 'fastify';
 import { botTokenOk } from './bot-auth.js';
 import { currentDay, todayGame } from '../daily/service.js';
@@ -149,13 +150,19 @@ export function registerBotRoutes(app: FastifyInstance): void {
 
 async function discordView(userId: string) {
   const d = await discordOf(userId);
-  return { discord: d ? { username: d.username } : null, invite: process.env.DISCORD_INVITE_URL?.trim() || null };
+  return { discord: d ? { username: d.username } : null, invite: publicInvite(process.env.DISCORD_INVITE_URL) };
 }
 
 let loggedProviders = false;
 
 /** Linked accounts → Discord. Connecting itself happens in the browser with Clerk; here we only store what Clerk verified. */
 export function registerDiscordSiteRoutes(app: FastifyInstance): void {
+  // public (landing, /daily): the invite link only, cached by browsers and Cloudflare for 5 min; the global /api/ limit applies
+  app.get('/api/discord/invite', async (_req, reply) => {
+    void reply.header('Cache-Control', 'public, max-age=300');
+    return { invite: publicInvite(process.env.DISCORD_INVITE_URL) };
+  });
+
   app.get('/api/me/discord', async (req) => discordView(await siteUser(req)));
 
   app.post('/api/me/discord', async (req) => {

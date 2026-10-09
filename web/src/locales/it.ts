@@ -593,6 +593,7 @@ export const it: Record<Keys, string> = {
   'nav.accounts': 'Account collegati',
   'nav.discord': 'Entra su Discord',
   'nav.newTab': '(si apre in una nuova scheda)',
+  'discord.short': 'Discord',
   'accounts.title': 'Account collegati',
   'accounts.lede': 'Tutto ciò che è collegato al tuo account FC Solver.',
   'accounts.open': 'Apri account collegati',

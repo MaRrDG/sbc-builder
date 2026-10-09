@@ -38,7 +38,21 @@ const FLAGS: Record<(typeof LANGS)[number]['flag'], ReactElement> = {
 };
 
 /** Language picker: flag + native name, a small menu that scales to more languages. */
-export function LangMenu({ lang, setLang, label }: { lang: Lang; setLang: (l: Lang) => void; label: string }) {
+export function LangMenu({
+  lang,
+  setLang,
+  label,
+  compact = false,
+  up = false,
+}: {
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  label: string;
+  /** flag only (top bars); the accessible name still carries the language */
+  compact?: boolean;
+  /** open the list above the button (footers) */
+  up?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const menuId = useId();
@@ -57,7 +71,7 @@ export function LangMenu({ lang, setLang, label }: { lang: Lang; setLang: (l: La
   }, [open]);
 
   return (
-    <div className="lang-menu" ref={root}>
+    <div className={`lang-menu${compact ? ' compact' : ''}${up ? ' up' : ''}`} ref={root}>
       <button
         type="button"
         className="lang-current"

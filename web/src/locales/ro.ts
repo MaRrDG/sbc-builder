@@ -594,6 +594,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'nav.accounts': 'Conturi legate',
   'nav.discord': 'Intră pe Discord',
   'nav.newTab': '(se deschide într-o filă nouă)',
+  'discord.short': 'Discord',
   'accounts.title': 'Conturi legate',
   'accounts.lede': 'Tot ce e conectat la contul tău FC Solver.',
   'accounts.open': 'Deschide conturile legate',

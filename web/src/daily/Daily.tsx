@@ -6,6 +6,7 @@ import { ChartBar, Database, Question, Ranking } from '@phosphor-icons/react';
 import { api, ApiError, type DailyAnswer, type DailyGuess, type DailyInfo, type DailyName, type DailyProfile, type DailyRow, type DailySilhouette, type DailyStats, type Meta } from '../api';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
+import { DiscordLink, useDiscordInvite } from '../components/DiscordLink';
 import { errorText } from '../messages';
 import { routePath, type Route } from '../route';
 import { Grid } from './Grid';
@@ -46,6 +47,7 @@ const unasked = (inf: DailyInfo) => inf.signedIn && !!inf.me && !inf.me.asked;
 
 export default function Daily({ signedIn, authReady, practice, navigate }: Props) {
   const { t, lang, setLang } = useI18n();
+  const invite = useDiscordInvite();
   const [info, setInfo] = useState<DailyInfo | null>(null);
   const [names, setNames] = useState<DailyName[]>([]);
   const [meta, setMeta] = useState<Meta | null>(null);
@@ -226,7 +228,8 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
         <div className="dg-top-in">
           {link({ view: 'landing' }, 'dg-logo', <img src="/brand/logo-on-dark.svg" alt={t('top.home')} width="140" height="36" />)}
           <div className="dg-top-end">
-            <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
+            <LangMenu lang={lang} setLang={setLang} label={t('top.language')} compact />
+            <DiscordLink invite={invite} variant="bar" />
             {!authReady ? (
               <span className="dg-toplink" aria-hidden="true" style={{ visibility: 'hidden' }}>
                 {t('landing.signIn')}
@@ -309,6 +312,11 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
           </div>
         )}
       </main>
+
+      <footer className="dg-foot">
+        <LangMenu lang={lang} setLang={setLang} label={t('top.language')} up />
+        <DiscordLink invite={invite} variant="foot" />
+      </footer>
 
       <Sheet
         open={sheet === 'help'}

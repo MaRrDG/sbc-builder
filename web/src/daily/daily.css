@@ -48,6 +48,20 @@
 }
 .dg-toplink:hover { background: var(--surface-2); color: var(--ink); }
 
+/* footer: the full language picker + Discord (the top bar only has the flag) */
+.dg-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 24px;
+  width: min(100% - 2 * var(--gutter), var(--page-max));
+  margin-inline: auto;
+  padding: 24px 0 40px;
+  border-top: 1px solid var(--line);
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
 /* ---------- title row ---------- */
 .dg-main { padding-block: clamp(14px, 3vw, 18px) 64px; }
 /* the game itself stays a centered column: tiles must not stretch with the wide container */
