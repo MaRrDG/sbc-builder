@@ -3,11 +3,11 @@
 import { Client, Events, GatewayIntentBits, MessageFlags, Partials, type ButtonInteraction, type Guild, type GuildMember } from 'discord.js';
 import { loadConfig, loadEnvFile } from './config.js';
 import { CAT, CH, PICKERS, ROLE } from './layout.js';
-import { RULES_TITLE, avatarUrl, groupOf, memberWelcomeMessage, pickerMenu } from './content.js';
+import { RULES_TITLE, avatarUrl, boostThanks, groupOf, memberWelcomeMessage, pickerMenu } from './content.js';
 import { acceptRules, isMember, langOf, languageClick, roleDiff, withdrawRules } from './roles.js';
 import { langFor, tr, type Lang } from './i18n.js';
 import { categoryOf, findOwnMessage, findText } from './guild.js';
-import { botApi } from './api.js';
+import { BotApiError, botApi } from './api.js';
 import { alreadyAnnounced, dailyPost } from './daily.js';
 import { onAutocomplete, onCommand } from './handlers.js';
 
@@ -47,6 +47,22 @@ async function announceDaily(guild: Guild): Promise<void> {
   }
 }
 
+type BoostAnswer = { changed: boolean; linked: boolean; active: boolean };
+
+/** Full booster list to the app (heals missed events and links made after boosting). Only after a complete member fetch, else it could look like mass un-boosting. */
+async function reconcileBoosts(guild: Guild): Promise<void> {
+  try {
+    const members = await guild.members.fetch(); // needs the Server Members intent
+    if (members.size < guild.memberCount) return void console.warn(`[bot] boost reconcile skipped: partial member list (${members.size}/${guild.memberCount})`);
+    const boosters = [...members.values()].flatMap((m) => (m.premiumSinceTimestamp ? [{ discordId: m.id, since: m.premiumSinceTimestamp }] : []));
+    const r = await botApi<{ started: number; stopped: number }>(cfg, '/api/bot/boosts', { method: 'POST', body: { boosters, complete: true } });
+    if (r.started || r.stopped) console.log(`[bot] boosts: ${r.started} started, ${r.stopped} stopped`);
+  } catch (e) {
+    if (e instanceof BotApiError && e.code === 'tooManyStops') console.warn('[bot] boost reconcile refused: too many boosts would stop (not forced; check the member list)');
+    else console.warn(`[bot] boost reconcile: ${(e as Error).message}`);
+  }
+}
+
 client.once(Events.ClientReady, async (c) => {
   let guild: Guild | null = null;
   try {
@@ -63,6 +79,8 @@ client.once(Events.ClientReady, async (c) => {
     const g = guild;
     void announceDaily(g);
     setInterval(() => void announceDaily(g), 60_000);
+    void reconcileBoosts(g);
+    setInterval(() => void reconcileBoosts(g), 15 * 60_000);
   }
 });
 
@@ -138,6 +156,23 @@ async function onLanguage(i: ButtonInteraction, picked: string) {
   const content = !d.now.length ? tr(lang, 'lang.none') : d.member ? tr(lang, 'lang.saved', { list }) : tr(lang, 'lang.pending', { list, rules: `<#${(await findText(m.guild, CAT.info, CH.rules)).id}>` });
   await i.reply({ content, flags: MessageFlags.Ephemeral });
 }
+
+// A boost started or stopped: tell the app; thank only a boost we saw start (an uncached "before" is left to the reconcile, so no repeats)
+client.on(Events.GuildMemberUpdate, async (before, after) => {
+  if (after.guild.id !== cfg.guildId) return;
+  const was = before.partial ? undefined : before.premiumSinceTimestamp; // undefined: not cached, unknown
+  const now = after.premiumSinceTimestamp;
+  if (was !== undefined && was === now) return; // a nickname / role change, not a boost change
+  try {
+    const r = await botApi<BoostAnswer>(cfg, '/api/bot/boost', { method: 'POST', body: { discordId: after.id, since: now ?? null } });
+    if (!now || was !== null) return;
+    const msg = boostThanks(after.id, r.linked && r.active, cfg.siteUrl, avatarUrl(client.user!));
+    await (await findText(after.guild, CAT.info, CH.welcome)).send(msg);
+    if (!r.linked) await after.send({ embeds: msg.embeds }).catch(() => {}); // DMs may be closed
+  } catch (e) {
+    console.warn(`[bot] boost update: ${(e as Error).message}`);
+  }
+});
 
 // Welcome post for every new member (English line, then Romanian); a failure is logged and never stops the bot
 client.on(Events.GuildMemberAdd, async (member) => {

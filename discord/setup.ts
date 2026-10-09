@@ -5,7 +5,8 @@ import { ChannelType, Client, Events, GatewayIntentBits, type Guild, type GuildB
 import { loadConfig, loadEnvFile } from './config.js';
 import { CAT, CATEGORIES, CH, ROLES, overwritesFor, type PickerGroup, type RoleIds } from './layout.js';
 import { planSync, rolePositions, type Existing } from './sync-plan.js';
-import { LANGUAGE_TITLE, RULES_TITLE, avatarUrl, WELCOME_TITLE, WELCOME_TITLE_OLD, languageMessage, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
+import { BRAND } from './brand.js';
+import { BOOST_TITLE, LANGUAGE_TITLE, RULES_TITLE, avatarUrl, boostPerksMessage, WELCOME_TITLE, WELCOME_TITLE_OLD, languageMessage, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
 import { COMMANDS } from './commands.js';
 import { findOwnMessage, findText } from './guild.js';
 import { applyDesign } from './design.js';
@@ -48,7 +49,6 @@ async function apply(guild: Guild) {
   const botRole = me.roles.botRole;
   if (!botRole) throw new Error('the bot has no role of its own: invite it with the "bot" scope');
   const icon = avatarUrl(client.user!);
-  const roleNames = ROLES.map((r) => r.name);
   const actions = planSync(await snapshot(guild), ROLES, CATEGORIES);
   // Discord only lets the bot hand out permissions it holds itself
   if (!me.permissions.has('Administrator')) {
@@ -71,6 +71,14 @@ async function apply(guild: Guild) {
     const id = a.op === 'createRole' ? (await guild.roles.create(data)).id : (await guild.roles.edit(a.id, data)).id;
     if (a.op === 'createRole') created++;
     byName.set(a.role.name.toLowerCase(), id);
+  }
+  // Discord's managed Server Booster role (exists once the server had a boost): pink, hoisted, between Moderator and Member
+  const booster = guild.roles.premiumSubscriberRole;
+  const roleNames = ROLES.map((r) => r.name);
+  if (booster) {
+    await guild.roles.edit(booster.id, { colors: { primaryColor: BRAND.boost }, hoist: true, reason }).catch((e) => console.warn(`[setup] booster role: ${(e as Error).message}`));
+    byName.set(booster.name.toLowerCase(), booster.id);
+    roleNames.splice(2, 0, booster.name); // Admin, Moderator, Booster, Member, …
   }
   // new roles were inserted under the bot, which pushed its role up: read its position again
   const fresh = await guild.roles.fetch(undefined, { force: true });
@@ -126,6 +134,7 @@ async function apply(guild: Guild) {
   const language = await findText(guild, CAT.info, CH.language);
   await upsert(language, LANGUAGE_TITLE, languageMessage(`<#${rules.id}>`, icon));
   await upsert(await findText(guild, CAT.info, CH.welcome), WELCOME_TITLE, welcomeMessage(cfg.siteUrl, { language: language.id, rules: rules.id, roles: rolesCh.id }, icon), [WELCOME_TITLE_OLD]);
+  await upsert(await findText(guild, CAT.info, CH.boost), BOOST_TITLE, boostPerksMessage(cfg.siteUrl, icon));
   for (const g of ['lang', 'world'] as PickerGroup[]) await upsert(rolesCh, pickerTitle(g), pickerMessage(g, icon));
   await upsert(await findText(guild, CAT.ro, CH.superliga), pickerTitle('superliga'), pickerMessage('superliga', icon));
 
