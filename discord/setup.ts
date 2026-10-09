@@ -77,6 +77,7 @@ async function apply(guild: Guild) {
   const botPos = fresh.get(botRole.id)?.position ?? 0;
   // only roles that are not where they belong: Discord refuses a payload that also restates roles already in place
   const moves = rolePositions(roleNames, botPos).map((p) => ({ role: byName.get(p.name.toLowerCase())!, position: p.position })).filter((m) => fresh.get(m.role)?.position !== m.position);
+  console.log(`[setup] ${moves.length} role moves`);
   if (moves.length) await guild.roles.setPositions(moves);
   const ids: RoleIds = { everyone: guild.roles.everyone.id, bot: botRole.id, byName };
 
