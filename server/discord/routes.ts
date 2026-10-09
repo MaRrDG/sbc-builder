@@ -6,7 +6,9 @@ import { currentDay, todayGame } from '../daily/service.js';
 import { clerkApi, siteUser } from '../auth.js';
 import { SessionError } from '../ea.js';
 import { accountById, type Account } from '../accounts.js';
-import { discordOf, ownedPersonas, setDiscord, userByDiscord } from '../db/discord.js';
+import { boostRows, discordOf, ownedPersonas, setDiscord, startBoost, stopBoost, userByDiscord } from '../db/discord.js';
+import { logEvent } from '../db/events.js';
+import { planFor } from '../plans.js';
 import { historyTotals } from '../db/history.js';
 import { playsOf } from '../db/daily.js';
 import { streakOf } from '../daily/streak.js';
@@ -14,6 +16,7 @@ import { createLimiter } from '../limits.js';
 import { readCache } from '../store.js';
 import { getChallenges, type SetsData } from '../sync.js';
 import { runSolve } from '../solve-run.js';
+import { parseBoosters, reconcileBoosts } from './boost.js';
 import { discordAccountIds, discordAccountOf, isDiscordId, pickPersona } from './link.js';
 import { clip, defaultChallenge, matchSets, setAvailable } from './pick.js';
 import { toBotSolution, type BotStats } from './solution.js';
@@ -30,6 +33,20 @@ async function botUser(discordId: unknown): Promise<{ userId: string; acc: Accou
   const acc = pid ? accountById(pid) : null;
   if (!acc) throw new SessionError('Link an EA account to FC Solver first.', 409, 'noPersona');
   return { userId: u.userId, acc, lang: u.lang === 'ro' ? 'ro' : 'en', discordId };
+}
+
+/** Applies start / stop from a reconcile: only real state changes write and log. Shared by the event and list routes. */
+async function applyBoost(linked: Awaited<ReturnType<typeof boostRows>>, boosters: ReadonlyMap<string, number>, via: 'event' | 'reconcile') {
+  const r = reconcileBoosts(linked, boosters);
+  for (const x of r.start) {
+    await startBoost(x.userId, new Date(x.since));
+    logEvent({ type: 'boost', userId: x.userId, data: { action: 'start', via } });
+  }
+  for (const x of r.stop) {
+    await stopBoost(x.userId);
+    logEvent({ type: 'boost', userId: x.userId, data: { action: 'stop', via } });
+  }
+  return r;
 }
 
 export function registerBotRoutes(app: FastifyInstance): void {
@@ -100,6 +117,26 @@ export function registerBotRoutes(app: FastifyInstance): void {
       };
       return stats;
     });
+
+    // one member's boost changed (GuildMemberUpdate); since = null: not boosting. Idempotent: `changed` says if it did anything.
+    s.post<{ Body: { discordId?: unknown; since?: unknown } }>('/api/bot/boost', async (req) => {
+      const { discordId, since } = req.body ?? {};
+      if (typeof discordId !== 'string' || !isDiscordId(discordId) || (since !== null && (!Number.isInteger(since) || (since as number) < 0)))
+        throw new SessionError('Bad boost.', 400, 'badRequest');
+      const row = (await boostRows([discordId])).find((x) => x.discordId === discordId);
+      if (!row) return { changed: false, linked: false, active: false, lang: 'en' };
+      const r = await applyBoost([row], since === null ? new Map() : new Map([[discordId, since as number]]), 'event');
+      const u = await userByDiscord(discordId);
+      return { changed: r.start.length + r.stop.length > 0, linked: true, active: since !== null, lang: u?.lang === 'ro' ? 'ro' : 'en' };
+    });
+
+    // full list of current boosters (bot start + every 15 min): heals missed events and links made after boosting
+    s.post('/api/bot/boosts', async (req) => {
+      const boosters = parseBoosters(req.body);
+      if (!boosters) throw new SessionError('Bad booster list.', 400, 'badRequest');
+      const r = await applyBoost(await boostRows([...boosters.keys()]), boosters, 'reconcile');
+      return { started: r.start.length, stopped: r.stop.length };
+    });
   });
 }
 
@@ -145,6 +182,7 @@ export function registerDiscordSiteRoutes(app: FastifyInstance): void {
     const user = await clerkApi().users.getUser(userId);
     for (const externalAccountId of discordAccountIds(user.externalAccounts))
       await clerkApi().users.deleteUserExternalAccount({ userId, externalAccountId });
+    if ((await planFor(userId)).boost?.since) logEvent({ type: 'boost', userId, data: { action: 'stop', via: 'unlink' } });
     await setDiscord(userId, null);
     return discordView(userId);
   });
