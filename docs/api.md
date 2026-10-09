@@ -566,7 +566,7 @@ The other routes take the Discord user id (`discordId`, 17–20 digits; the user
 
 ### `POST /api/bot/solve`
 
-`{ "discordId": "…", "setId": 16, "challengeId": 35 }` (`challengeId` optional: `defaultId`). Runs the same solve as `POST /api/solve` (`runSolve`) with the default options, storage on, `deep: false`, and **the same quota**: a found squad counts one Free solve, Premium is unlimited, `403 quotaExhausted` before the solver when the week is used up. Logged as a `solve` event with `via: "discord"`. At most 6 a minute per Discord user (`429 botRateLimited`). A set that is done or not repeatable right now answers `409 setNotAvailable` before the solver. Other errors as `/api/solve` (`challengeNotFound`, `clubEmpty`, `needsLayout`, `pointsDone`).
+`{ "discordId": "…", "setId": 16, "challengeId": 35 }` (`challengeId` optional: `defaultId`). Runs the same solve as `POST /api/solve` (`runSolve`) with the default options, storage on, `deep: false`, and **the same quota**: a found squad counts one Free solve, Premium is unlimited, `403 quotaExhausted` before the solver when the week is used up. Logged as a `solve` event with `via: "discord"`. At most 6 a minute per Discord user (`429 botRateLimited`, also while a previous solve of the same user is still running). A present but invalid `setId` / `challengeId` answers `400 badRequest`. A set that is done or not repeatable right now answers `409 setNotAvailable` before the solver. Other errors as `/api/solve` (`challengeNotFound`, `clubEmpty`, `needsLayout`, `pointsDone`).
 
 ```json
 { "found": true, "set": "Bronze Upgrade", "challenge": "Bronze", "setId": 16, "challengeId": 35, "rating": 64, "chemistry": 21,
