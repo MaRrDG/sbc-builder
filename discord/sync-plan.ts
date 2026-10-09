@@ -23,18 +23,22 @@ const fits = (want: ChannelKind, have: ExistingKind) => have === want || (want =
 /** Roles by name / alias, categories by name / alias, channels by name / alias + kind inside their category. */
 export function planSync(existing: Existing, roles: RoleSpec[], categories: CategorySpec[]): Action[] {
   const actions: Action[] = [];
+  const claimed = new Set<string>(); // one existing thing is never taken by two specs
   // managed roles (bots, boosters, @everyone) are never ours to edit here
   const ownRoles = existing.roles.filter((r) => !r.managed);
   for (const role of roles) {
-    const e = ownRoles.find((r) => names(role).includes(key(r.name)));
+    const e = ownRoles.find((r) => !claimed.has(r.id) && names(role).includes(key(r.name)));
+    if (e) claimed.add(e.id);
     actions.push(e ? { op: 'updateRole', id: e.id, role } : { op: 'createRole', role });
   }
   const cats = existing.channels.filter((c) => c.kind === 'category');
   categories.forEach((category, ci) => {
-    const e = cats.find((c) => names(category).includes(key(c.name)));
+    const e = cats.find((c) => !claimed.has(c.id) && names(category).includes(key(c.name)));
+    if (e) claimed.add(e.id);
     actions.push(e ? { op: 'updateCategory', id: e.id, category, position: ci } : { op: 'createCategory', category, position: ci });
     category.channels.forEach((channel, position) => {
-      const found = e && existing.channels.find((c) => c.parentId === e.id && fits(channel.kind, c.kind) && names(channel).includes(key(c.name)));
+      const found = e && existing.channels.find((c) => !claimed.has(c.id) && c.parentId === e.id && fits(channel.kind, c.kind) && names(channel).includes(key(c.name)));
+      if (found) claimed.add(found.id);
       actions.push(found
         ? { op: 'updateChannel', id: found.id, category: category.name, channel, position, convert: channel.kind === 'announcement' && found.kind === 'text' }
         : { op: 'createChannel', category: category.name, channel, position });
@@ -43,7 +47,9 @@ export function planSync(existing: Existing, roles: RoleSpec[], categories: Cate
   return actions;
 }
 
-/** Layout roles stacked right under the bot's own role, in layout order (Admin highest). */
+/** Layout roles stacked right under the bot's own role, in layout order (Admin highest). Throws when they do not fit below it. */
 export function rolePositions(names: string[], botPosition: number): { name: string; position: number }[] {
-  return names.map((name, i) => ({ name, position: Math.max(1, botPosition - 1 - i) }));
+  if (botPosition - names.length < 1)
+    throw new Error(`The bot's role is too low: move it to the top of the role list (at least ${names.length} roles must fit below it), then run setup again.`);
+  return names.map((name, i) => ({ name, position: botPosition - 1 - i }));
 }

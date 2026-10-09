@@ -83,9 +83,15 @@ test('a same-name channel of another kind does not count (text vs voice)', () =>
   assert.ok(planSync(after, ROLES, CATEGORIES).some((x) => x.op === 'createChannel' && x.channel.name === '🔊 Lounge'));
 });
 
-test('role positions count down from just under the bot, never below 1', () => {
+test('role positions count down from just under the bot', () => {
   assert.deepEqual(rolePositions(['Admin', 'Moderator', 'Member'], 10), [
     { name: 'Admin', position: 9 }, { name: 'Moderator', position: 8 }, { name: 'Member', position: 7 },
   ]);
-  assert.equal(rolePositions(['a', 'b', 'c'], 2)[2].position, 1);
+  const fit = rolePositions(['a', 'b', 'c'], 4).map((r) => r.position);
+  assert.deepEqual(fit, [3, 2, 1]);
+});
+
+test('role positions throw when the layout roles do not fit under the bot role', () => {
+  assert.throws(() => rolePositions(['a', 'b', 'c'], 1), /move it to the top/);
+  assert.throws(() => rolePositions(['a', 'b', 'c'], 2), /3 roles/);
 });
