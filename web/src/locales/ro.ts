@@ -65,6 +65,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'daily.lb.avg': 'Medie încercări',
   'daily.lb.streak': 'Serie',
   'daily.lb.you': 'Locul tău',
+  'daily.lb.me': 'Tu',
   'daily.lb.notIn': 'Nu apari în clasament.',
   'daily.lb.join': 'Intră în clasament',
   'daily.lb.signIn': 'Autentifică-te, câștigă jocuri zilnice și intră în clasament.',
