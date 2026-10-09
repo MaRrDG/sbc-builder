@@ -1,8 +1,9 @@
 // Users for the admin panel: filtered, sorted and paged in SQL; account state comes from the cache.
-import { and, asc, count, desc, eq, exists, gt, gte, ilike, inArray, lt, lte, not, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, exists, gt, gte, ilike, inArray, isNotNull, lt, lte, not, or, sql, type SQL } from 'drizzle-orm';
 import { db } from '../db/index.js';
 import { events, personas, users } from '../db/schema.js';
 import { latestExtension } from '../extension.js';
+import { BOOST_GRACE_MS } from '../plan.js';
 import { planInfo } from '../plans.js';
 import { adminEmails } from './auth.js';
 import { accountRows, owners } from './accounts.js';
@@ -12,11 +13,12 @@ import { clampPage, fillDays, isOutdated, isProblem, lastDays, likePattern, PAGE
 const DAY = 24 * 60 * 60 * 1000;
 export const TZ = () => process.env.SBC_DROP_TZ ?? 'Europe/Bucharest';
 
-/** Effective Premium, same rule as plan.ts effectivePlan: admins, or stored premium not yet ended. */
+/** Effective Premium, same rule as plan.ts planSource: admins, stored premium not yet ended, or a Discord boost (+ grace). */
 export function premiumSql(now: Date): SQL {
   const admins = adminEmails();
   const stored = and(eq(users.plan, 'premium'), or(sql`${users.premiumUntil} is null`, gt(users.premiumUntil, now)))!;
-  return admins.length ? or(stored, inArray(sql`lower(${users.email})`, admins))! : stored;
+  const boost = or(isNotNull(users.boostSince), gt(users.boostEndedAt, new Date(now.getTime() - BOOST_GRACE_MS)))!;
+  return admins.length ? or(stored, boost, inArray(sql`lower(${users.email})`, admins))! : or(stored, boost)!;
 }
 export const expiringSql = (now: Date): SQL =>
   and(eq(users.plan, 'premium'), gt(users.premiumUntil, now), lte(users.premiumUntil, new Date(now.getTime() + 7 * DAY)))!;

@@ -88,6 +88,9 @@ export const users = pgTable('users', {
   // Discord (Clerk's Discord connection): the id the bot sees and its name
   discordId: text('discord_id'),
   discordName: text('discord_name'),
+  // Discord boost Premium (server/plan.ts boostState): boosting since, or when the boost ended (12 h grace)
+  boostSince: timestamp('boost_since', { withTimezone: true }),
+  boostEndedAt: timestamp('boost_ended_at', { withTimezone: true }),
 }, (t) => [
   uniqueIndex('users_discord_id').on(t.discordId),
   uniqueIndex('users_founder_persona').on(t.founderPersona),

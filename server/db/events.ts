@@ -3,7 +3,7 @@ import { count, desc, eq, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
 import { db, softly } from './index.js';
 import { events, personas } from './schema.js';
 
-export type EventType = 'solve' | 'sync' | 'ea_error' | 'ea_day';
+export type EventType = 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost';
 export interface NewEvent {
   type: EventType;
   userId?: string | null;
