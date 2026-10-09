@@ -5,7 +5,7 @@ import { ChannelType, Client, Events, GatewayIntentBits, type Guild, type GuildB
 import { loadConfig, loadEnvFile } from './config.js';
 import { CAT, CATEGORIES, CH, ROLES, overwritesFor, type PickerGroup, type RoleIds } from './layout.js';
 import { planSync, rolePositions, type Existing } from './sync-plan.js';
-import { RULES_TITLE, avatarUrl, WELCOME_TITLE, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
+import { LANGUAGE_TITLE, RULES_TITLE, avatarUrl, WELCOME_TITLE, WELCOME_TITLE_OLD, languageMessage, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
 import { COMMANDS } from './commands.js';
 import { findOwnMessage, findText } from './guild.js';
 import { applyDesign } from './design.js';
@@ -73,8 +73,11 @@ async function apply(guild: Guild) {
     byName.set(a.role.name.toLowerCase(), id);
   }
   // new roles were inserted under the bot, which pushed its role up: read its position again
-  const botPos = (await guild.roles.fetch(botRole.id, { force: true }))?.position ?? 0;
-  await guild.roles.setPositions(rolePositions(roleNames, botPos).map((p) => ({ role: byName.get(p.name.toLowerCase())!, position: p.position })));
+  const fresh = await guild.roles.fetch(undefined, { force: true });
+  const botPos = fresh.get(botRole.id)?.position ?? 0;
+  // only roles that are not where they belong: Discord refuses a payload that also restates roles already in place
+  const moves = rolePositions(roleNames, botPos).map((p) => ({ role: byName.get(p.name.toLowerCase())!, position: p.position })).filter((m) => fresh.get(m.role)?.position !== m.position);
+  if (moves.length) await guild.roles.setPositions(moves);
   const ids: RoleIds = { everyone: guild.roles.everyone.id, bot: botRole.id, byName };
 
   const catId = new Map<string, string>();
@@ -119,7 +122,9 @@ async function apply(guild: Guild) {
   if (!msg.pinned) await msg.pin().catch((e) => console.warn(`[setup] pin rules: ${(e as Error).message}`));
 
   const rolesCh = await findText(guild, CAT.info, CH.roles);
-  await upsert(await findText(guild, CAT.info, CH.welcome), WELCOME_TITLE, welcomeMessage(cfg.siteUrl, { rules: rules.id, roles: rolesCh.id }, icon));
+  const language = await findText(guild, CAT.info, CH.language);
+  await upsert(language, LANGUAGE_TITLE, languageMessage(`<#${rules.id}>`, icon));
+  await upsert(await findText(guild, CAT.info, CH.welcome), WELCOME_TITLE, welcomeMessage(cfg.siteUrl, { language: language.id, rules: rules.id, roles: rolesCh.id }, icon), [WELCOME_TITLE_OLD]);
   for (const g of ['lang', 'world'] as PickerGroup[]) await upsert(rolesCh, pickerTitle(g), pickerMessage(g, icon));
   await upsert(await findText(guild, CAT.ro, CH.superliga), pickerTitle('superliga'), pickerMessage('superliga', icon));
 
@@ -127,9 +132,9 @@ async function apply(guild: Guild) {
   console.log(`[setup] ${COMMANDS.length} slash commands registered`);
 }
 
-/** The bot's own message with this embed title is edited, else sent. */
-async function upsert(channel: TextChannel, title: string, body: Parameters<TextChannel['send']>[0] & object) {
-  const own = await findOwnMessage(channel, client.user!.id, (m) => m.embeds.some((e) => e.title === title));
+/** The bot's own message with this embed title (or an older title it used to have) is edited, else sent. */
+async function upsert(channel: TextChannel, title: string, body: Parameters<TextChannel['send']>[0] & object, older: string[] = []) {
+  const own = await findOwnMessage(channel, client.user!.id, (m) => m.embeds.some((e) => e.title === title || older.includes(e.title ?? '')));
   if (own) await own.edit(body as Parameters<typeof own.edit>[0]);
   else await channel.send(body);
 }

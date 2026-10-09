@@ -9,9 +9,11 @@ const idOf = (name: string) => ids.byName.get(name.toLowerCase())!;
 const allChannels = CATEGORIES.flatMap((c) => c.channels);
 
 test('roles: Admin > Moderator > Member, then languages and clubs; unique names', () => {
-  assert.equal(ROLES.length, 36);
-  assert.equal(new Set(ROLES.map((r) => r.name.toLowerCase())).size, 36);
+  assert.equal(ROLES.length, 38);
+  assert.equal(new Set(ROLES.map((r) => r.name.toLowerCase())).size, 38);
   assert.deepEqual(ROLES.slice(0, 3).map((r) => r.name), [ROLE.admin, ROLE.mod, ROLE.member]);
+  assert.deepEqual(PICKERS.lang, [ROLE.en, ROLE.ro]);
+  assert.deepEqual(ROLES.slice(-2).map((r) => r.name), [ROLE.pendingEn, ROLE.pendingRo]);
   assert.equal(PICKERS.world.length, 15);
   assert.equal(PICKERS.superliga.length, 16);
   for (const names of Object.values(PICKERS)) assert.ok(names.length <= 25, 'a select menu holds 25 options');
@@ -46,19 +48,48 @@ test('info channels are read-only; help channels have slowmode; announcements is
   for (const c of CATEGORIES.find((x) => x.name === CAT.info)!.channels) assert.equal(c.readOnly, true, c.name);
   assert.equal(allChannels.find((c) => c.name === CH.announcements)?.kind, 'announcement');
   assert.ok(allChannels.filter((c) => (c.slowmode ?? 0) > 0).length >= 6);
-  assert.equal(allChannels.find((c) => c.name === CH.rules)?.access, 'everyone');
+  assert.equal(allChannels.find((c) => c.name === CH.rules)?.access, 'rules');
+  assert.equal(allChannels.find((c) => c.name === CH.language)?.access, 'everyone');
+});
+
+test('English first: INFO, ENGLISH, ROMÂNĂ, VOICE, STAFF; the language channel opens INFO', () => {
+  assert.deepEqual(CATEGORIES.map((c) => c.name), [CAT.info, CAT.en, CAT.ro, CAT.voice, CAT.staff]);
+  assert.equal(CATEGORIES[0].channels[0].name, CH.language);
+  const everyone = allChannels.filter((c) => (c.access ?? CATEGORIES.find((x) => x.channels.includes(c))!.access) === 'everyone');
+  assert.deepEqual(everyone.map((c) => c.name), [CH.language], 'new joiners see exactly one channel');
 });
 
 test('brand assets are in the repo', () => {
   for (const f of Object.values(ASSETS)) assert.ok(existsSync(assetPath(f)), f);
 });
 
-test('#rules: everyone reads, nobody writes or adds new reactions, the bot writes and attaches', () => {
+test('#language: everyone reads, nobody writes or adds new reactions, the bot writes and attaches', () => {
   const [everyone, bot] = overwritesFor('everyone', 'text', true, ids);
   assert.deepEqual(everyone.allow, ['ViewChannel', 'ReadMessageHistory']);
   assert.ok(everyone.deny.includes('SendMessages') && everyone.deny.includes('AddReactions'));
   assert.equal(bot.id, 'B');
   assert.ok(['SendMessages', 'AddReactions', 'AttachFiles'].every((p) => bot.allow.includes(p as never)));
+});
+
+test('#rules: hidden from everyone, read by Pending EN / RO and Member (no new reactions, no writing), staff manages', () => {
+  const o = overwritesFor('rules', 'text', true, ids);
+  assert.deepEqual(o.find((x) => x.id === 'E')?.deny, ['ViewChannel']);
+  for (const r of [ROLE.pendingEn, ROLE.pendingRo, ROLE.member]) {
+    const x = o.find((y) => y.id === idOf(r))!;
+    assert.ok(x.allow.includes('ViewChannel'), r);
+    assert.ok(x.deny.includes('SendMessages') && x.deny.includes('AddReactions'), r);
+  }
+  for (const r of [ROLE.en, ROLE.ro]) assert.equal(o.find((y) => y.id === idOf(r)), undefined, r);
+  assert.ok(o.find((x) => x.id === idOf(ROLE.mod))?.allow.includes('ManageMessages'));
+});
+
+test('language areas: only the real EN / RO role opens them; Pending roles open nothing else', () => {
+  for (const [access, role] of [['en', ROLE.en], ['ro', ROLE.ro]] as const) {
+    const o = overwritesFor(access, 'category', false, ids);
+    assert.deepEqual(o.filter((x) => x.allow.includes('ViewChannel') && x.id !== 'B' && x.id !== idOf(ROLE.mod)).map((x) => x.id), [idOf(role)]);
+  }
+  for (const access of ['member', 'en', 'ro', 'staff'] as const)
+    for (const p of [ROLE.pendingEn, ROLE.pendingRo]) assert.equal(overwritesFor(access, 'text', false, ids).find((x) => x.id === idOf(p)), undefined);
 });
 
 test('member area: hidden from everyone, visible to Member and Moderator', () => {

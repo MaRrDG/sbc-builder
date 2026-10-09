@@ -2,25 +2,28 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BRAND } from './brand.js';
 import { PICKERS } from './layout.js';
-import { RULES_TITLE, WELCOME_TITLE, groupOf, pickerMenu, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
+import { LANGUAGE_TITLE, RULES_TITLE, RULES_TITLE_RO, WELCOME_TITLE, groupOf, languageMessage, memberWelcomeMessage, pickerMenu, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
 
-test('rules: banner on top, then Romanian and English embeds with 8 rules each, brand author', () => {
+test('rules: banner on top, then English and Romanian embeds with 8 rules each, brand author', () => {
   const m = rulesMessage('https://cdn/icon.png');
   assert.equal(m.files.length, 1);
-  const [banner, ro, en] = m.embeds.map((e) => e.toJSON());
+  const [banner, en, ro] = m.embeds.map((e) => e.toJSON());
   assert.equal(banner.image?.url, 'attachment://banner.png');
-  assert.equal(ro.title, RULES_TITLE);
+  assert.equal(en.title, RULES_TITLE);
+  assert.equal(ro.title, RULES_TITLE_RO);
   assert.equal(ro.author?.icon_url, 'https://cdn/icon.png');
   assert.equal(ro.color, BRAND.green);
   for (const e of [ro, en]) assert.equal((e.description ?? '').split('\n').filter((l) => /^\*\*\d\.\*\* /.test(l)).length, 8);
   assert.match(en.description ?? '', /React ✅/);
 });
 
-test('welcome: bilingual, links the rules and roles channels and the site', () => {
-  const m = welcomeMessage('https://fcsolver.gg', { rules: '111', roles: '222' });
+test('welcome: English first, then Romanian, links language, rules and roles channels and the site', () => {
+  const m = welcomeMessage('https://fcsolver.gg', { language: '000', rules: '111', roles: '222' });
   const e = m.embeds[0].toJSON();
   assert.equal(e.title, WELCOME_TITLE);
+  assert.match(e.description ?? '', /<#000>/);
   assert.match(e.description ?? '', /<#111>/);
+  assert.ok((e.description ?? '').indexOf('finds the cheapest') < (e.description ?? '').indexOf('găsește'));
   assert.match(e.description ?? '', /<#222>/);
   assert.match(e.description ?? '', /Bine ai venit|găsește/);
   assert.equal((m.components[0].toJSON().components[0] as { url?: string }).url, 'https://fcsolver.gg');
@@ -48,4 +51,26 @@ test('groupOf accepts only known groups with the right prefix', () => {
   assert.equal(groupOf('set:world', 'set'), 'world');
   assert.equal(groupOf('set:world', 'pick'), null);
   assert.equal(groupOf('pick:admin', 'pick'), null);
+});
+
+test('language message: English first then Romanian, buttons English and Română with lang:EN / lang:RO', () => {
+  const m = languageMessage('<#111>');
+  const e = m.embeds[0].toJSON();
+  assert.equal(e.title, LANGUAGE_TITLE);
+  assert.match(e.description ?? '', /<#111>/);
+  assert.ok((e.description ?? '').indexOf('Choose your language') < (e.description ?? '').indexOf('Alege limba'));
+  const buttons = m.components[0].toJSON().components as { custom_id?: string; label?: string }[];
+  assert.deepEqual(buttons.map((b) => [b.label, b.custom_id]), [['English', 'lang:EN'], ['Română', 'lang:RO']]);
+});
+
+test('member welcome: mentions the member, English line then Romanian, count, only that user may be mentioned', () => {
+  const m = memberWelcomeMessage('42', 1234, { language: '000' }, 'https://cdn/icon.png');
+  const e = m.embeds[0].toJSON();
+  const text = e.description ?? '';
+  assert.match(text, /<@42>/);
+  assert.match(text, /#1234/);
+  assert.match(text, /<#000>/);
+  assert.ok(text.indexOf('Welcome') < text.indexOf('Bine ai venit'));
+  assert.equal(e.author?.icon_url, 'https://cdn/icon.png');
+  assert.deepEqual(m.allowedMentions, { parse: [], users: ['42'] });
 });

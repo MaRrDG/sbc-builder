@@ -9,7 +9,11 @@ export async function findText(guild: Guild, category: string, name: string): Pr
   return ch as TextChannel;
 }
 
+/** The bot's own message matching `match`: the pinned ones first (they survive a busy channel), then the latest `limit`. */
 export async function findOwnMessage(channel: TextChannel, botId: string, match: (m: Message) => boolean, limit = 50): Promise<Message | null> {
+  const pins = await channel.messages.fetchPins().catch(() => null);
+  const pinned = pins?.items.map((i) => i.message).find((m) => m.author.id === botId && match(m));
+  if (pinned) return pinned;
   const msgs = await channel.messages.fetch({ limit });
   return msgs.find((m) => m.author.id === botId && match(m)) ?? null;
 }

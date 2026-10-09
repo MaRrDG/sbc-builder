@@ -4,7 +4,7 @@ import type { PermissionsString } from 'discord.js';
 import { BRAND } from './brand.js';
 
 export type PickerGroup = 'lang' | 'world' | 'superliga';
-export type Access = 'everyone' | 'member' | 'ro' | 'en' | 'staff';
+export type Access = 'everyone' | 'rules' | 'member' | 'ro' | 'en' | 'staff';
 export type ChannelKind = 'text' | 'announcement' | 'voice';
 export type Target = 'category' | ChannelKind;
 export interface RoleSpec { name: string; color: number; permissions: PermissionsString[]; hoist: boolean; group?: PickerGroup; icon?: string; aliases?: string[] }
@@ -16,11 +16,12 @@ export const textName = (emoji: string, name: string) => `${emoji}・${name}`;
 export const voiceName = (name: string) => `🔊 ${name}`;
 export const categoryName = (name: string) => `━━ ${name} ━━`;
 
-export const ROLE = { admin: 'Admin', mod: 'Moderator', member: 'Member', ro: 'RO', en: 'EN' } as const;
+export const ROLE = { admin: 'Admin', mod: 'Moderator', member: 'Member', en: 'EN', ro: 'RO', pendingEn: 'Pending EN', pendingRo: 'Pending RO' } as const;
 export const CAT = {
-  info: categoryName('INFO'), ro: categoryName('ROMÂNĂ'), en: categoryName('ENGLISH'), voice: categoryName('VOICE'), staff: categoryName('STAFF'),
+  info: categoryName('INFO'), en: categoryName('ENGLISH'), ro: categoryName('ROMÂNĂ'), voice: categoryName('VOICE'), staff: categoryName('STAFF'),
 } as const;
 export const CH = {
+  language: textName('🌐', 'language'),
   rules: textName('📜', 'rules'),
   welcome: textName('👋', 'welcome'),
   announcements: textName('📢', 'announcements'),
@@ -51,7 +52,7 @@ export const TEAM_COLORS: Record<string, number> = {
   'FC Argeș': 0x7d5cc6, 'UTA Arad': 0xd9a400, FCSB: 0xd8202f, 'Oțelul Galați': 0x4a73c9, 'FC Botoșani': 0xf2c200, Csíkszereda: 0xd62a2a,
   'Petrolul Ploiești': 0xf4c20d, 'Farul Constanța': 0x2c9fd9, 'FC Voluntari': 0xf28c28, 'Corvinul Hunedoara': 0xe34a4a, 'Sepsi OSK': 0x2fa04a,
 };
-export const PICKERS: Record<PickerGroup, string[]> = { lang: [ROLE.ro, ROLE.en], world: WORLD_CLUBS, superliga: SUPERLIGA };
+export const PICKERS: Record<PickerGroup, string[]> = { lang: [ROLE.en, ROLE.ro], world: WORLD_CLUBS, superliga: SUPERLIGA };
 
 // order = hierarchy, top first (setup stacks them under the bot's role). A Premium role (later) goes after Moderator.
 export const ROLES: RoleSpec[] = [
@@ -62,16 +63,28 @@ export const ROLES: RoleSpec[] = [
   // club roles: club colour (TEAM_COLORS); the ⚽ role icon is only applied on boost level 2 servers
   ...WORLD_CLUBS.map((name): RoleSpec => ({ name, color: TEAM_COLORS[name], permissions: [], hoist: false, group: 'world', icon: '⚽' })),
   ...SUPERLIGA.map((name): RoleSpec => ({ name, color: TEAM_COLORS[name], permissions: [], hoist: false, group: 'superliga', icon: '⚽' })),
+  // hidden onboarding roles (language picked, rules not accepted yet): uncoloured, lowest, they only open the rules channel
+  { name: ROLE.pendingEn, color: 0, permissions: [], hoist: false },
+  { name: ROLE.pendingRo, color: 0, permissions: [], hoist: false },
 ];
 
 export const CATEGORIES: CategorySpec[] = [
   {
     name: CAT.info, access: 'member', channels: [
-      { name: CH.rules, kind: 'text', readOnly: true, access: 'everyone', topic: 'Regulament · Rules: react ✅ to unlock the server / reacționează cu ✅ ca să deblochezi serverul' },
-      { name: CH.welcome, kind: 'text', readOnly: true, topic: 'Bine ai venit · Welcome to FC Solver' },
-      { name: CH.announcements, kind: 'announcement', readOnly: true, topic: 'Noutăți FC Solver · FC Solver news (follow it from your own server)' },
-      { name: CH.roles, kind: 'text', readOnly: true, topic: 'Limbă și echipe favorite · Language and favourite teams' },
-      { name: CH.daily, kind: 'text', readOnly: true, topic: 'FC Solver Daily: un jucător nou în fiecare zi · a new player every day' },
+      { name: CH.language, kind: 'text', readOnly: true, access: 'everyone', topic: 'Pick your language / Alege limba: the first step · primul pas' },
+      { name: CH.rules, kind: 'text', readOnly: true, access: 'rules', topic: 'Rules · Regulament: react ✅ to unlock the server / reacționează cu ✅ ca să deblochezi serverul' },
+      { name: CH.welcome, kind: 'text', readOnly: true, topic: 'Welcome to FC Solver · Bine ai venit' },
+      { name: CH.announcements, kind: 'announcement', readOnly: true, topic: 'FC Solver news (follow it from your own server) · Noutăți FC Solver' },
+      { name: CH.roles, kind: 'text', readOnly: true, topic: 'Language and favourite teams · Limbă și echipe favorite' },
+      { name: CH.daily, kind: 'text', readOnly: true, topic: 'FC Solver Daily: a new player every day · un jucător nou în fiecare zi' },
+    ],
+  },
+  {
+    name: CAT.en, access: 'en', channels: [
+      { name: textName('💬', 'general'), kind: 'text', topic: 'Talk FC, SBCs and anything else' },
+      { name: CH.sbcEn, kind: 'text', slowmode: 10, topic: 'Help with SBCs and FC Solver; /sbc and /stats work here' },
+      { name: textName('🐞', 'bugs'), kind: 'text', slowmode: 30, topic: 'Something broken? Say what you pressed and what you saw' },
+      { name: textName('💡', 'suggestions'), kind: 'text', slowmode: 30, topic: 'Ideas for FC Solver' },
     ],
   },
   {
@@ -81,14 +94,6 @@ export const CATEGORIES: CategorySpec[] = [
       { name: textName('🐞', 'buguri'), kind: 'text', slowmode: 30, topic: 'Ceva nu merge? Spune ce ai apăsat și ce ai văzut' },
       { name: textName('💡', 'sugestii'), kind: 'text', slowmode: 30, topic: 'Idei pentru FC Solver' },
       { name: CH.superliga, kind: 'text', readOnly: true, topic: 'Alege echipele tale din SuperLiga' },
-    ],
-  },
-  {
-    name: CAT.en, access: 'en', channels: [
-      { name: textName('💬', 'general'), kind: 'text', topic: 'Talk FC, SBCs and anything else' },
-      { name: CH.sbcEn, kind: 'text', slowmode: 10, topic: 'Help with SBCs and FC Solver; /sbc and /stats work here' },
-      { name: textName('🐞', 'bugs'), kind: 'text', slowmode: 30, topic: 'Something broken? Say what you pressed and what you saw' },
-      { name: textName('💡', 'suggestions'), kind: 'text', slowmode: 30, topic: 'Ideas for FC Solver' },
     ],
   },
   {
@@ -112,8 +117,8 @@ export interface RoleIds { everyone: string; bot: string; byName: ReadonlyMap<st
 const WRITE: PermissionsString[] = ['SendMessages', 'SendMessagesInThreads', 'CreatePublicThreads', 'CreatePrivateThreads'];
 
 /**
- * Discord ORs permissions across roles, so "RO and Member" cannot be an overwrite: the bot removes RO / EN
- * when Member goes (discord/index.ts). The bot's own role is allowed everywhere so read-only stays writable for it.
+ * Discord ORs permissions across roles, so "RO and Member" cannot be an overwrite: the bot only hands out RO / EN together with
+ * Member (✅ on the rules) and removes them when Member goes (discord/index.ts). The bot's own role is allowed everywhere so read-only stays writable for it.
  */
 export function overwritesFor(access: Access, target: Target, readOnly: boolean, ids: RoleIds): Overwrite[] {
   const id = (name: string) => {
@@ -130,8 +135,12 @@ export function overwritesFor(access: Access, target: Target, readOnly: boolean,
   };
   const noWrite = readOnly && !voice ? WRITE : [];
   if (access === 'everyone') return [{ id: ids.everyone, allow: see, deny: [...noWrite, 'AddReactions'] }, bot];
-  const viewer = { member: ROLE.member, ro: ROLE.ro, en: ROLE.en, staff: ROLE.mod }[access];
-  const out: Overwrite[] = [{ id: ids.everyone, allow: [], deny: ['ViewChannel'] }, { id: id(viewer), allow: see, deny: noWrite }];
+  // rules: read by new joiners who picked a language (pending roles) and by Members; others cannot add new reactions
+  const viewers = { member: [ROLE.member], ro: [ROLE.ro], en: [ROLE.en], staff: [ROLE.mod], rules: [ROLE.pendingEn, ROLE.pendingRo, ROLE.member] }[access];
+  const out: Overwrite[] = [
+    { id: ids.everyone, allow: [], deny: ['ViewChannel'] },
+    ...viewers.map((v) => ({ id: id(v), allow: see, deny: access === 'rules' ? [...noWrite, 'AddReactions' as const] : noWrite })),
+  ];
   if (access !== 'staff') out.push({ id: id(ROLE.mod), allow: [...see, 'ManageMessages'], deny: [] });
   out.push(bot);
   return out;

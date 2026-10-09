@@ -2,10 +2,13 @@
 // Built with discord.js builders (no client needed). `icon` = the bot's avatar URL (the FC Solver logo).
 import { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, StringSelectMenuBuilder } from 'discord.js';
 import { ASSETS, BRAND, assetPath } from './brand.js';
-import { PICKERS, type PickerGroup } from './layout.js';
+import { CH, PICKERS, ROLE, type PickerGroup } from './layout.js';
 
-export const RULES_TITLE = '📜 Regulament';
-export const WELCOME_TITLE = '👋 Bine ai venit · Welcome';
+export const RULES_TITLE = '📜 Rules';
+export const RULES_TITLE_RO = '📜 Regulament';
+export const WELCOME_TITLE = '👋 Welcome · Bine ai venit';
+export const WELCOME_TITLE_OLD = '👋 Bine ai venit · Welcome'; // the message setup found before English went first is edited, not duplicated
+export const LANGUAGE_TITLE = '🌐 Language · Limbă';
 
 /** Every bot embed: "FC Solver" author with the logo, brand colour. */
 export function brandEmbed(icon?: string, color: number = BRAND.green): EmbedBuilder {
@@ -33,7 +36,7 @@ const RULES_RO = [
     'Deciziile staff-ului sunt finale; contestațiile prin mesaj privat unui Admin.',
   ]),
   '',
-  '✅ **Reacționează cu ✅ ca să accepți și să deblochezi serverul.**',
+  `🌐 Alege întâi limba în ${CH.language}. ✅ **Reacționează cu ✅ ca să accepți și să deblochezi serverul.**`,
 ].join('\n');
 
 const RULES_EN = [
@@ -48,7 +51,7 @@ const RULES_EN = [
     'Staff decisions are final; appeals by direct message to an Admin.',
   ]),
   '',
-  '✅ **React ✅ to accept and unlock the server.**',
+  `🌐 Pick your language in ${CH.language} first. ✅ **React ✅ to accept and unlock the server.**`,
 ].join('\n');
 
 export function rulesMessage(icon?: string) {
@@ -56,8 +59,8 @@ export function rulesMessage(icon?: string) {
     files: [bannerFile()],
     embeds: [
       new EmbedBuilder().setColor(BRAND.lime).setImage(`attachment://${ASSETS.banner}`),
-      brandEmbed(icon).setTitle(RULES_TITLE).setDescription(RULES_RO),
-      brandEmbed(icon).setTitle('📜 Rules').setDescription(RULES_EN),
+      brandEmbed(icon).setTitle(RULES_TITLE).setDescription(RULES_EN),
+      brandEmbed(icon).setTitle(RULES_TITLE_RO).setDescription(RULES_RO),
     ],
   };
 }
@@ -67,28 +70,58 @@ export const linkRow = (label: string, url: string) =>
   new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(label).setURL(url));
 
 /** `ch`: channel ids to mention (<#id> renders as a clickable channel name). */
-export function welcomeMessage(siteUrl: string, ch: { rules: string; roles: string }, icon?: string) {
+export function welcomeMessage(siteUrl: string, ch: { language: string; rules: string; roles: string }, icon?: string) {
   const text = [
-    '**FC Solver** găsește cel mai ieftin lot din clubul tău pentru orice SBC. Doar citește: nu cumpără, nu vinde și nu trimite nimic la EA.',
-    `**1.** Citește <#${ch.rules}> și reacționează cu ✅`,
-    `**2.** Alege limba și echipele în <#${ch.roles}>`,
-    '**3.** Conectează Discord în Setări pe site pentru /sbc și /stats',
-    '',
     "**FC Solver** finds the cheapest squad from your own club for any SBC. Read-only: it never buys, sells or submits anything to EA.",
-    `**1.** Read <#${ch.rules}> and react ✅`,
-    `**2.** Pick your language and teams in <#${ch.roles}>`,
-    '**3.** Connect Discord in the site Settings for /sbc and /stats',
+    `**1.** Pick your language in <#${ch.language}>`,
+    `**2.** Read <#${ch.rules}> and react ✅`,
+    `**3.** Pick your language and teams any time in <#${ch.roles}>`,
+    '**4.** Connect Discord in the site Settings for /sbc and /stats',
+    '',
+    '**FC Solver** găsește cel mai ieftin lot din clubul tău pentru orice SBC. Doar citește: nu cumpără, nu vinde și nu trimite nimic la EA.',
+    `**1.** Alege limba în <#${ch.language}>`,
+    `**2.** Citește <#${ch.rules}> și reacționează cu ✅`,
+    `**3.** Schimbă limba și alege echipele oricând în <#${ch.roles}>`,
+    '**4.** Conectează Discord în Setări pe site pentru /sbc și /stats',
   ].join('\n');
   const e = brandEmbed(icon, BRAND.lime).setTitle(WELCOME_TITLE).setDescription(text);
   if (icon) e.setThumbnail(icon);
   return { embeds: [e], components: [linkRow('FC Solver', siteUrl)] };
 }
 
+/** Posted in the welcome channel when someone joins: English line, then Romanian, member count, only that user can be mentioned. */
+export function memberWelcomeMessage(userId: string, count: number, ch: { language: string }, icon?: string) {
+  const user = `<@${userId}>`;
+  const text = [
+    `👋 Welcome ${user}! You are member **#${count}**. Start in <#${ch.language}>.`,
+    `👋 Bine ai venit ${user}! Ești membrul **#${count}**. Începe în <#${ch.language}>.`,
+  ].join('\n');
+  return { embeds: [brandEmbed(icon, BRAND.lime).setDescription(text)], allowedMentions: { parse: [] as [], users: [userId] } };
+}
+
+export const LANGUAGE_BUTTONS = [
+  { id: `lang:${ROLE.en}`, label: 'English' },
+  { id: `lang:${ROLE.ro}`, label: 'Română' },
+];
+
+/** The first thing a new joiner sees: English first, then Romanian, one button per language. */
+export function languageMessage(rulesChannel: string, icon?: string) {
+  const text = [
+    `Choose your language (you can pick both), then read ${rulesChannel} and react ✅ to unlock the server.`,
+    '',
+    `Alege limba (poți alege ambele), apoi citește ${rulesChannel} și reacționează cu ✅ ca să deblochezi serverul.`,
+  ].join('\n');
+  return {
+    embeds: [brandEmbed(icon).setTitle(LANGUAGE_TITLE).setDescription(text)],
+    components: [new ActionRowBuilder<ButtonBuilder>().addComponents(LANGUAGE_BUTTONS.map((b) => new ButtonBuilder().setCustomId(b.id).setLabel(b.label).setStyle(ButtonStyle.Primary)))],
+  };
+}
+
 const PICKER_TEXT: Record<PickerGroup, { title: string; text: string; button: string; placeholder: string }> = {
   lang: {
     title: '🌍 Language · Limbă',
-    text: 'Pick **RO**, **EN** or both to see that area.\nAlege **RO**, **EN** sau ambele ca să vezi zona respectivă.',
-    button: 'Choose · Alege', placeholder: 'RO / EN',
+    text: 'Pick **EN**, **RO** or both to see that area.\nAlege **EN**, **RO** sau ambele ca să vezi zona respectivă.',
+    button: 'Choose · Alege', placeholder: 'EN / RO',
   },
   world: {
     title: '⚽ Favourite clubs · Echipe favorite',
