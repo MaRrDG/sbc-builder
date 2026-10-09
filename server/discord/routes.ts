@@ -49,8 +49,17 @@ export function registerDiscordSiteRoutes(app: FastifyInstance): void {
       }
       throw new SessionError('No Discord account is connected to your sign-in.', 400, 'discordNotConnected');
     }
-    if ((await setDiscord(userId, acc)) === 'discordTaken')
+    if ((await setDiscord(userId, acc)) === 'discordTaken') {
+      // drop the verified-but-unstored Discord account so the user can try another one
+      for (const externalAccountId of discordAccountIds(externals)) {
+        try {
+          await clerkApi().users.deleteUserExternalAccount({ userId, externalAccountId });
+        } catch (e) {
+          console.warn(`[discord] could not remove a rejected Discord account: ${(e as Error).name}`);
+        }
+      }
       throw new SessionError('This Discord account is already linked to another FC Solver account.', 409, 'discordTaken');
+    }
     return discordView(userId);
   });
 
