@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canPoll, pollResult, pollResultMessage, validatePoll } from './poll.js';
-import { ROLE } from './layout.js';
+import { canPoll, isOurResult, pollResult, pollResultMessage, validatePoll } from './poll.js';
+import { ROLE, overwritesFor } from './layout.js';
 
 const ok = { question: ' Best? ', answers: [' A ', 'B', null, '  ', 'C'] as (string | null)[], hours: 24, multi: null as boolean | null };
 
@@ -53,4 +53,20 @@ test('result message: English first then Romanian, results listed, no pings', ()
   const none = pollResultMessage('Q', [{ text: 'A', votes: 0 }, { text: 'B', votes: 0 }]).embeds[0].toJSON().description!;
   assert.match(none, /No votes/);
   assert.match(none, /Niciun vot/);
+});
+
+test('isOurResult: our embed reply yes; Discord PollResult message and unrelated bot embeds no', () => {
+  const ours = { type: 19, authorId: 'B', replyTo: 'P', embedAuthors: ['FC Solver'] as (string | null)[] };
+  assert.equal(isOurResult(ours, 'P', 'B'), true);
+  assert.equal(isOurResult({ ...ours, type: 46, embedAuthors: [] }, 'P', 'B'), false);
+  assert.equal(isOurResult({ ...ours, type: 46 }, 'P', 'B'), false);
+  assert.equal(isOurResult({ ...ours, embedAuthors: [null] }, 'P', 'B'), false);
+  assert.equal(isOurResult({ ...ours, replyTo: 'X' }, 'P', 'B'), false);
+  assert.equal(isOurResult({ ...ours, authorId: 'U' }, 'P', 'B'), false);
+});
+
+test('SendPolls only on the polls channel overwrite', () => {
+  const ids = { everyone: 'E', bot: 'B', byName: new Map([[ROLE.member.toLowerCase(), 'M'], [ROLE.mod.toLowerCase(), 'D']]) };
+  assert.ok(overwritesFor('member', 'text', true, ids, true).find((o) => o.id === 'B')!.allow.includes('SendPolls'));
+  assert.ok(!overwritesFor('member', 'text', true, ids).find((o) => o.id === 'B')!.allow.includes('SendPolls'));
 });

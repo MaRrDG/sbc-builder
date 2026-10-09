@@ -109,7 +109,7 @@ async function apply(guild: Guild) {
     const data = {
       name: ch.name,
       parent: catId.get(a.category)!,
-      permissionOverwrites: overwritesFor(ch.access ?? cat.access, ch.kind, !!ch.readOnly, ids),
+      permissionOverwrites: overwritesFor(ch.access ?? cat.access, ch.kind, !!ch.readOnly, ids, !!ch.polls),
       position: a.position,
       reason,
       ...(textLike ? { topic: ch.topic ?? '', rateLimitPerUser: ch.slowmode ?? 0 } : {}),
