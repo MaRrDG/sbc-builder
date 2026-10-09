@@ -3,7 +3,7 @@
 import { Client, Events, GatewayIntentBits, MessageFlags, Partials, type ButtonInteraction, type Guild, type GuildMember } from 'discord.js';
 import { loadConfig, loadEnvFile } from './config.js';
 import { CAT, CH, PICKERS, ROLE } from './layout.js';
-import { RULES_TITLE, avatarUrl, boostThanks, groupOf, memberWelcomeMessage, pickerMenu } from './content.js';
+import { RULES_TITLE, RULES_TITLE_RO, avatarUrl, boostThanks, groupOf, memberWelcomeMessage, pickerMenu } from './content.js';
 import { acceptRules, isMember, langOf, languageClick, roleDiff, withdrawRules } from './roles.js';
 import { langFor, tr, type Lang } from './i18n.js';
 import { categoryOf, findOwnMessage, findText } from './guild.js';
@@ -18,7 +18,7 @@ const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.GuildMembers],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
 });
-let rulesId: string | null = null;
+const rulesIds = new Set<string>(); // the English and the Romanian rules message
 
 const roleIds = (guild: Guild, names: string[]) =>
   names.flatMap((n) => {
@@ -69,12 +69,14 @@ client.once(Events.ClientReady, async (c) => {
   try {
     guild = await c.guilds.fetch(cfg.guildId);
     await guild.roles.fetch();
-    const rules = await findText(guild, CAT.info, CH.rules);
-    rulesId = (await findOwnMessage(rules, c.user.id, (m) => m.embeds.some((e) => e.title === RULES_TITLE)))?.id ?? null;
+    for (const [name, title] of [[CH.rules, RULES_TITLE], [CH.rulesRo, RULES_TITLE_RO]] as const) {
+      const msg = await findOwnMessage(await findText(guild, CAT.info, name), c.user.id, (m) => m.embeds.some((e) => e.title === title));
+      if (msg) rulesIds.add(msg.id);
+    }
   } catch (e) {
     console.warn(`[bot] startup lookup failed: ${(e as Error).message}`);
   }
-  if (!rulesId) console.warn('[bot] no rules message: run npm run discord:setup');
+  if (rulesIds.size < 2) console.warn('[bot] rules message missing: run npm run discord:setup');
   console.log(`[bot] ready as ${c.user.tag}`);
   if (guild) {
     const g = guild;
@@ -88,7 +90,7 @@ client.once(Events.ClientReady, async (c) => {
 });
 
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
-  if (user.bot || reaction.message.id !== rulesId || reaction.emoji.name !== '✅') return;
+  if (user.bot || !rulesIds.has(reaction.message.id) || reaction.emoji.name !== '✅') return;
   try {
     const m = await memberOf(reaction.message.guildId, user.id);
     // no language picked (or none held) = nothing happens; the rules channel is only visible with a Pending / real language role
@@ -102,7 +104,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
 });
 
 client.on(Events.MessageReactionRemove, async (reaction, user) => {
-  if (user.bot || reaction.message.id !== rulesId || reaction.emoji.name !== '✅') return;
+  if (user.bot || !rulesIds.has(reaction.message.id) || reaction.emoji.name !== '✅') return;
   try {
     const m = await memberOf(reaction.message.guildId, user.id);
     // RO / EN go too: Discord ORs roles, so the language areas must not outlive Member
@@ -121,10 +123,11 @@ client.on(Events.InteractionCreate, async (i) => {
     if (i.isButton()) {
       const lg = langOf(i.customId);
       if (lg) return void (await onLanguage(i, lg));
+      if (i.customId === 'pick:lang') return void (await i.reply({ content: tr(lang, 'roles.langMoved', { language: CH.language }), flags: MessageFlags.Ephemeral }));
       const g = groupOf(i.customId, 'pick');
       const m = g && (await memberOf(i.guildId, i.user.id));
       if (!g || !m) return;
-      if (!isMember(m.roles.cache.map((r) => r.name))) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: CH.rules }), flags: MessageFlags.Ephemeral }));
+      if (!isMember(m.roles.cache.map((r) => r.name))) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: lang === 'ro' ? CH.rulesRo : CH.rules }), flags: MessageFlags.Ephemeral }));
       await i.reply({ content: tr(lang, 'roles.pick'), components: [pickerMenu(g, new Set(m.roles.cache.map((r) => r.name)))], flags: MessageFlags.Ephemeral });
       return;
     }
@@ -133,7 +136,7 @@ client.on(Events.InteractionCreate, async (i) => {
       const m = g && (await memberOf(i.guildId, i.user.id));
       if (!g || !m) return;
       // real language roles only ever go with Member (Discord ORs roles: EN / RO alone would open the area without the rules)
-      if (!isMember(m.roles.cache.map((r) => r.name))) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: CH.rules }), flags: MessageFlags.Ephemeral }));
+      if (!isMember(m.roles.cache.map((r) => r.name))) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: lang === 'ro' ? CH.rulesRo : CH.rules }), flags: MessageFlags.Ephemeral }));
       const d = roleDiff(PICKERS[g], m.roles.cache.map((r) => r.name), i.values);
       if (d.add.length) await m.roles.add(roleIds(m.guild, d.add), 'role picker');
       if (d.remove.length) await m.roles.remove(roleIds(m.guild, d.remove), 'role picker');
@@ -156,7 +159,7 @@ async function onLanguage(i: ButtonInteraction, picked: string) {
   if (d.add.length) await m.roles.add(roleIds(m.guild, d.add), 'language picked');
   if (d.remove.length) await m.roles.remove(roleIds(m.guild, d.remove), 'language picked');
   const list = d.now.join(', ');
-  const content = !d.now.length ? tr(lang, 'lang.none') : d.member ? tr(lang, 'lang.saved', { list }) : tr(lang, 'lang.pending', { list, rules: `<#${(await findText(m.guild, CAT.info, CH.rules)).id}>` });
+  const content = !d.now.length ? tr(lang, 'lang.none') : d.member ? tr(lang, 'lang.saved', { list }) : tr(lang, 'lang.pending', { list, rules: `<#${(await findText(m.guild, CAT.info, lang === 'ro' ? CH.rulesRo : CH.rules)).id}>` });
   await i.reply({ content, flags: MessageFlags.Ephemeral });
 }
 

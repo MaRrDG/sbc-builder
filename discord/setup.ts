@@ -3,10 +3,10 @@
 // Idempotent: run it after every layout change. Community / welcome screen / emojis / icon: applyDesign (design.ts).
 import { ChannelType, Client, Events, GatewayIntentBits, type Guild, type GuildBasedChannel, type TextChannel } from 'discord.js';
 import { loadConfig, loadEnvFile } from './config.js';
-import { CAT, CATEGORIES, CH, ROLES, overwritesFor, type PickerGroup, type RoleIds } from './layout.js';
+import { CAT, CATEGORIES, CH, ROLES, overwritesFor, type RoleIds } from './layout.js';
 import { planSync, rolePositions, type Existing } from './sync-plan.js';
 import { BRAND } from './brand.js';
-import { BOOST_TITLE, LANGUAGE_TITLE, RULES_TITLE, avatarUrl, boostPerksMessage, WELCOME_TITLE, WELCOME_TITLE_OLD, languageMessage, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
+import { BOOST_TITLE, LANGUAGE_TITLE, RULES_TITLE, RULES_TITLE_RO, avatarUrl, boostPerksMessage, WELCOME_TITLE, WELCOME_TITLES_OLD, LANGUAGE_TITLE_OLD, PICKER_TITLES_OLD, LANG_PICKER_TITLES_OLD, languageMessage, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
 import { COMMANDS } from './commands.js';
 import { findOwnMessage, findText } from './guild.js';
 import { applyDesign } from './design.js';
@@ -123,19 +123,30 @@ async function apply(guild: Guild) {
   console.log(`[setup] ${created} created, ${actions.length - created} checked`);
   await applyDesign(guild, { icon: process.argv.includes('--icon'), avatar: process.argv.includes('--avatar'), client });
 
+  // one rules message per language channel; an existing one is edited (its ✅ reactions stay), a missing one sent, ✅ added and pinned
   const rules = await findText(guild, CAT.info, CH.rules);
-  const own = await findOwnMessage(rules, client.user!.id, (m) => m.embeds.some((e) => e.title === RULES_TITLE));
-  // attachments: [] drops the previous banner so an edit never stacks images
-  const msg = own ? await own.edit({ ...rulesMessage(icon), attachments: [] }) : await rules.send(rulesMessage(icon));
-  await msg.react('✅');
-  if (!msg.pinned) await msg.pin().catch((e) => console.warn(`[setup] pin rules: ${(e as Error).message}`));
+  const rulesRo = await findText(guild, CAT.info, CH.rulesRo);
+  for (const [ch, lang, title] of [[rules, 'en', RULES_TITLE], [rulesRo, 'ro', RULES_TITLE_RO]] as const) {
+    const own = await findOwnMessage(ch, client.user!.id, (m) => m.embeds.some((e) => e.title === title));
+    // attachments: [] drops the previous banner so an edit never stacks images
+    const msg = own ? await own.edit({ ...rulesMessage(lang, icon), attachments: [] }) : await ch.send(rulesMessage(lang, icon));
+    await msg.react('✅');
+    if (!msg.pinned) await msg.pin().catch((e) => console.warn(`[setup] pin rules: ${(e as Error).message}`));
+  }
 
   const rolesCh = await findText(guild, CAT.info, CH.roles);
   const language = await findText(guild, CAT.info, CH.language);
-  await upsert(language, LANGUAGE_TITLE, languageMessage(`<#${rules.id}>`, icon));
-  await upsert(await findText(guild, CAT.info, CH.welcome), WELCOME_TITLE, welcomeMessage(cfg.siteUrl, { language: language.id, rules: rules.id, roles: rolesCh.id }, icon), [WELCOME_TITLE_OLD]);
+  await upsert(language, LANGUAGE_TITLE, languageMessage({ en: `<#${rules.id}>`, ro: `<#${rulesRo.id}>` }, icon), [LANGUAGE_TITLE_OLD]);
+  await upsert(await findText(guild, CAT.info, CH.welcome), WELCOME_TITLE, welcomeMessage(cfg.siteUrl, { language: language.id, rules: rules.id, rulesRo: rulesRo.id, roles: rolesCh.id }, icon), WELCOME_TITLES_OLD);
   await upsert(await findText(guild, CAT.info, CH.boost), BOOST_TITLE, boostPerksMessage(cfg.siteUrl, icon));
-  for (const g of ['lang', 'world'] as PickerGroup[]) await upsert(rolesCh, pickerTitle(g), pickerMessage(g, icon));
+  await upsert(rolesCh, pickerTitle('world'), pickerMessage('world', icon), [PICKER_TITLES_OLD.world]);
+  // the language picker moved to the 🌐・language buttons: delete only our own old message
+  for (;;) {
+    const old = await findOwnMessage(rolesCh, client.user!.id, (m) => m.embeds.some((e) => LANG_PICKER_TITLES_OLD.includes(e.title ?? '')));
+    if (!old) break;
+    await old.delete();
+    console.log('[setup] removed the old language picker from the roles channel');
+  }
   await upsert(await findText(guild, CAT.ro, CH.superliga), pickerTitle('superliga'), pickerMessage('superliga', icon));
 
   await guild.commands.set(COMMANDS);
