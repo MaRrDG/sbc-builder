@@ -35,7 +35,7 @@ export const WELCOME = {
   description: 'Cheapest SBC squads from your own club. / Cele mai ieftine loturi SBC din clubul tău.',
   channels: [
     // Discord accepts only channels @everyone can read: new joiners see nothing else
-    { category: CAT.info, channel: CH.language, emoji: '🌐', description: 'Pick your language · Alege limba' },
+    { category: CAT.info, channel: CH.language, emoji: '🌐', description: 'Pick your language' },
   ],
 };
 

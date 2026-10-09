@@ -48,7 +48,8 @@ test('info channels are read-only; help channels have slowmode; announcements is
   for (const c of CATEGORIES.find((x) => x.name === CAT.info)!.channels) assert.equal(c.readOnly, true, c.name);
   assert.equal(allChannels.find((c) => c.name === CH.announcements)?.kind, 'announcement');
   assert.ok(allChannels.filter((c) => (c.slowmode ?? 0) > 0).length >= 6);
-  assert.equal(allChannels.find((c) => c.name === CH.rules)?.access, 'rules');
+  assert.equal(allChannels.find((c) => c.name === CH.rules)?.access, 'rulesEn');
+  assert.equal(allChannels.find((c) => c.name === CH.rulesRo)?.access, 'rulesRo');
   assert.equal(allChannels.find((c) => c.name === CH.language)?.access, 'everyone');
 });
 
@@ -71,16 +72,21 @@ test('#language: everyone reads, nobody writes or adds new reactions, the bot wr
   assert.ok(['SendMessages', 'AddReactions', 'AttachFiles'].every((p) => bot.allow.includes(p as never)));
 });
 
-test('#rules: hidden from everyone, read by Pending EN / RO and Member (no new reactions, no writing), staff manages', () => {
-  const o = overwritesFor('rules', 'text', true, ids);
-  assert.deepEqual(o.find((x) => x.id === 'E')?.deny, ['ViewChannel']);
-  for (const r of [ROLE.pendingEn, ROLE.pendingRo, ROLE.member]) {
-    const x = o.find((y) => y.id === idOf(r))!;
-    assert.ok(x.allow.includes('ViewChannel'), r);
-    assert.ok(x.deny.includes('SendMessages') && x.deny.includes('AddReactions'), r);
+test('rules channels: hidden from everyone, each read only by its language (Pending + real), no reactions or writing, staff manages', () => {
+  for (const [access, seen, unseen] of [
+    ['rulesEn', [ROLE.pendingEn, ROLE.en], [ROLE.pendingRo, ROLE.ro, ROLE.member]],
+    ['rulesRo', [ROLE.pendingRo, ROLE.ro], [ROLE.pendingEn, ROLE.en, ROLE.member]],
+  ] as const) {
+    const o = overwritesFor(access, 'text', true, ids);
+    assert.deepEqual(o.find((x) => x.id === 'E')?.deny, ['ViewChannel']);
+    for (const r of seen) {
+      const x = o.find((y) => y.id === idOf(r))!;
+      assert.ok(x.allow.includes('ViewChannel'), r);
+      assert.ok(x.deny.includes('SendMessages') && x.deny.includes('AddReactions'), r);
+    }
+    for (const r of unseen) assert.equal(o.find((y) => y.id === idOf(r)), undefined, r);
+    assert.ok(o.find((x) => x.id === idOf(ROLE.mod))?.allow.includes('ManageMessages'));
   }
-  for (const r of [ROLE.en, ROLE.ro]) assert.equal(o.find((y) => y.id === idOf(r)), undefined, r);
-  assert.ok(o.find((x) => x.id === idOf(ROLE.mod))?.allow.includes('ManageMessages'));
 });
 
 test('language areas: only the real EN / RO role opens them; Pending roles open nothing else', () => {

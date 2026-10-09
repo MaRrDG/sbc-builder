@@ -47,14 +47,14 @@ function line(lang: Lang, r: ReturnType<typeof pollResult>): string {
   return tr(lang, r.tie ? 'poll.tie' : 'poll.winner', { answers, n: r.top });
 }
 
-/** Posted in the polls channel when a poll ends: English first, then Romanian, then every answer with its votes. */
+/** Posted in the polls channel when a poll ends: English, then every answer with its votes. */
 export function pollResultMessage(question: string, answers: Tally[], icon?: string) {
   const r = pollResult(answers);
   const rows = answers.map((a) => `${String(a.votes).padStart(4)}  ${clip(a.text.replaceAll('`', "'"), POLL_ANSWER_MAX)}`).join('\n');
   const e = brandEmbed(icon)
     .setTitle(clip(question, 256))
-    .setDescription(`${line('en', r)}\n\n${line('ro', r)}`)
-    .addFields({ name: `${tr('en', 'poll.results')} · ${tr('ro', 'poll.results')}`, value: `\`\`\`\n${rows}\n\`\`\`` });
+    .setDescription(line('en', r))
+    .addFields({ name: tr('en', 'poll.results'), value: `\`\`\`\n${rows}\n\`\`\`` });
   return { embeds: [e], allowedMentions: { parse: [] as [] } };
 }
 

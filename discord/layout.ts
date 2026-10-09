@@ -4,7 +4,7 @@ import type { PermissionsString } from 'discord.js';
 import { BRAND } from './brand.js';
 
 export type PickerGroup = 'lang' | 'world' | 'superliga';
-export type Access = 'everyone' | 'rules' | 'member' | 'ro' | 'en' | 'staff';
+export type Access = 'everyone' | 'rulesEn' | 'rulesRo' | 'member' | 'ro' | 'en' | 'staff';
 export type ChannelKind = 'text' | 'announcement' | 'voice';
 export type Target = 'category' | ChannelKind;
 export interface RoleSpec { name: string; color: number; permissions: PermissionsString[]; hoist: boolean; group?: PickerGroup; icon?: string; aliases?: string[] }
@@ -23,6 +23,7 @@ export const CAT = {
 export const CH = {
   language: textName('🌐', 'language'),
   rules: textName('📜', 'rules'),
+  rulesRo: textName('📜', 'regulament'),
   welcome: textName('👋', 'welcome'),
   announcements: textName('📢', 'announcements'),
   roles: textName('🎭', 'roles'),
@@ -47,7 +48,7 @@ export const SUPERLIGA = [
 // Team role colours (hex ints), one per club, keyed by the names above. Main kit/crest colour, each at least 3:1 against Discord's dark UI (#313338), enforced by layout.test.ts.
 // White/black primaries use the signature secondary (Real Madrid gold, Juventus silver, Milan red, Inter blue, Dortmund yellow...). Never 0 (Discord: "no colour").
 export const TEAM_COLORS: Record<string, number> = {
-  'Real Madrid': 0xfebe10, Barcelona: 0xc7618b, 'Atlético Madrid': 0xe24a4d, 'Manchester City': 0x6cabdd, Liverpool: 0xd75369,
+  'Real Madrid': 0xfebe10, Barcelona: 0xef3b45, 'Atlético Madrid': 0xe24a4d, 'Manchester City': 0x6cabdd, Liverpool: 0xd75369,
   Arsenal: 0xf23439, 'Manchester United': 0xe15045, Chelsea: 0x4c85c6, 'Bayern München': 0xe54664, 'Borussia Dortmund': 0xfde100,
   PSG: 0x5d82c4, Juventus: 0xb4b9c0, Inter: 0x5285c7, Milan: 0xfb090b, Napoli: 0x12a0d7,
   'Universitatea Craiova': 0x4880d6, 'Universitatea Cluj': 0xc8c8c8, 'CFR Cluj': 0xb56c81, 'Dinamo București': 0xea424c, 'Rapid București': 0xb96c7b,
@@ -60,12 +61,12 @@ export const PICKERS: Record<PickerGroup, string[]> = { lang: [ROLE.en, ROLE.ro]
 export const ROLES: RoleSpec[] = [
   { name: ROLE.admin, color: BRAND.lime, permissions: ['Administrator'], hoist: true },
   { name: ROLE.mod, color: BRAND.mod, permissions: ['ManageMessages', 'ModerateMembers', 'KickMembers', 'ManageThreads', 'MuteMembers', 'MoveMembers'], hoist: true },
-  { name: ROLE.member, color: BRAND.cream, permissions: [], hoist: false },
+  { name: ROLE.member, color: BRAND.cream, permissions: [], hoist: true },
   ...PICKERS.lang.map((name): RoleSpec => ({ name, color: 0, permissions: [], hoist: false, group: 'lang' })),
   // club roles: club colour (TEAM_COLORS); the ⚽ role icon is only applied on boost level 2 servers
   ...WORLD_CLUBS.map((name): RoleSpec => ({ name, color: TEAM_COLORS[name], permissions: [], hoist: false, group: 'world', icon: '⚽' })),
   ...SUPERLIGA.map((name): RoleSpec => ({ name, color: TEAM_COLORS[name], permissions: [], hoist: false, group: 'superliga', icon: '⚽' })),
-  // hidden onboarding roles (language picked, rules not accepted yet): uncoloured, lowest, they only open the rules channel
+  // hidden onboarding roles (language picked, rules not accepted yet): uncoloured, lowest, they only open the rules channel of their language
   { name: ROLE.pendingEn, color: 0, permissions: [], hoist: false },
   { name: ROLE.pendingRo, color: 0, permissions: [], hoist: false },
 ];
@@ -73,14 +74,15 @@ export const ROLES: RoleSpec[] = [
 export const CATEGORIES: CategorySpec[] = [
   {
     name: CAT.info, access: 'member', channels: [
-      { name: CH.language, kind: 'text', readOnly: true, access: 'everyone', topic: 'Pick your language / Alege limba: the first step · primul pas' },
-      { name: CH.rules, kind: 'text', readOnly: true, access: 'rules', topic: 'Rules · Regulament: react ✅ to unlock the server / reacționează cu ✅ ca să deblochezi serverul' },
-      { name: CH.welcome, kind: 'text', readOnly: true, topic: 'Welcome to FC Solver · Bine ai venit' },
-      { name: CH.announcements, kind: 'announcement', readOnly: true, topic: 'FC Solver news (follow it from your own server) · Noutăți FC Solver' },
-      { name: CH.roles, kind: 'text', readOnly: true, topic: 'Language and favourite teams · Limbă și echipe favorite' },
-      { name: CH.daily, kind: 'text', readOnly: true, topic: 'FC Solver Daily: a new player every day · un jucător nou în fiecare zi' },
-      { name: CH.polls, kind: 'text', readOnly: true, polls: true, topic: 'Community polls: vote here (created by Admins and Moderators) · Sondaje: votează aici (create de Admini și Moderatori)' },
-      { name: CH.boost, kind: 'text', readOnly: true, topic: 'Premium while you boost · Premium cât timp dai boost' },
+      { name: CH.language, kind: 'text', readOnly: true, access: 'everyone', topic: 'Pick your language: the first step' },
+      { name: CH.rules, kind: 'text', readOnly: true, access: 'rulesEn', topic: 'Rules: react ✅ to unlock the server' },
+      { name: CH.rulesRo, kind: 'text', readOnly: true, access: 'rulesRo', topic: 'Regulament: reacționează cu ✅ ca să deblochezi serverul' },
+      { name: CH.welcome, kind: 'text', readOnly: true, topic: 'Welcome to FC Solver' },
+      { name: CH.announcements, kind: 'announcement', readOnly: true, topic: 'FC Solver news (follow it from your own server)' },
+      { name: CH.roles, kind: 'text', readOnly: true, topic: 'Language and favourite teams' },
+      { name: CH.daily, kind: 'text', readOnly: true, topic: 'FC Solver Daily: a new player every day' },
+      { name: CH.polls, kind: 'text', readOnly: true, polls: true, topic: 'Community polls: vote here (created by Admins and Moderators)' },
+      { name: CH.boost, kind: 'text', readOnly: true, topic: 'Premium while you boost' },
     ],
   },
   {
@@ -139,11 +141,11 @@ export function overwritesFor(access: Access, target: Target, readOnly: boolean,
   };
   const noWrite = readOnly && !voice ? WRITE : [];
   if (access === 'everyone') return [{ id: ids.everyone, allow: see, deny: [...noWrite, 'AddReactions'] }, bot];
-  // rules: read by new joiners who picked a language (pending roles) and by Members; others cannot add new reactions
-  const viewers = { member: [ROLE.member], ro: [ROLE.ro], en: [ROLE.en], staff: [ROLE.mod], rules: [ROLE.pendingEn, ROLE.pendingRo, ROLE.member] }[access];
+  // rules per language: read by that language's Pending and real role; others cannot add new reactions
+  const viewers = { member: [ROLE.member], ro: [ROLE.ro], en: [ROLE.en], staff: [ROLE.mod], rulesEn: [ROLE.pendingEn, ROLE.en], rulesRo: [ROLE.pendingRo, ROLE.ro] }[access];
   const out: Overwrite[] = [
     { id: ids.everyone, allow: [], deny: ['ViewChannel'] },
-    ...viewers.map((v) => ({ id: id(v), allow: see, deny: access === 'rules' ? [...noWrite, 'AddReactions' as const] : noWrite })),
+    ...viewers.map((v) => ({ id: id(v), allow: see, deny: access === 'rulesEn' || access === 'rulesRo' ? [...noWrite, 'AddReactions' as const] : noWrite })),
   ];
   if (access !== 'staff') out.push({ id: id(ROLE.mod), allow: [...see, 'ManageMessages'], deny: [] });
   out.push(bot);

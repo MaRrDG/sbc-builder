@@ -40,19 +40,20 @@ test('canPoll: Admin or Moderator only', () => {
   assert.equal(canPoll([]), false);
 });
 
-test('result message: English first then Romanian, results listed, no pings', () => {
+test('result message: English only, results listed, no pings', () => {
   const m = pollResultMessage('Best?', [{ text: 'A', votes: 4 }, { text: 'B', votes: 4 }], 'https://i/c.png');
   const e = m.embeds[0].toJSON();
   assert.equal(e.title, 'Best?');
   assert.equal(e.author?.name, 'FC Solver');
   const d = e.description!;
-  assert.ok(d.indexOf('Tie') >= 0 && d.indexOf('Egalitate') > d.indexOf('Tie'));
+  assert.match(d, /Tie/);
+  assert.doesNotMatch(d, /Egalitate/);
   assert.match(d, /\*\*A\*\*.*\*\*B\*\*/);
   assert.match(e.fields![0].value, /4\s+A/);
   assert.deepEqual(m.allowedMentions, { parse: [] });
   const none = pollResultMessage('Q', [{ text: 'A', votes: 0 }, { text: 'B', votes: 0 }]).embeds[0].toJSON().description!;
   assert.match(none, /No votes/);
-  assert.match(none, /Niciun vot/);
+  assert.doesNotMatch(none, /Niciun vot/);
 });
 
 test('isOurResult: our embed reply yes; Discord PollResult message and unrelated bot embeds no', () => {

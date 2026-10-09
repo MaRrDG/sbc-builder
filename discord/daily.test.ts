@@ -13,11 +13,11 @@ test('post: content line, brand embed with the banner, button to /daily, no ping
   assert.deepEqual(p.allowedMentions, { parse: [] });
 });
 
-test('message: both languages, link to /daily, no answer', () => {
+test('message: English only, link to /daily, no answer', () => {
   const m = dailyMessage(42, 'https://fcsolver.gg');
   assert.match(m, /Daily #42 is live/);
-  assert.match(m, /Daily #42 a început/);
-  assert.equal(m.match(/https:\/\/fcsolver\.gg\/daily/g)?.length, 2);
+  assert.doesNotMatch(m, /a început/);
+  assert.equal(m.match(/https:\/\/fcsolver\.gg\/daily/g)?.length, 1);
 });
 
 test('already announced only by the bot itself, for exactly that day', () => {
