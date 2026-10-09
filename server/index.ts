@@ -298,6 +298,10 @@ const MAIL_LANGS = ['en', 'ro', 'it'];
 app.put<{ Body: { lang?: unknown; evoEmails?: unknown; dailyReminder?: unknown } }>('/api/me/prefs', async (req) => {
   const userId = await siteUser(req);
   const b = req.body ?? {};
+  // turning the Daily reminder on is Premium; turning it off is always allowed
+  if (b.dailyReminder === true && (await planFor(userId)).tier !== 'premium') {
+    throw new SessionError('The Daily reminder is a Premium feature.', 403, 'premiumOnly');
+  }
   await setPrefs(userId, {
     lang: typeof b.lang === 'string' && MAIL_LANGS.includes(b.lang) ? asLang(b.lang) : undefined,
     evoEmails: typeof b.evoEmails === 'boolean' ? b.evoEmails : undefined,
