@@ -960,3 +960,6 @@
   0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
   100% { opacity: 0; transform: rotate(var(--a)) translateY(-26px) scale(0.3); }
 }
+.dg-remind { margin: 14px 0 0; text-align: center; }
+.dg-remind .switch { justify-content: center; min-height: 44px; }
+.dg-remind-hint { margin: 2px 0 0; color: var(--ink-3); font-size: 12.5px; line-height: 1.45; }

@@ -8,6 +8,7 @@ import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { DiscordLink, useDiscordInvite } from '../components/DiscordLink';
 import { errorText } from '../messages';
+import { Reminder } from './Reminder';
 import { routePath, type Route } from '../route';
 import { Grid } from './Grid';
 import { Leaderboard } from './Leaderboard';
@@ -307,6 +308,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
                 />
               )}
               <Grid rows={game.rows} max={max} fresh={fresh} meta={meta} />
+              {!practice && <Reminder signedIn={signedIn && !!info?.signedIn} link={link} next="/daily" />}
               <p className="dg-data-note">{t('daily.dataNote')}</p>
             </div>
           </div>

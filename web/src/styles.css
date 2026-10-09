@@ -4472,3 +4472,4 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .reverify .rv-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
 .reverify .rv-actions .club-sync-close { margin-top: 0; }
 .reverify .rv-cancel { display: block; margin: 12px auto 0; }
+.nav-item .premium-tag { margin-left: 8px; padding: 0 6px; font-size: 11px; }
