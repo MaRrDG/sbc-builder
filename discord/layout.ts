@@ -59,8 +59,8 @@ export const PICKERS: Record<PickerGroup, string[]> = { lang: [ROLE.en, ROLE.ro]
 
 // order = hierarchy, top first (setup stacks them under the bot's role). A Premium role (later) goes after Moderator.
 export const ROLES: RoleSpec[] = [
-  { name: ROLE.admin, color: BRAND.lime, permissions: ['Administrator'], hoist: true },
-  { name: ROLE.mod, color: BRAND.mod, permissions: ['ManageMessages', 'ModerateMembers', 'KickMembers', 'ManageThreads', 'MuteMembers', 'MoveMembers'], hoist: true },
+  { name: ROLE.admin, color: BRAND.lime, permissions: ['Administrator'], hoist: false },
+  { name: ROLE.mod, color: BRAND.mod, permissions: ['ManageMessages', 'ModerateMembers', 'KickMembers', 'ManageThreads', 'MuteMembers', 'MoveMembers'], hoist: false },
   { name: ROLE.member, color: BRAND.cream, permissions: [], hoist: true },
   ...PICKERS.lang.map((name): RoleSpec => ({ name, color: 0, permissions: [], hoist: false, group: 'lang' })),
   // club roles: club colour (TEAM_COLORS); the ⚽ role icon is only applied on boost level 2 servers
