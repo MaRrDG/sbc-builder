@@ -17,13 +17,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): BotConfig {
     if (!v) throw new Error(`${k} is not set`);
     return v;
   };
+  const apiToken = need('BOT_API_TOKEN');
+  if (apiToken.length < 32) throw new Error('BOT_API_TOKEN must be at least 32 characters');
   const trim = (s: string) => s.replace(/\/+$/, '');
   return {
     token: need('DISCORD_TOKEN'),
     appId: need('DISCORD_APP_ID'),
     guildId: need('DISCORD_GUILD_ID'),
     apiUrl: trim(env.BOT_API_URL?.trim() || 'http://127.0.0.1:5178'),
-    apiToken: env.BOT_API_TOKEN?.trim() ?? '',
-    siteUrl: trim(env.SITE_URL?.trim() || 'http://localhost:5173'),
+    apiToken,
+    siteUrl: trim(need('SITE_URL')),
   };
 }

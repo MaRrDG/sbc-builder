@@ -89,8 +89,8 @@ function EaAccountsCard({ personas, activeId, onUnlink }: { personas: Account[];
   );
 }
 
-export function LinkedAccounts({ personas, activeId, onUnlink, onSignOut }: {
-  personas: Account[]; activeId: number | null; onUnlink: (id: number) => void; onSignOut: () => void;
+export function LinkedAccounts({ personas, activeId, onUnlink, onSignOut, onPlanChange }: {
+  personas: Account[]; activeId: number | null; onUnlink: (id: number) => void; onSignOut: () => void; onPlanChange: () => void;
 }) {
   const { t } = useI18n();
   return (
@@ -103,7 +103,7 @@ export function LinkedAccounts({ personas, activeId, onUnlink, onSignOut }: {
       </header>
       <div className="accounts-grid">
         <SignInCard onSignOut={onSignOut} />
-        <DiscordCard />
+        <DiscordCard onChange={onPlanChange} />
         <EaAccountsCard personas={personas} activeId={activeId} onUnlink={onUnlink} />
       </div>
     </section>

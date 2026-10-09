@@ -1022,7 +1022,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           )}
 
           {!showGuide && view === 'accounts' && (
-            <LinkedAccounts personas={linked} activeId={activeId} onUnlink={unlink} onSignOut={doSignOut} />
+            <LinkedAccounts personas={linked} activeId={activeId} onUnlink={unlink} onSignOut={doSignOut} onPlanChange={() => void loadMe()} />
           )}
 
           {!showGuide && view === 'settings' && meta && (
