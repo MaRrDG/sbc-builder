@@ -73,7 +73,7 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
     // no language picked (or none held) = nothing happens; the rules channel is only visible with a Pending / real language role
     const a = m && acceptRules(m.roles.cache.map((r) => r.name));
     if (!m || !a) return;
-    await m.roles.add(roleIds(m.guild, a.add), 'accepted the rules');
+    if (a.add.length) await m.roles.add(roleIds(m.guild, a.add), 'accepted the rules');
     if (a.remove.length) await m.roles.remove(roleIds(m.guild, a.remove), 'accepted the rules');
   } catch (e) {
     console.warn(`[bot] rules accept: ${(e as Error).message}`);
@@ -135,7 +135,7 @@ async function onLanguage(i: ButtonInteraction, picked: string) {
   if (d.add.length) await m.roles.add(roleIds(m.guild, d.add), 'language picked');
   if (d.remove.length) await m.roles.remove(roleIds(m.guild, d.remove), 'language picked');
   const list = d.now.join(', ');
-  const content = !d.now.length ? tr(lang, 'lang.none') : d.member ? tr(lang, 'lang.saved', { list }) : tr(lang, 'lang.pending', { list, rules: CH.rules });
+  const content = !d.now.length ? tr(lang, 'lang.none') : d.member ? tr(lang, 'lang.saved', { list }) : tr(lang, 'lang.pending', { list, rules: `<#${(await findText(m.guild, CAT.info, CH.rules)).id}>` });
   await i.reply({ content, flags: MessageFlags.Ephemeral });
 }
 

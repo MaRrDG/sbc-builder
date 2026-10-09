@@ -42,14 +42,14 @@ export const SUPERLIGA = [
   'Universitatea Craiova', 'Universitatea Cluj', 'CFR Cluj', 'Dinamo București', 'Rapid București', 'FC Argeș', 'UTA Arad', 'FCSB',
   'Oțelul Galați', 'FC Botoșani', 'Csíkszereda', 'Petrolul Ploiești', 'Farul Constanța', 'FC Voluntari', 'Corvinul Hunedoara', 'Sepsi OSK',
 ];
-// Team role colours (hex ints), one per club, keyed by the names above. Main kit/crest colour, tuned to read on Discord's dark UI.
+// Team role colours (hex ints), one per club, keyed by the names above. Main kit/crest colour, each at least 3:1 against Discord's dark UI (#313338), enforced by layout.test.ts.
 // White/black primaries use the signature secondary (Real Madrid gold, Juventus silver, Milan red, Inter blue, Dortmund yellow...). Never 0 (Discord: "no colour").
 export const TEAM_COLORS: Record<string, number> = {
-  'Real Madrid': 0xfebe10, Barcelona: 0xa50044, 'Atlético Madrid': 0xe03a3e, 'Manchester City': 0x6cabdd, Liverpool: 0xc8102e,
-  Arsenal: 0xef0107, 'Manchester United': 0xda291c, Chelsea: 0x2a6ebb, 'Bayern München': 0xdc052d, 'Borussia Dortmund': 0xfde100,
-  PSG: 0x2f5fb3, Juventus: 0xb4b9c0, Inter: 0x1b5eb5, Milan: 0xfb090b, Napoli: 0x12a0d7,
-  'Universitatea Craiova': 0x2f6fd0, 'Universitatea Cluj': 0xc8c8c8, 'CFR Cluj': 0x8b1a3a, 'Dinamo București': 0xe30613, 'Rapid București': 0x9b2d43,
-  'FC Argeș': 0x7d5cc6, 'UTA Arad': 0xd9a400, FCSB: 0xd8202f, 'Oțelul Galați': 0x4a73c9, 'FC Botoșani': 0xf2c200, Csíkszereda: 0xd62a2a,
+  'Real Madrid': 0xfebe10, Barcelona: 0xc7618b, 'Atlético Madrid': 0xe24a4d, 'Manchester City': 0x6cabdd, Liverpool: 0xd75369,
+  Arsenal: 0xf23439, 'Manchester United': 0xe15045, Chelsea: 0x4c85c6, 'Bayern München': 0xe54664, 'Borussia Dortmund': 0xfde100,
+  PSG: 0x5d82c4, Juventus: 0xb4b9c0, Inter: 0x5285c7, Milan: 0xfb090b, Napoli: 0x12a0d7,
+  'Universitatea Craiova': 0x4880d6, 'Universitatea Cluj': 0xc8c8c8, 'CFR Cluj': 0xb56c81, 'Dinamo București': 0xea424c, 'Rapid București': 0xb96c7b,
+  'FC Argeș': 0x8d70cd, 'UTA Arad': 0xd9a400, FCSB: 0xe04d59, 'Oțelul Galați': 0x5c81ce, 'FC Botoșani': 0xf2c200, Csíkszereda: 0xdd5050,
   'Petrolul Ploiești': 0xf4c20d, 'Farul Constanța': 0x2c9fd9, 'FC Voluntari': 0xf28c28, 'Corvinul Hunedoara': 0xe34a4a, 'Sepsi OSK': 0x2fa04a,
 };
 export const PICKERS: Record<PickerGroup, string[]> = { lang: [ROLE.en, ROLE.ro], world: WORLD_CLUBS, superliga: SUPERLIGA };

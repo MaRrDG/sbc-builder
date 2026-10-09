@@ -19,7 +19,7 @@ test('roles: Admin > Moderator > Member, then languages and clubs; unique names'
   for (const names of Object.values(PICKERS)) assert.ok(names.length <= 25, 'a select menu holds 25 options');
 });
 
-test('role colours: brand for staff and Member, none for languages and clubs (names stay readable)', () => {
+test('role colours: brand for staff and Member, none for languages and pending roles, club colours for clubs', () => {
   const color = (n: string) => ROLES.find((r) => r.name === n)!.color;
   assert.equal(color(ROLE.admin), BRAND.lime);
   assert.equal(color(ROLE.mod), BRAND.mod);
@@ -111,4 +111,14 @@ test('staff area: only Moderator (Admins see all by Administrator)', () => {
 
 test('a missing role is a clear error', () => {
   assert.throws(() => overwritesFor('ro', 'text', false, { ...ids, byName: new Map() }), /role "RO" is missing/);
+});
+
+test('team colours read on Discord dark: contrast against #313338 is at least 3:1 (WCAG)', () => {
+  const lin = (c: number) => { const v = c / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  const lum = (h: number) => 0.2126 * lin((h >> 16) & 255) + 0.7152 * lin((h >> 8) & 255) + 0.0722 * lin(h & 255);
+  const bg = lum(0x313338);
+  for (const [name, h] of Object.entries(TEAM_COLORS)) {
+    const l = lum(h);
+    assert.ok((Math.max(l, bg) + 0.05) / (Math.min(l, bg) + 0.05) >= 3, `${name} ${h.toString(16)}`);
+  }
 });
