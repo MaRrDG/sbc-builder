@@ -1,5 +1,5 @@
 // Slash commands registered by setup (guild commands, full replace = idempotent).
-import { InteractionContextType, PermissionFlagsBits, SlashCommandBuilder, type SlashCommandStringOption, type RESTPostAPIChatInputApplicationCommandsJSONBody } from 'discord.js';
+import { ApplicationCommandType, ContextMenuCommandBuilder, InteractionContextType, PermissionFlagsBits, SlashCommandBuilder, type SlashCommandStringOption, type RESTPostAPIChatInputApplicationCommandsJSONBody } from 'discord.js';
 import { POLL_ANSWER_MAX, POLL_ANSWERS_MAX, POLL_HOURS_MAX, POLL_QUESTION_MAX } from './poll.js';
 
 const answer = (n: number, required: boolean) => (o: SlashCommandStringOption) =>
@@ -20,8 +20,30 @@ export const COMMANDS: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [
     .setDescription('Your FC Solver stats: SBCs, objectives, club')
     .setDescriptionLocalizations({ ro: 'Statisticile tale FC Solver: SBC-uri, obiective, club' })
     .toJSON(),
+  new SlashCommandBuilder()
+    .setName('language')
+    .setDescription('Set your language roles: English, Romanian or both (Members)')
+    .setDescriptionLocalizations({ ro: 'Setează-ți limbile: engleză, română sau ambele (Membri)' })
+    .setContexts(InteractionContextType.Guild)
+    .addStringOption((o) =>
+      o.setName('language').setDescription('Your language').setDescriptionLocalizations({ ro: 'Limba ta' }).setRequired(true)
+        .addChoices({ name: 'English', value: 'EN', name_localizations: { ro: 'Engleză' } }, { name: 'Română', value: 'RO', name_localizations: { ro: 'Română' } }, { name: 'English + Română', value: 'both', name_localizations: { ro: 'Engleză + Română' } }),
+    )
+    .toJSON(),
+  dailyCommand('daily'),
+  dailyCommand('wordle'),
   pollCommand(),
 ];
+
+// /daily and /wordle: same behaviour, two names (Members only, checked by the handler)
+function dailyCommand(name: string) {
+  return new SlashCommandBuilder()
+    .setName(name)
+    .setDescription("Play today's FC Solver Daily: guess the EA FC player (Members)")
+    .setDescriptionLocalizations({ ro: 'Joacă FC Solver Daily de azi: ghicește jucătorul EA FC (Membri)' })
+    .setContexts(InteractionContextType.Guild)
+    .toJSON();
+}
 
 // Admin / Moderator only: hidden from others by default_member_permissions, and the handler checks the roles again
 function pollCommand() {
@@ -42,3 +64,10 @@ function pollCommand() {
   b.addBooleanOption((o) => o.setName('multi').setDescription('Allow several answers per person (default: one)').setDescriptionLocalizations({ ro: 'Permite mai multe răspunsuri per persoană (implicit: unul)' }));
   return b.toJSON();
 }
+
+/** Message context menu (Apps → End poll): Admin only (hidden by ManageGuild, the handler checks the role again). */
+export const END_POLL = 'End poll';
+export const MENU_COMMANDS = [
+  new ContextMenuCommandBuilder().setName(END_POLL).setNameLocalizations({ ro: 'Închide sondajul' }).setType(ApplicationCommandType.Message)
+    .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild).setContexts(InteractionContextType.Guild).toJSON(),
+];

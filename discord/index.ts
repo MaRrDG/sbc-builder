@@ -1,16 +1,16 @@
 // FC Solver Discord bot: language buttons → Pending role, ✅ on the rules → Member + language, join welcome, role pickers; Daily posts (Task 10) and slash commands (Task 18).
 // Never calls EA. Talks to the FC Solver API only through /api/bot/* (discord/api.ts).
-import { Client, Events, GatewayIntentBits, MessageFlags, Partials, type ButtonInteraction, type Guild, type GuildMember } from 'discord.js';
+import { Client, Events, GatewayIntentBits, MessageFlags, Partials, type ButtonInteraction, type ChatInputCommandInteraction, type Guild, type GuildMember } from 'discord.js';
 import { loadConfig, loadEnvFile } from './config.js';
-import { CAT, CH, PICKERS, ROLE } from './layout.js';
+import { CAT, CH, PICKERS, ROLE, commandRedirect } from './layout.js';
 import { RULES_TITLE, RULES_TITLE_RO, avatarUrl, boostThanks, groupOf, memberWelcomeMessage, pickerMenu } from './content.js';
-import { acceptRules, isMember, langOf, languageClick, roleDiff, withdrawRules } from './roles.js';
+import { acceptRules, isMember, langOf, languageChoice, languageClick, roleDiff, withdrawRules } from './roles.js';
 import { langFor, tr, type Lang } from './i18n.js';
 import { categoryOf, findOwnMessage, findText } from './guild.js';
 import { BotApiError, botApi } from './api.js';
-import { alreadyAnnounced, dailyPost } from './daily.js';
+import { alreadyAnnounced, dailyInfoMessage, dailyPost } from './daily.js';
 import { onAutocomplete, onCommand } from './handlers.js';
-import { onPoll, postFinishedPolls } from './polls.js';
+import { onEndPoll, onPoll, postFinishedPolls } from './polls.js';
 
 loadEnvFile();
 const cfg = loadConfig();
@@ -119,11 +119,21 @@ client.on(Events.InteractionCreate, async (i) => {
   const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
   try {
     if (i.isAutocomplete()) return void (await onAutocomplete(i, cfg));
-    if (i.isChatInputCommand()) return void (await (i.commandName === 'poll' ? onPoll(i) : onCommand(i, cfg)));
+    if (i.isMessageContextMenuCommand()) return void (await onEndPoll(i, avatarUrl(client.user!)));
+    if (i.isChatInputCommand()) {
+      // defence in depth: Discord already denies commands elsewhere; nothing runs (no quota spent) outside the commands channels
+      const m = await memberOf(i.guildId, i.user.id);
+      const target = commandRedirect((i.channel as { name?: string } | null)?.name ?? null, m?.roles.cache.map((r) => r.name) ?? []);
+      if (target) {
+        const ch = await findText(await client.guilds.fetch(cfg.guildId), target === CH.commandsRo ? CAT.ro : CAT.en, target);
+        return void (await i.reply({ content: tr(target === CH.commandsRo ? 'ro' : 'en', 'cmd.here', { channel: `<#${ch.id}>` }), flags: MessageFlags.Ephemeral }));
+      }
+    }
+    if (i.isChatInputCommand()) return void (await (i.commandName === 'poll' ? onPoll(i) : i.commandName === 'language' ? onLanguageCommand(i) : i.commandName === 'daily' || i.commandName === 'wordle' ? onDailyCommand(i) : onCommand(i, cfg)));
     if (i.isButton()) {
       const lg = langOf(i.customId);
       if (lg) return void (await onLanguage(i, lg));
-      if (i.customId === 'pick:lang') return void (await i.reply({ content: tr(lang, 'roles.langMoved', { language: CH.language }), flags: MessageFlags.Ephemeral }));
+      if (i.customId === 'pick:lang') return void (await i.reply({ content: tr(lang, 'roles.langMoved'), flags: MessageFlags.Ephemeral }));
       const g = groupOf(i.customId, 'pick');
       const m = g && (await memberOf(i.guildId, i.user.id));
       if (!g || !m) return;
@@ -161,6 +171,27 @@ async function onLanguage(i: ButtonInteraction, picked: string) {
   const list = d.now.join(', ');
   const content = !d.now.length ? tr(lang, 'lang.none') : d.member ? tr(lang, 'lang.saved', { list }) : tr(lang, 'lang.pending', { list, rules: `<#${(await findText(m.guild, CAT.info, lang === 'ro' ? CH.rulesRo : CH.rules)).id}>` });
   await i.reply({ content, flags: MessageFlags.Ephemeral });
+}
+
+/** /language (Members only): sets exactly the chosen real language roles. */
+async function onLanguageCommand(i: ChatInputCommandInteraction) {
+  const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
+  const m = await memberOf(i.guildId, i.user.id);
+  const has = m?.roles.cache.map((r) => r.name) ?? [];
+  if (!m || !isMember(has)) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: lang === 'ro' ? CH.rulesRo : CH.rules }), flags: MessageFlags.Ephemeral }));
+  const d = languageChoice(has, i.options.getString('language', true));
+  if (d.add.length) await m.roles.add(roleIds(m.guild, d.add), 'language command');
+  if (d.remove.length) await m.roles.remove(roleIds(m.guild, d.remove), 'language command');
+  await i.reply({ content: tr(lang, 'lang.set', { list: d.now.join(', ') }), flags: MessageFlags.Ephemeral });
+}
+
+/** /daily and /wordle (Members only): ephemeral card + link; the day number is best effort. */
+async function onDailyCommand(i: ChatInputCommandInteraction) {
+  const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
+  const m = await memberOf(i.guildId, i.user.id);
+  if (!m || !isMember(m.roles.cache.map((r) => r.name))) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: lang === 'ro' ? CH.rulesRo : CH.rules }), flags: MessageFlags.Ephemeral }));
+  const d = await botApi<{ day: number; live: boolean }>(cfg, '/api/bot/daily', { timeoutMs: 2_500 }).catch(() => null);
+  await i.reply({ ...dailyInfoMessage(cfg.siteUrl, d?.live ? d.day : undefined, avatarUrl(client.user!)), flags: MessageFlags.Ephemeral });
 }
 
 // A boost started or stopped: tell the app; thank only a boost we saw start (an uncached "before" is left to the reconcile, so no repeats)

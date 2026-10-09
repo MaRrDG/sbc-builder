@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { canPoll, isOurResult, pollResult, pollResultMessage, validatePoll } from './poll.js';
+import { canEndPoll, endPollCheck, canPoll, isOurResult, pollResult, pollResultMessage, validatePoll } from './poll.js';
 import { ROLE, overwritesFor } from './layout.js';
 
 const ok = { question: ' Best? ', answers: [' A ', 'B', null, '  ', 'C'] as (string | null)[], hours: 24, multi: null as boolean | null };
@@ -67,7 +67,18 @@ test('isOurResult: our embed reply yes; Discord PollResult message and unrelated
 });
 
 test('SendPolls only on the polls channel overwrite', () => {
-  const ids = { everyone: 'E', bot: 'B', byName: new Map([[ROLE.member.toLowerCase(), 'M'], [ROLE.mod.toLowerCase(), 'D']]) };
+  const ids = { everyone: 'E', bot: 'B', byName: new Map([[ROLE.member.toLowerCase(), 'M'], [ROLE.mod.toLowerCase(), 'D'], [ROLE.admin.toLowerCase(), 'A']]) };
   assert.ok(overwritesFor('member', 'text', true, ids, true).find((o) => o.id === 'B')!.allow.includes('SendPolls'));
   assert.ok(!overwritesFor('member', 'text', true, ids).find((o) => o.id === 'B')!.allow.includes('SendPolls'));
+});
+
+test('End poll: Admin only; only our own open poll in the polls channel', () => {
+  assert.equal(canEndPoll([ROLE.admin]), true);
+  assert.equal(canEndPoll([ROLE.mod, ROLE.member]), false);
+  const t = { channelName: '📊・polls', authorId: 'B', botId: 'B', hasPoll: true, finalized: false };
+  assert.equal(endPollCheck(t, '📊・polls'), 'ok');
+  assert.equal(endPollCheck({ ...t, finalized: true }, '📊・polls'), 'ended');
+  assert.equal(endPollCheck({ ...t, authorId: 'U' }, '📊・polls'), 'notPoll');
+  assert.equal(endPollCheck({ ...t, hasPoll: false }, '📊・polls'), 'notPoll');
+  assert.equal(endPollCheck({ ...t, channelName: 'x' }, '📊・polls'), 'notPoll');
 });

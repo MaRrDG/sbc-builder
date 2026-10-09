@@ -8,7 +8,7 @@ export type Access = 'everyone' | 'rulesEn' | 'rulesRo' | 'member' | 'ro' | 'en'
 export type ChannelKind = 'text' | 'announcement' | 'voice';
 export type Target = 'category' | ChannelKind;
 export interface RoleSpec { name: string; color: number; permissions: PermissionsString[]; hoist: boolean; group?: PickerGroup; icon?: string; aliases?: string[] }
-export interface ChannelSpec { polls?: boolean; name: string; kind: ChannelKind; topic?: string; readOnly?: boolean; slowmode?: number; access?: Access; aliases?: string[] }
+export interface ChannelSpec { polls?: boolean; name: string; kind: ChannelKind; topic?: string; readOnly?: boolean; slowmode?: number; commands?: boolean; access?: Access; aliases?: string[] }
 export interface CategorySpec { name: string; access: Access; channels: ChannelSpec[]; aliases?: string[] }
 
 // one style everywhere: "📜・rules", "🔊 Lounge", "━━ INFO ━━"
@@ -30,6 +30,8 @@ export const CH = {
   daily: textName('⚽', 'daily'),
   polls: textName('📊', 'polls'),
   boost: textName('💎', 'boost-perks'),
+  commandsEn: textName('🤖', 'commands'),
+  commandsRo: textName('🤖', 'comenzi'),
   sbcRo: textName('🧩', 'ajutor-sbc'),
   sbcEn: textName('🧩', 'sbc-help'),
   superliga: textName('🏟️', 'echipe-superliga'),
@@ -57,10 +59,19 @@ export const TEAM_COLORS: Record<string, number> = {
 };
 export const PICKERS: Record<PickerGroup, string[]> = { lang: [ROLE.en, ROLE.ro], world: WORLD_CLUBS, superliga: SUPERLIGA };
 
+// Admin is NOT Administrator: that permission bypasses every channel overwrite, so admins would show up in the unverified member list.
+// An explicit set subjects them to the onboarding denies (the server owner and the bot still bypass them).
+export const ADMIN_PERMISSIONS: PermissionsString[] = [
+  'ManageGuild', 'ManageRoles', 'ManageChannels', 'ManageMessages', 'ManageThreads', 'ManageNicknames', 'ManageWebhooks', 'ManageGuildExpressions', 'ManageEvents',
+  'KickMembers', 'BanMembers', 'ModerateMembers', 'MuteMembers', 'DeafenMembers', 'MoveMembers', 'ViewAuditLog', 'MentionEveryone',
+  'ViewChannel', 'SendMessages', 'SendMessagesInThreads', 'CreatePublicThreads', 'CreatePrivateThreads', 'EmbedLinks', 'AttachFiles', 'AddReactions', 'UseExternalEmojis',
+  'UseExternalStickers', 'ReadMessageHistory', 'CreateInstantInvite', 'ChangeNickname', 'SendPolls', 'UseApplicationCommands', 'Connect', 'Speak', 'Stream', 'UseVAD', 'PrioritySpeaker',
+];
+
 // order = hierarchy, top first (setup stacks them under the bot's role). A Premium role (later) goes after Moderator.
 export const ROLES: RoleSpec[] = [
-  { name: ROLE.admin, color: BRAND.lime, permissions: ['Administrator'], hoist: false },
-  { name: ROLE.mod, color: BRAND.mod, permissions: ['ManageMessages', 'ModerateMembers', 'KickMembers', 'ManageThreads', 'MuteMembers', 'MoveMembers'], hoist: false },
+  { name: ROLE.admin, color: BRAND.lime, permissions: ADMIN_PERMISSIONS, hoist: true },
+  { name: ROLE.mod, color: BRAND.mod, permissions: ['ManageMessages', 'ModerateMembers', 'KickMembers', 'ManageThreads', 'MuteMembers', 'MoveMembers'], hoist: true },
   { name: ROLE.member, color: BRAND.cream, permissions: [], hoist: true },
   ...PICKERS.lang.map((name): RoleSpec => ({ name, color: 0, permissions: [], hoist: false, group: 'lang' })),
   // club roles: club colour (TEAM_COLORS); the ⚽ role icon is only applied on boost level 2 servers
@@ -87,16 +98,18 @@ export const CATEGORIES: CategorySpec[] = [
   },
   {
     name: CAT.en, access: 'en', channels: [
+      { name: CH.commandsEn, kind: 'text', commands: true, slowmode: 5, topic: 'Use the bot here: /sbc, /stats, /daily, /language' },
       { name: textName('💬', 'general'), kind: 'text', topic: 'Talk FC, SBCs and anything else' },
-      { name: CH.sbcEn, kind: 'text', slowmode: 10, topic: 'Help with SBCs and FC Solver; /sbc and /stats work here' },
+      { name: CH.sbcEn, kind: 'text', slowmode: 10, topic: 'Help with SBCs and FC Solver; run /sbc in 🤖・commands' },
       { name: textName('🐞', 'bugs'), kind: 'text', slowmode: 30, topic: 'Something broken? Say what you pressed and what you saw' },
       { name: textName('💡', 'suggestions'), kind: 'text', slowmode: 30, topic: 'Ideas for FC Solver' },
     ],
   },
   {
     name: CAT.ro, access: 'ro', channels: [
+      { name: CH.commandsRo, kind: 'text', commands: true, slowmode: 5, topic: 'Folosește botul aici: /sbc, /stats, /daily, /language' },
       { name: textName('💬', 'general'), kind: 'text', topic: 'Discuții despre FC, SBC-uri și orice altceva' },
-      { name: CH.sbcRo, kind: 'text', slowmode: 10, topic: 'Ajutor cu SBC-uri și FC Solver; aici merg /sbc și /stats' },
+      { name: CH.sbcRo, kind: 'text', slowmode: 10, topic: 'Ajutor cu SBC-uri și FC Solver; rulează /sbc în 🤖・comenzi' },
       { name: textName('🐞', 'buguri'), kind: 'text', slowmode: 30, topic: 'Ceva nu merge? Spune ce ai apăsat și ce ai văzut' },
       { name: textName('💡', 'sugestii'), kind: 'text', slowmode: 30, topic: 'Idei pentru FC Solver' },
       { name: CH.superliga, kind: 'text', readOnly: true, topic: 'Alege echipele tale din SuperLiga' },
@@ -126,7 +139,7 @@ const WRITE: PermissionsString[] = ['SendMessages', 'SendMessagesInThreads', 'Cr
  * Discord ORs permissions across roles, so "RO and Member" cannot be an overwrite: the bot only hands out RO / EN together with
  * Member (✅ on the rules) and removes them when Member goes (discord/index.ts). The bot's own role is allowed everywhere so read-only stays writable for it.
  */
-export function overwritesFor(access: Access, target: Target, readOnly: boolean, ids: RoleIds, polls = false): Overwrite[] {
+export function overwritesFor(access: Access, target: Target, readOnly: boolean, ids: RoleIds, polls = false, commands = false): Overwrite[] {
   const id = (name: string) => {
     const v = ids.byName.get(name.toLowerCase());
     if (!v) throw new Error(`role "${name}" is missing, run setup again`);
@@ -139,15 +152,31 @@ export function overwritesFor(access: Access, target: Target, readOnly: boolean,
     allow: voice ? ['ViewChannel', 'Connect'] : ['ViewChannel', 'SendMessages', 'EmbedLinks', 'AttachFiles', 'ReadMessageHistory', 'AddReactions', 'ManageMessages', ...(polls ? ['SendPolls' as const] : [])],
     deny: [],
   };
+  // Slash commands only in the two commands channels: @everyone is denied UseApplicationCommands everywhere else (role-level grants lose to it)
+  const cmd = { allow: commands ? ['UseApplicationCommands' as const] : [], deny: commands ? [] : ['UseApplicationCommands' as const] };
   const noWrite = readOnly && !voice ? WRITE : [];
-  if (access === 'everyone') return [{ id: ids.everyone, allow: see, deny: [...noWrite, 'AddReactions'] }, bot];
-  // rules per language: read by that language's Pending and real role; others cannot add new reactions
-  const viewers = { member: [ROLE.member], ro: [ROLE.ro], en: [ROLE.en], staff: [ROLE.mod], rulesEn: [ROLE.pendingEn, ROLE.en], rulesRo: [ROLE.pendingRo, ROLE.ro] }[access];
+  // Onboarding channels (language, rules) are for the unverified only: Member (every verified user) and staff are denied View, so verified
+  // people and staff are not listed in the member sidebar of a joiner. Discord lets one allow beat a deny between roles, so no verified role may be allowed here.
+  const hideFrom = (): Overwrite[] => [ROLE.member, ROLE.mod, ROLE.admin].map((r) => ({ id: id(r), allow: [], deny: ['ViewChannel' as const] }));
+  if (access === 'everyone') return [{ id: ids.everyone, allow: [...see, ...cmd.allow], deny: [...noWrite, 'AddReactions', ...cmd.deny] }, ...hideFrom(), bot];
+  if (access === 'rulesEn' || access === 'rulesRo') {
+    const pending = id(access === 'rulesEn' ? ROLE.pendingEn : ROLE.pendingRo);
+    return [{ id: ids.everyone, allow: cmd.allow, deny: ['ViewChannel', ...cmd.deny] }, { id: pending, allow: see, deny: [...noWrite, 'AddReactions'] }, ...hideFrom(), bot];
+  }
+  const viewers = { member: [ROLE.member], ro: [ROLE.ro], en: [ROLE.en], staff: [ROLE.mod, ROLE.admin] }[access];
   const out: Overwrite[] = [
-    { id: ids.everyone, allow: [], deny: ['ViewChannel'] },
-    ...viewers.map((v) => ({ id: id(v), allow: see, deny: access === 'rulesEn' || access === 'rulesRo' ? [...noWrite, 'AddReactions' as const] : noWrite })),
+    { id: ids.everyone, allow: cmd.allow, deny: ['ViewChannel', ...cmd.deny] },
+    ...viewers.map((v) => ({ id: id(v), allow: see, deny: noWrite })),
   ];
-  if (access !== 'staff') out.push({ id: id(ROLE.mod), allow: [...see, 'ManageMessages'], deny: [] });
+  // Admin may use the "End poll" menu in the polls channel (commands are denied to @everyone elsewhere)
+  if (access !== 'staff') for (const r of [ROLE.mod, ROLE.admin]) out.push({ id: id(r), allow: [...see, 'ManageMessages', ...(polls && r === ROLE.admin ? ['UseApplicationCommands' as const] : [])], deny: [] });
   out.push(bot);
   return out;
+}
+
+/** Commands are allowed only in the commands channels. Returns the channel name to point at, or null when the command may run here. */
+export function commandRedirect(channelName: string | null, roles: Iterable<string>): string | null {
+  if (channelName === CH.commandsEn || channelName === CH.commandsRo) return null;
+  const has = new Set(roles);
+  return has.has(ROLE.ro) && !has.has(ROLE.en) ? CH.commandsRo : CH.commandsEn;
 }

@@ -1,9 +1,9 @@
 // /poll (create a native Discord poll in 📊・polls) and the "poll ended" post. Needs the client; the rules are in poll.ts.
-import { MessageFlags, type ChatInputCommandInteraction, type Guild, type Message, type TextChannel } from 'discord.js';
+import { MessageFlags, type MessageContextMenuCommandInteraction, type ChatInputCommandInteraction, type Guild, type Message, type TextChannel } from 'discord.js';
 import { categoryOf, findText } from './guild.js';
 import { langFor, tr } from './i18n.js';
 import { CAT, CH } from './layout.js';
-import { canPoll, isOurResult, pollResultMessage, validatePoll } from './poll.js';
+import { canEndPoll, canPoll, endPollCheck, isOurResult, pollResultMessage, validatePoll } from './poll.js';
 
 export async function onPoll(i: ChatInputCommandInteraction): Promise<void> {
   const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
@@ -28,6 +28,25 @@ export async function onPoll(i: ChatInputCommandInteraction): Promise<void> {
   } catch (e) {
     console.warn(`[bot] /poll: ${(e as Error).message}`);
     await i.editReply({ content: tr(lang, 'poll.cannotPost', { channel: CH.polls }) }).catch(() => {});
+  }
+}
+
+/** Apps → End poll (Admin only): the bot, as the poll's creator, ends it; the result post follows right away. */
+export async function onEndPoll(i: MessageContextMenuCommandInteraction, avatar: string): Promise<void> {
+  const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
+  await i.deferReply({ flags: MessageFlags.Ephemeral });
+  const member = i.guild ? await i.guild.members.fetch(i.user.id).catch(() => null) : null;
+  if (!member || !canEndPoll(member.roles.cache.map((r) => r.name))) return void (await i.editReply({ content: tr(lang, 'poll.endDenied') }));
+  const m = i.targetMessage;
+  const check = endPollCheck({ channelName: (i.channel as { name?: string } | null)?.name ?? null, authorId: m.author.id, botId: i.client.user.id, hasPoll: !!m.poll, finalized: !!m.poll?.resultsFinalized }, CH.polls);
+  if (check !== 'ok') return void (await i.editReply({ content: tr(lang, check === 'ended' ? 'poll.endEnded' : 'poll.endNotPoll') }));
+  try {
+    await m.poll!.end();
+    await i.editReply({ content: tr(lang, 'poll.endClosed') });
+    if (i.guild) void postFinishedPolls(i.guild, i.client.user.id, avatar);
+  } catch (e) {
+    console.warn(`[bot] End poll: ${(e as Error).message}`);
+    await i.editReply({ content: tr(lang, 'roles.failed') }).catch(() => {});
   }
 }
 

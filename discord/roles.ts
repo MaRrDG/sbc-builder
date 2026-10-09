@@ -47,3 +47,9 @@ export function acceptRules(has: Iterable<string>): { add: string[]; remove: str
 
 /** Removing ✅: Member goes, and RO / EN with it (Discord ORs roles, so the language areas must not outlive Member). */
 export const withdrawRules = (): string[] => [ROLE.member, ...PICKERS.lang];
+
+/** `/language` choice (EN / RO / both) -> exactly those real language roles; other roles untouched. */
+export function languageChoice(has: Iterable<string>, choice: string): { add: string[]; remove: string[]; now: string[] } {
+  const want = choice === 'both' ? [...PICKERS.lang] : PICKERS.lang.filter((l) => l === choice);
+  return { ...roleDiff(PICKERS.lang, has, want), now: want };
+}

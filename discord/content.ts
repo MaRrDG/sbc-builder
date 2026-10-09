@@ -79,8 +79,8 @@ export function welcomeMessage(siteUrl: string, ch: { language: string; rules: s
     "**FC Solver** finds the cheapest squad from your own club for any SBC. Read-only: it never buys, sells or submits anything to EA.",
     `**1.** Pick your language in <#${ch.language}>`,
     `**2.** Read the rules (<#${ch.rules}> in English, <#${ch.rulesRo}> in Romanian) and react ✅`,
-    `**3.** Pick your language and teams any time in <#${ch.roles}>`,
-    '**4.** Connect Discord in Linked accounts on the site for /sbc and /stats',
+    `**3.** Pick your teams in <#${ch.roles}> and change your language with /language`,
+    '**4.** Connect Discord in Linked accounts on the site for /sbc and /stats (use them in 🤖・commands)',
   ].join('\n');
   const e = brandEmbed(icon, BRAND.lime).setTitle(WELCOME_TITLE).setDescription(text);
   if (icon) e.setThumbnail(icon);
@@ -109,7 +109,7 @@ export function languageMessage(rules: { en: string; ro: string }, icon?: string
   };
 }
 
-/** Groups with a picker message in 🎭・roles / the SuperLiga channel; languages are changed with the 🌐・language buttons. */
+/** Groups with a picker message in 🎭・roles / the SuperLiga channel; languages are changed with /language. */
 export type MessageGroup = Exclude<PickerGroup, 'lang'>;
 
 const PICKER_TEXT: Record<MessageGroup, { title: string; text: string; button: string; placeholder: string }> = {

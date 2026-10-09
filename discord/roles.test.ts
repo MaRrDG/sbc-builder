@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ROLE } from './layout.js';
-import { acceptRules, langOf, languageClick, roleDiff, withdrawRules } from './roles.js';
+import { acceptRules, langOf, languageChoice, languageClick, roleDiff, withdrawRules } from './roles.js';
 
 const group = ['Real Madrid', 'Barcelona', 'Milan'];
 
@@ -50,4 +50,10 @@ test('langOf reads the button id, only EN / RO', () => {
   assert.equal(langOf('lang:RO'), 'RO');
   assert.equal(langOf('lang:Admin'), null);
   assert.equal(langOf('pick:lang'), null);
+});
+
+test('/language: exactly the chosen real roles, other roles untouched', () => {
+  assert.deepEqual(languageChoice([ROLE.member, ROLE.en], 'RO'), { add: [ROLE.ro], remove: [ROLE.en], now: [ROLE.ro] });
+  assert.deepEqual(languageChoice([ROLE.member], 'both'), { add: [ROLE.en, ROLE.ro], remove: [], now: [ROLE.en, ROLE.ro] });
+  assert.deepEqual(languageChoice([ROLE.member, ROLE.en, ROLE.ro, 'FCSB'], 'EN'), { add: [], remove: [ROLE.ro], now: [ROLE.en] });
 });
