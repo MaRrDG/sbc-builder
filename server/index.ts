@@ -52,6 +52,7 @@ import { createLimiter } from './limits.js';
 import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
 import { installDailyIngest } from './daily/store.js';
+import { installHistory } from './history/ingest.js';
 import { registerDailyRoutes } from './daily/routes.js';
 import { scheduleDaily } from './daily/service.js';
 import { openGroups, solvable } from './objectives/open.js';
@@ -880,6 +881,7 @@ try {
 }
 installLedger();
 installDailyIngest();
+installHistory();
 scheduleDaily();
 void pruneEvents();
 void backfillFounders().catch((e) => console.error(`[founders] backfill failed: ${(e as Error).message}`));
