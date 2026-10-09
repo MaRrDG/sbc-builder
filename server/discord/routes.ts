@@ -28,7 +28,7 @@ const solveLimit = createLimiter({ windowMs: 60_000, max: 6 }); // per Discord u
 async function botUser(discordId: unknown): Promise<{ userId: string; acc: Account; lang: 'en' | 'ro'; discordId: string }> {
   if (typeof discordId !== 'string' || !isDiscordId(discordId)) throw new SessionError('Bad Discord id.', 400, 'badRequest');
   const u = await userByDiscord(discordId);
-  if (!u) throw new SessionError('Connect Discord in FC Solver Settings first.', 404, 'discordNotLinked');
+  if (!u) throw new SessionError('Connect Discord in FC Solver Linked accounts first.', 404, 'discordNotLinked');
   const pid = pickPersona(await ownedPersonas(u.userId));
   const acc = pid ? accountById(pid) : null;
   if (!acc) throw new SessionError('Link an EA account to FC Solver first.', 409, 'noPersona');

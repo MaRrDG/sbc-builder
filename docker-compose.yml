@@ -27,7 +27,7 @@ services:
       ANALYTICS_SNIPPET: ${ANALYTICS_SNIPPET:-}
       # Discord bot API (/api/bot/*); empty = off. The bot service gets the same value.
       BOT_API_TOKEN: ${BOT_API_TOKEN:-}
-      # invite link shown in Settings -> Discord ("Join the server"); empty = hidden
+      # invite link shown on the Linked accounts screen and in the sidebar ("Join our Discord"); empty = hidden
       DISCORD_INVITE_URL: ${DISCORD_INVITE_URL:-}
     depends_on:
       db:
