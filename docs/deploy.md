@@ -77,7 +77,7 @@ Sign-in runs on Clerk. Locally a development instance (keys `sk_test_` / `pk_tes
 - domain `sbc-builder.mario-theodor.ro`; add the DNS records Clerk asks for in Cloudflare as **DNS only** (grey cloud);
 - sign-in options: **Email address** with **Email verification code**, **Google**; **Password** off (both "Sign-up with password" and required passwords); no required first / last name or username;
 - Google OAuth with our own Google Cloud OAuth client; the authorized redirect URI is the one the Clerk dashboard shows under SSO connections → Google;
-- Discord (connect-only, see [Discord](#discord)): Clerk always imports the Discord account's email and its `email` scope cannot be removed. That is fine: `POST /api/me/discord` deletes the Discord-only, non-primary address right after linking, so FC Solver never keeps it (same in the development and production instances);
+- Discord (connect-only, see [Discord](#discord)): Clerk always imports the Discord account's email and its `email` scope cannot be removed. Clerk refuses to delete that address while Discord is linked (`delete_linked_identification_disallowed`), so the Sign-in card hides it (`verification.strategy` `from_oauth_discord`) and it is removed once unlinked: `DELETE /api/me/discord` (and `POST`, for leftovers of earlier Discord accounts) deletes the non-primary Discord addresses with empty `linkedTo` (same in the development and production instances);
 - copy the production `CLERK_SECRET_KEY` and `VITE_CLERK_PUBLISHABLE_KEY` into the server's `.env`, then rebuild.
 
 ## Discord

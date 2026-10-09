@@ -32,20 +32,14 @@ export function pickPersona(owned: { personaId: number; linkedAt: number }[]): n
 export interface ClerkEmail {
   id: string;
   linkedTo?: { id: string; type: string }[] | null;
+  verification?: { strategy?: string | null } | null;
 }
 
-const isDiscordLink = (l: { id: string; type: string }, discordIds: Set<string>) =>
-  l.type === 'oauth_discord' || l.type === 'discord' || discordIds.has(l.id);
-
-/** Email addresses Clerk imported from the Discord connection only: linked to Discord, not primary, linked to nothing else
- * (verified or not). A Discord-linked address that Google also vouches for is the user's own and stays. */
-export function discordOnlyEmailIds(emails: ClerkEmail[], externals: ClerkExternal[], primaryId: string | null): string[] {
-  const dIds = new Set(discordAccountIds(externals));
+/** Email addresses Clerk imported from Discord and that nothing is linked to any more: not primary, imported by Discord
+ * (`verification.strategy` starts with `from_oauth_discord`) and `linkedTo` empty. Clerk refuses to delete an address
+ * while an external account is linked to it, so a still-linked one is kept until Discord is unlinked. */
+export function unlinkedDiscordEmailIds(emails: ClerkEmail[], primaryId: string | null): string[] {
   return emails
-    .filter((e) => {
-      if (e.id === primaryId) return false;
-      const links = e.linkedTo ?? [];
-      return links.some((l) => isDiscordLink(l, dIds)) && links.every((l) => isDiscordLink(l, dIds));
-    })
+    .filter((e) => e.id !== primaryId && (e.verification?.strategy ?? '').startsWith('from_oauth_discord') && !(e.linkedTo ?? []).length)
     .map((e) => e.id);
 }
