@@ -95,7 +95,7 @@ Optional `"code"`: an invite, promo or gift code typed on the survey. The answer
 
 `{ "discord": { "username": "mario" } | null, "invite": "https://discord.gg/…" | null }`. `invite` is `DISCORD_INVITE_URL`. The Discord bot (`/sbc`, `/stats`) uses the user's most recently linked EA account.
 
-Connecting runs in the browser with Clerk (`user.createExternalAccount({ strategy: 'oauth_discord' })`, Discord connection enabled in Clerk for connecting only). `POST` then reads the user's verified Discord account from Clerk server-side (the request body is ignored) and stores its id: `400 discordNotConnected` when Clerk has none, `409 discordTaken` when another FC Solver user already holds it (the rejected Discord account is then removed from the Clerk user so another can be connected). `DELETE` removes every Discord external account from the Clerk user and clears the link (idempotent).
+Connecting runs in the browser with Clerk (`user.createExternalAccount({ strategy: 'oauth_discord' })`, Discord connection enabled in Clerk for connecting only). `POST` then reads the user's verified Discord account from Clerk server-side (the request body is ignored) and stores its id: `400 discordNotConnected` when Clerk has none, `409 discordTaken` when another FC Solver user already holds it (the rejected Discord account is then removed from the Clerk user so another can be connected). Side effect on success: Clerk always imports the Discord email as an extra address; `POST` deletes the non-primary addresses linked only to Discord (best effort, failure only logged). `DELETE` removes every Discord external account from the Clerk user and clears the link (idempotent).
 
 ### `GET /api/evos` (site, Premium)
 

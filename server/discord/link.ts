@@ -28,3 +28,24 @@ export function discordAccountIds(list: ClerkExternal[]): string[] {
 export function pickPersona(owned: { personaId: number; linkedAt: number }[]): number | null {
   return owned.length ? [...owned].sort((a, b) => b.linkedAt - a.linkedAt)[0].personaId : null;
 }
+
+export interface ClerkEmail {
+  id: string;
+  linkedTo?: { id: string; type: string }[] | null;
+}
+
+const isDiscordLink = (l: { id: string; type: string }, discordIds: Set<string>) =>
+  l.type === 'oauth_discord' || l.type === 'discord' || discordIds.has(l.id);
+
+/** Email addresses Clerk imported from the Discord connection only: linked to Discord, not primary, linked to nothing else
+ * (verified or not). A Discord-linked address that Google also vouches for is the user's own and stays. */
+export function discordOnlyEmailIds(emails: ClerkEmail[], externals: ClerkExternal[], primaryId: string | null): string[] {
+  const dIds = new Set(discordAccountIds(externals));
+  return emails
+    .filter((e) => {
+      if (e.id === primaryId) return false;
+      const links = e.linkedTo ?? [];
+      return links.some((l) => isDiscordLink(l, dIds)) && links.every((l) => isDiscordLink(l, dIds));
+    })
+    .map((e) => e.id);
+}

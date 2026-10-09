@@ -79,6 +79,7 @@ Sign-in runs on Clerk. Locally a development instance (keys `sk_test_` / `pk_tes
 - domain `sbc-builder.mario-theodor.ro`; add the DNS records Clerk asks for in Cloudflare as **DNS only** (grey cloud);
 - sign-in options: **Email address** with **Email verification code**, **Google**; **Password** off (both "Sign-up with password" and required passwords); no required first / last name or username;
 - Google OAuth with our own Google Cloud OAuth client; the authorized redirect URI is the one the Clerk dashboard shows under SSO connections → Google;
+- Discord (connect-only, see [Discord](#discord)): Clerk always imports the Discord account's email and its `email` scope cannot be removed. That is fine: `POST /api/me/discord` deletes the Discord-only, non-primary address right after linking, so FC Solver never keeps it (same in the development and production instances);
 - copy the production `CLERK_SECRET_KEY` and `VITE_CLERK_PUBLISHABLE_KEY` into the server's `.env`, then rebuild.
 
 ## Discord

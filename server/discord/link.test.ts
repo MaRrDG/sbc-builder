@@ -45,3 +45,17 @@ test('persona: the most recently linked, else none', () => {
   assert.equal(pickPersona([{ personaId: 1, linkedAt: 10 }, { personaId: 2, linkedAt: 20 }]), 2);
   assert.equal(pickPersona([{ personaId: 2, linkedAt: 20 }, { personaId: 1, linkedAt: 10 }]), 2);
 });
+
+import { discordOnlyEmailIds } from './link.js';
+const ext = [{ id: 'idn_d', provider: 'oauth_discord', providerUserId: '1' }];
+const em = (id: string, types: string[]) => ({ id, linkedTo: types.map((t) => ({ id: t === 'oauth_discord' ? 'idn_d' : 'idn_g', type: t })) });
+
+test('discord-only non-primary email is deleted', () => {
+  assert.deepEqual(discordOnlyEmailIds([em('e1', []), em('e2', ['oauth_discord'])], ext, 'e1'), ['e2']);
+});
+test('primary email is never deleted', () => {
+  assert.deepEqual(discordOnlyEmailIds([em('e2', ['oauth_discord'])], ext, 'e2'), []);
+});
+test('google-linked and shared discord+google emails are kept', () => {
+  assert.deepEqual(discordOnlyEmailIds([em('e3', ['oauth_google']), em('e4', ['oauth_discord', 'oauth_google'])], ext, 'e1'), []);
+});
