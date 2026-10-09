@@ -893,6 +893,7 @@ export const en = {
   'landing.price.pro.f4': 'Evolution training timers, with an email when one ends',
   'landing.price.pro.f5': 'FUT Gallery planner: best lineup and grade for every set',
   'landing.price.pro.f6': 'A Daily reminder email before your win streak runs out',
+  'landing.price.pro.f7': 'Objectives squads: build a team around the objectives you want to complete',
   'landing.price.pro.f3': 'Everything in Free',
   'landing.price.pro.soon': 'Coming soon',
   'landing.invite.title': 'Bring a mate. You both get Premium.',
