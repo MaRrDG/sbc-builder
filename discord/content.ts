@@ -14,6 +14,9 @@ export function brandEmbed(icon?: string, color: number = BRAND.green): EmbedBui
   return e;
 }
 
+/** The bot's avatar (the FC Solver logo) as an embed icon URL. */
+export const avatarUrl = (user: { displayAvatarURL(o: { extension: 'png'; size: number }): string }) => user.displayAvatarURL({ extension: 'png', size: 256 });
+
 export const bannerFile = () => new AttachmentBuilder(assetPath(ASSETS.banner), { name: ASSETS.banner });
 
 const numbered = (lines: string[]) => lines.map((l, i) => `**${i + 1}.** ${l}`).join('\n');
@@ -59,7 +62,8 @@ export function rulesMessage(icon?: string) {
   };
 }
 
-const linkRow = (label: string, url: string) =>
+/** One row with one link button. */
+export const linkRow = (label: string, url: string) =>
   new ActionRowBuilder<ButtonBuilder>().addComponents(new ButtonBuilder().setStyle(ButtonStyle.Link).setLabel(label).setURL(url));
 
 /** `ch`: channel ids to mention (<#id> renders as a clickable channel name). */

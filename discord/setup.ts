@@ -5,7 +5,7 @@ import { ChannelType, Client, Events, GatewayIntentBits, type Guild, type GuildB
 import { loadConfig, loadEnvFile } from './config.js';
 import { CAT, CATEGORIES, CH, ROLES, overwritesFor, type PickerGroup, type RoleIds } from './layout.js';
 import { planSync, rolePositions, type Existing } from './sync-plan.js';
-import { RULES_TITLE, WELCOME_TITLE, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
+import { RULES_TITLE, avatarUrl, WELCOME_TITLE, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
 import { COMMANDS } from './commands.js';
 import { findOwnMessage, findText } from './guild.js';
 import { applyDesign } from './design.js';
@@ -47,7 +47,7 @@ async function apply(guild: Guild) {
   const me = await guild.members.fetchMe();
   const botRole = me.roles.botRole;
   if (!botRole) throw new Error('the bot has no role of its own: invite it with the "bot" scope');
-  const icon = client.user!.displayAvatarURL({ extension: 'png', size: 256 });
+  const icon = avatarUrl(client.user!);
   const roleNames = ROLES.map((r) => r.name);
   const actions = planSync(await snapshot(guild), ROLES, CATEGORIES);
   // Discord only lets the bot hand out permissions it holds itself
