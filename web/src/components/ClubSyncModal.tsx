@@ -1,17 +1,18 @@
-// Blocks the site while a club sync runs in the web app tab, with how many players came in so far.
+// Blocks the site while a club sync runs in a connected web app tab (not while it only waits for one), with how many players came in so far.
 // Stays open after it ends to say how it went, until the user closes it.
 import { useEffect, useRef, useState } from 'react';
 import { CheckCircle, UsersThree, WarningCircle } from '@phosphor-icons/react';
 import type { SyncStatus } from '../api';
 import { useI18n } from '../i18n';
+import { clubSyncRunning } from '../club-sync';
 
 type Phase = 'running' | 'done' | 'failed' | null;
 
-export function ClubSyncModal({ status, players }: { status: SyncStatus | null; players: number }) {
+export function ClubSyncModal({ status, players, live }: { status: SyncStatus | null; players: number; live: boolean }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
   const [phase, setPhase] = useState<Phase>(null);
-  const running = status?.club?.state === 'running';
+  const running = clubSyncRunning(status, live);
 
   useEffect(() => {
     if (running) setPhase('running');

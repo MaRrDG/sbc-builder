@@ -13,6 +13,7 @@ import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, ROOT } from './store.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, hasPending, markCall, nextJob, webAppOpen, webAppReturned } from './jobs.js';
+import { isTabPoll } from './job-rules.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { isAdmin } from './admin/auth.js';
 import { registerAdminRoutes } from './admin/routes.js';
@@ -476,6 +477,9 @@ app.get('/api/jobs/next', async (req) => {
   }
   // came (back) to the web app: SBCs done elsewhere in the meantime show up; handed out next poll
   const { visible, ready } = req.query as { visible?: string; ready?: string };
+  // the extension's own poll after /api/hello (also sent on an FC Solver site visit, with no web
+  // app tab open): not a tab, so it takes no job and does not mark the web app as open
+  if (!isTabPoll(acc.info.extVersion, ready)) return { job: null };
   const returned = webAppReturned(acc, visible === undefined ? undefined : visible === '1');
   // extension 0.8.8+: a web app tab not logged in to EA yet keeps the tab "open" but gets no job
   const job = nextJob(acc, ready !== '0');
