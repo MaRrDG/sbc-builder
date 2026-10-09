@@ -8,11 +8,10 @@
    - reading width (pricing plans, FAQ): columns 1-8
    Under 860px everything spans the full row. */
 .landing {
-  --lp-max: 1200px; /* content width, gutters excluded */
-  --gutter: clamp(16px, 4vw, 40px);
+  --lp-max: var(--page-max); /* container tokens (with --gutter) live in styles.css, shared with /daily */
   --col-gap: clamp(16px, 2.2vw, 32px);
   --lp-cols: repeat(12, minmax(0, 1fr));
-  --lp-bar: 64px;
+  --lp-bar: var(--page-bar);
   --lp-section-y: clamp(80px, 11vw, 144px); /* space above and below every section */
   --lp-head-gap: clamp(36px, 4.4vw, 56px); /* section heading -> its content */
   --lp-block-gap: clamp(56px, 8vw, 104px); /* between blocks inside a section */
@@ -50,7 +49,7 @@
 }
 .lp-top-in { display: flex; align-items: center; gap: 8px; height: 100%; }
 .lp-logo { display: flex; flex: none; border-radius: var(--r-ctl); }
-.lp-logo img { display: block; height: 32px; width: auto; }
+.lp-logo img { display: block; height: var(--page-logo); width: auto; }
 .lp-nav { display: flex; gap: 2px; margin-left: clamp(16px, 2.4vw, 32px); }
 .lp-nav a,
 .lp-signin {
@@ -207,7 +206,6 @@
 }
 @media (max-width: 480px) {
   .lp-signin { display: none; }
-  .lp-logo img { height: 28px; }
   .lp-btn-sm { padding: 0 10px; font-size: 14px; } /* "Deschide dashboard" on one line at 360px */
 }
 
