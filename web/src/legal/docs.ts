@@ -119,6 +119,7 @@ const en: Record<LegalDoc, Doc> = {
           '- In your browser only: solver settings, saved squads, language and similar preferences (see the cookie policy).',
           '- FC Solver Daily, when you play signed in: the day, your guesses and whether you won, to keep your stats and streak. Signed out, the game keeps its state only in your browser.',
           '- FC Solver Daily leaderboard, only if you choose to appear: your username, wins, games played and streak are public on /daily. You can hide yourself or change the username in Settings at any time. Signed-out games are counted only as anonymous totals.',
+          '- Discord, only if you connect it in Linked accounts: your Discord account id and username (from Clerk\'s Discord connection), and, to grant Premium for boosting our server, your boost status and dates. We also keep a history of the SBCs and objectives completed on each EA account, to show progress. The /sbc and /stats commands of our Discord bot answer publicly in the channel where you use them, so the club players and stats they show are visible to everyone on that server.',
         ],
       },
       {
@@ -304,6 +305,7 @@ const ro: Record<LegalDoc, Doc> = {
           '- Doar în browserul tău: setările solverului, echipele salvate, limba și preferințe similare (vezi politica de cookie-uri).',
           '- FC Solver Daily, când joci autentificat: ziua, încercările tale și dacă ai câștigat, pentru statistici și serie. Neautentificat, jocul își păstrează starea doar în browserul tău.',
           '- Clasamentul FC Solver Daily, doar dacă alegi să apari: username-ul, victoriile, jocurile și seria ta sunt publice pe /daily. Te poți ascunde sau poți schimba username-ul oricând din Setări. Jocurile fără cont sunt numărate doar ca totaluri anonime.',
+          '- Discord, doar dacă îl conectezi în Conturi conectate: id-ul și username-ul contului tău Discord (din conexiunea Discord a Clerk) și, pentru a acorda Premium pentru boost pe serverul nostru, starea și datele boost-ului. Păstrăm și un istoric al SBC-urilor și obiectivelor completate pe fiecare cont EA, pentru a-ți arăta progresul. Comenzile /sbc și /stats ale botului nostru de Discord răspund public în canalul în care le folosești, deci jucătorii și statisticile clubului afișate sunt vizibile tuturor de pe acel server.',
         ],
       },
       {
@@ -489,6 +491,7 @@ const it: Record<LegalDoc, Doc> = {
           "- Solo nel tuo browser: impostazioni del solver, rose salvate, lingua e preferenze simili (vedi la cookie policy).",
           '- FC Solver Daily, quando giochi con l\'accesso: il giorno, i tuoi tentativi e se hai vinto, per statistiche e serie. Senza accesso, il gioco conserva lo stato solo nel tuo browser.',
           '- Classifica di FC Solver Daily, solo se scegli di comparire: il tuo username, le vittorie, le partite giocate e la serie sono pubblici su /daily. Puoi nasconderti o cambiare username in qualsiasi momento nelle Impostazioni. Le partite senza accesso sono contate solo come totali anonimi.',
+          '- Discord, solo se lo colleghi in Account collegati: l\'id e lo username del tuo account Discord (dalla connessione Discord di Clerk) e, per concedere Premium per il boost del nostro server, lo stato e le date del boost. Conserviamo anche una cronologia delle SBC e degli obiettivi completati su ogni account EA, per mostrarti i progressi. I comandi /sbc e /stats del nostro bot Discord rispondono pubblicamente nel canale in cui li usi, quindi i giocatori e le statistiche del club mostrati sono visibili a tutti su quel server.',
         ],
       },
       {
