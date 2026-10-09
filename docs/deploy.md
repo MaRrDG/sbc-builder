@@ -88,7 +88,7 @@ The bot (`discord/`) runs from the same image as its own compose service `bot` (
 1. Discord Developer Portal → New Application ("FC Solver"). **Bot**: reset and copy the token (`DISCORD_TOKEN`). **General Information**: Application ID (`DISCORD_APP_ID`).
 2. OAuth2 → URL Generator: scopes `bot`, `applications.commands`; permissions Manage Server, Manage Roles, Manage Channels, Manage Expressions, Manage Messages, View Channels, Send Messages, Embed Links, Attach Files, Add Reactions, Read Message History. The privileged intent **Server Members** is on in the Developer Portal (Bot → Privileged Gateway Intents) and used (Phase 6, boosts). Open the URL and add the bot to the (empty) server.
 3. Discord → Settings → Advanced → Developer Mode; right-click the server → Copy Server ID (`DISCORD_GUILD_ID`).
-4. Put the three values in `.env` plus `BOT_API_TOKEN=$(openssl rand -hex 32)` (shared by the app and the bot; the app answers `404` on `/api/bot/*` without it). The Apache vhost denies `/api/bot/` from outside (`<Location /api/bot/>` in `deploy/sbc-builder.conf`): copy it again, `apache2ctl configtest && systemctl reload apache2`. Then build the layout (re-runnable, never deletes anything):
+4. Put the three values in `.env` plus `BOT_API_TOKEN=$(openssl rand -hex 32)` (shared by the app and the bot; the app answers `404` on `/api/bot/*` without it) and `DISCORD_INVITE_URL` (Server Settings → Invites → a never-expiring link). The Apache vhost denies `/api/bot/` from outside (`<Location /api/bot/>` in `deploy/sbc-builder.conf`): copy it again, `apache2ctl configtest && systemctl reload apache2`. Then build the layout (re-runnable, never deletes anything):
 
    ```bash
    docker compose --profile discord run --rm bot node --import tsx discord/setup.ts
@@ -99,7 +99,7 @@ The bot (`discord/`) runs from the same image as its own compose service `bot` (
 
 Setup also applies the design: server icon (first run, or `-- --icon`), Community (rules / public updates / system channels, Only @mentions, verification Low, content filter All members), `📢・announcements` as an Announcement channel, the Welcome Screen and the custom emojis `fcs_check`, `fcs_fc`, `fcs_lime`. Each design step logs and continues if Discord refuses it (the bot needs Manage Server and Manage Expressions). The bot avatar is set only with `npm run discord:setup -- --avatar` (Discord rate-limits avatar changes). By hand, when the server qualifies: server banner (boost level 2) and invite splash (level 1) from `discord/assets/banner.png`; role icons appear on the next setup run after level 2. Onboarding is not used: it needs 7 default channels visible to everyone, and the ✅ rules gate hides them. Brand change: `npm run discord:assets`, then setup with `--icon --avatar` (existing emojis keep their old image; delete them in Server Settings → Emoji first).
 
-Every layout change (`discord/layout.ts`, rules, pickers, commands) needs step 4 again after the release.
+Every layout change (`discord/layout.ts`, rules, pickers, commands) needs step 4 again after the release. Slash commands are guild commands registered by setup; after a release that changes `discord/commands.ts`, run setup again.
 
 ## First-time setup on a new host
 
