@@ -910,6 +910,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.price.pro.f4': 'Timerele antrenamentelor din evoluții, cu email când se termină',
   'landing.price.pro.f5': 'Planner pentru FUT Gallery: cea mai bună echipă și notă pentru fiecare set',
   'landing.price.pro.f6': 'Memento pe email pentru Daily înainte să-ți pierzi seria de victorii',
+  'landing.price.pro.f7': 'Echipe pentru obiective: îți construiești echipa după obiectivele pe care vrei să le termini',
   'landing.price.pro.f3': 'Tot ce include Free',
   'landing.price.pro.soon': 'În curând',
   'landing.invite.title': 'Adu un prieten. Primiți amândoi Premium.',

@@ -897,6 +897,7 @@ export const it: Record<Keys, string> = {
   'landing.price.pro.f4': 'I timer degli allenamenti delle evoluzioni, con un’email quando finiscono',
   'landing.price.pro.f5': 'Planner della FUT Gallery: la formazione e il voto migliori per ogni set',
   'landing.price.pro.f6': 'Un promemoria via email per il Daily prima che la tua serie di vittorie finisca',
+  'landing.price.pro.f7': 'Squadre per gli obiettivi: costruisci la squadra in base agli obiettivi che vuoi completare',
   'landing.price.pro.f3': 'Tutto ciò che c’è in Free',
   'landing.price.pro.soon': 'In arrivo',
   'landing.invite.title': 'Porta un amico. Premium per entrambi.',
