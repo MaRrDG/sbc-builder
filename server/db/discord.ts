@@ -13,7 +13,7 @@ export async function setDiscord(userId: string, d: { discordId: string; usernam
   try {
     await db
       .update(users)
-      .set(d ? { discordId: d.discordId, discordName: d.username } : { discordId: null, discordName: null })
+      .set(d ? { discordId: d.discordId, discordName: d.username } : { discordId: null, discordName: null, boostSince: null, boostEndedAt: null })
       .where(eq(users.id, userId));
     return 'ok';
   } catch (e) {
