@@ -13,6 +13,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'meta.setup': 'Instalează extensia FC Solver · EA FC 27',
   'meta.daily': 'FC Solver Daily · Ghicește jucătorul EA FC al zilei',
   'daily.name': 'FC Solver Daily',
+  'daily.newGame': 'Joc nou disponibil',
   'daily.title': 'FC Solver Daily #{n}',
   'daily.dashboard': 'Panou',
   'daily.tab.today': 'Azi',

@@ -22,6 +22,7 @@ export const it: Record<Keys, string> = {
   'meta.setup': 'Installa l’estensione FC Solver · EA FC 27',
   'meta.daily': 'FC Solver Daily · Indovina il giocatore EA FC di oggi',
   'daily.name': 'FC Solver Daily',
+  'daily.newGame': 'Nuova partita disponibile',
   'daily.title': 'FC Solver Daily #{n}',
   'daily.dashboard': 'Dashboard',
   'daily.tab.today': 'Oggi',

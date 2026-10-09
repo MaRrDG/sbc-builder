@@ -16,6 +16,7 @@ import { Faq } from './Faq';
 import { Invite } from './Invite';
 import { ToTop } from './ToTop';
 import { useFounders } from './Founders';
+import { useDailyPending } from '../daily/usePending';
 import './landing.css';
 
 interface Props {
@@ -27,6 +28,7 @@ interface Props {
 export default function Landing({ signedIn, authReady, navigate }: Props) {
   const { t, lang, setLang } = useI18n();
   const founders = useFounders();
+  const dailyOpen = useDailyPending(authReady, signedIn);
   // the page is lazy-loaded, so the browser's own jump to /#why happened before the section existed
   useEffect(() => {
     let id = window.location.hash.slice(1);
@@ -84,6 +86,11 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
                 <SoccerBall weight="bold" aria-hidden="true" />
                 {t('landing.nav.daily')}
                 <span className="lp-new">{t('landing.nav.new')}</span>
+                {dailyOpen && (
+                  <i className="new-dot">
+                    <span className="sr-only">{t('daily.newGame')}</span>
+                  </i>
+                )}
               </>,
             )}
             <a href="#why">{t('landing.nav.why')}</a>
@@ -109,6 +116,11 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
           <SoccerBall weight="bold" aria-hidden="true" />
           <b>{t('landing.nav.daily')}</b>
           <span className="lp-new">{t('landing.nav.new')}</span>
+          {dailyOpen && (
+            <i className="new-dot">
+              <span className="sr-only">{t('daily.newGame')}</span>
+            </i>
+          )}
           <span className="lp-strip-t">{t('landing.daily.title')}</span>
           <CaretRight className="lp-strip-go" weight="bold" aria-hidden="true" />
         </span>,

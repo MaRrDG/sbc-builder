@@ -18,6 +18,7 @@ export const en = {
   'meta.setup': 'Install the FC Solver extension · EA FC 27',
   'meta.daily': "FC Solver Daily · Guess today's EA FC player",
   'daily.name': 'FC Solver Daily',
+  'daily.newGame': 'New game available',
   'daily.title': 'FC Solver Daily #{n}',
   'daily.dashboard': 'Dashboard',
   'daily.tab.today': 'Today',
