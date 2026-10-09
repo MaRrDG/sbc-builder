@@ -40,7 +40,7 @@ Unit tests only for pure logic (`npm test`). Verify with typecheck + build, and 
 - Discord bot: never calls EA or the DB; `/api/bot/*` only, `runSolve` shared with `/api/solve` (same quota).
 - Security: headers + a report-only CSP in `server/index.ts` (`csp()`); a new external script / API / font / frame origin must be added there (watch the `[csp]` log). Anything printed from the request host (zip, robots, sitemap, canonical) goes through `publicOrigin()` (`server/origins.ts`). Per-IP limits in `server/limits.ts`.
 - New endpoint or payload change → update `docs/api.md`. Extension change → bump `extension/manifest.json` version + `extension/release.json`.
-- The extension zip folder stays `fc27-sbc-builder` (users unzip updates over it; a new name = a new extension and lost keys). Domain, container, Apache vhost and `localStorage` keys keep the old `sbc-*` names too; only user-facing branding is "FC Solver".
+- The extension zip folder stays `fc27-sbc-builder` (users unzip updates over it; a new name = a new extension and lost keys). Domain, container, nginx vhost and `localStorage` keys keep the old `sbc-*` names too; only user-facing branding is "FC Solver".
 
 ## Docs
-`docs/architecture.md` (data flow, sync), `docs/api.md` (endpoints), `docs/solver.md` (model), `docs/extension.md`, `docs/deploy.md` (Docker + Apache + Cloudflare, prod runs `dev` branch).
+`docs/architecture.md` (data flow, sync), `docs/api.md` (endpoints), `docs/solver.md` (model), `docs/extension.md`, `docs/deploy.md` (Docker + nginx + Cloudflare, prod runs `dev` branch).

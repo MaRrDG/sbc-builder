@@ -22,7 +22,7 @@ Live: <https://sbc-builder.mario-theodor.ro>
 | Web UI | React 19, Vite 8, plain CSS (OKLCH tokens), Phosphor icons, Barlow Condensed + Geist |
 | Browser bridge | Chrome MV3 extension (webRequest + a small page hook) |
 | Storage | JSON files on disk (`data/`), one folder per EA account |
-| Deploy | Docker (multi-stage), docker compose, Apache reverse proxy, Cloudflare (Flexible SSL) |
+| Deploy | Docker (multi-stage), docker compose, nginx reverse proxy, Cloudflare (Flexible SSL) |
 
 ## Quick start (local)
 
@@ -50,7 +50,7 @@ There is no automated test suite yet; changes were verified by replaying real EA
 git pull && docker compose up -d --build
 ```
 
-The container listens on `127.0.0.1:5178` only; Apache (`deploy/sbc-builder.conf`) proxies the domain to it. Data lives in `./data` (volume). Full notes: [docs/deploy.md](docs/deploy.md).
+The container listens on `127.0.0.1:5178` only; nginx (`deploy/sbc-builder.nginx.conf`) proxies the domain to it. Data lives in `./data` (volume). Full notes: [docs/deploy.md](docs/deploy.md).
 
 ## Project layout
 
@@ -59,7 +59,7 @@ server/      Fastify API, EA client, sync, SBC parsing, exact game formulas, sol
 solver/      cpsat.py: the CP-SAT model (JSON in on stdin, JSON out on stdout)
 web/         React UI (pitch, FUT cards, requirements, player panel, settings, setup guide)
 extension/   Chrome extension: session bridge, SBC/pack/item tracking, update notice
-deploy/      Apache vhost
+deploy/      nginx vhost
 docs/        How it works, API reference, solver, extension, deploy
 data/        Runtime cache and accounts (git-ignored, contains sessions and keys)
 ```
@@ -70,7 +70,7 @@ data/        Runtime cache and accounts (git-ignored, contains sessions and keys
 - [docs/api.md](docs/api.md): every HTTP endpoint, with payloads
 - [docs/solver.md](docs/solver.md): how requirements, rating and chemistry are modelled
 - [docs/extension.md](docs/extension.md): what the extension watches and why
-- [docs/deploy.md](docs/deploy.md): Docker, Apache, Cloudflare, releasing a new extension
+- [docs/deploy.md](docs/deploy.md): Docker, nginx, Cloudflare, releasing a new extension
 
 ## Disclaimer
 

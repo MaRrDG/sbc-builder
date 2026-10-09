@@ -66,7 +66,7 @@ import { users } from './db/schema.js';
 import { clubPlayers, metaFor, runSolve, type SolveBody } from './solve-run.js';
 
 const PORT = Number(process.env.PORT ?? 5178);
-// Only Apache in front of us (on the host, or the Docker bridge) may set X-Forwarded-*: req.ip is
+// Only nginx in front of us (on the host, or the Docker bridge) may set X-Forwarded-*: req.ip is
 // then the visitor, not a header anyone can write.
 const app = Fastify({ logger: { level: 'warn' }, trustProxy: ['loopback', 'uniquelocal'] });
 const DEV = process.env.NODE_ENV !== 'production';
