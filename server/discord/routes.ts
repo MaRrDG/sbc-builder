@@ -153,7 +153,7 @@ async function discordView(userId: string) {
 
 let loggedProviders = false;
 
-/** Settings → Discord. Connecting itself happens in the browser with Clerk; here we only store what Clerk verified. */
+/** Linked accounts → Discord. Connecting itself happens in the browser with Clerk; here we only store what Clerk verified. */
 export function registerDiscordSiteRoutes(app: FastifyInstance): void {
   app.get('/api/me/discord', async (req) => discordView(await siteUser(req)));
 

@@ -4417,4 +4417,5 @@ a.adm-kpi:hover { background: var(--surface-2); }
   font-size: 13px; color: var(--ink-2); text-decoration: none;
 }
 .sidebar .discord-invite:hover { color: var(--ink); }
+.sidebar .discord-invite:focus-visible { color: var(--ink); outline: 2px solid var(--go); outline-offset: 2px; border-radius: 8px; }
 .sidebar .discord-invite + .legal-links { margin-top: 0; }

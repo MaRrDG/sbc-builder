@@ -75,7 +75,7 @@ test('member welcome: mentions the member, English line then Romanian, count, on
   assert.deepEqual(m.allowedMentions, { parse: [], users: ['42'] });
 });
 
-test('boost perks: English first, then Romanian; Premium while boosting, 12 h grace, link to Settings', () => {
+test('boost perks: English first, then Romanian; Premium while boosting, 12 h grace, link to Linked accounts', () => {
   const m = boostPerksMessage('https://fcsolver.gg');
   const e = m.embeds[0].toJSON();
   assert.equal(e.title, BOOST_TITLE);
@@ -83,7 +83,7 @@ test('boost perks: English first, then Romanian; Premium while boosting, 12 h gr
   assert.match(d, /Premium/);
   assert.match(d, /12 h/);
   assert.ok(d.indexOf('while you boost') >= 0 && d.indexOf('while you boost') < d.indexOf('cât timp'));
-  assert.match(d, /https:\/\/fcsolver\.gg\/dashboard\/settings/);
+  assert.match(d, /https:\/\/fcsolver\.gg\/dashboard\/accounts/);
   assert.equal(m.components.length, 1);
 });
 
@@ -95,6 +95,6 @@ test('thank-you: pings only the booster; active vs how to activate; English firs
   assert.match(d, /Premium is active/);
   assert.ok(d.indexOf('Thanks') < d.indexOf('Mulțumim'));
   const off = boostThanks('42', false, 'https://fcsolver.gg').embeds[0].toJSON().description ?? '';
-  assert.match(off, /https:\/\/fcsolver\.gg\/dashboard\/settings/);
+  assert.match(off, /https:\/\/fcsolver\.gg\/dashboard\/accounts/);
   assert.doesNotMatch(off, /Premium is active/);
 });

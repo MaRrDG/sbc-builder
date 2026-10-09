@@ -72,10 +72,11 @@ export function statsMessage(s: BotStats, lang: Lang, userId: string, icon?: str
 
 export function errorText(e: unknown, lang: Lang, siteUrl: string): string {
   const settings = `${siteUrl}/dashboard/settings`;
+  const accounts = `${siteUrl}/dashboard/accounts`;
   if (!(e instanceof BotApiError)) return tr(lang, 'err.generic');
   switch (e.code) {
-    case 'discordNotLinked': return tr(lang, 'err.link', { url: settings });
-    case 'noPersona': return tr(lang, 'err.noPersona', { url: settings });
+    case 'discordNotLinked': return tr(lang, 'err.link', { url: accounts });
+    case 'noPersona': return tr(lang, 'err.noPersona', { url: accounts });
     case 'quotaExhausted': {
       const at = Number(e.params.resetsAt) || 0;
       return tr(lang, 'err.quota', { limit: e.params.limit ?? '', when: at ? `<t:${Math.floor(at / 1000)}:R>` : '—', url: settings });

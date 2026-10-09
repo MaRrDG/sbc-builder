@@ -59,7 +59,7 @@ test('stats: five numbers and when counting started', () => {
 });
 
 test('errors: link, quota with a Discord timestamp, unknown and network', () => {
-  assert.match(errorText(new BotApiError('x', 404, 'discordNotLinked'), 'en', 'https://fcsolver.gg'), /https:\/\/fcsolver\.gg\/dashboard\/settings/);
+  assert.match(errorText(new BotApiError('x', 404, 'discordNotLinked'), 'en', 'https://fcsolver.gg'), /https:\/\/fcsolver\.gg\/dashboard\/accounts/);
   const q = errorText(new BotApiError('x', 403, 'quotaExhausted', { limit: 20, resetsAt: 1790605200000 }), 'ro', 'https://fcsolver.gg');
   assert.match(q, /toate cele 20/);
   assert.match(q, /<t:1790605200:R>/);
