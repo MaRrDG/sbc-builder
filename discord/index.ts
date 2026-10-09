@@ -185,13 +185,13 @@ async function onLanguageCommand(i: ChatInputCommandInteraction) {
   await i.reply({ content: tr(lang, 'lang.set', { list: d.now.join(', ') }), flags: MessageFlags.Ephemeral });
 }
 
-/** /daily and /wordle (Members only): ephemeral card + link; the day number is best effort. */
+/** /daily and /wordle (Members only): public card + link; the day number is best effort. */
 async function onDailyCommand(i: ChatInputCommandInteraction) {
   const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
   const m = await memberOf(i.guildId, i.user.id);
   if (!m || !isMember(m.roles.cache.map((r) => r.name))) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: lang === 'ro' ? CH.rulesRo : CH.rules }), flags: MessageFlags.Ephemeral }));
   const d = await botApi<{ day: number; live: boolean }>(cfg, '/api/bot/daily', { timeoutMs: 2_500 }).catch(() => null);
-  await i.reply({ ...dailyInfoMessage(cfg.siteUrl, d?.live ? d.day : undefined, avatarUrl(client.user!)), flags: MessageFlags.Ephemeral });
+  await i.reply({ ...dailyInfoMessage(cfg.siteUrl, d?.live ? d.day : undefined, avatarUrl(client.user!)) });
 }
 
 // A boost started or stopped: tell the app; thank only a boost we saw start (an uncached "before" is left to the reconcile, so no repeats)
