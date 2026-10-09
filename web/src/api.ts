@@ -311,10 +311,11 @@ export class ApiError extends Error {
   }
 }
 
-/** The user's saved preferences: site language (for emails) and evolution email alerts. */
+/** The user's saved preferences: site language (for emails), evolution email alerts and the Daily reminder. */
 export interface Prefs {
   lang: string;
   evoEmails: boolean;
+  dailyReminder: boolean;
 }
 
 export interface ReferralInfo {
@@ -428,7 +429,7 @@ export const api = {
     req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; takenOver: boolean; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null }>('/api/me'),
   onboarding: (a: ({ heardFrom: HeardFrom; futYears: FutYears } | { skip: true }) & { code?: string }) =>
     req<{ ok: true; redeem?: RedeemResult | { error: string } }>('/api/me/onboarding', { method: 'PUT', body: a }),
-  prefs: (p: { lang?: string; evoEmails?: boolean }) => req<{ ok: true }>('/api/me/prefs', { method: 'PUT', body: p }),
+  prefs: (p: { lang?: string; evoEmails?: boolean; dailyReminder?: boolean }) => req<{ ok: true }>('/api/me/prefs', { method: 'PUT', body: p }),
   legacyKeys: (keys: string[]) => req<{ map: Record<string, number> }>('/api/me/legacy-keys', { method: 'POST', body: { keys } }),
   linkToken: () => req<{ token: string; expiresIn: number }>('/api/link-token', { method: 'POST' }),
   unlinkPersona: (personaId: number) => req<{ ok: true }>(`/api/personas/${personaId}`, { method: 'DELETE' }),
