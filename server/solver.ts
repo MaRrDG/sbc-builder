@@ -380,19 +380,64 @@ export function pointsPool(players: Player[], reqs: Requirement[], options: Solv
   return eligiblePool(players, reqs, options, squad).filter((p) => p.points > 0 && rules.every((rule) => rule(p)));
 }
 
+export interface PointsProblem {
+  pool: Player[];
+  keep: number[]; // item ids placed in the web app the solver should keep (a preference, like squads)
+  placedCount: number; // placed in the web app and still in the club
+  missingPlaced: number[]; // placed in the web app but no longer in the club
+}
+
+/**
+ * Everything a points solve takes from the settings, like `solveAnd` does for squads: the filtered
+ * pool, plus with `keepPlaced` the cards already placed in the web app, kept even when the settings
+ * would leave them out. A placed card worth no points or breaking a card rule cannot count, so it is
+ * not kept (and the answer says fewer were kept).
+ */
+export function pointsProblem(
+  players: Player[], reqs: Requirement[], options: SolveOptions, squad: ActiveSquad | null,
+  placed: { itemId: number }[] = [],
+): PointsProblem {
+  let pool = pointsPool(players, reqs, options, squad);
+  const keep: number[] = [];
+  const missingPlaced: number[] = [];
+  let placedCount = 0;
+  if (options.keepPlaced) {
+    const rules = reqs.map(cardRule).filter((r): r is (p: Player) => boolean => r !== null);
+    for (const pl of placed) {
+      const p = players.find((x) => x.id === pl.itemId);
+      if (!p) {
+        missingPlaced.push(pl.itemId);
+        continue;
+      }
+      placedCount++;
+      if (p.isLoan || p.points <= 0 || !rules.every((rule) => rule(p)) || keep.includes(p.id)) continue;
+      if (!pool.includes(p)) pool = [...pool, p];
+      keep.push(p.id);
+    }
+  }
+  return { pool, keep, placedCount, missingPlaced };
+}
+
 export interface PointsSolution {
   cards: Player[]; // sorted like the web app's Work Area: rating ascending
   check: PointsCheck;
   cost: number;
   status: string;
+  fixedIds: number[]; // cards kept from the web app's Work Area
 }
 
-/** Points SBC: the least overshoot over `target`, then the cheapest cards (solver/cpsat.py, mode "points"). */
-export async function solvePoints(pool: Player[], reqs: Requirement[], target: number, timeLimit = 10): Promise<PointsSolution | null> {
+/**
+ * Points SBC: as many kept cards as possible (`keep`, only with keepPlaced), then the least overshoot
+ * over `target`, then the cheapest cards (solver/cpsat.py, mode "points").
+ */
+export async function solvePoints(
+  pool: Player[], reqs: Requirement[], target: number, timeLimit = 10, keep: number[] = [],
+): Promise<PointsSolution | null> {
+  const kept = new Set(keep);
   const problem = {
     mode: 'points',
     target,
-    items: pool.map((p) => ({ points: p.points, cost: playerCost(p), group: p.assetId })),
+    items: pool.map((p) => ({ points: p.points, cost: playerCost(p), group: p.assetId, ...(kept.has(p.id) ? { keep: true } : {}) })),
     timeLimit,
     workers: 8,
   };
@@ -400,5 +445,8 @@ export async function solvePoints(pool: Player[], reqs: Requirement[], target: n
   const res = await runCpSat(problem);
   if (!res.picked) return null;
   const cards = res.picked.map((i) => pool[i]).sort((a, b) => a.rating - b.rating || a.id - b.id);
-  return { cards, check: checkPoints(cards, target, reqs), cost: res.cost ?? 0, status: res.status };
+  return {
+    cards, check: checkPoints(cards, target, reqs), cost: res.cost ?? 0, status: res.status,
+    fixedIds: cards.filter((p) => kept.has(p.id)).map((p) => p.id),
+  };
 }
