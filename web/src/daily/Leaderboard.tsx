@@ -31,28 +31,38 @@ export function Leaderboard({ signedIn, me, signIn, onJoin }: Props) {
     };
   }, [signedIn, me?.leaderboard, me?.username]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const num = new Intl.NumberFormat(lang);
+  const pct = new Intl.NumberFormat(lang, { style: 'percent', maximumFractionDigits: 0 }); // the server sends 0-100
   const avg = new Intl.NumberFormat(lang, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const shown = signedIn && !!me?.leaderboard && !!me.username;
   const mine = (r: DailyLbRow) => shown && r.username.toLowerCase() === me!.username!.toLowerCase();
 
-  const row = (r: DailyLbRow, you = false) => (
-    <tr key={r.username} className={you || mine(r) ? 'me' : undefined} aria-current={you || mine(r) ? 'true' : undefined}>
-      <td className="dg-lb-rank">
-        <span className={r.rank <= 3 ? `dg-medal m${r.rank}` : undefined}>{r.rank}</span>
-      </td>
-      <td className="dg-lb-name">{r.username}</td>
-      <td>{r.wins}</td>
-      <td className="dg-lb-opt">{r.played}</td>
-      <td>{r.winPct}</td>
-      <td className="dg-lb-opt">{r.avgGuesses === null ? '–' : avg.format(r.avgGuesses)}</td>
-      <td>
-        <span className="dg-lb-streak">
-          <Fire weight="fill" aria-hidden="true" />
-          {r.streak}
-        </span>
-      </td>
-    </tr>
-  );
+  const row = (r: DailyLbRow, you = false) => {
+    const own = you || mine(r);
+    return (
+      <tr key={r.username} className={own ? 'me' : undefined} aria-current={own ? 'true' : undefined}>
+        <td className="dg-lb-rank">
+          <span className={r.rank <= 3 ? `dg-medal m${r.rank}` : undefined}>{num.format(r.rank)}</span>
+        </td>
+        <td className="dg-lb-name">
+          <span className="dg-lb-who">
+            <span className="dg-lb-uname">{r.username}</span>
+            {own && <span className="dg-lb-me">{t('daily.lb.me')}</span>}
+          </span>
+        </td>
+        <td>{num.format(r.wins)}</td>
+        <td className="dg-lb-opt">{num.format(r.played)}</td>
+        <td>{pct.format(r.winPct / 100)}</td>
+        <td className="dg-lb-opt">{r.avgGuesses === null ? '–' : avg.format(r.avgGuesses)}</td>
+        <td>
+          <span className="dg-lb-streak">
+            <Fire weight="fill" aria-hidden="true" />
+            {num.format(r.streak)}
+          </span>
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div className="dg-lb">

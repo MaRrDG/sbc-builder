@@ -68,6 +68,7 @@ export const en = {
   'daily.lb.avg': 'Avg guesses',
   'daily.lb.streak': 'Streak',
   'daily.lb.you': 'Your place',
+  'daily.lb.me': 'You',
   'daily.lb.notIn': "You're not on the leaderboard.",
   'daily.lb.join': 'Join the leaderboard',
   'daily.lb.signIn': 'Sign in, win daily games and join the leaderboard.',

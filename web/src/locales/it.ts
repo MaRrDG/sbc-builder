@@ -72,6 +72,7 @@ export const it: Record<Keys, string> = {
   'daily.lb.avg': 'Media tentativi',
   'daily.lb.streak': 'Serie',
   'daily.lb.you': 'La tua posizione',
+  'daily.lb.me': 'Tu',
   'daily.lb.notIn': 'Non sei in classifica.',
   'daily.lb.join': 'Entra in classifica',
   'daily.lb.signIn': 'Accedi, vinci le partite giornaliere ed entra in classifica.',
