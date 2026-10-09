@@ -95,3 +95,9 @@ test('role positions throw when the layout roles do not fit under the bot role',
   assert.throws(() => rolePositions(['a', 'b', 'c'], 1), /move it to the top/);
   assert.throws(() => rolePositions(['a', 'b', 'c'], 2), /3 roles/);
 });
+
+test('an existing uncoloured team role gets its club colour through updateRole', () => {
+  const role = { name: 'Real Madrid', color: 0xfebe10, permissions: [], hoist: false };
+  const a = planSync({ roles: [{ id: '1', name: 'Real Madrid', managed: false }], channels: [] }, [role], []);
+  assert.deepEqual(a, [{ op: 'updateRole', id: '1', role }]);
+});

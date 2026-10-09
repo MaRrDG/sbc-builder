@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { ASSETS, BRAND, assetPath } from './brand.js';
-import { CAT, CATEGORIES, CH, PICKERS, ROLE, ROLES, overwritesFor, type RoleIds } from './layout.js';
+import { CAT, CATEGORIES, CH, PICKERS, ROLE, ROLES, SUPERLIGA, TEAM_COLORS, WORLD_CLUBS, overwritesFor, type RoleIds } from './layout.js';
 
 const ids: RoleIds = { everyone: 'E', bot: 'B', byName: new Map(ROLES.map((r, i) => [r.name.toLowerCase(), `R${i}`])) };
 const idOf = (name: string) => ids.byName.get(name.toLowerCase())!;
@@ -22,7 +22,12 @@ test('role colours: brand for staff and Member, none for languages and clubs (na
   assert.equal(color(ROLE.admin), BRAND.lime);
   assert.equal(color(ROLE.mod), BRAND.mod);
   assert.equal(color(ROLE.member), BRAND.cream);
-  for (const r of ROLES.filter((x) => x.group)) assert.equal(r.color, 0, r.name);
+  const teams = ROLES.filter((x) => x.group === 'world' || x.group === 'superliga');
+  assert.equal(teams.length, WORLD_CLUBS.length + SUPERLIGA.length);
+  for (const r of teams) assert.ok(r.color > 0 && r.color <= 0xffffff, r.name);
+  assert.deepEqual(Object.keys(TEAM_COLORS).sort(), teams.map((r) => r.name).sort());
+  assert.ok(new Set(teams.map((r) => r.color)).size >= teams.length - 1, 'team colours should be distinct');
+  for (const r of ROLES.filter((x) => x.group === 'lang')) assert.equal(r.color, 0, r.name);
 });
 
 test('one naming style: "<emoji>・name" text, "🔊 Name" voice, "━━ NAME ━━" categories', () => {
