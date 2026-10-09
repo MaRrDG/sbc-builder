@@ -23,7 +23,7 @@ export function planInfo(row: PlanRow, admin: boolean, now: number): PlanInfo {
 }
 
 export async function planFor(userId: string): Promise<PlanInfo> {
-  const row = (await planRow(userId)) ?? { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0, founderAt: null, boostSince: null, boostEndedAt: null };
+  const row = (await planRow(userId)) ?? { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0, founderAt: null, discordId: null, boostSince: null, boostEndedAt: null };
   return planInfo(row, await isAdmin(userId), Date.now());
 }
 

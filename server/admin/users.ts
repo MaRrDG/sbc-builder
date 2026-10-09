@@ -17,7 +17,7 @@ export const TZ = () => process.env.SBC_DROP_TZ ?? 'Europe/Bucharest';
 export function premiumSql(now: Date): SQL {
   const admins = adminEmails();
   const stored = and(eq(users.plan, 'premium'), or(sql`${users.premiumUntil} is null`, gt(users.premiumUntil, now)))!;
-  const boost = or(isNotNull(users.boostSince), gt(users.boostEndedAt, new Date(now.getTime() - BOOST_GRACE_MS)))!;
+  const boost = and(isNotNull(users.discordId), or(isNotNull(users.boostSince), gt(users.boostEndedAt, new Date(now.getTime() - BOOST_GRACE_MS))))!;
   return admins.length ? or(stored, boost, inArray(sql`lower(${users.email})`, admins))! : or(stored, boost)!;
 }
 export const expiringSql = (now: Date): SQL =>
