@@ -1,5 +1,5 @@
 // users ↔ Discord: the connected Discord account.
-import { eq, inArray, isNotNull, or, sql } from 'drizzle-orm';
+import { and, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import { db } from './index.js';
 import { personas, users } from './schema.js';
 
@@ -42,12 +42,14 @@ export async function boostRows(discordIds: string[]): Promise<{ userId: string;
   return rows.flatMap((r) => (r.discordId ? [{ userId: r.id, discordId: r.discordId, boostSince: r.since?.getTime() ?? null }] : []));
 }
 
-/** Boosting: grace from an earlier boost is dropped. */
-export async function startBoost(userId: string, since: Date): Promise<void> {
-  await db.update(users).set({ boostSince: since, boostEndedAt: null }).where(eq(users.id, userId));
+/** Boosting: grace from an earlier boost is dropped. true = it really started (false: already boosting). */
+export async function startBoost(userId: string, since: Date): Promise<boolean> {
+  const r = await db.update(users).set({ boostSince: since, boostEndedAt: null }).where(and(eq(users.id, userId), isNull(users.boostSince))).returning({ id: users.id });
+  return r.length > 0;
 }
 
-/** The boost ended now: Premium for BOOST_GRACE_MS more (server/plan.ts). */
-export async function stopBoost(userId: string): Promise<void> {
-  await db.update(users).set({ boostSince: null, boostEndedAt: sql`now()` }).where(eq(users.id, userId));
+/** The boost ended now: Premium for BOOST_GRACE_MS more (server/plan.ts). true = it really stopped (false: was not boosting). */
+export async function stopBoost(userId: string): Promise<boolean> {
+  const r = await db.update(users).set({ boostSince: null, boostEndedAt: sql`now()` }).where(and(eq(users.id, userId), isNotNull(users.boostSince))).returning({ id: users.id });
+  return r.length > 0;
 }

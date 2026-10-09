@@ -554,7 +554,7 @@ Only the bot container calls these, over the compose network. Header `X-Bot-Toke
 
 `{ "day": 42, "live": true }`: today's Daily number; `live` is `false` while the answer pool is not ready (the bot then posts nothing).
 
-The other routes take the Discord user id (`discordId`, 17–20 digits; the user connected Discord in Settings) and use the user's most recently linked EA account. Errors: `400 badRequest`, `404 discordNotLinked`, `409 noPersona` (no EA account linked). Every answer that knows the user carries `lang` (`en` / `ro`, from the site language).
+The other routes take the Discord user id (`discordId`, 17–20 digits; the user connected Discord in Settings) and use the user's most recently linked EA account. Errors: `400 badRequest`, `409 tooManyStops` (boosts only), `404 discordNotLinked`, `409 noPersona` (no EA account linked). Every answer that knows the user carries `lang` (`en` / `ro`, from the site language).
 
 ### `GET /api/bot/sets?discordId=&q=`
 
@@ -582,7 +582,7 @@ The other routes take the Discord user id (`discordId`, 17–20 digits; the user
 
 ### `POST /api/bot/boosts`
 
-`{ "boosters": [{ "discordId": "…", "since": 1790000000000 }] }`: everyone boosting now, and it must be the complete list. Linked users in the list who are not marked start, marked users missing from it stop. → `{ "started": 1, "stopped": 0 }`. `400 badRequest` for a malformed list (nothing applied).
+`{ "boosters": [{ "discordId": "…", "since": 1790000000000 }], "complete": true, "force"?: true }`: everyone boosting now. `complete: true` is required (the bot asserts it fetched every member; without it `400 badRequest`). Linked users in the list who are not marked start, marked users missing from it stop. → `{ "started": 1, "stopped": 0 }`. `400 badRequest` for a malformed list (nothing applied). Safety net: when the stops would exceed max(5, half of the users boosting now) the call is refused with `409 tooManyStops` and nothing is applied, unless `force: true` is sent. Only real row changes count and are logged (a concurrent call that already did the change is a no-op).
 
 ### `GET /api/bot/stats?discordId=`
 
