@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, DiscordLogo, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
+import { DiscordIcon } from './components/DiscordIcon';
 import {
   api, ApiError, setPersona,
   type Account, type Challenge, type GalleryResponse, type Meta, type Player, type PlanInfo, type Prefs, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
@@ -906,7 +907,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           <button type="button" className="nav-item mobile-only" onClick={doSignOut}>{t('auth.signOut')}</button>
           {discordInvite && (
             <a className="discord-invite" href={discordInvite} target="_blank" rel="noopener noreferrer">
-              <DiscordLogo weight="fill" aria-hidden="true" /> {t('nav.discord')}
+              <DiscordIcon /> {t('nav.discord')}
               <span className="sr-only"> {t('nav.newTab')}</span>
             </a>
           )}

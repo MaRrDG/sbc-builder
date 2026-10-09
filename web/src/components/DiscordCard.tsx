@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useReverification, useUser } from '@clerk/react';
 import { isReverificationCancelledError } from '@clerk/react/errors';
-import { ArrowSquareOut, DiscordLogo, LinkBreak } from '@phosphor-icons/react';
+import { ArrowSquareOut, LinkBreak } from '@phosphor-icons/react';
+import { DiscordIcon } from './DiscordIcon';
 import { api, type DiscordInfo } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
@@ -78,7 +79,7 @@ export function DiscordCard({ onChange }: { onChange?: () => void }) {
       {info?.discord ? (
         <>
           <p className="discord-who">
-            <DiscordLogo weight="fill" aria-hidden="true" /> {t('settings.discord.connected', { name: info.discord.username || 'Discord' })}
+            <DiscordIcon /> {t('settings.discord.connected', { name: info.discord.username || 'Discord' })}
           </p>
           <div className="discord-actions">
             {join}
@@ -90,7 +91,7 @@ export function DiscordCard({ onChange }: { onChange?: () => void }) {
       ) : (
         <div className="discord-actions">
           <button type="button" className="ghost bordered" disabled={busy || !user} onClick={() => void connect()}>
-            <DiscordLogo weight="bold" aria-hidden="true" /> {t('settings.discord.connect')}
+            <DiscordIcon /> {t('settings.discord.connect')}
           </button>
           {join}
         </div>
