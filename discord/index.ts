@@ -1,11 +1,11 @@
-// FC Solver Discord bot: ✅ on the rules → Member, role pickers; Daily posts (Task 10) and slash commands (Task 18).
+// FC Solver Discord bot: language buttons → Pending role, ✅ on the rules → Member + language, join welcome, role pickers; Daily posts (Task 10) and slash commands (Task 18).
 // Never calls EA. Talks to the FC Solver API only through /api/bot/* (discord/api.ts).
-import { Client, Events, GatewayIntentBits, MessageFlags, Partials, type Guild, type GuildMember } from 'discord.js';
+import { Client, Events, GatewayIntentBits, MessageFlags, Partials, type ButtonInteraction, type Guild, type GuildMember } from 'discord.js';
 import { loadConfig, loadEnvFile } from './config.js';
 import { CAT, CH, PICKERS, ROLE } from './layout.js';
-import { RULES_TITLE, avatarUrl, groupOf, pickerMenu } from './content.js';
-import { roleDiff } from './roles.js';
-import { langFor, tr } from './i18n.js';
+import { RULES_TITLE, avatarUrl, groupOf, memberWelcomeMessage, pickerMenu } from './content.js';
+import { acceptRules, isMember, langOf, languageClick, roleDiff, withdrawRules } from './roles.js';
+import { langFor, tr, type Lang } from './i18n.js';
 import { categoryOf, findOwnMessage, findText } from './guild.js';
 import { botApi } from './api.js';
 import { alreadyAnnounced, dailyPost } from './daily.js';
@@ -14,7 +14,7 @@ import { onAutocomplete, onCommand } from './handlers.js';
 loadEnvFile();
 const cfg = loadConfig();
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessageReactions],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.GuildMembers],
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
 });
 let rulesId: string | null = null;
@@ -70,7 +70,11 @@ client.on(Events.MessageReactionAdd, async (reaction, user) => {
   if (user.bot || reaction.message.id !== rulesId || reaction.emoji.name !== '✅') return;
   try {
     const m = await memberOf(reaction.message.guildId, user.id);
-    if (m) await m.roles.add(roleIds(m.guild, [ROLE.member]), 'accepted the rules');
+    // no language picked (or none held) = nothing happens; the rules channel is only visible with a Pending / real language role
+    const a = m && acceptRules(m.roles.cache.map((r) => r.name));
+    if (!m || !a) return;
+    await m.roles.add(roleIds(m.guild, a.add), 'accepted the rules');
+    if (a.remove.length) await m.roles.remove(roleIds(m.guild, a.remove), 'accepted the rules');
   } catch (e) {
     console.warn(`[bot] rules accept: ${(e as Error).message}`);
   }
@@ -81,7 +85,7 @@ client.on(Events.MessageReactionRemove, async (reaction, user) => {
   try {
     const m = await memberOf(reaction.message.guildId, user.id);
     // RO / EN go too: Discord ORs roles, so the language areas must not outlive Member
-    if (m) await m.roles.remove(roleIds(m.guild, [ROLE.member, ...PICKERS.lang]), 'withdrew the rules');
+    if (m) await m.roles.remove(roleIds(m.guild, withdrawRules()), 'withdrew the rules');
   } catch (e) {
     console.warn(`[bot] rules withdraw: ${(e as Error).message}`);
   }
@@ -94,9 +98,12 @@ client.on(Events.InteractionCreate, async (i) => {
     if (i.isAutocomplete()) return void (await onAutocomplete(i, cfg));
     if (i.isChatInputCommand()) return void (await onCommand(i, cfg));
     if (i.isButton()) {
+      const lg = langOf(i.customId);
+      if (lg) return void (await onLanguage(i, lg));
       const g = groupOf(i.customId, 'pick');
       const m = g && (await memberOf(i.guildId, i.user.id));
       if (!g || !m) return;
+      if (!isMember(m.roles.cache.map((r) => r.name))) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: CH.rules }), flags: MessageFlags.Ephemeral }));
       await i.reply({ content: tr(lang, 'roles.pick'), components: [pickerMenu(g, new Set(m.roles.cache.map((r) => r.name)))], flags: MessageFlags.Ephemeral });
       return;
     }
@@ -104,6 +111,8 @@ client.on(Events.InteractionCreate, async (i) => {
       const g = groupOf(i.customId, 'set');
       const m = g && (await memberOf(i.guildId, i.user.id));
       if (!g || !m) return;
+      // real language roles only ever go with Member (Discord ORs roles: EN / RO alone would open the area without the rules)
+      if (!isMember(m.roles.cache.map((r) => r.name))) return void (await i.reply({ content: tr(lang, 'roles.needMember', { rules: CH.rules }), flags: MessageFlags.Ephemeral }));
       const d = roleDiff(PICKERS[g], m.roles.cache.map((r) => r.name), i.values);
       if (d.add.length) await m.roles.add(roleIds(m.guild, d.add), 'role picker');
       if (d.remove.length) await m.roles.remove(roleIds(m.guild, d.remove), 'role picker');
@@ -114,6 +123,31 @@ client.on(Events.InteractionCreate, async (i) => {
   } catch (e) {
     console.warn(`[bot] interaction ${i.id}: ${(e as Error).message}`);
     if (i.isRepliable() && !i.replied && !i.deferred) await i.reply({ content: tr(lang, 'roles.failed'), flags: MessageFlags.Ephemeral }).catch(() => {});
+  }
+});
+
+/** Language button in the language channel: Pending role for a new joiner, the real role for a Member. Answers in the language pressed. */
+async function onLanguage(i: ButtonInteraction, picked: string) {
+  const lang: Lang = picked === ROLE.ro ? 'ro' : 'en';
+  const m = await memberOf(i.guildId, i.user.id);
+  if (!m) return;
+  const d = languageClick(m.roles.cache.map((r) => r.name), picked);
+  if (d.add.length) await m.roles.add(roleIds(m.guild, d.add), 'language picked');
+  if (d.remove.length) await m.roles.remove(roleIds(m.guild, d.remove), 'language picked');
+  const list = d.now.join(', ');
+  const content = !d.now.length ? tr(lang, 'lang.none') : d.member ? tr(lang, 'lang.saved', { list }) : tr(lang, 'lang.pending', { list, rules: CH.rules });
+  await i.reply({ content, flags: MessageFlags.Ephemeral });
+}
+
+// Welcome post for every new member (English line, then Romanian); a failure is logged and never stops the bot
+client.on(Events.GuildMemberAdd, async (member) => {
+  if (member.guild.id !== cfg.guildId || member.user.bot) return;
+  try {
+    const ch = await findText(member.guild, CAT.info, CH.welcome);
+    const language = await findText(member.guild, CAT.info, CH.language);
+    await ch.send(memberWelcomeMessage(member.id, member.guild.memberCount, { language: language.id }, avatarUrl(client.user!)));
+  } catch (e) {
+    console.warn(`[bot] member welcome: ${(e as Error).message}`);
   }
 });
 

@@ -29,11 +29,8 @@ export const COMMUNITY_DESCRIPTION = 'Cheapest SBC squads from your own EA FC cl
 export const WELCOME = {
   description: 'Cheapest SBC squads from your own club. / Cele mai ieftine loturi SBC din clubul tău.',
   channels: [
-    { category: CAT.info, channel: CH.rules, emoji: '📜', description: 'Rules · Regulament: react ✅' },
-    { category: CAT.info, channel: CH.roles, emoji: '🎭', description: 'Language & teams · Limbă și echipe' },
-    { category: CAT.info, channel: CH.daily, emoji: '⚽', description: 'FC Solver Daily' },
-    { category: CAT.en, channel: CH.sbcEn, emoji: '🧩', description: 'SBC help, /sbc and /stats' },
-    { category: CAT.ro, channel: CH.sbcRo, emoji: '🧩', description: 'Ajutor SBC, /sbc și /stats' },
+    // Discord accepts only channels @everyone can read: new joiners see nothing else
+    { category: CAT.info, channel: CH.language, emoji: '🌐', description: 'Pick your language · Alege limba' },
   ],
 };
 
@@ -64,8 +61,8 @@ export async function applyDesign(guild: Guild, opts: { icon: boolean; avatar: b
       rulesChannel: rules,
       publicUpdatesChannel: modLog,
       systemChannel: welcome,
-      // Discord's own join / boost messages stay on; setup tips and "wave to say hi" replies off
-      systemChannelFlags: new SystemChannelFlagsBitField(['SuppressGuildReminderNotifications', 'SuppressJoinNotificationReplies']),
+      // Discord's own boost messages stay on; setup tips, "wave to say hi" replies and the join message (the bot welcomes members itself) off
+      systemChannelFlags: new SystemChannelFlagsBitField(['SuppressGuildReminderNotifications', 'SuppressJoinNotificationReplies', 'SuppressJoinNotifications']),
       verificationLevel: GuildVerificationLevel.Low,
       explicitContentFilter: GuildExplicitContentFilter.AllMembers,
       defaultMessageNotifications: GuildDefaultMessageNotifications.OnlyMentions,
