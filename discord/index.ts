@@ -7,6 +7,8 @@ import { RULES_TITLE, groupOf, pickerMenu } from './content.js';
 import { roleDiff } from './roles.js';
 import { langFor, tr } from './i18n.js';
 import { categoryOf, findOwnMessage, findText } from './guild.js';
+import { botApi } from './api.js';
+import { alreadyAnnounced, dailyPost } from './daily.js';
 
 loadEnvFile();
 const cfg = loadConfig();
@@ -28,9 +30,26 @@ async function memberOf(guildId: string | null, userId: string): Promise<GuildMe
   return guild.members.fetch(userId).catch(() => null);
 }
 
-client.once(Events.ClientReady, async (c) => {
+let announced = 0; // last day posted (or found posted) by this process
+
+async function announceDaily(guild: Guild): Promise<void> {
   try {
-    const guild = await c.guilds.fetch(cfg.guildId);
+    const d = await botApi<{ day: number; live: boolean }>(cfg, '/api/bot/daily', { timeoutMs: 10_000 });
+    if (!d.live || d.day <= announced) return;
+    const ch = await findText(guild, CAT.info, CH.daily);
+    const recent = await ch.messages.fetch({ limit: 20 });
+    const seen = [...recent.values()].map((m) => ({ authorId: m.author.id, content: m.content }));
+    if (!alreadyAnnounced(seen, d.day, client.user!.id)) await ch.send(dailyPost(d.day, cfg.siteUrl, client.user!.displayAvatarURL({ extension: 'png', size: 256 })));
+    announced = d.day;
+  } catch (e) {
+    console.warn(`[bot] daily: ${(e as Error).message}`);
+  }
+}
+
+client.once(Events.ClientReady, async (c) => {
+  let guild: Guild | null = null;
+  try {
+    guild = await c.guilds.fetch(cfg.guildId);
     await guild.roles.fetch();
     const rules = await findText(guild, CAT.info, CH.rules);
     rulesId = (await findOwnMessage(rules, c.user.id, (m) => m.embeds.some((e) => e.title === RULES_TITLE)))?.id ?? null;
@@ -39,6 +58,11 @@ client.once(Events.ClientReady, async (c) => {
   }
   if (!rulesId) console.warn('[bot] no rules message: run npm run discord:setup');
   console.log(`[bot] ready as ${c.user.tag}`);
+  if (guild) {
+    const g = guild;
+    void announceDaily(g);
+    setInterval(() => void announceDaily(g), 60_000);
+  }
 });
 
 client.on(Events.MessageReactionAdd, async (reaction, user) => {
