@@ -2,7 +2,31 @@
 const fold = (s: string) => s.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
 /** Discord caps choice names at 100 characters. */
-export const clip = (s: string, max = 100) => (s.length <= max ? s : `${s.slice(0, max - 1)}…`);
+export const clip = (s: string, max = 100) => {
+  const cps = [...s]; // by code points: never cut an emoji in half
+  return cps.length <= max ? s : `${cps.slice(0, max - 1).join('')}…`;
+};
+
+/** Can the set be played right now? Same rules as repeatOf() in web/src/repeat.ts (the server does not import web code). */
+export function setAvailable(
+  set: {
+    repeatable?: boolean; repeatabilityMode?: 'NON_REPEATABLE' | 'UNLIMITED' | 'REFRESH'; repeats?: number; repeatRefreshInterval?: number;
+    releaseTime?: number; lastCompletedTime?: number; timesCompletedInInterval?: number; challengesCount: number; challengesCompletedCount: number;
+  },
+  now = Date.now(),
+): boolean {
+  const mode = set.repeatabilityMode ?? (set.repeatable ? 'UNLIMITED' : 'NON_REPEATABLE');
+  if (mode === 'UNLIMITED') return true;
+  if (mode === 'REFRESH') {
+    const limit = set.repeats ?? 1;
+    const interval = (set.repeatRefreshInterval ?? 86400) * 1000;
+    const anchor = (set.releaseTime ?? 0) * 1000;
+    const start = anchor + Math.floor((now - anchor) / interval) * interval;
+    const fresh = (set.lastCompletedTime ?? 0) * 1000 >= start; // completions from an earlier window no longer count
+    return (fresh ? Math.min(limit, set.timesCompletedInInterval ?? 0) : 0) < limit;
+  }
+  return set.challengesCompletedCount < set.challengesCount;
+}
 
 export function matchSets(categories: { name: string; sets: { setId: number; name: string }[] }[], q: string, limit = 25): { setId: number; name: string }[] {
   const f = fold(q.trim());

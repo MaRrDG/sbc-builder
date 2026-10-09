@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { clip, defaultChallenge, matchSets } from './pick.js';
+import { clip, defaultChallenge, matchSets, setAvailable } from './pick.js';
 
 const cats = [
   { name: 'Upgrades', sets: [{ setId: 1, name: 'Bronze Upgrade' }, { setId: 2, name: 'Silver Upgrade' }] },
@@ -31,6 +31,24 @@ test('at most 25 choices, names at most 100 characters', () => {
 test('clip', () => {
   assert.equal(clip('abc', 5), 'abc');
   assert.equal(clip('abcdef', 5), 'abcd…');
+});
+
+test('clip does not cut an emoji in half', () => {
+  const r = clip('⚽'.repeat(10), 5);
+  assert.equal(r, '⚽⚽⚽⚽…');
+  assert.equal(clip('😀😀😀😀', 3), '😀😀…');
+});
+
+test('setAvailable follows the repeatability mode', () => {
+  const base = { challengesCount: 3, challengesCompletedCount: 0 };
+  assert.equal(setAvailable({ ...base, repeatable: true }), true);
+  assert.equal(setAvailable({ ...base, repeatabilityMode: 'NON_REPEATABLE', challengesCompletedCount: 3 }), false);
+  assert.equal(setAvailable({ ...base, repeatabilityMode: 'NON_REPEATABLE', challengesCompletedCount: 2 }), true);
+  const now = 10 * 86400 * 1000 + 5000; // 5 s into day 10
+  const refresh = { ...base, repeatabilityMode: 'REFRESH' as const, repeats: 2, repeatRefreshInterval: 86400, releaseTime: 0 };
+  assert.equal(setAvailable({ ...refresh, timesCompletedInInterval: 2, lastCompletedTime: 10 * 86400 + 1 }, now), false);
+  assert.equal(setAvailable({ ...refresh, timesCompletedInInterval: 1, lastCompletedTime: 10 * 86400 + 1 }, now), true);
+  assert.equal(setAvailable({ ...refresh, timesCompletedInInterval: 2, lastCompletedTime: 9 * 86400 }, now), true); // old window
 });
 
 test('default challenge: first not completed, else the first, else none', () => {
