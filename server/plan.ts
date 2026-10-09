@@ -10,6 +10,7 @@ export interface PlanRow {
   quotaStart: Date | null;
   quotaUsed: number;
   founderAt?: Date | null;
+  discordId?: string | null; // boost Premium needs a linked Discord account
   boostSince?: Date | null; // boosting the Discord server now (server/discord/boost.ts)
   boostEndedAt?: Date | null; // the boost ended here; Premium lasts BOOST_GRACE_MS more
 }
@@ -34,6 +35,7 @@ const paidActive = (row: PlanRow, now: number) => row.plan === 'premium' && (!ro
 
 /** Boosting now, or inside the grace after the boost ended; null otherwise. */
 export function boostState(row: PlanRow, now: number): BoostState | null {
+  if (!row.discordId) return null;
   if (row.boostSince) return { since: row.boostSince.getTime(), graceUntil: null };
   const end = row.boostEndedAt ? row.boostEndedAt.getTime() + BOOST_GRACE_MS : 0;
   return end > now ? { since: null, graceUntil: end } : null;

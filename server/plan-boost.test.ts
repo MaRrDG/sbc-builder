@@ -4,7 +4,7 @@ import { BOOST_GRACE_MS, boostState, effectivePlan, planSource, type PlanRow } f
 
 const NOW = Date.UTC(2026, 9, 9, 12);
 const H = 3_600_000;
-const free: PlanRow = { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0 };
+const free: PlanRow = { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0, discordId: '123456789012345678' };
 const at = (ms: number) => new Date(ms);
 
 test('grace is 12 hours', () => assert.equal(BOOST_GRACE_MS, 12 * H));
@@ -46,4 +46,10 @@ test('unchanged rules: admins, expired paid Premium', () => {
   assert.equal(planSource(free, true, NOW), 'admin');
   assert.equal(effectivePlan({ ...free, plan: 'premium', premiumUntil: at(NOW - 1) }, false, NOW), 'free');
   assert.equal(effectivePlan({ ...free, plan: 'premium', premiumUntil: null }, false, NOW), 'premium');
+});
+
+test('boost_since set but no Discord id: Free', () => {
+  const row = { ...free, discordId: null, boostSince: at(NOW - H), boostEndedAt: at(NOW - H) };
+  assert.equal(effectivePlan(row, false, NOW), 'free');
+  assert.equal(boostState(row, NOW), null);
 });
