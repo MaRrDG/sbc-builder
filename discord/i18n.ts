@@ -52,6 +52,18 @@ const en = {
   'err.generic': "FC Solver didn't answer. Try again in a minute.",
   'err.notAvailable': 'This SBC is done or cannot be repeated right now.',
   'err.badRequest': 'Something in that request was off. Pick the SBC from the list and try again.',
+  'poll.denied': 'Only Admins and Moderators can create polls.',
+  'poll.created': 'Poll posted: {url}',
+  'poll.question': 'The question must be 1 to 300 characters.',
+  'poll.answers': 'Give 2 to 10 answers, none empty.',
+  'poll.duplicate': 'Two answers are the same. Each answer must be different.',
+  'poll.answerLong': 'Each answer can have at most 55 characters.',
+  'poll.hours': 'Duration must be a whole number of hours, 1 to 768.',
+  'poll.cannotPost': "I can't post a poll in {channel}. Check the bot's permissions there (Send Messages, Create Polls).",
+  'poll.winner': 'Poll ended. Winner: {answers} ({n} votes)',
+  'poll.tie': 'Poll ended. Tie: {answers} ({n} votes each)',
+  'poll.noVotes': 'Poll ended. No votes.',
+  'poll.results': 'Results',
 };
 export type Key = keyof typeof en;
 const ro: Record<Key, string> = {
@@ -103,6 +115,18 @@ const ro: Record<Key, string> = {
   'err.generic': 'FC Solver nu a răspuns. Încearcă din nou peste un minut.',
   'err.notAvailable': 'Acest SBC e făcut sau nu se poate repeta acum.',
   'err.badRequest': 'Ceva din cerere nu e în regulă. Alege SBC-ul din listă și încearcă din nou.',
+  'poll.denied': 'Doar Adminii și Moderatorii pot crea sondaje.',
+  'poll.created': 'Sondaj postat: {url}',
+  'poll.question': 'Întrebarea trebuie să aibă între 1 și 300 de caractere.',
+  'poll.answers': 'Dă între 2 și 10 răspunsuri, niciunul gol.',
+  'poll.duplicate': 'Două răspunsuri sunt la fel. Fiecare răspuns trebuie să fie diferit.',
+  'poll.answerLong': 'Fiecare răspuns poate avea cel mult 55 de caractere.',
+  'poll.hours': 'Durata trebuie să fie un număr întreg de ore, între 1 și 768.',
+  'poll.cannotPost': 'Nu pot posta un sondaj în {channel}. Verifică permisiunile botului acolo (Send Messages, Create Polls).',
+  'poll.winner': 'Sondaj încheiat. Câștigător: {answers} ({n} voturi)',
+  'poll.tie': 'Sondaj încheiat. Egalitate: {answers} ({n} voturi fiecare)',
+  'poll.noVotes': 'Sondaj încheiat. Niciun vot.',
+  'poll.results': 'Rezultate',
 };
 export const STRINGS: Record<Lang, Record<Key, string>> = { en, ro };
 

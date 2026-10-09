@@ -10,6 +10,7 @@ import { categoryOf, findOwnMessage, findText } from './guild.js';
 import { BotApiError, botApi } from './api.js';
 import { alreadyAnnounced, dailyPost } from './daily.js';
 import { onAutocomplete, onCommand } from './handlers.js';
+import { onPoll, postFinishedPolls } from './polls.js';
 
 loadEnvFile();
 const cfg = loadConfig();
@@ -79,6 +80,8 @@ client.once(Events.ClientReady, async (c) => {
     const g = guild;
     void announceDaily(g);
     setInterval(() => void announceDaily(g), 60_000);
+    void postFinishedPolls(g, c.user.id, avatarUrl(c.user));
+    setInterval(() => void postFinishedPolls(g, c.user.id, avatarUrl(c.user)), 60_000);
     void reconcileBoosts(g);
     setInterval(() => void reconcileBoosts(g), 15 * 60_000);
   }
@@ -114,7 +117,7 @@ client.on(Events.InteractionCreate, async (i) => {
   const lang = langFor({ category: categoryOf(i.channel), locale: i.locale });
   try {
     if (i.isAutocomplete()) return void (await onAutocomplete(i, cfg));
-    if (i.isChatInputCommand()) return void (await onCommand(i, cfg));
+    if (i.isChatInputCommand()) return void (await (i.commandName === 'poll' ? onPoll(i) : onCommand(i, cfg)));
     if (i.isButton()) {
       const lg = langOf(i.customId);
       if (lg) return void (await onLanguage(i, lg));
