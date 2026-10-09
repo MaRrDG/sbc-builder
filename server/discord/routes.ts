@@ -1,4 +1,4 @@
-// /api/bot/*: what the Discord bot (discord/, its own container) may ask. Token-only; Apache denies the path
+// /api/bot/*: what the Discord bot (discord/, its own container) may ask. Token-only; nginx denies the path
 // from outside. The bot never reaches EA or the database itself, everything goes through here.
 import { publicInvite } from './invite.js';
 import type { FastifyInstance } from 'fastify';

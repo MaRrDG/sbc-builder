@@ -7,7 +7,7 @@ services:
         VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:?set VITE_CLERK_PUBLISHABLE_KEY in .env}
     container_name: sbc-builder
     restart: unless-stopped
-    # only Apache on the host talks to it
+    # only nginx on the host talks to it
     ports:
       - "127.0.0.1:5178:5178"
     volumes:
