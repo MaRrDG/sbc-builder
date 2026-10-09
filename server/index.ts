@@ -54,6 +54,7 @@ import { installLedger } from './gallery/ledger.js';
 import { installDailyIngest } from './daily/store.js';
 import { installHistory } from './history/ingest.js';
 import { registerDailyRoutes } from './daily/routes.js';
+import { registerBotRoutes } from './discord/routes.js';
 import { scheduleDaily } from './daily/service.js';
 import { openGroups, solvable } from './objectives/open.js';
 import { solveObjectives } from './objectives/solve.js';
@@ -416,6 +417,7 @@ app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, rep
 // ---- admin (site, ADMIN_EMAILS): server/admin/routes.ts ----------------------------
 registerAdminRoutes(app);
 registerDailyRoutes(app);
+registerBotRoutes(app);
 
 // ---- extension 0.7+: identity and sync jobs run in the web app tab ------------------
 /** The web app says who is logged in. A held key is enough; otherwise the SID proves it once (not stored). */
