@@ -787,7 +787,7 @@ export const it: Record<Keys, string> = {
   'landing.optimal.first': 'Prima rosa che funziona',
   'landing.optimal.best': 'Rosa più economica',
   'landing.optimal.unit': 'Valore delle carte usate, SBC di esempio.',
-  'landing.safe.title': 'Nessun rischio di ban',
+  'landing.safe.title': 'Sicuro',
   'landing.safe.body': 'FC Solver non scrive mai nulla su EA. La scheda della tua web app legge, l’estensione lo passa, FC Solver risolve. Ogni richiesta a EA parte dalla tua scheda, con la tua sessione e il tuo IP, e i risultati sono in cache, così EA vede solo poche richieste al giorno.',
   'landing.safe.diagram': 'I dati vanno in una sola direzione: dalla scheda della tua web app EA, attraverso l’estensione, a FC Solver. Nulla viene riscritto su EA.',
   'landing.safe.webApp': 'Web app EA',
