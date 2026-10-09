@@ -36,6 +36,7 @@ import { DailyProfileCard } from './components/DailyProfileCard';
 import { LinkedAccounts } from './components/LinkedAccounts';
 import { QuotaMeter } from './components/QuotaMeter';
 import { ClubSyncModal } from './components/ClubSyncModal';
+import { clubSyncRunning } from './club-sync';
 import { OnboardingModal } from './components/OnboardingModal';
 import { RefBanner } from './components/RefBanner';
 import { useFounders } from './landing/Founders';
@@ -282,7 +283,7 @@ export default function App({
 
   // Poll sync state so auto-syncs and new sessions show up without a reload; faster while the
   // club sync modal shows its progress.
-  const clubSyncing = status?.club?.state === 'running';
+  const clubSyncing = clubSyncRunning(status, !!account?.session);
   useEffect(() => {
     if (!activeId) return;
     const t = setInterval(async () => {
@@ -706,7 +707,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
 
   return (
     <div className="app">
-      <ClubSyncModal status={status} players={club.length} />
+      <ClubSyncModal status={status} players={club.length} live={!!account?.session} />
       {survey /* never on top of a running club sync: that dialog blocks the page */}
       <GalleryInfo open={galleryInfo} onClose={closeGalleryInfo} />
       <header className="topbar">

@@ -11,6 +11,7 @@ import { seedChallenges } from './shared-sbc.js';
 import { logEvent } from './db/events.js';
 import { lastSbcDrop, type SetsData } from './sync.js';
 import type { ClubPages } from './club-pages.js';
+import { expiredAs, JOB_TIMEOUTS } from './job-rules.js';
 
 export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
 
@@ -42,11 +43,7 @@ const lastVisible = new Map<number, boolean>();
 const lastFinished = new Map<number, number>();
 const lastClubCall = new Map<number, number>();
 const NOT_STARTED = 'The web app tab did not start the sync. Log in to EA in the web app and it runs again.';
-const RUNNING_TIMEOUT = 3 * 60 * 1000; // a tab closed mid-job: give up and allow a new one
-// handed to a tab that never called EA for it (web app not logged in, tab gone to the EA login):
-// the first request goes out within ~20 s (quiet wait + gap), so give up well before RUNNING_TIMEOUT
-const START_TIMEOUT = 60 * 1000;
-const OPEN_WINDOW = 30 * 1000; // the extension polls every few seconds while a web app tab is open
+const OPEN_WINDOW = JOB_TIMEOUTS.open; // the extension polls every few seconds while a web app tab is open
 const MAX_SETS_PER_JOB = 40;
 const REST_BETWEEN_JOBS = 5 * 1000; // a breather for EA between one job and the next
 
@@ -59,19 +56,11 @@ function queueOf(acc: Account) {
   // forget finished jobs after a while, fail jobs a closed tab never finished
   const now = Date.now();
   for (const j of q) {
-    if (j.status === 'running' && !j.calledAt && now - (j.startedAt ?? now) > START_TIMEOUT) {
-      j.status = 'failed';
-      j.error = NOT_STARTED;
-      j.notStarted = true;
-    } else if (j.status === 'running' && now - (j.startedAt ?? now) > RUNNING_TIMEOUT) {
-      j.status = 'failed';
-      j.error = 'The web app tab stopped before the sync finished.';
-    } else if (j.status === 'queued' && now - j.createdAt > OPEN_WINDOW && !webAppOpen(acc)) {
-      // the tab closed (or went to the EA login) before it took the job: nobody will run it
-      j.status = 'failed';
-      j.error = NOT_STARTED;
-      j.notStarted = true;
-    }
+    const gone = expiredAs(j, now, webAppOpen(acc));
+    if (!gone) continue;
+    j.status = 'failed';
+    j.error = gone === 'notStarted' ? NOT_STARTED : 'The web app tab stopped before the sync finished.';
+    if (gone === 'notStarted') j.notStarted = true;
   }
   const keep = q.filter((j) => j.status === 'queued' || j.status === 'running' || now - j.createdAt < 10 * 60 * 1000);
   q.splice(0, q.length, ...keep);
