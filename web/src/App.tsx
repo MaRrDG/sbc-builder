@@ -31,6 +31,7 @@ import { PlanCard } from './components/PlanCard';
 import { InvitePage } from './components/InvitePage';
 import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
+import { Row, Section } from './components/SettingsRows';
 import { DailyProfileCard } from './components/DailyProfileCard';
 import { LinkedAccounts } from './components/LinkedAccounts';
 import { QuotaMeter } from './components/QuotaMeter';
@@ -1033,39 +1034,23 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           {!showGuide && view === 'settings' && meta && (
             <section className="settings-page">
               <header className="page-head">
-                <div>
-                  <h1>{t('settings.title')}</h1>
-                  <p className="muted">{t('settings.lede')}</p>
-                </div>
+                <h1>{t('settings.title')}</h1>
               </header>
-              <div className="settings-grid">
-                <div className={`settings-card options${premium ? '' : ' locked'}`}>
-                  {!premium && (
-                    <p className="locked-note">
-                      <Crown weight="fill" aria-hidden="true" /> {t('plan.globalLocked')}
-                    </p>
-                  )}
-                  <fieldset disabled={!premium} className="plain">
-                    <SolverOptions options={globalOptions} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
-                  </fieldset>
-                </div>
-                <div className="settings-side">
-                <PlanCard plan={effectivePlan} now={now} onInvite={() => navigate({ view: 'invite' })} />
-                {prefs && <EmailAlertsCard premium={premium} prefs={prefs} onChange={setPrefs} />}
-                <DailyProfileCard />
-                <aside className="settings-card">
-                  <h2>{t('accounts.title')}</h2>
-                  <p className="muted">{t('settings.accountsLink')}</p>
-                  <button type="button" className="ghost bordered" onClick={() => go('accounts')}>
-                    <LinkSimple weight="bold" aria-hidden="true" /> {t('accounts.open')}
-                  </button>
-                </aside>
-                {status?.ea && <EaRequestsCard ea={status.ea} />}
-                <aside className="settings-card">
-                  <h2>{t('settings.ownTitle')}</h2>
-                  {Object.keys(localOptions).length === 0 ? (
-                    <p className="muted">{t('settings.ownNone')}</p>
-                  ) : (
+              <PlanCard
+                plan={effectivePlan}
+                now={now}
+                discordInvite={discordInvite}
+                onInvite={() => navigate({ view: 'invite' })}
+                onAccounts={() => go('accounts')}
+              />
+              <Section title={t('settings.section.solver')} lede={t('settings.lede')} locked={!premium}>
+                {!premium && <p className="locked-note">{t('plan.globalLocked')}</p>}
+                <fieldset disabled={!premium} className="plain">
+                  <legend className="sr-only">{t('settings.section.solver')}</legend>
+                  <SolverOptions rows options={globalOptions} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
+                </fieldset>
+                <Row title={t('settings.ownTitle')} hint={localSets.size === 0 ? t('settings.ownNone') : t('settings.ownHint')} stack={localSets.size > 0}>
+                  {localSets.size > 0 && (
                     <ul className="local-list">
                       {[...localSets].map((id) => {
                         const set = setsById.get(id);
@@ -1074,7 +1059,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                             <button type="button" className="text" onClick={() => pickSet(id)} disabled={!set}>
                               {set?.name ?? t('settings.gone', { id })}
                             </button>
-                            <button type="button" className="ghost" onClick={() => updateLocal(id, null)}>
+                            <button type="button" className="ghost bordered" onClick={() => updateLocal(id, null)}>
                               {t('settings.useGlobal')}
                             </button>
                           </li>
@@ -1082,9 +1067,21 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                       })}
                     </ul>
                   )}
-                </aside>
-                </div>
-              </div>
+                </Row>
+              </Section>
+              {prefs && <EmailAlertsCard premium={premium} prefs={prefs} onChange={setPrefs} />}
+              <DailyProfileCard />
+              <Section title={t('settings.section.account')}>
+                <Row title={t('top.language')} hint={t('settings.languageHint')}>
+                  <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
+                </Row>
+                <Row title={t('accounts.title')} hint={t('settings.accountsLink')}>
+                  <button type="button" className="ghost bordered" onClick={() => go('accounts')}>
+                    <LinkSimple weight="bold" aria-hidden="true" /> {t('accounts.open')}
+                  </button>
+                </Row>
+                {status?.ea && <EaRequestsCard ea={status.ea} />}
+              </Section>
             </section>
           )}
 
