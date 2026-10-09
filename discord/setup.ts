@@ -1,6 +1,6 @@
 // Applies discord/layout.ts to DISCORD_GUILD_ID: roles (colours, order), categories, channels (names, topics,
 // slowmode, overwrites), the rules message (banner + ✅), welcome and role pickers, then the slash commands.
-// Idempotent: run it after every layout change. Community / welcome screen / emojis: applyDesign (Task 8).
+// Idempotent: run it after every layout change. Community / welcome screen / emojis / icon: applyDesign (design.ts).
 import { ChannelType, Client, Events, GatewayIntentBits, type Guild, type GuildBasedChannel, type TextChannel } from 'discord.js';
 import { loadConfig, loadEnvFile } from './config.js';
 import { CAT, CATEGORIES, CH, ROLES, overwritesFor, type PickerGroup, type RoleIds } from './layout.js';
@@ -8,6 +8,7 @@ import { planSync, rolePositions, type Existing } from './sync-plan.js';
 import { RULES_TITLE, WELCOME_TITLE, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
 import { COMMANDS } from './commands.js';
 import { findOwnMessage, findText } from './guild.js';
+import { applyDesign } from './design.js';
 
 loadEnvFile();
 const cfg = loadConfig();
@@ -108,6 +109,7 @@ async function apply(guild: Guild) {
     } else await guild.channels.edit(a.id, { ...data, lockPermissions: false });
   }
   console.log(`[setup] ${created} created, ${actions.length - created} checked`);
+  await applyDesign(guild, { icon: process.argv.includes('--icon'), avatar: process.argv.includes('--avatar'), client });
 
   const rules = await findText(guild, CAT.info, CH.rules);
   const own = await findOwnMessage(rules, client.user!.id, (m) => m.embeds.some((e) => e.title === RULES_TITLE));
