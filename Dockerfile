@@ -24,6 +24,7 @@ COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --prefer-offline --no-audit --no-fund
 COPY tsconfig.json ./
 COPY server ./server
+COPY discord ./discord
 COPY scripts ./scripts
 COPY solver/cpsat.py solver/
 COPY extension ./extension

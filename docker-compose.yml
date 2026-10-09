@@ -1,5 +1,6 @@
 services:
   app:
+    image: sbc-builder:latest
     build:
       context: .
       args:
@@ -32,6 +33,25 @@ services:
       interval: 60s
       timeout: 10s
       retries: 3
+
+  bot:
+    # same image as app; only started with: docker compose --profile discord up -d
+    image: sbc-builder:latest
+    pull_policy: never
+    container_name: sbc-builder-bot
+    profiles: [discord]
+    restart: unless-stopped
+    command: ["node", "--import", "tsx", "discord/index.ts"]
+    environment:
+      DISCORD_TOKEN: ${DISCORD_TOKEN:-}
+      DISCORD_APP_ID: ${DISCORD_APP_ID:-}
+      DISCORD_GUILD_ID: ${DISCORD_GUILD_ID:-}
+      BOT_API_URL: http://app:5178
+      BOT_API_TOKEN: ${BOT_API_TOKEN:-}
+      SITE_URL: ${SITE_URL:-}
+    depends_on:
+      app:
+        condition: service_healthy
 
   db:
     image: postgres:18-alpine
