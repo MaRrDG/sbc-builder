@@ -97,6 +97,8 @@ The bot (`discord/`) runs from the same image as its own compose service `bot` (
 5. Server Settings → Roles: drag the bot's role to the top, run step 4 again (sets the role order).
 6. `docker compose --profile discord up -d --build` starts the bot; `docker compose logs -f bot`.
 
+Setup also applies the design: server icon (first run, or `-- --icon`), Community (rules / public updates / system channels, Only @mentions, verification Low, content filter All members), `📢・announcements` as an Announcement channel, the Welcome Screen and the custom emojis `fcs_check`, `fcs_fc`, `fcs_lime`. Each design step logs and continues if Discord refuses it (the bot needs Manage Server and Manage Expressions). The bot avatar is set only with `npm run discord:setup -- --avatar` (Discord rate-limits avatar changes). By hand, when the server qualifies: server banner (boost level 2) and invite splash (level 1) from `discord/assets/banner.png`; role icons appear on the next setup run after level 2. Onboarding is not used: it needs 7 default channels visible to everyone, and the ✅ rules gate hides them. Brand change: `npm run discord:assets`, then setup with `--icon --avatar` (existing emojis keep their old image; delete them in Server Settings → Emoji first).
+
 Every layout change (`discord/layout.ts`, rules, pickers, commands) needs step 4 again after the release.
 
 ## First-time setup on a new host
