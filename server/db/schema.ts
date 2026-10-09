@@ -287,3 +287,34 @@ export const dailyGuessCounts = pgTable(
   { day: integer('day').notNull(), assetId: integer('asset_id').notNull(), count: integer('count').notNull().default(0) },
   (t) => [primaryKey({ columns: [t.day, t.assetId] })],
 );
+
+/** Own completion history (server/history): the last state counted per persona and item. */
+export const completionMarks = pgTable(
+  'completion_marks',
+  {
+    personaId: bigint('persona_id', { mode: 'number' }).notNull(),
+    kind: text('kind').notNull(), // 'set' | 'challenge' | 'objective'
+    itemId: bigint('item_id', { mode: 'number' }).notNull(),
+    count: integer('count').notNull().default(0),
+    done: boolean('done').notNull().default(false),
+    firstSeen: timestamp('first_seen', { withTimezone: true }).notNull().defaultNow(), // tracking start, never updated
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.personaId, t.kind, t.itemId] })],
+);
+
+/** One row per counted completion step; baseline = already done when tracking started (not witnessed). */
+export const completions = pgTable(
+  'completions',
+  {
+    id: serial('id').primaryKey(),
+    personaId: bigint('persona_id', { mode: 'number' }).notNull(),
+    kind: text('kind').notNull(),
+    itemId: bigint('item_id', { mode: 'number' }).notNull(),
+    seq: integer('seq').notNull(), // count reached: replays hit the unique index
+    count: integer('count').notNull(),
+    baseline: boolean('baseline').notNull().default(false),
+    at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex('completions_item_seq').on(t.personaId, t.kind, t.itemId, t.seq), index('completions_persona').on(t.personaId, t.kind)],
+);
