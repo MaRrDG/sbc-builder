@@ -7,7 +7,7 @@ import { CAT, CATEGORIES, CH, ROLES, overwritesFor, type RoleIds } from './layou
 import { planSync, rolePositions, type Existing } from './sync-plan.js';
 import { BRAND } from './brand.js';
 import { BOOST_TITLE, LANGUAGE_TITLE, RULES_TITLE, RULES_TITLE_RO, avatarUrl, boostPerksMessage, WELCOME_TITLE, WELCOME_TITLES_OLD, LANGUAGE_TITLE_OLD, PICKER_TITLES_OLD, LANG_PICKER_TITLES_OLD, languageMessage, pickerMessage, pickerTitle, rulesMessage, welcomeMessage } from './content.js';
-import { COMMANDS } from './commands.js';
+import { COMMANDS, MENU_COMMANDS } from './commands.js';
 import { findOwnMessage, findText } from './guild.js';
 import { applyDesign } from './design.js';
 
@@ -72,11 +72,11 @@ async function apply(guild: Guild) {
     if (a.op === 'createRole') created++;
     byName.set(a.role.name.toLowerCase(), id);
   }
-  // Discord's managed Server Booster role (exists once the server had a boost): pink, not listed separately, between Moderator and Member
+  // Discord's managed Server Booster role (exists once the server had a boost): pink, hoisted, between Moderator and Member
   const booster = guild.roles.premiumSubscriberRole;
   const roleNames = ROLES.map((r) => r.name);
   if (booster) {
-    await guild.roles.edit(booster.id, { colors: { primaryColor: BRAND.boost }, hoist: false, reason }).catch((e) => console.warn(`[setup] booster role: ${(e as Error).message}`));
+    await guild.roles.edit(booster.id, { colors: { primaryColor: BRAND.boost }, hoist: true, reason }).catch((e) => console.warn(`[setup] booster role: ${(e as Error).message}`));
     byName.set(booster.name.toLowerCase(), booster.id);
     roleNames.splice(2, 0, booster.name); // Admin, Moderator, Booster, Member, …
   }
@@ -109,7 +109,7 @@ async function apply(guild: Guild) {
     const data = {
       name: ch.name,
       parent: catId.get(a.category)!,
-      permissionOverwrites: overwritesFor(ch.access ?? cat.access, ch.kind, !!ch.readOnly, ids, !!ch.polls),
+      permissionOverwrites: overwritesFor(ch.access ?? cat.access, ch.kind, !!ch.readOnly, ids, !!ch.polls, !!ch.commands),
       position: a.position,
       reason,
       ...(textLike ? { topic: ch.topic ?? '', rateLimitPerUser: ch.slowmode ?? 0 } : {}),
@@ -149,8 +149,8 @@ async function apply(guild: Guild) {
   }
   await upsert(await findText(guild, CAT.ro, CH.superliga), pickerTitle('superliga'), pickerMessage('superliga', icon));
 
-  await guild.commands.set(COMMANDS);
-  console.log(`[setup] ${COMMANDS.length} slash commands registered`);
+  await guild.commands.set([...COMMANDS, ...MENU_COMMANDS]);
+  console.log(`[setup] ${COMMANDS.length + MENU_COMMANDS.length} slash commands registered`);
 }
 
 /** The bot's own message with this embed title (or an older title it used to have) is edited, else sent. */

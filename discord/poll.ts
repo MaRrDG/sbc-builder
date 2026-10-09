@@ -63,3 +63,13 @@ export interface MessageShape { type: number; authorId: string; replyTo: string 
 /** Our result post under a poll: a reply of ours carrying the FC Solver embed. Discord's own "poll ended" message (type PollResult, same author) is not it. */
 export const isOurResult = (m: MessageShape, pollId: string, botId: string): boolean =>
   m.type !== MessageType.PollResult && m.authorId === botId && m.replyTo === pollId && m.embedAuthors.includes('FC Solver');
+
+/** Only Admin ends a poll early. */
+export const canEndPoll = (roleNames: string[]): boolean => roleNames.includes(ROLE.admin);
+
+export interface EndTarget { channelName: string | null; authorId: string; botId: string; hasPoll: boolean; finalized: boolean }
+/** "End poll" works only on one of our own polls in the polls channel that is still open. */
+export function endPollCheck(t: EndTarget, pollsChannel: string): 'ok' | 'notPoll' | 'ended' {
+  if (t.channelName !== pollsChannel || t.authorId !== t.botId || !t.hasPoll) return 'notPoll';
+  return t.finalized ? 'ended' : 'ok';
+}

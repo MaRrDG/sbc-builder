@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import { ASSETS, BRAND, assetPath } from './brand.js';
-import { CAT, CATEGORIES, CH, PICKERS, ROLE, ROLES, SUPERLIGA, TEAM_COLORS, WORLD_CLUBS, overwritesFor, type RoleIds } from './layout.js';
+import { ADMIN_PERMISSIONS, CAT, commandRedirect, CATEGORIES, CH, PICKERS, ROLE, ROLES, SUPERLIGA, TEAM_COLORS, WORLD_CLUBS, overwritesFor, type RoleIds } from './layout.js';
 
 const ids: RoleIds = { everyone: 'E', bot: 'B', byName: new Map(ROLES.map((r, i) => [r.name.toLowerCase(), `R${i}`])) };
 const idOf = (name: string) => ids.byName.get(name.toLowerCase())!;
@@ -65,42 +65,58 @@ test('brand assets are in the repo', () => {
 });
 
 test('#language: everyone reads, nobody writes or adds new reactions, the bot writes and attaches', () => {
-  const [everyone, bot] = overwritesFor('everyone', 'text', true, ids);
+  const o = overwritesFor('everyone', 'text', true, ids);
+  const everyone = o.find((x) => x.id === 'E')!;
+  const bot = o.find((x) => x.id === 'B')!;
   assert.deepEqual(everyone.allow, ['ViewChannel', 'ReadMessageHistory']);
   assert.ok(everyone.deny.includes('SendMessages') && everyone.deny.includes('AddReactions'));
-  assert.equal(bot.id, 'B');
   assert.ok(['SendMessages', 'AddReactions', 'AttachFiles'].every((p) => bot.allow.includes(p as never)));
 });
 
-test('rules channels: hidden from everyone, each read only by its language (Pending + real), no reactions or writing, staff manages', () => {
+test('onboarding channels: Member, Moderator and Admin are denied View, no verified role is allowed', () => {
+  for (const access of ['everyone', 'rulesEn', 'rulesRo'] as const) {
+    const o = overwritesFor(access, 'text', true, ids);
+    for (const r of [ROLE.member, ROLE.mod, ROLE.admin]) assert.deepEqual(o.find((x) => x.id === idOf(r)), { id: idOf(r), allow: [], deny: ['ViewChannel'] }, `${access} ${r}`);
+    for (const r of [ROLE.en, ROLE.ro]) assert.equal(o.find((x) => x.id === idOf(r)), undefined, `${access} ${r}`);
+    assert.ok(o.find((x) => x.id === 'B')!.allow.includes('ViewChannel'));
+  }
+});
+
+test('rules channels: hidden from everyone, each read only by its Pending role, no reactions or writing', () => {
   for (const [access, seen, unseen] of [
-    ['rulesEn', [ROLE.pendingEn, ROLE.en], [ROLE.pendingRo, ROLE.ro, ROLE.member]],
-    ['rulesRo', [ROLE.pendingRo, ROLE.ro], [ROLE.pendingEn, ROLE.en, ROLE.member]],
+    ['rulesEn', ROLE.pendingEn, [ROLE.pendingRo, ROLE.ro, ROLE.en]],
+    ['rulesRo', ROLE.pendingRo, [ROLE.pendingEn, ROLE.en, ROLE.ro]],
   ] as const) {
     const o = overwritesFor(access, 'text', true, ids);
-    assert.deepEqual(o.find((x) => x.id === 'E')?.deny, ['ViewChannel']);
-    for (const r of seen) {
-      const x = o.find((y) => y.id === idOf(r))!;
-      assert.ok(x.allow.includes('ViewChannel'), r);
-      assert.ok(x.deny.includes('SendMessages') && x.deny.includes('AddReactions'), r);
-    }
+    assert.ok(o.find((x) => x.id === 'E')?.deny.includes('ViewChannel'));
+    const x = o.find((y) => y.id === idOf(seen))!;
+    assert.ok(x.allow.includes('ViewChannel'));
+    assert.ok(x.deny.includes('SendMessages') && x.deny.includes('AddReactions'));
     for (const r of unseen) assert.equal(o.find((y) => y.id === idOf(r)), undefined, r);
-    assert.ok(o.find((x) => x.id === idOf(ROLE.mod))?.allow.includes('ManageMessages'));
   }
+});
+
+test('Admin has an explicit permission set, never Administrator; staff roles are hoisted', () => {
+  const admin = ROLES.find((r) => r.name === ROLE.admin)!;
+  assert.ok(!(admin.permissions as string[]).includes('Administrator'));
+  assert.deepEqual(admin.permissions, ADMIN_PERMISSIONS);
+  for (const p of ['ManageGuild', 'ManageRoles', 'ManageChannels', 'BanMembers', 'KickMembers', 'ViewAuditLog', 'MentionEveryone']) assert.ok(admin.permissions.includes(p as never), p);
+  for (const r of [ROLE.admin, ROLE.mod, ROLE.member]) assert.equal(ROLES.find((x) => x.name === r)!.hoist, true, r);
+  assert.ok(ROLES.filter((x) => ![ROLE.admin, ROLE.mod, ROLE.member].includes(x.name as never)).every((x) => !x.hoist));
 });
 
 test('language areas: only the real EN / RO role opens them; Pending roles open nothing else', () => {
   for (const [access, role] of [['en', ROLE.en], ['ro', ROLE.ro]] as const) {
     const o = overwritesFor(access, 'category', false, ids);
-    assert.deepEqual(o.filter((x) => x.allow.includes('ViewChannel') && x.id !== 'B' && x.id !== idOf(ROLE.mod)).map((x) => x.id), [idOf(role)]);
+    assert.deepEqual(o.filter((x) => x.allow.includes('ViewChannel') && x.id !== 'B' && x.id !== idOf(ROLE.mod) && x.id !== idOf(ROLE.admin)).map((x) => x.id), [idOf(role)]);
   }
   for (const access of ['member', 'en', 'ro', 'staff'] as const)
     for (const p of [ROLE.pendingEn, ROLE.pendingRo]) assert.equal(overwritesFor(access, 'text', false, ids).find((x) => x.id === idOf(p)), undefined);
 });
 
-test('member area: hidden from everyone, visible to Member and Moderator', () => {
+test('member area: hidden from everyone, visible to Member, Moderator and Admin', () => {
   const o = overwritesFor('member', 'category', false, ids);
-  assert.deepEqual(o.find((x) => x.id === 'E')?.deny, ['ViewChannel']);
+  assert.ok(o.find((x) => x.id === 'E')?.deny.includes('ViewChannel'));
   assert.ok(o.find((x) => x.id === idOf(ROLE.member))?.allow.includes('ViewChannel'));
   assert.ok(o.find((x) => x.id === idOf(ROLE.mod))?.allow.includes('ManageMessages'));
 });
@@ -111,8 +127,8 @@ test('read-only text and announcement channels deny writing; voice allows Connec
   assert.ok(voice.allow.includes('Connect') && voice.deny.length === 0);
 });
 
-test('staff area: only Moderator (Admins see all by Administrator)', () => {
-  assert.deepEqual(overwritesFor('staff', 'text', false, ids).map((x) => x.id), ['E', idOf(ROLE.mod), 'B']);
+test('staff area: Moderator and Admin (Admin no longer bypasses with Administrator)', () => {
+  assert.deepEqual(overwritesFor('staff', 'text', false, ids).map((x) => x.id), ['E', idOf(ROLE.mod), idOf(ROLE.admin), 'B']);
 });
 
 test('a missing role is a clear error', () => {
@@ -127,4 +143,31 @@ test('team colours read on Discord dark: contrast against #313338 is at least 3:
     const l = lum(h);
     assert.ok((Math.max(l, bg) + 0.05) / (Math.min(l, bg) + 0.05) >= 3, `${name} ${h.toString(16)}`);
   }
+});
+
+test('commands channels: @everyone may use application commands only there, denied everywhere else', () => {
+  const spec = allChannels.filter((c) => c.commands);
+  assert.deepEqual(spec.map((c) => c.name), [CH.commandsEn, CH.commandsRo]);
+  assert.deepEqual(CATEGORIES.filter((c) => c.channels.some((x) => x.commands)).map((c) => c.name), [CAT.en, CAT.ro]);
+  for (const cat of CATEGORIES)
+    for (const c of cat.channels) {
+      const o = overwritesFor(c.access ?? cat.access, c.kind, !!c.readOnly, ids, !!c.polls, !!c.commands).find((x) => x.id === 'E')!;
+      assert.equal(o.allow.includes('UseApplicationCommands'), !!c.commands, c.name);
+      assert.equal(o.deny.includes('UseApplicationCommands'), !c.commands, c.name);
+    }
+});
+
+test('command redirect: allowed in the commands channels, else the one of the user language (RO-only -> comenzi)', () => {
+  assert.equal(commandRedirect(CH.commandsEn, []), null);
+  assert.equal(commandRedirect(CH.commandsRo, [ROLE.en]), null);
+  assert.equal(commandRedirect(CH.sbcEn, [ROLE.member, ROLE.en]), CH.commandsEn);
+  assert.equal(commandRedirect(CH.sbcRo, [ROLE.member, ROLE.ro]), CH.commandsRo);
+  assert.equal(commandRedirect(null, [ROLE.ro, ROLE.en]), CH.commandsEn);
+  assert.equal(commandRedirect('x', []), CH.commandsEn);
+});
+
+test('polls channel: only Admin (besides the bot) may use application commands', () => {
+  const o = overwritesFor('member', 'text', true, ids, true);
+  assert.deepEqual(o.filter((x) => x.allow.includes('UseApplicationCommands')).map((x) => x.id), [idOf(ROLE.admin)]);
+  assert.ok(o.find((x) => x.id === 'E')!.deny.includes('UseApplicationCommands'));
 });
