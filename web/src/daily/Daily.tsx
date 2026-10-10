@@ -16,7 +16,7 @@ import { ProfilePrompt } from './ProfilePrompt';
 import { Search } from './Search';
 import { Sheet, HowTo, StatsBody } from './Sheets';
 import { Stage } from './Stage';
-import { indexNames } from './search';
+import { indexNames } from './search-rules';
 import { localStats } from './stats';
 import { DAILY_FINISHED } from './usePending';
 import { clearGame, loadGame, loadPlays, markHelpSeen, recordPlay, saveGame, seenHelp } from './store';

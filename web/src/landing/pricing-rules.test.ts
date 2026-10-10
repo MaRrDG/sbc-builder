@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatEur, proPrice, yearlySaving } from './pricing.js';
+import { formatEur, proPrice, yearlySaving } from './pricing-rules.js';
 
 test('pro is 5 a month, or 3 a month billed 36 a year', () => {
   assert.deepEqual(proPrice('monthly'), { perMonth: 5, billed: 5 });

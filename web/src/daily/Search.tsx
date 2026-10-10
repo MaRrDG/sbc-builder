@@ -3,7 +3,7 @@ import { useEffect, useId, useMemo, useState, type KeyboardEvent } from 'react';
 import { MagnifyingGlass } from '@phosphor-icons/react';
 import type { DailyName, Meta } from '../api';
 import { useI18n } from '../i18n';
-import { searchNames, type Indexed } from './search';
+import { searchNames, type Indexed } from './search-rules';
 
 interface Props {
   index: Indexed[];

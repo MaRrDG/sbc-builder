@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fold, indexNames, searchNames } from './search';
+import { fold, indexNames, searchNames } from './search-rules';
 
 const list = [
   { i: 1, n: 'Ødegaard', f: 'Martin Ødegaard', c: 1 },

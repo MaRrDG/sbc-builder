@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { Check, SoccerBall } from '@phosphor-icons/react';
 import type { Route } from '../route';
 import { useI18n } from '../i18n';
-import { formatEur, proPrice, yearlySaving, FREE_WEEKLY_SOLVES, type Billing } from './pricing';
+import { formatEur, proPrice, yearlySaving, FREE_WEEKLY_SOLVES, type Billing } from './pricing-rules';
 import { Backdrop } from './Backdrop';
 import type { Founders } from './Founders';
 
