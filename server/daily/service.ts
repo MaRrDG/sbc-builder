@@ -28,14 +28,21 @@ const POOL = {
 };
 /** Below this many players there is no game at all (a fresh players table would repeat the same few). */
 const HARD_MIN_POOL = num(process.env.DAILY_HARD_MIN_POOL, 30);
-/** The women's answer pool (top women's leagues), picked with chance WOMEN_SHARE when it has WOMEN_HARD_MIN players. */
+/** The women's answer pool (top women's leagues), picked with chance DAILY_WOMEN_SHARE when it has DAILY_WOMEN_HARD_MIN players. */
 const WOMEN_POOL = {
   minRating: num(process.env.DAILY_WOMEN_MIN_RATING, 82),
   minPool: num(process.env.DAILY_WOMEN_MIN_POOL, 30),
   floor: num(process.env.DAILY_WOMEN_RATING_FLOOR, 75),
 };
-const WOMEN_HARD_MIN = num(process.env.DAILY_WOMEN_HARD_MIN, 10);
-const WOMEN_SHARE = Math.min(1, Math.max(0, num(process.env.DAILY_WOMEN_SHARE, 0.15)));
+/** The Icon answer pool (every Icon, both genders; all are 88+, so no threshold by default), picked with
+ *  chance ICON_SHARE when it has ICON_HARD_MIN players. Shares are clamped and capped in pool.ts `shares`. */
+const ICON_POOL = { minRating: num(process.env.DAILY_ICON_MIN_RATING, 0), minPool: 0, floor: 0 };
+const PICK = {
+  womenShare: num(process.env.DAILY_WOMEN_SHARE, 0.15),
+  iconShare: num(process.env.DAILY_ICON_SHARE, 0.2),
+  womenHardMin: num(process.env.DAILY_WOMEN_HARD_MIN, 10),
+  iconHardMin: num(process.env.DAILY_ICON_HARD_MIN, 10),
+};
 const ROLL = 1_000_000;
 
 /** The pool one answer is drawn from; `dailyNoPool` while the men's pool is under HARD_MIN_POOL. */
@@ -44,7 +51,8 @@ function answerPool(recent: ReadonlySet<number>, now: number): PlayerRow[] {
   const men = poolOf(rows, { ...POOL, recent, now }).players;
   if (men.length < HARD_MIN_POOL) throw err('dailyNoPool', 503, 'The daily game is not ready yet.');
   const women = poolOf(rows, { ...WOMEN_POOL, recent, now, side: 'women' }).players;
-  return pickPool(men, women, randomInt(ROLL) / ROLL, { share: WOMEN_SHARE, womenHardMin: WOMEN_HARD_MIN });
+  const icons = poolOf(rows, { ...ICON_POOL, recent, now, side: 'icons' }).players;
+  return pickPool({ men, women, icons }, randomInt(ROLL) / ROLL, PICK);
 }
 const SECRET_MIN = 32; // characters, for DAILY_SECRET and data/daily-secret alike
 const PRACTICE_TTL = 24 * 3_600_000;

@@ -29,6 +29,17 @@ export async function upsertPlayers(rows: PlayerRow[]): Promise<void> {
   }
 }
 
+/** Inserts only rows whose assetId is not in the table yet (an existing row always wins); resolves to the inserted ids. */
+export async function insertNewPlayers(rows: PlayerRow[]): Promise<number[]> {
+  const ids: number[] = [];
+  for (let i = 0; i < rows.length; i += 500) {
+    const chunk = rows.slice(i, i + 500).map((r) => ({ ...r, firstSeen: new Date(r.firstSeen), lastSeen: new Date(r.lastSeen) }));
+    const done = await db.insert(players).values(chunk).onConflictDoNothing({ target: players.assetId }).returning({ assetId: players.assetId });
+    ids.push(...done.map((d) => d.assetId));
+  }
+  return ids;
+}
+
 export async function firstAnswer(): Promise<{ day: number; dropAt: number } | null> {
   const [r] = await db.select({ day: dailyAnswers.day, dropAt: dailyAnswers.dropAt }).from(dailyAnswers).orderBy(asc(dailyAnswers.day)).limit(1);
   return r ? { day: r.day, dropAt: r.dropAt.getTime() } : null;

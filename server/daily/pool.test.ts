@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DAY } from './players.js';
-import { eligible, pickPool, poolOf, poolSizes } from './pool.js';
+import { eligible, pickPool, poolOf, poolSizes, shares } from './pool.js';
+import { HERO_CLUB_ID, LEGENDS_CLUB_ID, LEGENDS_LEAGUE_ID } from '../meta.js';
 import type { PlayerRow } from './types.js';
 
 const NOW = 2_000 * DAY;
@@ -64,17 +65,63 @@ test('poolOf builds the women pool with its own options', () => {
   assert.equal(p.minRating, 77);
 });
 
-test('pickPool: share, hard minimum and fallbacks', () => {
+const icon = (p: Partial<PlayerRow> = {}) =>
+  row({ league: LEGENDS_LEAGUE_ID, club: LEGENDS_CLUB_ID, rareflag: 12, cardType: 'icon', rating: 89, baseClubs: [], firstSeen: 0, lastSeen: 0, ...p });
+
+test('eligible icons: any Icon of either gender, no league / freshness / transfer check; heroes never', () => {
+  assert.equal(eligible(icon(), NOW, 'icons'), true);
+  assert.equal(eligible(icon({ gender: 1 }), NOW, 'icons'), true);
+  assert.equal(eligible(icon({ rareflag: 160 }), NOW, 'icons'), true); // synced from a special icon card
+  assert.equal(eligible(icon(), NOW), false); // never in the men's pool
+  assert.equal(eligible(icon({ gender: 1 }), NOW, 'women'), false);
+  assert.equal(eligible(row(), NOW, 'icons'), false);
+  const hero = row({ club: HERO_CLUB_ID, cardType: 'hero', baseClubs: [] });
+  for (const side of ['men', 'women', 'icons'] as const) assert.equal(eligible(hero, NOW, side), false);
+});
+
+test('poolOf builds the icon pool: recent dropped, min rating 0 keeps all', () => {
+  const rows = [row({ assetId: 1 }), icon({ assetId: 2 }), icon({ assetId: 3, gender: 1, rating: 87 }), icon({ assetId: 4 })];
+  const p = poolOf(rows, { minRating: 0, minPool: 0, floor: 0, recent: new Set([4]), now: NOW, side: 'icons' });
+  assert.deepEqual(p.players.map((r) => r.assetId), [2, 3]);
+  assert.deepEqual(poolOf(rows, { minRating: 88, minPool: 0, floor: 0, recent: new Set(), now: NOW, side: 'icons' }).players.map((r) => r.assetId), [2, 4]);
+  assert.deepEqual(poolSizes(rows, NOW, 88, 89, 'icons'), { 88: 2, 89: 2 });
+});
+
+test('shares: each clamped to [0, 1], women keep theirs, icons get at most what is left', () => {
+  assert.deepEqual(shares(0.15, 0.2), { women: 0.15, icons: 0.2 });
+  assert.deepEqual(shares(0.7, 0.6), { women: 0.7, icons: 1 - 0.7 });
+  assert.deepEqual(shares(7, 1), { women: 1, icons: 0 });
+  assert.deepEqual(shares(-1, 2), { women: 0, icons: 1 });
+  assert.deepEqual(shares(NaN, NaN), { women: 0, icons: 0 });
+});
+
+test('pickPool: shares, hard minimums and fallbacks', () => {
   const men = ['m1', 'm2'];
   const women = ['w1', 'w2', 'w3'];
-  const o = { share: 0.15, womenHardMin: 3 };
-  assert.equal(pickPool(men, women, 0.1, o), women);
-  assert.equal(pickPool(men, women, 0.15, o), men);
-  assert.equal(pickPool(men, women, 0, { ...o, share: 0 }), men); // share 0: always men
-  assert.equal(pickPool(men, women, 0.999, { ...o, share: 1 }), women); // share 1: women when big enough
-  assert.equal(pickPool(men, women, 0.1, { ...o, womenHardMin: 4 }), men); // too small: men
-  assert.equal(pickPool(men, [], 0.1, { ...o, womenHardMin: 0 }), men); // empty never chosen
-  assert.equal(pickPool([], women, 0.9, o), women); // no men: women
-  assert.equal(pickPool(men, women, 0.5, { ...o, share: 7 }), women); // clamped to 1
-  assert.equal(pickPool(men, women, 0, { ...o, share: -1 }), men); // clamped to 0
+  const icons = ['i1', 'i2', 'i3', 'i4'];
+  const p = { men, women, icons };
+  const o = { womenShare: 0.15, iconShare: 0.2, womenHardMin: 3, iconHardMin: 4 };
+  // [0, 0.15) women, [0.15, 0.35) icons, [0.35, 1) men: the ranges don't overlap
+  assert.equal(pickPool(p, 0, o), women);
+  assert.equal(pickPool(p, 0.1499, o), women);
+  assert.equal(pickPool(p, 0.15, o), icons);
+  assert.equal(pickPool(p, 0.3499, o), icons);
+  assert.equal(pickPool(p, 0.35, o), men);
+  assert.equal(pickPool(p, 0.999, o), men);
+  for (const r of [0, 0.2, 0.5, 0.999]) assert.equal(pickPool(p, r, { ...o, womenShare: 0, iconShare: 0 }), men); // shares 0: always men
+  for (const r of [0, 0.5, 0.999]) assert.equal(pickPool(p, r, { ...o, womenShare: 0, iconShare: 1 }), icons); // icon share 1: icons when big enough
+  assert.equal(pickPool(p, 0.2, { ...o, iconHardMin: 5 }), men); // too small icon pool: men
+  assert.equal(pickPool(p, 0.1, { ...o, womenHardMin: 4 }), men); // too small women pool: men
+  assert.equal(pickPool({ men, women, icons: [] }, 0.2, { ...o, iconHardMin: 0 }), men); // empty never chosen
+  assert.equal(pickPool({ men: [], women, icons }, 0.9, o), women); // no men: the first usable other pool
+  assert.equal(pickPool({ men: [], women, icons }, 0.2, o), icons); // no men: the chosen pool when usable
+  assert.equal(pickPool({ men: [], women: [], icons }, 0.9, o), icons);
+  assert.equal(pickPool({ men: [], women: [], icons: [] }, 0.9, o).length, 0); // nothing usable: an empty pool
+  // sum > 1: women keep 0.7, icons get the remaining 0.3, men get nothing
+  const over = { ...o, womenShare: 0.7, iconShare: 0.6 };
+  assert.equal(pickPool(p, 0.69, over), women);
+  assert.equal(pickPool(p, 0.7, over), icons);
+  assert.equal(pickPool(p, 0.999, over), icons);
+  assert.equal(pickPool(p, 0.5, { ...o, womenShare: 7, iconShare: 0 }), women); // clamped to 1
+  assert.equal(pickPool(p, 0, { ...o, womenShare: -1, iconShare: -1 }), men); // clamped to 0
 });

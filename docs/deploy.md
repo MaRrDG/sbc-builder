@@ -62,8 +62,18 @@ Until the answer pool has `DAILY_HARD_MIN_POOL` players, `/daily` and Practice a
 - `DAILY_WOMEN_SHARE` (0.15, clamped to 0..1): chance that a Daily / Practice answer comes from the women's pool (WSL, Liga F, Frauen-Bundesliga, D1 Arkema, Serie A Femminile); `0` turns it off.
 - `DAILY_WOMEN_MIN_RATING` (82) / `DAILY_WOMEN_RATING_FLOOR` (75) / `DAILY_WOMEN_MIN_POOL` (30): the women's pool, stepped down the same way.
 - `DAILY_WOMEN_HARD_MIN` (10): a smaller women's pool is never used (the answer comes from the men's pool).
+- `DAILY_ICON_SHARE` (0.20): chance that the answer is an Icon (any Icon, men or women; Heroes never). Each share is clamped to 0..1; when `DAILY_WOMEN_SHARE` + `DAILY_ICON_SHARE` is over 1 the women keep theirs and the icons get the rest (the men's pool then gets 0). One roll in [0, 1): below the women's share → women, then the icons' share → icons, else men. `0` turns icons off.
+- `DAILY_ICON_MIN_RATING` (0 = every Icon; all are 88+): optional rating threshold for the icon pool.
+- `DAILY_ICON_HARD_MIN` (10): a smaller icon pool is never used (the answer comes from the men's pool).
 
-The migration adding `players.gender` marks rows in the women's leagues as women; re-run `docker compose exec app npm run daily:import` after deploying it, so every player's gender comes from the cached EA items (Icons hold both genders). It also prints both pool sizes.
+The migration adding `players.gender` marks rows in the women's leagues as women; re-run `docker compose exec app npm run daily:import` after deploying it, so every player's gender comes from the cached EA items (Icons hold both genders). It also prints the pool sizes.
+
+Icons: `daily:import` also seeds every Icon of `server/daily/icons.json` (fut.gg catalogue: nation, position, gender; name and rating from EA static `data/static.json`) that is not in `players` yet. A row synced from EA items always wins and is never rewritten; re-running inserts nothing new. Re-run it, then restart the app, after the first deploy with icons and after every `icons.json` update (re-dump recipe at the top of `scripts/daily-import.ts`):
+
+```bash
+docker compose exec app npm run daily:import   # prints "icons: … added, … already present" and the icon pool size
+docker compose restart app                     # the running server loads players once and would not see the seeded icons
+```
 
 ### Completion history
 

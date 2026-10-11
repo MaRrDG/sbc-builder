@@ -1,6 +1,6 @@
 // Who can be the Daily / Practice answer: well-known players (top leagues, high base rating) whose
-// club we are sure of. Popularity is by rating only, never by how many clubs own the player.
-// Two pools: men (the usual answer) and women (now and then, see pickPool).
+// club we are sure of, or an Icon. Popularity is by rating only, never by how many clubs own the player.
+// Three pools: men (the usual answer), women and icons (now and then, see pickPool). Heroes never.
 import { DAY, baseSeen, inTransfer } from './players.js';
 import type { PlayerRow } from './types.js';
 
@@ -10,15 +10,18 @@ export const TOP_WOMEN = [2216, 2222, 2215, 2218, 2236] as const;
 export const FRESH_MS = 30 * DAY;
 export const RECENT_DAYS = 60;
 
-export type Side = 'men' | 'women';
-const SIDES: Record<Side, { leagues: readonly number[]; gender: number }> = {
+export type Side = 'men' | 'women' | 'icons';
+const SIDES: Record<'men' | 'women', { leagues: readonly number[]; gender: number }> = {
   men: { leagues: TOP5, gender: 0 },
   women: { leagues: TOP_WOMEN, gender: 1 },
 };
 
 export interface PoolOpts { minRating: number; minPool: number; floor: number; recent: ReadonlySet<number>; now: number; side?: Side }
 
+/** men / women: a top league of that gender, base card seen lately, not mid-transfer. icons: any Icon,
+ *  either gender (icons don't move clubs: no league / freshness / transfer check). */
 export function eligible(r: PlayerRow, now: number, side: Side = 'men'): boolean {
+  if (side === 'icons') return r.cardType === 'icon';
   const s = SIDES[side];
   const seen = baseSeen(r);
   return s.leagues.includes(r.league) && r.gender === s.gender && seen !== null && now - seen <= FRESH_MS && !inTransfer(r, now);
@@ -36,16 +39,43 @@ export function poolOf(rows: Iterable<PlayerRow>, o: PoolOpts): { players: Playe
   return { players, minRating };
 }
 
-export interface PickOpts { /** chance of the women pool, clamped to [0, 1] */ share: number; /** smallest usable women pool */ womenHardMin: number }
+export interface PickOpts {
+  /** chance of the women pool */
+  womenShare: number;
+  /** chance of the icon pool */
+  iconShare: number;
+  /** smallest usable women pool */
+  womenHardMin: number;
+  /** smallest usable icon pool */
+  iconHardMin: number;
+}
 
-/** Which pool the answer comes from. `roll` is uniform in [0, 1): below `share` → women, when that pool is
- *  big enough; a too-small chosen pool falls back to the other one. */
-export function pickPool<T>(men: T[], women: T[], roll: number, o: PickOpts): T[] {
-  const share = Math.min(1, Math.max(0, Number.isFinite(o.share) ? o.share : 0));
-  const womenOk = women.length > 0 && women.length >= o.womenHardMin;
-  if (roll < share && womenOk) return women;
-  if (men.length) return men;
-  return womenOk ? women : men;
+const unit = (v: number) => Math.min(1, Math.max(0, Number.isFinite(v) ? v : 0));
+
+/** Each share clamped to [0, 1]; when they add up to more than 1 the women keep theirs and the icons get
+ *  what is left (the men's share ends at 0, never below). */
+export function shares(womenShare: number, iconShare: number): { women: number; icons: number } {
+  const women = unit(womenShare);
+  return { women, icons: Math.min(unit(iconShare), 1 - women) };
+}
+
+export interface Pools<T> { men: T[]; women: T[]; icons: T[] }
+
+/** Which pool the answer comes from. `roll` is uniform in [0, 1): [0, women) → women, [women, women + icons)
+ *  → icons, the rest → men. A chosen pool under its hard minimum falls back to men; with no men, to
+ *  whichever other pool is usable. */
+export function pickPool<T>(p: Pools<T>, roll: number, o: PickOpts): T[] {
+  const s = shares(o.womenShare, o.iconShare);
+  const ok: Record<Side, boolean> = {
+    men: p.men.length > 0,
+    women: p.women.length > 0 && p.women.length >= o.womenHardMin,
+    icons: p.icons.length > 0 && p.icons.length >= o.iconHardMin,
+  };
+  const want: Side = roll < s.women ? 'women' : roll < s.women + s.icons ? 'icons' : 'men';
+  if (ok[want]) return p[want];
+  if (ok.men) return p.men;
+  const other = (['women', 'icons'] as const).find((k) => ok[k]);
+  return other ? p[other] : p.men;
 }
 
 export function poolSizes(rows: Iterable<PlayerRow>, now: number, from: number, to: number, side: Side = 'men'): Record<number, number> {

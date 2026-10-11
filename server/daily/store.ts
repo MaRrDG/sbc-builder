@@ -2,7 +2,7 @@
 // every cache write that carries EA player items; never calls EA.
 import { loadMeta } from '../meta.js';
 import { onCacheWrite } from '../store.js';
-import { allPlayers, upsertPlayers } from '../db/daily.js';
+import { allPlayers, insertNewPlayers, upsertPlayers } from '../db/daily.js';
 import { itemsFromCache } from './ingest.js';
 import { mergePlayer, observe } from './players.js';
 import type { PlayerRow } from './types.js';
@@ -46,6 +46,22 @@ export function ingestItems(items: unknown[], now = Date.now()): Promise<number>
     for (const r of changed.values()) rows.set(r.assetId, r);
     version++;
     return changed.size;
+  });
+  queue = run.catch(() => {});
+  return run;
+}
+
+/** Adds rows for players not in the table yet (Icon seeding); a row already there, here or in Postgres,
+ *  is never overwritten. Resolves to the number of rows inserted. Runs in the ingest queue. */
+export function seedPlayers(seed: PlayerRow[]): Promise<number> {
+  const run = queue.then(async () => {
+    await loadPlayers();
+    const fresh = seed.filter((r) => !rows.has(r.assetId));
+    if (!fresh.length) return 0;
+    const ids = new Set(await insertNewPlayers(fresh));
+    for (const r of fresh) if (ids.has(r.assetId)) rows.set(r.assetId, r);
+    version++;
+    return ids.size;
   });
   queue = run.catch(() => {});
   return run;
