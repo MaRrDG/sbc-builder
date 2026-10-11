@@ -356,6 +356,44 @@
   line-height: 1.45;
   text-align: center;
 }
+/* when a tile turns amber: always under the grid */
+.dg-legend {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.dg-legend-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.dg-legend .dg-sample { width: 22px; height: 22px; font-size: 13px; }
+.dg-legend-l {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 6px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink-3);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+.dg-legend-l li { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.dg-legend-l li.is-never { grid-column: 1 / -1; }
+.dg-legend-l b { color: var(--ink-2); font-weight: 600; }
+.dg-legend-i {
+  display: inline-flex;
+  flex: none;
+  gap: 3px;
+  min-width: 14px;
+  padding-top: 2px;
+  font-size: 14px;
+}
 .dg-search { margin-bottom: 14px; }
 .dg-search-top {
   display: flex;
@@ -445,7 +483,7 @@
 .dg-head,
 .dg-row {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: clamp(4px, 1.5vw, 6px);
 }
 .dg-head { padding-bottom: 2px; }
@@ -454,11 +492,18 @@
   align-items: center;
   justify-content: center;
   gap: 5px;
+  min-width: 0;
   color: var(--ink-3);
   font-size: 12px;
   font-weight: 500;
 }
 .dg-head-c svg { flex: none; font-size: 14px; }
+.dg-head-l {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .dg-row { margin-top: 10px; }
 .dg-name {
   grid-column: 1 / -1;
@@ -535,6 +580,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.dg-val-icon { display: flex; }
+.dg-val-icon svg { display: block; }
 .dg-dir { flex: none; font-size: 15px; }
 .dg-strip-s {
   display: grid;
@@ -869,9 +916,8 @@
   .dg-actions { width: 100%; }
   .dg-tabs { margin-right: auto; }
 }
-@media (max-width: 420px) {
-  .dg-top-end { gap: 2px; }
-  .dg-toplink { padding: 0 8px; }
+/* 7 columns: below this the header keeps only the icons (labels stay for screen readers) */
+@media (max-width: 560px) {
   .dg-head-l {
     position: absolute;
     width: 1px;
@@ -881,6 +927,10 @@
     white-space: nowrap;
   }
   .dg-head-c svg { font-size: 16px; }
+}
+@media (max-width: 420px) {
+  .dg-top-end { gap: 2px; }
+  .dg-toplink { padding: 0 8px; }
   .dg-tile { grid-template-rows: minmax(0, 1fr) 14px; }
   .dg-tile-v { padding: 0 2px; }
   .dg-tile-v img { max-width: 80%; }

@@ -12,7 +12,7 @@ import type { PlayerRow } from './types.js';
 const S = 'audit-secret-0123456789abcdef0123';
 const row = (assetId: number, p: Partial<PlayerRow> = {}): PlayerRow => ({
   assetId, name: `P${assetId}`, fullName: `Player ${assetId}`, nation: 18, league: 13, club: 1, position: 'ST', rating: 86, rareflag: 1,
-  cardType: 'normal', baseClubs: [], firstSeen: 0, lastSeen: 0, ...p,
+  cardType: 'normal', gender: 0, baseClubs: [], firstSeen: 0, lastSeen: 0, ...p,
 });
 const ANSWER = row(100);
 const rows = new Map([100, 1, 2, 3, 4, 5, 6].map((id) => [id, id === 100 ? ANSWER : row(id, { club: id + 10 })]));

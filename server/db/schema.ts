@@ -231,6 +231,7 @@ export const players = pgTable(
     rating: integer('rating').notNull(),
     rareflag: integer('rareflag').notNull(),
     cardType: text('card_type').notNull(), // 'normal' | 'icon' | 'hero'
+    gender: integer('gender').notNull().default(0), // EA item gender: 0 men, 1 women
     baseClubs: jsonb('base_clubs').$type<{ club: number; league: number; lastSeen: number }[]>().notNull().default([]),
     firstSeen: timestamp('first_seen', { withTimezone: true }).notNull(),
     lastSeen: timestamp('last_seen', { withTimezone: true }).notNull(),

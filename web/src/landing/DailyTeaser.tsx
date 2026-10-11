@@ -1,11 +1,11 @@
 // "Guess today's player" teaser, right after the hero: the Daily's mystery card (gold shield art from the
-// demo, the silhouette, "?" for the name) above one fixed example guess whose six tiles flip in, in the
+// demo, the silhouette, "?" for the name) above one fixed example guess whose seven tiles flip in, in the
 // game's order, once the demo scrolls into view. Same vocabulary as /daily (✓ ≈ ✕ glyphs + screen-reader
 // text, never colour alone). Everything is visible by default; `is-in` only replays the motion
 // (reduced motion: the final state only). Today's number comes from /api/daily and simply stays hidden if
 // that call fails.
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { ArrowUp, Cards, Crosshair, Crown, Flag, Shield, Star, Trophy, type Icon } from '@phosphor-icons/react';
+import { ArrowUp, Cards, Crosshair, Crown, Flag, GenderIntersex, GenderMale, Shield, Star, Trophy, type Icon } from '@phosphor-icons/react';
 import { api } from '../api';
 import { cardArt } from '../components/Card';
 import { Silhouette } from '../daily/Silhouette';
@@ -14,7 +14,7 @@ import type { Route } from '../route';
 import { DEMO_META, DEMO_SQUAD } from './demo';
 import { useInView } from './motion';
 
-type Col = 'nation' | 'league' | 'club' | 'position' | 'rating' | 'cardType';
+type Col = 'nation' | 'league' | 'club' | 'position' | 'rating' | 'cardType' | 'gender';
 type State = 'hit' | 'near' | 'miss';
 const GLYPH: Record<State, string> = { hit: '✓', near: '≈', miss: '✕' };
 
@@ -27,6 +27,7 @@ const TILES: { col: Col; icon: Icon; state: State; up?: boolean }[] = [
   { col: 'position', icon: Crosshair, state: 'near' },
   { col: 'rating', icon: Star, state: 'miss', up: true },
   { col: 'cardType', icon: Cards, state: 'hit' },
+  { col: 'gender', icon: GenderIntersex, state: 'hit' },
 ];
 
 interface Props {
@@ -71,6 +72,13 @@ export function DailyTeaser({ link }: Props) {
         return <span className="lp-dly-val">{GUESS.rating}</span>;
       case 'cardType':
         return <span className="lp-dly-val lp-dly-val-sm">{t('daily.card.normal')}</span>;
+      case 'gender':
+        return (
+          <span className="lp-dly-val">
+            <GenderMale weight="bold" aria-hidden="true" />
+            <span className="sr-only">{t('daily.gender.m')}</span>
+          </span>
+        );
     }
   };
 

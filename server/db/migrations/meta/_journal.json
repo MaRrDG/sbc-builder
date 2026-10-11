@@ -113,6 +113,13 @@
       "when": 1791540181438,
       "tag": "0015_regular_solo",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1791742228098,
+      "tag": "0016_red_prodigy",
+      "breakpoints": true
     }
   ]
 }

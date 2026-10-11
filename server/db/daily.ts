@@ -8,7 +8,7 @@ import { pointsFor, streakOf, type Play } from '../daily/streak.js';
 import type { AnonDay } from '../daily/summary.js';
 
 const toRow = (r: typeof players.$inferSelect): PlayerRow => ({
-  ...r, cardType: r.cardType as PlayerRow['cardType'], firstSeen: r.firstSeen.getTime(), lastSeen: r.lastSeen.getTime(),
+  ...r, cardType: r.cardType as PlayerRow['cardType'], gender: r.gender === 1 ? 1 : 0, firstSeen: r.firstSeen.getTime(), lastSeen: r.lastSeen.getTime(),
 });
 
 export async function allPlayers(): Promise<PlayerRow[]> {
@@ -23,7 +23,7 @@ export async function upsertPlayers(rows: PlayerRow[]): Promise<void> {
       set: {
         name: sql`excluded.name`, fullName: sql`excluded.full_name`, nation: sql`excluded.nation`, league: sql`excluded.league`,
         club: sql`excluded.club`, position: sql`excluded.position`, rating: sql`excluded.rating`, rareflag: sql`excluded.rareflag`,
-        cardType: sql`excluded.card_type`, baseClubs: sql`excluded.base_clubs`, lastSeen: sql`excluded.last_seen`,
+        cardType: sql`excluded.card_type`, gender: sql`excluded.gender`, baseClubs: sql`excluded.base_clubs`, lastSeen: sql`excluded.last_seen`,
       },
     });
   }

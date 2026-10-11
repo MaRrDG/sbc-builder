@@ -16,5 +16,6 @@ export function compareTiles(g: Hidden, a: Hidden): Tiles {
     position: g.position === a.position ? hit : near(positionLine(g.position), positionLine(a.position)),
     rating: diff === 0 ? hit : { state: Math.abs(diff) <= 2 ? 'near' : 'miss', dir },
     cardType: g.cardType === a.cardType ? hit : miss,
+    gender: g.gender === a.gender ? hit : miss,
   };
 }

@@ -740,7 +740,7 @@
   letter-spacing: 0.02em;
 }
 .lp-dly-chip b { color: var(--ink); }
-.lp-dly-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.lp-dly-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
 .lp-dly-tile {
   --c: var(--surface-3);
   position: relative;
@@ -768,6 +768,7 @@
 .lp-dly-v img { display: block; max-width: 72%; height: 26px; object-fit: contain; }
 .lp-dly-val { font: 700 21px/1 var(--font-num); }
 .lp-dly-val-sm { overflow: hidden; font: 600 12px/1.1 var(--font-ui); text-overflow: ellipsis; white-space: nowrap; }
+.lp-dly-val svg { display: block; }
 .lp-dly-dir { flex: none; font-size: 15px; }
 .lp-dly-s { display: grid; place-items: center; background: var(--c); color: var(--go-ink); font-size: 11px; font-weight: 800; line-height: 1; }
 .lp-dly-tile.is-near .lp-dly-s { color: var(--near-ink); }

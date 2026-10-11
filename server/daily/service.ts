@@ -12,7 +12,7 @@ import { answerFor, answersSince, firstAnswer, guessDaily, insertAnswer, playOf,
 import { leaderboardSource, profileOf } from '../db/dailyProfile.js';
 import { dayFor, dropDate, nextDropAfter, staleDay } from './day.js';
 import { applyGuess, gameView, progressOf, type GameView, type GuessRow, type Silhouette, type Answer } from './game.js';
-import { RECENT_DAYS, poolOf } from './pool.js';
+import { RECENT_DAYS, pickPool, poolOf } from './pool.js';
 import { rankLeaderboard, type LbRow } from './leaderboard.js';
 import { loadPlayers, namesList, playerById, playerRows } from './store.js';
 import { statsOf, type Stats } from './streak.js';
@@ -28,6 +28,24 @@ const POOL = {
 };
 /** Below this many players there is no game at all (a fresh players table would repeat the same few). */
 const HARD_MIN_POOL = num(process.env.DAILY_HARD_MIN_POOL, 30);
+/** The women's answer pool (top women's leagues), picked with chance WOMEN_SHARE when it has WOMEN_HARD_MIN players. */
+const WOMEN_POOL = {
+  minRating: num(process.env.DAILY_WOMEN_MIN_RATING, 82),
+  minPool: num(process.env.DAILY_WOMEN_MIN_POOL, 30),
+  floor: num(process.env.DAILY_WOMEN_RATING_FLOOR, 75),
+};
+const WOMEN_HARD_MIN = num(process.env.DAILY_WOMEN_HARD_MIN, 10);
+const WOMEN_SHARE = Math.min(1, Math.max(0, num(process.env.DAILY_WOMEN_SHARE, 0.15)));
+const ROLL = 1_000_000;
+
+/** The pool one answer is drawn from; `dailyNoPool` while the men's pool is under HARD_MIN_POOL. */
+function answerPool(recent: ReadonlySet<number>, now: number): PlayerRow[] {
+  const rows = [...playerRows()];
+  const men = poolOf(rows, { ...POOL, recent, now }).players;
+  if (men.length < HARD_MIN_POOL) throw err('dailyNoPool', 503, 'The daily game is not ready yet.');
+  const women = poolOf(rows, { ...WOMEN_POOL, recent, now, side: 'women' }).players;
+  return pickPool(men, women, randomInt(ROLL) / ROLL, { share: WOMEN_SHARE, womenHardMin: WOMEN_HARD_MIN });
+}
 const SECRET_MIN = 32; // characters, for DAILY_SECRET and data/daily-secret alike
 const PRACTICE_TTL = 24 * 3_600_000;
 
@@ -77,8 +95,7 @@ async function pick(drop: number, now: number): Promise<Today> {
   let row = await answerFor(day);
   if (!row) {
     const recent = new Set(await answersSince(day - RECENT_DAYS));
-    const { players } = poolOf(playerRows(), { ...POOL, recent, now });
-    if (players.length < HARD_MIN_POOL) throw err('dailyNoPool', 503, 'The daily game is not ready yet.');
+    const players = answerPool(recent, now);
     await insertAnswer({ day, date: dropDate(drop, TZ), dropAt: drop, assetId: players[randomInt(players.length)].assetId });
     row = await answerFor(day); // another process may have won the insert: the stored one counts
   }
@@ -158,8 +175,7 @@ export async function guessToday(userId: string | null, assetId: number, state: 
 
 export async function newPractice(now = Date.now()): Promise<{ token: string }> {
   await loadPlayers();
-  const { players } = poolOf(playerRows(), { ...POOL, recent: new Set(), now });
-  if (players.length < HARD_MIN_POOL) throw err('dailyNoPool', 503, 'The daily game is not ready yet.');
+  const players = answerPool(new Set(), now);
   const a = players[randomInt(players.length)].assetId;
   return { token: sealPractice(await dailySecret(), { id: randomBytes(9).toString('base64url'), a, exp: now + PRACTICE_TTL }) };
 }

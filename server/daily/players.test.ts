@@ -3,18 +3,45 @@ import assert from 'node:assert/strict';
 import { DAY, SEEN_STEP, baseSeen, cardTypeOf, inTransfer, mergePlayer, observe, type Observation } from './players.js';
 import { HERO_CLUB_ID, LEGENDS_CLUB_ID, LEGENDS_LEAGUE_ID } from '../meta.js';
 
-const ob = (p: Partial<Observation> = {}): Observation => ({ assetId: 10, rareflag: 1, rating: 84, nation: 14, league: 13, club: 1, position: 'CM', ...p });
+const ob = (p: Partial<Observation> = {}): Observation => ({ assetId: 10, rareflag: 1, rating: 84, nation: 14, league: 13, club: 1, position: 'CM', gender: 0, ...p });
 const names = { name: 'Rice', full: 'Declan Rice', rating: 84 };
 const T = 1_000 * DAY;
 
 test('observe reads club items, objective rewards (teamId) and rejects junk', () => {
-  const item = { itemType: 'player', assetId: 10, rareflag: 0, rating: 80, nation: 14, leagueId: 13, teamid: 1, preferredPosition: 'ST' };
-  assert.deepEqual(observe(item), { assetId: 10, rareflag: 0, rating: 80, nation: 14, league: 13, club: 1, position: 'ST' });
+  const item = { itemType: 'player', assetId: 10, rareflag: 0, rating: 80, nation: 14, leagueId: 13, teamid: 1, preferredPosition: 'ST', gender: 0 };
+  assert.deepEqual(observe(item), { assetId: 10, rareflag: 0, rating: 80, nation: 14, league: 13, club: 1, position: 'ST', gender: 0 });
   assert.equal(observe({ ...item, teamid: undefined, teamId: 7 })?.club, 7);
   assert.equal(observe({ ...item, itemType: 'training' }), null);
   assert.equal(observe({ ...item, assetId: 0 }), null);
   assert.equal(observe({ ...item, rareflag: -1 }), null);
   assert.equal(observe(null), null);
+});
+
+test('observe: item gender wins, else inferred from a women league', () => {
+  const item = { itemType: 'player', assetId: 10, rareflag: 0, rating: 80, nation: 14, leagueId: 2216, teamid: 1, preferredPosition: 'ST' };
+  assert.deepEqual(observe({ ...item, gender: 0 })?.gender, 0); // item says man: league ignored
+  assert.equal(observe({ ...item, gender: 0 })?.guessedGender, undefined);
+  assert.equal(observe({ ...item, leagueId: 2118, gender: 1 })?.gender, 1); // icons hold both
+  const g = observe(item)!;
+  assert.equal(g.gender, 1);
+  assert.equal(g.guessedGender, true);
+  assert.equal(observe({ ...item, leagueId: 13 })?.gender, 0);
+  assert.equal(observe({ ...item, leagueId: 2118, gender: 7 })?.gender, 0); // invalid → league fallback
+});
+
+test('gender: set on new rows, corrected by any card, unchanged → null', () => {
+  const r = mergePlayer(undefined, ob({ gender: 1 }), names, T)!;
+  assert.equal(r.gender, 1);
+  assert.equal(mergePlayer(r, ob({ gender: 1 }), names, T + 1000), null);
+  const fixed = mergePlayer(r, ob({ rareflag: 3, gender: 0 }), names, T + 1000)!; // special card, within SEEN_STEP
+  assert.equal(fixed.gender, 0);
+  assert.equal(fixed.lastSeen, T);
+  assert.equal(fixed.club, 1);
+  assert.equal(mergePlayer(fixed, ob({ rareflag: 3, gender: 0 }), names, T + 2000), null);
+  assert.equal(mergePlayer(fixed, ob({ gender: 1 }), names, T + 2000)?.gender, 1); // base card
+  // an inferred gender never overrides the row's
+  assert.equal(mergePlayer(r, ob({ gender: 0, guessedGender: true }), names, T + 1000), null);
+  assert.equal(mergePlayer(r, ob({ rareflag: 3, gender: 0, guessedGender: true }), names, T + 1000), null);
 });
 
 test('cardTypeOf: icons by club or league, heroes by club', () => {

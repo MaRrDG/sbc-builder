@@ -1,5 +1,6 @@
 // One-off: fill the Daily players table from what data/accounts already holds, then print the
-// answer pool size per rating threshold (to tune DAILY_MIN_RATING). Reads the cache only; no EA call.
+// answer pool sizes per rating threshold (to tune DAILY_MIN_RATING / DAILY_WOMEN_MIN_RATING). Re-running it
+// also corrects players' gender from the cached items. Reads the cache only; no EA call.
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { initDb, closeDb } from '../server/db/index.js';
@@ -24,4 +25,5 @@ for (const persona of await readdir(root).catch(() => [] as string[])) {
 const all = [...playerRows()];
 console.log(`players: ${all.length} rows (${written} written)`);
 console.log('pool size by min rating:', poolSizes(all, Date.now(), 75, 86));
+console.log('women pool size by min rating:', poolSizes(all, Date.now(), 75, 86, 'women'));
 await closeDb();

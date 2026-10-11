@@ -6,7 +6,7 @@ import { useI18n } from '../i18n';
 import { Silhouette } from './Silhouette';
 
 /** The revealed answer as a Card player (gold tier; Card only reads these fields). */
-export const toCardPlayer = (a: DailyAnswer): Player => ({
+export const toCardPlayer = (a: Omit<DailyAnswer, 'gender'>): Player => ({
   id: a.id, assetId: a.id, resourceId: a.id, name: a.name, fullName: a.fullName, rating: a.rating, rareflag: a.rareflag, tier: 3,
   preferredPosition: a.position, possiblePositions: [a.position], club: a.club, league: a.league, nation: a.nation,
   untradeable: true, state: 'free', isLoan: false, rarityName: '', attributes: [], skillMoves: 0, weakFoot: 0, foot: 'Right',

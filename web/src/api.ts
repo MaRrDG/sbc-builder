@@ -401,9 +401,11 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
 
 export type DailyTileState = 'hit' | 'near' | 'miss';
 export interface DailyTile { state: DailyTileState; dir?: 'up' | 'down' }
-export interface DailyTiles { nation: DailyTile; league: DailyTile; club: DailyTile; position: DailyTile; rating: DailyTile; cardType: DailyTile }
+export interface DailyTiles { nation: DailyTile; league: DailyTile; club: DailyTile; position: DailyTile; rating: DailyTile; cardType: DailyTile; gender: DailyTile }
 export type DailyCardType = 'normal' | 'icon' | 'hero';
-export interface DailyPlayer { id: number; name: string; nation: number; league: number; club: number; position: string; rating: number; cardType: DailyCardType }
+/** EA item gender: 0 men, 1 women. */
+export type DailyGender = 0 | 1;
+export interface DailyPlayer { id: number; name: string; nation: number; league: number; club: number; position: string; rating: number; cardType: DailyCardType; gender: DailyGender }
 export interface DailyAnswer extends DailyPlayer { fullName: string; rareflag: number }
 export interface DailySilhouette { rating: number; position: string; rareflag: number; cardType: DailyCardType }
 export interface DailyRow { player: DailyPlayer; tiles: DailyTiles }

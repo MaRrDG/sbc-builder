@@ -57,8 +57,13 @@ docker compose restart app                     # the server loads the players in
 Until the answer pool has `DAILY_HARD_MIN_POOL` players, `/daily` and Practice answer `503 dailyNoPool` ("not ready yet") instead of picking from a tiny pool. Environment (all optional; compose does not forward them by default, add the ones you set to the app's `environment`, e.g. `DAILY_SECRET: ${DAILY_SECRET:-}`):
 
 - `DAILY_SECRET`: signs the state tokens and seals Practice answers; at least 32 characters (`openssl rand -hex 32`). Missing or shorter: one is generated into `data/daily-secret` (kept across rebuilds with `data/`).
-- `DAILY_MIN_RATING` (82): rating of the answer pool; it steps down to `DAILY_RATING_FLOOR` (75) until the pool has `DAILY_MIN_POOL` (150) players.
-- `DAILY_HARD_MIN_POOL` (30): below this many players there is no game at all.
+- `DAILY_MIN_RATING` (82): rating of the (men's, top 5 leagues) answer pool; it steps down to `DAILY_RATING_FLOOR` (75) until the pool has `DAILY_MIN_POOL` (150) players.
+- `DAILY_HARD_MIN_POOL` (30): below this many players in the men's pool there is no game at all.
+- `DAILY_WOMEN_SHARE` (0.15, clamped to 0..1): chance that a Daily / Practice answer comes from the women's pool (WSL, Liga F, Frauen-Bundesliga, D1 Arkema, Serie A Femminile); `0` turns it off.
+- `DAILY_WOMEN_MIN_RATING` (82) / `DAILY_WOMEN_RATING_FLOOR` (75) / `DAILY_WOMEN_MIN_POOL` (30): the women's pool, stepped down the same way.
+- `DAILY_WOMEN_HARD_MIN` (10): a smaller women's pool is never used (the answer comes from the men's pool).
+
+The migration adding `players.gender` marks rows in the women's leagues as women; re-run `docker compose exec app npm run daily:import` after deploying it, so every player's gender comes from the cached EA items (Icons hold both genders). It also prints both pool sizes.
 
 ### Completion history
 

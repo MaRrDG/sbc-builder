@@ -5,7 +5,7 @@ import type { PlayerRow } from './types.js';
 
 const row = (assetId: number, p: Partial<PlayerRow> = {}): PlayerRow => ({
   assetId, name: `P${assetId}`, fullName: `Player ${assetId}`, nation: 18, league: 13, club: 1, position: 'ST', rating: 86, rareflag: 1,
-  cardType: 'normal', baseClubs: [], firstSeen: 0, lastSeen: 0, ...p,
+  cardType: 'normal', gender: 0, baseClubs: [], firstSeen: 0, lastSeen: 0, ...p,
 });
 const ANSWER = row(100);
 const rows = new Map([100, 1, 2, 3, 4, 5].map((id) => [id, id === 100 ? ANSWER : row(id, { club: id + 10 })]));
@@ -47,4 +47,13 @@ test('the finished view reveals the answer and drops the silhouette', () => {
   assert.equal(v.answer?.id, 100);
   assert.equal(v.answer?.fullName, 'Player 100');
   assert.equal(v.rows[0].tiles.club.state, 'miss');
+});
+
+test('rows carry the guess gender and its tile', () => {
+  const w = new Map<number, PlayerRow>(rows).set(7, row(7, { gender: 1 }));
+  const v = gameView(progressOf([1, 7], 100), ANSWER, (id) => w.get(id));
+  assert.equal(v.rows[0].player.gender, 0);
+  assert.equal(v.rows[0].tiles.gender.state, 'hit');
+  assert.equal(v.rows[1].player.gender, 1);
+  assert.equal(v.rows[1].tiles.gender.state, 'miss');
 });

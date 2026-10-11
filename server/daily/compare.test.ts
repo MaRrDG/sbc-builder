@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { compareTiles } from './compare.js';
 import type { Hidden } from './types.js';
 
-const a: Hidden = { nation: 18, league: 13, club: 1, position: 'ST', rating: 86, cardType: 'normal' };
+const a: Hidden = { nation: 18, league: 13, club: 1, position: 'ST', rating: 86, cardType: 'normal', gender: 0 };
 
 test('all hits', () => {
   const t = compareTiles(a, a);
@@ -25,6 +25,11 @@ test('league: same country is near', () => {
 test('club and card type: hit or miss only', () => {
   assert.equal(compareTiles({ ...a, club: 2 }, a).club.state, 'miss');
   assert.equal(compareTiles({ ...a, cardType: 'hero' }, a).cardType.state, 'miss');
+});
+
+test('gender: hit or miss only, no arrow', () => {
+  assert.deepEqual(compareTiles({ ...a, gender: 1 }, a).gender, { state: 'miss' });
+  assert.deepEqual(compareTiles({ ...a, gender: 1 }, { ...a, gender: 1 }).gender, { state: 'hit' });
 });
 
 test('position: same line is near, GK alone', () => {

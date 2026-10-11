@@ -2,14 +2,14 @@
 // game ends the view never carries the answer's id, name or portrait, only tiles and, after 3 misses,
 // the silhouette (rating, position, rarity, card type).
 import { compareTiles } from './compare.js';
-import type { CardType, PlayerRow, Tiles } from './types.js';
+import type { CardType, Gender, PlayerRow, Tiles } from './types.js';
 
 export const MAX_GUESSES = 5;
 export const SILHOUETTE_AFTER = 3;
 export type GuessError = 'dailyFinished' | 'dailyRepeat' | 'dailyUnknownPlayer';
 
 export interface Progress { guesses: number[]; won: boolean; finished: boolean }
-export interface PublicPlayer { id: number; name: string; nation: number; league: number; club: number; position: string; rating: number; cardType: CardType }
+export interface PublicPlayer { id: number; name: string; nation: number; league: number; club: number; position: string; rating: number; cardType: CardType; gender: Gender }
 export interface Answer extends PublicPlayer { fullName: string; rareflag: number }
 export interface Silhouette { rating: number; position: string; rareflag: number; cardType: CardType }
 export interface GuessRow { player: PublicPlayer; tiles: Tiles }
@@ -28,7 +28,7 @@ export function applyGuess(guesses: number[], guess: number, answer: number, kno
 }
 
 export const toPublic = (r: PlayerRow): PublicPlayer => ({
-  id: r.assetId, name: r.name, nation: r.nation, league: r.league, club: r.club, position: r.position, rating: r.rating, cardType: r.cardType,
+  id: r.assetId, name: r.name, nation: r.nation, league: r.league, club: r.club, position: r.position, rating: r.rating, cardType: r.cardType, gender: r.gender,
 });
 
 export const guessRow = (g: PlayerRow, a: PlayerRow): GuessRow => ({ player: toPublic(g), tiles: compareTiles(g, a) });

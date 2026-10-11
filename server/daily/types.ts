@@ -1,5 +1,7 @@
 // Shapes shared by the Daily game modules. Times are epoch ms.
 export type CardType = 'normal' | 'icon' | 'hero';
+/** EA item `gender`: 0 men, 1 women. */
+export type Gender = 0 | 1;
 
 /** A club the player's base card was seen at, and when (newest first in PlayerRow.baseClubs). */
 export interface BaseClub { club: number; league: number; lastSeen: number }
@@ -15,15 +17,16 @@ export interface PlayerRow {
   rating: number; // base card rating
   rareflag: number; // base card rarity (card art); special-only rows keep the special's
   cardType: CardType;
+  gender: Gender; // a property of the player: any card (base or special) sets it
   baseClubs: BaseClub[];
   firstSeen: number;
   lastSeen: number;
 }
 
 /** What a guess is compared on. */
-export type Hidden = Pick<PlayerRow, 'nation' | 'league' | 'club' | 'position' | 'rating' | 'cardType'>;
+export type Hidden = Pick<PlayerRow, 'nation' | 'league' | 'club' | 'position' | 'rating' | 'cardType' | 'gender'>;
 
 export type TileState = 'hit' | 'near' | 'miss';
 export interface Tile { state: TileState; dir?: 'up' | 'down' }
-export const TILE_KEYS = ['nation', 'league', 'club', 'position', 'rating', 'cardType'] as const;
+export const TILE_KEYS = ['nation', 'league', 'club', 'position', 'rating', 'cardType', 'gender'] as const;
 export type Tiles = Record<(typeof TILE_KEYS)[number], Tile>;
