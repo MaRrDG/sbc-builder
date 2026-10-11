@@ -784,6 +784,8 @@ export const it: Record<Keys, string> = {
   'admin.event.account': 'Account EA',
   'admin.event.solveFound': 'Risolto set {set}, sfida {ch}: trovata',
   'admin.event.solveMiss': 'Risolto set {set}, sfida {ch}: non trovata',
+  'admin.event.solveNamedFound': 'Risolto {name}: trovata',
+  'admin.event.solveNamedMiss': 'Risolto {name}: non trovata',
   'admin.event.solveObjectivesFound_one': 'Squadra per {n} obiettivo: trovata',
   'admin.event.solveObjectivesFound_other': 'Squadra per {n} obiettivi: trovata',
   'admin.event.solveObjectivesMiss_one': 'Squadra per {n} obiettivo: non trovata',

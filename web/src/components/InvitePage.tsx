@@ -79,42 +79,46 @@ export function InvitePage({ plan, founders, onPlanChange }: { plan: PlanInfo; f
           <p className="muted">{t('invite.lede')}</p>
         </div>
       </header>
-      <div className="settings-grid">
+      <div className="invite-grid">
         <div className="settings-card invite-card">
           <h2><Gift weight="fill" aria-hidden="true" /> {t('invite.yourCode')}</h2>
           <div className="invite-code">
             <b className="code-chip">{info.code}</b>
-            <button type="button" className="ghost" onClick={copy}><Copy aria-hidden="true" /> {copied ? t('invite.copied') : t('invite.copy')}</button>
-            {'share' in navigator && <button type="button" className="ghost" onClick={share}><ShareNetwork aria-hidden="true" /> {t('invite.share')}</button>}
+            <button type="button" className="ghost bordered" onClick={copy}><Copy aria-hidden="true" /> {copied ? t('invite.copied') : t('invite.copy')}</button>
+            {'share' in navigator && <button type="button" className="ghost bordered" onClick={share}><ShareNetwork aria-hidden="true" /> {t('invite.share')}</button>}
           </div>
           <p className="invite-stats">
             <b>{t('invite.points', { count: info.points })}</b> · {t('invite.invited', { count: info.invited })}
             {info.pendingInvites > 0 && <> · {t('invite.pending', { count: info.pendingInvites })}</>}
           </p>
-          <h3>{t('invite.exchange')}</h3>
-          {lifetime && <p className="muted">{t('invite.lifetimeNote')}</p>}
-          <ul className="invite-options">
-            {OPTIONS.map((o) => (
-              <li key={o.days}>
-                <span>{t('invite.option', { days: o.days, price: o.price })}</span>
-                {!lifetime && <button type="button" className="ghost" disabled={busy || info.points < o.price} onClick={() => void spend(o.days, false)}>{t('invite.forMe')}</button>}
-                <button type="button" className="ghost" disabled={busy || info.points < o.price} onClick={() => void spend(o.days, true)}>{t('invite.gift')}</button>
-              </li>
-            ))}
-          </ul>
-          {msg && <p role="status">{msg}</p>}
+          <div className="invite-spend">
+            <h3>{t('invite.exchange')}</h3>
+            {lifetime && <p className="invite-note">{t('invite.lifetimeNote')}</p>}
+            <ul className="invite-options">
+              {OPTIONS.map((o) => (
+                <li key={o.days}>
+                  <span className="invite-option-label">{t('invite.option', { days: o.days, price: o.price })}</span>
+                  <span className="invite-option-ctl">
+                    {!lifetime && <button type="button" className="ghost bordered" disabled={busy || info.points < o.price} onClick={() => void spend(o.days, false)}>{t('invite.forMe')}</button>}
+                    <button type="button" className="ghost bordered" disabled={busy || info.points < o.price} onClick={() => void spend(o.days, true)}>{t('invite.gift')}</button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {msg && <p className="invite-msg" role="status">{msg}</p>}
+          </div>
           {info.gifts.length > 0 && (
-            <>
+            <div className="invite-spend">
               <h3>{t('invite.gifts')}</h3>
               <ul className="invite-gifts">
                 {info.gifts.map((g) => (
                   <li key={g.code}><b className="code-chip">{g.code}</b> {t('invite.giftDays', { count: g.days })} · {g.usedAt ? t('invite.giftUsed') : t('invite.giftFree')}</li>
                 ))}
               </ul>
-            </>
+            </div>
           )}
         </div>
-        <div className="settings-side">
+        <div className="invite-side">
           <section className="settings-card">
             <h2>{t('invite.friends')}</h2>
             {info.friends.length === 0 ? (

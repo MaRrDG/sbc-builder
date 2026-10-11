@@ -547,7 +547,7 @@ export interface AdminUserDetail {
   latestExtension: string;
   referral: { points: number; invitedBy: { id: string; email: string } | null; invited: number; inviteCode: string | null };
 }
-export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost'; personaId: number | null; data: Record<string, unknown> }
+export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost'; personaId: number | null; data: Record<string, unknown>; setName?: string | null; challengeName?: string | null }
 export type AdminAttention =
   | { kind: 'error' | 'paused' | 'atLimit' | 'outdated'; personaId: number; personaName: string; userId: string | null; detail: string | null }
   | { kind: 'expiring'; userId: string; email: string; until: number };

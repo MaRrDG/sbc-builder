@@ -792,6 +792,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'admin.event.account': 'Cont EA',
   'admin.event.solveFound': 'Rezolvare set {set}, provocare {ch}: găsit',
   'admin.event.solveMiss': 'Rezolvare set {set}, provocare {ch}: negăsit',
+  'admin.event.solveNamedFound': 'Rezolvare {name}: găsit',
+  'admin.event.solveNamedMiss': 'Rezolvare {name}: negăsit',
   'admin.event.solveObjectivesFound_one': 'Echipă pentru {n} obiectiv: găsit',
   'admin.event.solveObjectivesFound_few': 'Echipă pentru {n} obiective: găsit',
   'admin.event.solveObjectivesFound_other': 'Echipă pentru {n} de obiective: găsit',

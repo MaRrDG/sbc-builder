@@ -9,7 +9,7 @@ import { AccountCard } from './AccountCard';
 import type { AdminProps } from './AdminLayout';
 import { BarChart } from './BarChart';
 import { DataTable, type Column } from './DataTable';
-import { untilEndOfDay } from './format';
+import { solveTarget, untilEndOfDay } from './format';
 import { PlanBadge } from './UsersTable';
 import { useLoad } from './useLoad';
 
@@ -67,7 +67,11 @@ export function UserDetail({ route, navigate }: AdminProps) {
     const x = e.data as Record<string, string | number | boolean>;
     if (e.type === 'solve' && x.kind === 'objectives')
       return t(x.found ? 'admin.event.solveObjectivesFound' : x.partial ? 'admin.event.solveObjectivesPartial' : 'admin.event.solveObjectivesMiss', { n: Number(x.objectives ?? 0), count: Number(x.objectives ?? 0) });
-    if (e.type === 'solve') return t(x.found ? 'admin.event.solveFound' : 'admin.event.solveMiss', { set: String(x.setId), ch: String(x.challengeId) });
+    if (e.type === 'solve') {
+      const name = solveTarget(e.setName, e.challengeName);
+      if (name) return t(x.found ? 'admin.event.solveNamedFound' : 'admin.event.solveNamedMiss', { name });
+      return t(x.found ? 'admin.event.solveFound' : 'admin.event.solveMiss', { set: String(x.setId), ch: String(x.challengeId) });
+    }
     if (e.type === 'sync') return t(x.ok ? 'admin.event.syncOk' : 'admin.event.syncFail', { what: whatText(x.what), error: String(x.error ?? '') });
     if (e.type === 'boost') return t(x.via === 'unlink' ? 'admin.event.boostUnlink' : x.action === 'start' ? 'admin.event.boostStart' : 'admin.event.boostStop');
     if (e.type === 'ea_error') return t('admin.event.throttle');

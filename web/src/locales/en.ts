@@ -780,6 +780,8 @@ export const en = {
   'admin.event.account': 'EA account',
   'admin.event.solveFound': 'Solved set {set}, challenge {ch}: found',
   'admin.event.solveMiss': 'Solved set {set}, challenge {ch}: not found',
+  'admin.event.solveNamedFound': 'Solved {name}: found',
+  'admin.event.solveNamedMiss': 'Solved {name}: not found',
   'admin.event.solveObjectivesFound_one': 'Objectives squad for {n} objective: found',
   'admin.event.solveObjectivesFound_other': 'Objectives squad for {n} objectives: found',
   'admin.event.solveObjectivesMiss_one': 'Objectives squad for {n} objective: not found',

@@ -317,7 +317,7 @@ Removes the user's username and leaderboard opt-in. `{ ok: true }`; `404` `unkno
 
 ### `GET /api/admin/users/:id/events?page=`
 
-The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true } }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`), `sync`, `ea_error`, `ea_day`; the latter three are logged per EA account (`personaId` only, no `userId`), and are matched to a user by the accounts they currently own (`personas` table), not by who owned them at the time. Events older than 180 days are deleted. An unknown user gives an empty list.
+The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true }, "setName": "Marquee Matchups", "challengeName": "Marquee Matchups" }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`; SBC solves, not `kind: "objectives"`, also carry top-level `setName` / `challengeName` from `sbc_sets` / `challenges` as EA sent them, `null` for an id not in the DB; one lookup per table per page), `sync`, `ea_error`, `ea_day`; the latter three are logged per EA account (`personaId` only, no `userId`), and are matched to a user by the accounts they currently own (`personas` table), not by who owned them at the time. Events older than 180 days are deleted. An unknown user gives an empty list.
 
 ### `GET /api/admin/accounts?q=&state=&sort=&dir=&page=`
 

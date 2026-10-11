@@ -4292,11 +4292,40 @@ a.adm-kpi:hover { background: var(--surface-2); }
 
 /* Invites + Founder badge */
 .founder-badge { display: inline-flex; align-items: center; margin-inline-start: 8px; padding: 2px 8px; border-radius: var(--r-ctl); font-family: var(--font-ui); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border: 1px solid currentColor; color: var(--gold); }
-.invite-code { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .code-chip { font-family: var(--font-num); font-size: 1.15rem; letter-spacing: 0.12em; padding: 2px 8px; border-radius: var(--r-ctl); background: var(--surface-2); }
-.invite-options { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 8px; }
-.invite-options li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
-.invite-gifts { list-style: none; padding: 0; display: grid; gap: 4px; }
+
+/* ---------- invite friends page (own layout, not the Settings rows) ---------- */
+.invite-grid, .invite-side { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
+.invite-grid .settings-card { min-width: 0; }
+.invite-grid .settings-card h2 { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.invite-grid .settings-card h2 svg { flex: none; color: var(--gold); }
+.invite-card { display: flex; flex-direction: column; }
+.invite-code { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.invite-code .code-chip { margin-right: 4px; }
+.invite-page .ghost.bordered { background: var(--surface-2); color: var(--ink); font-weight: 500; }
+.invite-page .ghost.bordered:hover:not(:disabled) { background: var(--surface-3); }
+.invite-page .ghost svg { flex: none; font-size: 16px; }
+.invite-stats { margin: 12px 0 0; color: var(--ink-2); }
+.invite-stats b { color: var(--ink); }
+.invite-spend { margin-top: 18px; padding-top: 16px; border-top: 1px solid oklch(0.42 0.03 210 / 0.35); }
+.invite-spend h3 { font-size: 16px; }
+.invite-note { margin: 6px 0 0; color: var(--ink-3); font-size: 13px; line-height: 1.4; }
+.invite-options { list-style: none; margin: 10px 0 0; padding: 0; border: 1px solid var(--line); border-radius: var(--r-box); }
+.invite-options li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; min-height: 56px; padding: 10px 14px; }
+.invite-options li + li { border-top: 1px solid oklch(0.42 0.03 210 / 0.35); }
+.invite-option-label { font-weight: 500; }
+.invite-option-ctl { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
+.invite-msg { margin: 10px 0 0; color: var(--ink-2); }
+.invite-gifts { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+.invite-gifts li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; color: var(--ink-2); }
+.invite-grid .muted { margin: 0; }
+@media (max-width: 640px) {
+  .invite-grid .settings-card { padding: 16px 14px 18px; }
+  .invite-options li { flex-direction: column; align-items: stretch; }
+  .invite-option-ctl { margin-left: 0; }
+  .invite-option-ctl .ghost { flex: 1 1 0; justify-content: center; }
+  .invite-card .ghost { min-height: 44px; }
+}
 
 .adm-codes-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 10px; align-items: end; margin-top: 12px; }
 .adm-codes-form label { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); }

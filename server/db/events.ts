@@ -1,7 +1,7 @@
 // Admin history. Writes are fire-and-forget: a DB hiccup is logged, never breaks the caller.
 import { count, desc, eq, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
 import { db, softly } from './index.js';
-import { events, personas } from './schema.js';
+import { challenges, events, personas, sbcSets } from './schema.js';
 
 export type EventType = 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost';
 export interface NewEvent {
@@ -16,6 +16,9 @@ export interface EventRow {
   type: EventType;
   personaId: number | null;
   data: Record<string, unknown>;
+  /** SBC solves only: names from `sbc_sets` / `challenges` as EA sent them, `null` for an unknown id. */
+  setName?: string | null;
+  challengeName?: string | null;
 }
 
 export const KEEP_DAYS = 180;
@@ -54,8 +57,28 @@ export async function userEvents(userId: string, personaIds: number[], page: num
     .offset((page - 1) * pageSize);
   return {
     total: n,
-    rows: rows.map((r) => ({ id: r.id, at: r.at.getTime(), type: r.type as EventType, personaId: r.personaId, data: r.data })),
+    rows: await withSbcNames(rows.map((r) => ({ id: r.id, at: r.at.getTime(), type: r.type as EventType, personaId: r.personaId, data: r.data }))),
   };
+}
+
+const isSbcSolve = (r: EventRow) => r.type === 'solve' && r.data.kind !== 'objectives';
+const idsOf = (rows: EventRow[], key: 'setId' | 'challengeId') => [...new Set(rows.map((r) => Number(r.data[key])).filter(Number.isSafeInteger))];
+
+/** SBC solve rows get their set + challenge names: one query per table for the whole page. */
+async function withSbcNames(rows: EventRow[]): Promise<EventRow[]> {
+  const solves = rows.filter(isSbcSolve);
+  if (!solves.length) return rows;
+  const setIds = idsOf(solves, 'setId');
+  const chIds = idsOf(solves, 'challengeId');
+  const [sets, chs] = await Promise.all([
+    setIds.length ? db.select({ id: sbcSets.setId, name: sbcSets.name }).from(sbcSets).where(inArray(sbcSets.setId, setIds)) : [],
+    chIds.length ? db.select({ id: challenges.challengeId, name: challenges.name }).from(challenges).where(inArray(challenges.challengeId, chIds)) : [],
+  ]);
+  const setName = new Map(sets.map((s) => [s.id, s.name]));
+  const chName = new Map(chs.map((c) => [c.id, c.name]));
+  return rows.map((r) =>
+    isSbcSolve(r) ? { ...r, setName: setName.get(Number(r.data.setId)) ?? null, challengeName: chName.get(Number(r.data.challengeId)) ?? null } : r,
+  );
 }
 
 export async function userEventCount(userId: string, personaIds: number[]): Promise<number> {
