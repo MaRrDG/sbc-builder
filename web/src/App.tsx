@@ -105,7 +105,7 @@ export default function App({
   const [prefs, setPrefs] = useState<Prefs | null>(null);
   const [billing, setBilling] = useState<BillingState | null>(null); // Paddle subscription (/api/me)
   const [billingOn, setBillingOn] = useState(false); // all PADDLE_* set on the server
-  const founders = useFounders();
+  const founders = useFounders() ?? null;
   const [onboarded, setOnboarded] = useState(true); // until /api/me says otherwise
   // the extension tried to link an EA account that already has 3 FC Solver accounts
   const [linkBlocked, setLinkBlocked] = useState<{ at: number; limit: number; supportEmail: string | null } | null>(null);

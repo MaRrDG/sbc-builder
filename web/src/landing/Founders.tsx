@@ -9,16 +9,17 @@ export interface Founders {
   left: number;
 }
 
-export function useFounders(): Founders | null {
-  const [state, setState] = useState<Founders | null>(null);
+/** undefined while /api/founders loads, null when there is nothing to show. */
+export function useFounders(): Founders | null | undefined {
+  const [state, setState] = useState<Founders | null | undefined>(undefined);
   useEffect(() => {
     let live = true;
     fetch('/api/founders')
       .then((r) => (r.ok ? r.json() : null))
       .then((f: Founders | null) => {
-        if (live && f && Number.isInteger(f.left) && f.left > 0) setState(f);
+        if (live) setState(f && Number.isInteger(f.left) && f.left > 0 ? f : null);
       })
-      .catch(() => {});
+      .catch(() => live && setState(null));
     return () => {
       live = false;
     };
@@ -26,8 +27,13 @@ export function useFounders(): Founders | null {
   return state;
 }
 
+// what the board looks like before /api/founders answers: drawn invisibly so the hero keeps its height
+// and nothing below it jumps when the real numbers arrive
+const PLACEHOLDER: Founders = { limit: 50, taken: 0, left: 50 };
+
 /** The hero block: one slot per spot, like empty card slots, the taken ones filled in. */
-export function FoundersBoard({ founders }: { founders: Founders }) {
+export function FoundersBoard({ founders }: { founders: Founders | undefined }) {
+  if (!founders) return <div className="lp-founders-wait" aria-hidden="true"><FoundersBoard founders={PLACEHOLDER} /></div>;
   const { t } = useI18n();
   const { limit, taken, left } = founders;
   const n = (count: number) => ({ count, limit });

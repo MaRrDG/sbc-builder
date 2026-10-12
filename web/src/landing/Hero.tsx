@@ -23,7 +23,7 @@ const PitchLines = () => (
   </svg>
 );
 
-export function Hero({ cta, founders }: { cta: ReactNode; founders: Founders | null }) {
+export function Hero({ cta, founders }: { cta: ReactNode; founders: Founders | null | undefined }) {
   const { t } = useI18n();
   const stage = useRef<HTMLDivElement>(null);
   useTilt(stage);
@@ -40,7 +40,7 @@ export function Hero({ cta, founders }: { cta: ReactNode; founders: Founders | n
             {t('landing.hero.how')}
           </a>
         </div>
-        {founders && <FoundersBoard founders={founders} />}
+        {founders !== null && <FoundersBoard founders={founders} />}
       </div>
 
       <div className="lp-stage" ref={stage} role="img" aria-label={t('landing.hero.stage')}>

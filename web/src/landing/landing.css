@@ -242,6 +242,7 @@
   padding-block: clamp(32px, 5vw, 64px);
 }
 .lp-hero-copy { grid-column: 1 / 6; }
+.lp-founders-wait { visibility: hidden; }
 .lp-stage { grid-column: 7 / -1; }
 .lp-hero h1 {
   margin: 0;

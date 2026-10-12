@@ -10,7 +10,7 @@ import type { Founders } from './Founders';
 interface Props {
   cta: ReactNode;
   buy: ReactNode | null; // null: billing off
-  founders: Founders | null;
+  founders: Founders | null | undefined;
   link: (r: Route, className: string, children: ReactNode) => ReactNode;
 }
 
