@@ -500,6 +500,11 @@ export const it: Record<Keys, string> = {
   // onboarding
   'onb.title': 'Le rose SBC più economiche dal tuo club',
   'onb.lede': 'Una piccola estensione per Chrome collega la tua web app FC27 a FC Solver. Legge il tuo club e le SBC; non compra, non vende e non consegna mai nulla. La configurazione richiede due minuti.',
+  'onb.phoneTitle': 'Configura FC Solver sul PC',
+  'onb.phoneLede': 'La sincronizzazione con EA gira nella web app EA su un computer, tramite l’estensione FC Solver per Chrome. Installala lì una volta e collega il tuo account EA; dopo, club, SBC, soluzioni e Daily funzionano anche da questo telefono.',
+  'onb.phoneGuide': 'Come funziona la configurazione',
+  'sync.phoneLive': 'La web app EA è aperta sul tuo PC: le sincronizzazioni girano lì adesso.',
+  'sync.phoneOffline': 'Apri la web app EA sul tuo PC per sincronizzare. Gira lì, non sul telefono.',
 
   // server errors (by code)
   'err.webAppClosed': 'Apri la web app FC27 in questo browser per sincronizzare. FC Solver interpella EA solo da lì.',

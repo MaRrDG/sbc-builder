@@ -496,6 +496,11 @@ export const en = {
   // onboarding
   'onb.title': 'Cheapest SBC squads from your own club',
   'onb.lede': 'A small Chrome extension connects your FC27 web app to FC Solver. It reads your club and SBCs; it never buys, sells or submits anything. Setup takes two minutes.',
+  'onb.phoneTitle': 'Set up FC Solver on your PC',
+  'onb.phoneLede': 'Syncing with EA runs in the EA web app on a computer, through the FC Solver extension for Chrome. Install it there once and link your EA account; after that your club, SBCs, solutions and the Daily all work from this phone too.',
+  'onb.phoneGuide': 'How the setup works',
+  'sync.phoneLive': 'Your PC’s EA web app is open: syncs run there now.',
+  'sync.phoneOffline': 'Open the EA web app on your PC to sync. It runs there, not on the phone.',
 
   // server errors (by code)
   'err.webAppClosed': 'Open the FC27 web app in this browser to sync. FC Solver asks EA only from there.',

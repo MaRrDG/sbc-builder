@@ -503,6 +503,11 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
 
   'onb.title': 'Cele mai ieftine echipe SBC din propriul club',
   'onb.lede': 'O extensie mică de Chrome leagă web app-ul tău FC27 de FC Solver. Citește clubul și SBC-urile; nu cumpără, nu vinde și nu trimite nimic. Instalarea durează două minute.',
+  'onb.phoneTitle': 'Configurează FC Solver pe PC',
+  'onb.phoneLede': 'Sincronizarea cu EA rulează în web app-ul EA de pe un calculator, prin extensia FC Solver pentru Chrome. Instaleaz-o acolo o dată și leagă-ți contul EA; după aceea clubul, SBC-urile, soluțiile și Daily merg și de pe telefonul ăsta.',
+  'onb.phoneGuide': 'Cum se face configurarea',
+  'sync.phoneLive': 'Web app-ul EA e deschis pe PC: sincronizările rulează acolo acum.',
+  'sync.phoneOffline': 'Deschide web app-ul EA pe PC ca să sincronizezi. Rulează acolo, nu pe telefon.',
 
   'err.webAppClosed': 'Deschide web app-ul FC27 în acest browser ca să sincronizezi. FC Solver cere date de la EA doar de acolo.',
   'err.sbcScheduleOnly': 'Lista de SBC-uri se actualizează singură după drop-ul zilnic (20:01).',

@@ -4693,3 +4693,8 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .ios-install li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.4; }
 .ios-install li svg { flex: none; margin-top: 2px; color: var(--go); }
 .ios-install p { margin: 0 0 16px; font-size: 13px; }
+
+/* Phones: the EA sync runs on the PC (setup screen + hint in the menu) */
+.onb-phone-guide { margin-top: 16px; }
+.onb-phone-guide summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--ink-2); }
+.sync-phone-hint { margin: 4px 0 0; font-size: 13px; line-height: 1.4; color: var(--ink-2); }

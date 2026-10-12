@@ -31,6 +31,7 @@ import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/U
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
 import { InstallBanner, InstallNavItem } from './components/InstallApp';
+import { isPhone } from './pwa/platform';
 import { UpgradePage } from './components/billing/UpgradePage';
 import { billingConfig } from './billing/paddle';
 import { UpgradeContext } from './billing/upgrade';
@@ -959,6 +960,9 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           <div className="menu-controls mobile-only">
             {controls}
             {accountPicker}
+            {isPhone(navigator.userAgent) && account && (
+              <p className="sync-phone-hint" role="status">{account.session ? t('sync.phoneLive') : t('sync.phoneOffline')}</p>
+            )}
           </div>
           <button type="button" className="nav-item mobile-only" onClick={doSignOut}>{t('auth.signOut')}</button>
           {discordInvite && (
@@ -1467,9 +1471,23 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
       </p>
       {/* the account taken over may have been the only one: say why it is gone */}
       {takenOver && <p className="banner" role="status">{t('notice.takenOver')}</p>}
-      <h1>{t('onb.title')}</h1>
-      <p className="lede">{t('onb.lede')}</p>
-      <SetupGuide />
+      {isPhone(navigator.userAgent) ? (
+        // the extension cannot run on a phone: say where the setup happens, keep the guide readable
+        <>
+          <h1>{t('onb.phoneTitle')}</h1>
+          <p className="lede">{t('onb.phoneLede')}</p>
+          <details className="onb-phone-guide">
+            <summary>{t('onb.phoneGuide')}</summary>
+            <SetupGuide compact />
+          </details>
+        </>
+      ) : (
+        <>
+          <h1>{t('onb.title')}</h1>
+          <p className="lede">{t('onb.lede')}</p>
+          <SetupGuide />
+        </>
+      )}
       {error && <p className="banner">{error}</p>}
     </div>
   );
