@@ -30,6 +30,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Premium as a subscription: 5 € a month or 36 € a year, paid securely through Paddle, cancel anytime in Settings',
         'Changed your mind? A full refund within 14 days of any payment, see the new refund policy',
         'FC Solver installs as an app on your phone: add it to your home screen from the menu. Syncing with EA still runs on your PC',
+        'Extension 1.0.2: pause and resume syncing from the extension popup. While paused, FC Solver asks EA for nothing',
       ],
       ro: [
         'FC Solver v1: cel mai ieftin lot din clubul tău pentru fiecare SBC, pe un teren ca în web app',
@@ -40,6 +41,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Premium ca abonament: 5 € pe lună sau 36 € pe an, cu plata sigură prin Paddle, și îl anulezi oricând din Setări',
         'Te-ai răzgândit? Îți dăm banii înapoi integral în 14 zile de la orice plată, vezi noua politică de rambursare',
         'FC Solver se instalează ca aplicație pe telefon: o adaugi pe ecranul principal din meniu. Sincronizarea cu EA rulează în continuare pe PC-ul tău',
+        'Extensia 1.0.2: oprești și pornești sincronizarea din popup-ul extensiei. Cât e pe pauză, FC Solver nu cere nimic de la EA',
       ],
       it: [
         'FC Solver v1: la rosa più economica del tuo club per ogni SBC, su un campo identico a quello della web app',
@@ -50,6 +52,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Premium in abbonamento: 5 € al mese o 36 € all’anno, pagamento sicuro tramite Paddle, disdici quando vuoi dalle Impostazioni',
         'Hai cambiato idea? Rimborso completo entro 14 giorni da ogni pagamento: trovi tutto nella nuova politica di rimborso',
         'FC Solver si installa come app sul telefono: aggiungila alla schermata Home dal menu. La sincronizzazione con EA continua a girare sul tuo PC',
+        'Estensione 1.0.2: metti in pausa e riprendi la sincronizzazione dal popup dell’estensione. In pausa, FC Solver non chiede nulla a EA',
       ],
     },
   },

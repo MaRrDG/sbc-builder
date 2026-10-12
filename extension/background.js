@@ -66,15 +66,17 @@ async function setBusy(busy) {
 }
 
 async function refreshBadge() {
-  const { accessKey, update } = await chrome.storage.local.get(['accessKey', 'update']);
+  const { accessKey, update, syncPaused } = await chrome.storage.local.get(['accessKey', 'update', 'syncPaused']);
   const { lastPollOkAt = 0, busy } = await chrome.storage.session.get(['lastPollOkAt', 'busy']);
   const live = !!accessKey && Date.now() - lastPollOkAt < LIVE_MS;
   const working = !!busy && Date.now() - busy.since < BUSY_MAX_MS;
   await chrome.storage.session.set({ live });
   await chrome.action.setBadgeText({ text: update ? 'NEW' : ' ' });
-  await chrome.action.setBadgeBackgroundColor({ color: update ? '#c8f53c' : working ? '#f5c542' : live ? '#3ecf6e' : '#e5484d' });
+  // grey while the user paused syncing (still connected: the web app's own loads keep being read)
+  const paused = !!syncPaused && live;
+  await chrome.action.setBadgeBackgroundColor({ color: update ? '#c8f53c' : working ? '#f5c542' : paused ? '#8a9690' : live ? '#3ecf6e' : '#e5484d' });
   if (update) await chrome.action.setBadgeTextColor?.({ color: '#0d1411' });
-  const state = working ? busy.label : live ? 'connected' : 'not connected, open the FC27 web app';
+  const state = working ? busy.label : paused ? 'sync paused' : live ? 'connected' : 'not connected, open the FC27 web app';
   await chrome.action.setTitle({ title: `FC Solver: ${state}` });
 }
 
@@ -310,6 +312,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (Number.isInteger(_sender.tab?.id)) webAppGone(_sender.tab.id);
     return;
   }
+  if (msg?.type === 'sync-paused') {
+    chrome.storage.local.set({ syncPaused: !!msg.paused }).then(refreshBadge);
+    return;
+  }
   if (msg?.type === 'refresh-badge') {
     refreshBadge();
     return;
@@ -327,7 +333,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         await refreshBadge();
         return sendResponse({ needIdentity: true });
       }
-      sendResponse(await pollJobs(_sender.tab?.id, msg.visible, msg.ready));
+      // paused from the popup: poll as a tab that cannot take jobs yet (same as "not logged in to EA"),
+      // so the tab still counts as open and anything queued meanwhile runs once syncing is resumed
+      const { syncPaused } = await chrome.storage.local.get('syncPaused');
+      sendResponse(await pollJobs(_sender.tab?.id, msg.visible, syncPaused ? false : msg.ready));
     })();
     return true; // async response
   }

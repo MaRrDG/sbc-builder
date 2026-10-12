@@ -9,19 +9,24 @@ const LIVE_MS = 30 * 1000;
 
 /** Green when a web app tab talked to FC Solver in the last 30 s, red otherwise. */
 async function renderStatus() {
-  const { connectedAs, accessKey, lastStatus } = await chrome.storage.local.get(['connectedAs', 'accessKey', 'lastStatus']);
+  const { connectedAs, accessKey, lastStatus, syncPaused } = await chrome.storage.local.get(['connectedAs', 'accessKey', 'lastStatus', 'syncPaused']);
+  $('pause').textContent = syncPaused ? 'Resume sync' : 'Pause sync';
+  $('pause').setAttribute('aria-pressed', syncPaused ? 'true' : 'false');
   const { lastPollOkAt = 0, busy } = await chrome.storage.session.get(['lastPollOkAt', 'busy']);
   const live = !!accessKey && Date.now() - lastPollOkAt < LIVE_MS;
   const working = !!busy && Date.now() - busy.since < 3 * 60 * 1000;
   const el = $('status');
-  el.className = working ? 'busy' : live ? 'live' : 'off';
+  const paused = !!syncPaused && live && !working;
+  el.className = working ? 'busy' : paused ? 'paused' : live ? 'live' : 'off';
   el.replaceChildren();
   const title = document.createElement('b');
-  title.textContent = working ? `${busy.label}…` : live ? 'Connected' : 'Not connected';
+  title.textContent = working ? `${busy.label}…` : paused ? 'Sync paused' : live ? 'Connected' : 'Not connected';
   const detail = document.createElement('small');
   const problem = /error|not reachable|failed/i.test(lastStatus ?? '') ? ` Last: ${lastStatus}` : '';
   detail.textContent = working
     ? connectedAs ?? 'Talking to EA from your web app tab'
+    : paused
+    ? 'FC Solver asks EA for nothing until you resume. Syncs you start wait until then.'
     : live
     ? connectedAs ?? 'Web app open'
     : (accessKey ? 'Open the FC27 web app in this browser.' : 'Open the FC27 web app and log in to link your account.') + problem;
@@ -41,6 +46,12 @@ chrome.storage.local.get({ server: 'http://localhost:5178', keys: [], update: nu
     $('open').href = `${s.server}/dashboard?update=1`;
   }
 });
+
+$('pause').onclick = async () => {
+  const { syncPaused } = await chrome.storage.local.get('syncPaused');
+  // the background owns the badge; it also stores the choice (kept across browser restarts)
+  await chrome.runtime.sendMessage({ type: 'sync-paused', paused: !syncPaused }).catch(() => chrome.storage.local.set({ syncPaused: !syncPaused }));
+};
 
 $('save').onclick = async () => {
   const server = $('server').value.replace(/\/$/, '');

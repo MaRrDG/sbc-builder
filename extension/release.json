@@ -1,4 +1,7 @@
 {
+  "1.0.2": [
+    "Pause sync from the extension popup: FC Solver asks EA for nothing until you resume"
+  ],
   "1.0.1": [
     "Works with FC Solver on its new home, fc-solver.app"
   ],
