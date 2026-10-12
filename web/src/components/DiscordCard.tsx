@@ -8,6 +8,7 @@ import { api, type DiscordInfo } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
 import { useReverifyDialog } from './Reverify';
+import { track } from '../track';
 
 export function DiscordCard({ onChange }: { onChange?: () => void }) {
   const { t } = useI18n();
@@ -67,7 +68,7 @@ export function DiscordCard({ onChange }: { onChange?: () => void }) {
     });
 
   const join = info?.invite && (
-    <a className="ghost bordered" href={info.invite} target="_blank" rel="noopener noreferrer">
+    <a className="ghost bordered" href={info.invite} target="_blank" rel="noopener noreferrer" onClick={() => track('discord_click', { where: 'accounts' })}>
       <ArrowSquareOut weight="bold" aria-hidden="true" /> {t('settings.discord.join')}
     </a>
   );

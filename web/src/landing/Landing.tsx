@@ -19,6 +19,7 @@ import { Invite } from './Invite';
 import { ToTop } from './ToTop';
 import { useFounders } from './Founders';
 import { useDailyPending } from '../daily/usePending';
+import { track, type TrackEvents } from '../track';
 import './landing.css';
 
 interface Props {
@@ -43,11 +44,12 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
     if (id) document.getElementById(id)?.scrollIntoView();
   }, []);
   /** A real link (open in new tab works) that navigates in place on a plain click. */
-  const link = (r: Route, className: string, children: ReactNode) => (
+  const link = (r: Route, className: string, children: ReactNode, onUse?: () => void) => (
     <a
       className={className}
       href={routePath(r)}
       onClick={(e: MouseEvent) => {
+        onUse?.(); // also a new-tab click
         if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
         e.preventDefault();
         navigate(r);
@@ -66,10 +68,24 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
       {text}
     </span>
   );
-  const cta = (className = 'lp-btn') =>
+  type Where = TrackEvents['cta_click']['where'];
+  const cta = (where: Where, className = 'lp-btn') =>
     !authReady ? placeholder(className, t('landing.start'))
     : signedIn ? link(app, className, t('landing.open'))
-    : link(signin, className, t('landing.start'));
+    : link(signin, className, t('landing.start'), () => track('cta_click', { where }));
+
+  // the pricing section seen once per visit counts as a Premium view
+  useEffect(() => {
+    const el = document.getElementById('pricing');
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((es) => {
+      if (!es.some((x) => x.isIntersecting)) return;
+      track('premium_view', { where: 'landing' });
+      io.disconnect();
+    }, { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   return (
     <div className="landing">
@@ -105,10 +121,10 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
           </nav>
           <div className="lp-top-end">
             <LangMenu lang={lang} setLang={setLang} label={t('top.language')} compact />
-            <DiscordLink invite={invite} variant="bar" />
+            <DiscordLink invite={invite} variant="bar" where="landing" />
             {!authReady ? placeholder('lp-signin', t('landing.signIn'))
-            : !signedIn && link(signin, 'lp-signin', t('landing.signIn'))}
-            {cta('lp-btn lp-btn-sm')}
+            : !signedIn && link(signin, 'lp-signin', t('landing.signIn'), () => track('cta_click', { where: 'header' }))}
+            {cta('header', 'lp-btn lp-btn-sm')}
           </div>
         </div>
       </header>
@@ -131,13 +147,13 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
       )}
 
       <main id="main">
-        <Hero cta={cta()} founders={founders} />
+        <Hero cta={cta('hero')} founders={founders} />
         <DailyTeaser link={link} />
         <Pillars />
         <Objectives />
         <Steps link={link} />
-        <Pricing cta={cta()} founders={founders} link={link} />
-        <Invite cta={!authReady ? placeholder('lp-btn', t('landing.invite.cta')) : link(signedIn ? { view: 'invite' } : signin, 'lp-btn', t('landing.invite.cta'))} />
+        <Pricing cta={cta('pricing')} founders={founders} link={link} />
+        <Invite cta={!authReady ? placeholder('lp-btn', t('landing.invite.cta')) : link(signedIn ? { view: 'invite' } : signin, 'lp-btn', t('landing.invite.cta'), signedIn ? undefined : () => track('cta_click', { where: 'invite' }))} />
         <Faq />
       </main>
 
@@ -152,7 +168,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         <LegalLinks navigate={navigate} className="lp-link" />
         <div className="lp-footer-end">
           <LangMenu lang={lang} setLang={setLang} label={t('top.language')} up />
-          <DiscordLink invite={invite} variant="foot" />
+          <DiscordLink invite={invite} variant="foot" where="landing" />
         </div>
       </footer>
       <ToTop ctaKey={`${authReady}-${signedIn}`} />

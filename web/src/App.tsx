@@ -12,6 +12,7 @@ import { LocalOptions } from './components/LocalOptions';
 import { SetList } from './components/SetList';
 import { ClubView } from './components/ClubView';
 import { useChangelogUnread } from './changelog/seen';
+import { disableTracking, track, yn } from './track';
 import { GalleryList } from './components/gallery/GalleryList';
 import { GallerySet } from './components/gallery/GallerySet';
 import { LegalLinks } from './legal/LegalPage';
@@ -226,6 +227,7 @@ export default function App({
     const { user, personas, admin, plan: p, prefs: pr, onboarding, takenOver: to, linkBlocked: lb } = await api.me();
     setMe(user);
     setAdmin(admin);
+    if (admin) disableTracking(); // admins are not counted (track.ts)
     const prev = prevPlan.current;
     if (prev && justLinked.current) {
       if (!prev.founder && p.founder) setReward('founder');
@@ -263,6 +265,7 @@ export default function App({
 
   const onLinked = useCallback(() => {
     justLinked.current = true;
+    track('extension_linked');
     void migrateLegacyKeys().then(loadMe);
   }, [loadMe]);
   useExtensionLink(true, onLinked);
@@ -272,6 +275,7 @@ export default function App({
     (e: unknown) => {
       const code = e instanceof ApiError ? e.code : null;
       if (code === 'personaTakenOver') setTakenOver(true);
+      if (code === 'quotaExhausted') track('premium_view', { where: 'quota' });
       if (code === 'quotaExhausted')
         void api
           .me()
@@ -311,6 +315,7 @@ export default function App({
     const prev = seenStatus.current;
     seenStatus.current = { id: activeId, running: status.running, editedAt: status.editedAt };
     if (!prev || prev.id !== activeId) return;
+    if (prev.running && !status.running) track('sync_done', { kind: prev.running === 'club' ? 'club' : 'sbcs', ok: yn(!status.error) });
     if ((prev.running && !status.running) || prev.editedAt !== status.editedAt) {
       void loadAccountData().catch(() => {});
       setDataVersion((v) => v + 1);
@@ -502,6 +507,7 @@ export default function App({
       const r = await api.solve(challenge.setId, challenge.challengeId, opts, deep, useStorage);
       saveResult(challenge.challengeId, r);
       noteQuota(r);
+      track('solve', { found: yn(r.found), deep: yn(deep) });
       if (!r.found && (r.slots.some((s) => s.player) || !!r.points?.cards.length)) setError(t('set.closest'));
     } catch (e) {
       onApiError(e);
@@ -555,6 +561,7 @@ export default function App({
 
   const pickSet = (id: number) => {
     setMenuOpen(false);
+    track('sbc_open');
     navigate({ view: 'sbcs', setId: id, challengeId: null });
     setShowOptions(false);
     setError(null);
@@ -932,7 +939,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           </div>
           <button type="button" className="nav-item mobile-only" onClick={doSignOut}>{t('auth.signOut')}</button>
           {discordInvite && (
-            <a className="discord-invite" href={discordInvite} target="_blank" rel="noopener noreferrer">
+            <a className="discord-invite" href={discordInvite} target="_blank" rel="noopener noreferrer" onClick={() => track('discord_click', { where: 'sidebar' })}>
               <DiscordIcon /> {t('nav.discord')}
               <span className="sr-only"> {t('nav.newTab')}</span>
             </a>

@@ -11,6 +11,7 @@ import { LangMenu } from './components/LangMenu';
 import { LegalLinks, LegalPage } from './legal/LegalPage';
 import { ChangelogPage } from './changelog/ChangelogPage';
 import { SignIn } from './components/SignIn';
+import { track, yn } from './track';
 import { Guide } from './components/Guide';
 import { SetupGuide } from './components/SetupGuide';
 
@@ -25,7 +26,8 @@ export default function Root() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const [route, navigate] = useRoute();
   const { t, lang, setLang } = useI18n();
-  const { signOut } = useClerk();
+  const clerk = useClerk();
+  const { signOut } = clerk;
   const toSignIn = (next = here()): Route => ({ view: 'signin', next: safeNext(next) });
   // Clerk says signed in but the server refused even a fresh token (e.g. SITE_ORIGINS): going to
   // /signin would bounce straight back and reload forever, so say so instead
@@ -79,6 +81,8 @@ export default function Root() {
         <span className="sr-only">{t('auth.finishing')}</span>
         <HandleSSOCallback
           navigateToApp={({ decorateUrl }) => {
+            const created = clerk.user?.createdAt?.getTime() ?? 0;
+            track('signin_done', { method: 'google', new: yn(Date.now() - created < 10 * 60_000) }); // a Google sign-up lands here too
             window.location.replace(decorateUrl('/dashboard'));
           }}
           navigateToSignIn={() => navigate(toSignIn('/dashboard'), true)}

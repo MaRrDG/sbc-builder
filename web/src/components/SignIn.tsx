@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSignIn, useSignUp } from '@clerk/react';
 import { EnvelopeSimple, GoogleLogo, WarningCircle } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
+import { track, yn } from '../track';
 
 type ClerkErr = { code?: string; errors?: { code?: string }[] } | null | undefined;
 const codeOf = (e: ClerkErr) => e?.errors?.[0]?.code ?? e?.code ?? '';
@@ -65,17 +66,22 @@ export function SignIn({ next, onDone }: { next: string; onDone: (path: string) 
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const go = { navigate: () => onDone(next) };
+    const go = (isNew: boolean) => ({
+      navigate: () => {
+        track('signin_done', { method: 'email', new: yn(isNew) });
+        onDone(next);
+      },
+    });
     if (mode === 'in') {
       const { error } = await signIn.emailCode.verifyCode({ code: code.trim() });
       if (error) return fail(error);
       // not complete (e.g. a second factor) makes finalize() return an error, shown as auth.failed
-      const done = await signIn.finalize(go);
+      const done = await signIn.finalize(go(false));
       if (done.error) return fail(done.error);
     } else {
       const { error } = await signUp.verifications.verifyEmailCode({ code: code.trim() });
       if (error) return fail(error);
-      const done = await signUp.finalize(go);
+      const done = await signUp.finalize(go(true));
       if (done.error) return fail(done.error);
     }
   }

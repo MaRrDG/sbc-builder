@@ -17,8 +17,8 @@ export interface TrackEvents {
   daily_share: { mode: Mode };
   daily_leaderboard: undefined;
   invite_copy: undefined;
-  premium_view: { where: 'landing' | 'daily' | 'sidebar' | 'settings' | 'quota' };
-  discord_click: { where: 'landing' | 'sidebar' | 'accounts' };
+  premium_view: { where: 'landing' | 'daily' | 'quota' };
+  discord_click: { where: 'landing' | 'daily' | 'sidebar' | 'accounts' };
   reminder_on: undefined;
 }
 

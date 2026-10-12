@@ -5,6 +5,7 @@ import { api, type Prefs } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
 import { Section, SwitchRow } from './SettingsRows';
+import { track } from '../track';
 
 type Flag = 'evoEmails' | 'dailyReminder';
 
@@ -20,6 +21,7 @@ export function EmailAlertsCard({ premium, prefs, onChange }: { premium: boolean
     setSaving(true);
     api
       .prefs({ [flag]: value })
+      .then(() => flag === 'dailyReminder' && value && track('reminder_on'))
       .catch((e) => {
         onChange(before);
         setError(errorText(e, t));

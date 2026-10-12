@@ -5,6 +5,7 @@ import { api, type PlanInfo, type ReferralInfo } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
 import { CodeInput } from './CodeInput';
+import { track } from '../track';
 
 const OPTIONS = [{ days: 7, price: 2 }, { days: 14, price: 3 }, { days: 30, price: 5 }] as const;
 
@@ -51,6 +52,7 @@ export function InvitePage({ plan, founders, onPlanChange }: { plan: PlanInfo; f
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(info.link);
+      track('invite_copy');
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {

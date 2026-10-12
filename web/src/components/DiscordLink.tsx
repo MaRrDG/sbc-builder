@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { DiscordIcon } from './DiscordIcon';
 import { useI18n } from '../i18n';
+import { track, type TrackEvents } from '../track';
 
 let cached: Promise<string | null> | null = null;
 
@@ -30,7 +31,7 @@ export function useDiscordInvite(): string | null {
 }
 
 /** `bar`: logo + "Discord" in a top bar (icon only on phones). `foot`: logo + "Join our Discord" as a footer link. */
-export function DiscordLink({ invite, variant }: { invite: string | null; variant: 'bar' | 'foot' }) {
+export function DiscordLink({ invite, variant, where }: { invite: string | null; variant: 'bar' | 'foot'; where: TrackEvents['discord_click']['where'] }) {
   const { t } = useI18n();
   if (!invite) return null;
   const text = variant === 'bar' ? t('discord.short') : t('nav.discord');
@@ -40,6 +41,7 @@ export function DiscordLink({ invite, variant }: { invite: string | null; varian
       href={invite}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => track('discord_click', { where })}
       aria-label={`${text} ${t('nav.newTab')}`}
     >
       <DiscordIcon />

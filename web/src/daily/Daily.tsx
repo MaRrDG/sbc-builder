@@ -230,7 +230,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
           {link({ view: 'landing' }, 'dg-logo', <img src="/brand/logo-on-dark.svg" alt={t('top.home')} width="140" height="36" />)}
           <div className="dg-top-end">
             <LangMenu lang={lang} setLang={setLang} label={t('top.language')} compact />
-            <DiscordLink invite={invite} variant="bar" />
+            <DiscordLink invite={invite} variant="bar" where="daily" />
             {!authReady ? (
               <span className="dg-toplink" aria-hidden="true" style={{ visibility: 'hidden' }}>
                 {t('landing.signIn')}
@@ -318,7 +318,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
 
       <footer className="dg-foot">
         <LangMenu lang={lang} setLang={setLang} label={t('top.language')} up />
-        <DiscordLink invite={invite} variant="foot" />
+        <DiscordLink invite={invite} variant="foot" where="daily" />
       </footer>
 
       <Sheet

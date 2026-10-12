@@ -5,6 +5,7 @@ import { api } from '../api';
 import { useI18n } from '../i18n';
 import { errorText } from '../messages';
 import type { Route } from '../route';
+import { track } from '../track';
 
 interface Props {
   signedIn: boolean;
@@ -46,6 +47,7 @@ export function Reminder({ signedIn, link, next }: Props) {
     setSaving(true);
     api
       .prefs({ dailyReminder: value })
+      .then(() => value && track('reminder_on'))
       .catch((e) => {
         setState((s) => s && { ...s, on: !value });
         setError(errorText(e, t));
@@ -66,7 +68,7 @@ export function Reminder({ signedIn, link, next }: Props) {
         </span>
       </label>
       <p className="dg-remind-hint">
-        {state.premium ? t('daily.remind.hint') : <>{t('daily.remind.locked')} <a className="dg-invite-link" href="/#pricing">{t('daily.remind.more')}</a></>}
+        {state.premium ? t('daily.remind.hint') : <>{t('daily.remind.locked')} <a className="dg-invite-link" href="/#pricing" onClick={() => track('premium_view', { where: 'daily' })}>{t('daily.remind.more')}</a></>}
       </p>
       {error && <p className="dg-remind-hint" role="alert">{error}</p>}
     </div>
