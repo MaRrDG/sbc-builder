@@ -1120,7 +1120,6 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'billing.billedYearly': 'Adică {perMonth} pe lună, plătit o dată pe an.',
   'billing.guarantee': 'Banii înapoi în 14 zile · anulezi oricând',
   'billing.payment': 'Plată',
-  'billing.totalToday': 'Total azi',
   'billing.mor': 'Plățile sunt procesate de Paddle, revânzătorul nostru, care trimite și chitanțele. TVA inclus.',
   'billing.refunds': 'Politica de rambursare',
   'billing.loadingCheckout': 'Se încarcă plata securizată…',

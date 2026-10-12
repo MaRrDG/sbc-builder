@@ -1086,7 +1086,6 @@ export const en = {
   'billing.billedYearly': 'That is {perMonth} a month, billed once a year.',
   'billing.guarantee': '14-day money-back guarantee · cancel anytime',
   'billing.payment': 'Payment',
-  'billing.totalToday': 'Total today',
   'billing.mor': 'Payments are handled by Paddle, our reseller, who also sends the receipts. VAT included.',
   'billing.refunds': 'Refund policy',
   'billing.loadingCheckout': 'Loading the secure checkout…',

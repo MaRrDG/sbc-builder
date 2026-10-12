@@ -4592,12 +4592,16 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .checkout-back img { display: block; height: 28px; width: auto; }
 .checkout-back:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .checkout-summary {
-  display: flex; flex-direction: column; gap: 28px;
+  display: flex; justify-content: flex-end;
   padding: 40px clamp(24px, 4vw, 64px);
   background: linear-gradient(160deg, var(--bg-0) 0%, var(--bg-1) 100%);
   color: var(--ink);
 }
-.checkout-summary > * { width: 100%; max-width: 460px; margin-left: auto; }
+/* one column next to the middle line, so everything on the left lines up with the logo */
+.checkout-col {
+  width: 100%; max-width: 460px; min-height: calc(100vh - 80px);
+  display: flex; flex-direction: column; gap: 28px;
+}
 .checkout-offer { display: flex; flex-direction: column; gap: 6px; }
 .checkout-kicker { margin: 0; font-size: 14px; color: var(--ink-2); }
 .checkout-offer h1 { margin: 0; display: flex; align-items: center; gap: 10px; font: 700 40px/1.05 var(--font-num); }
@@ -4644,11 +4648,6 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .checkout-card .fcs-checkout { min-width: 0; }
 .checkout-loading { margin: 0 0 12px; font-size: 14px; color: oklch(0.45 0.02 220); }
 .checkout-error { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--r-ctl); background: oklch(0.96 0.03 25); color: oklch(0.42 0.15 25); font-size: 14px; }
-.checkout-total {
-  display: flex; justify-content: space-between; gap: 12px;
-  margin: 12px 0 0; padding-top: 12px; border-top: 1px solid oklch(0.93 0.005 220);
-  font-size: 14px;
-}
 .checkout-single {
   grid-template-columns: minmax(0, 1fr);
   align-content: start; gap: 48px;
@@ -4664,8 +4663,8 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .plan-warn { color: var(--bad); }
 @media (max-width: 860px) {
   .checkout { grid-template-columns: minmax(0, 1fr); min-height: 0; }
-  .checkout-summary { gap: 18px; padding: 16px 16px 24px; }
-  .checkout-summary > * { max-width: none; margin-left: 0; }
+  .checkout-summary { padding: 16px 16px 24px; }
+  .checkout-col { max-width: none; min-height: 0; gap: 18px; }
   .checkout-offer h1 { font-size: 30px; }
   .checkout-price b { font-size: 48px; }
   .checkout-feats { font-size: 14px; gap: 8px; }

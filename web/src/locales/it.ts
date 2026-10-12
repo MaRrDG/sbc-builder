@@ -1090,7 +1090,6 @@ export const it: Record<Keys, string> = {
   'billing.billedYearly': 'Cioè {perMonth} al mese, addebitati una volta all’anno.',
   'billing.guarantee': 'Rimborso garantito entro 14 giorni · disdici quando vuoi',
   'billing.payment': 'Pagamento',
-  'billing.totalToday': 'Totale oggi',
   'billing.mor': 'I pagamenti sono gestiti da Paddle, il nostro rivenditore, che invia anche le ricevute. IVA inclusa.',
   'billing.refunds': 'Politica di rimborso',
   'billing.loadingCheckout': 'Caricamento del pagamento sicuro…',

@@ -172,47 +172,47 @@ export function UpgradePage({ plan, billing, onActivated, onSettings, onBack }: 
   return (
     <div className="checkout">
       <section className="checkout-summary" aria-labelledby="checkout-title">
-        {top}
-        <div className="checkout-offer">
-          <p className="checkout-kicker">{t('billing.subscribeTo')}</p>
-          <h1 id="checkout-title"><Crown weight="fill" aria-hidden="true" /> {t('billing.product')}</h1>
-          <p className="checkout-price">
-            <b>{shown(period)}</b> <span>{period === 'month' ? t('billing.perMonthShort') : t('billing.perYearShort')}</span>
-          </p>
-          <p className="checkout-billed">
-            {period === 'month' ? t('billing.billedMonthly') : t('billing.billedYearly', { perMonth: eur(proPrice('yearly').perMonth) })}
-          </p>
-        </div>
-        <fieldset className="checkout-period">
-          <legend className="sr-only">{t('landing.price.period')}</legend>
-          {(['month', 'year'] as const).map((i) => (
-            <label key={i} className={period === i ? 'on' : ''}>
-              <input type="radio" name="interval" value={i} checked={period === i} onChange={() => setPeriod(i)} />
-              {i === 'month' ? t('landing.price.monthly') : t('landing.price.yearly')}
-              {i === 'year' && <small>{t('landing.price.save', { amount: eur(yearlySaving()) })}</small>}
-            </label>
-          ))}
-        </fieldset>
-        <ul className="checkout-feats">
-          {BENEFITS.map((k) => (
-            <li key={k}><Check weight="bold" aria-hidden="true" /> {t(`landing.price.pro.${k}`)}</li>
-          ))}
-        </ul>
-        <div className="checkout-fine">
-          <p><ShieldCheck weight="bold" aria-hidden="true" /> {t('billing.guarantee')}</p>
-          <p>
-            {t('billing.mor')} <a href="/refunds" target="_blank" rel="noopener">{t('billing.refunds')}<span className="sr-only"> {t('nav.newTab')}</span></a>
-          </p>
+        <div className="checkout-col">
+          {top}
+          <div className="checkout-offer">
+            <p className="checkout-kicker">{t('billing.subscribeTo')}</p>
+            <h1 id="checkout-title"><Crown weight="fill" aria-hidden="true" /> {t('billing.product')}</h1>
+            <p className="checkout-price">
+              <b>{shown(period)}</b> <span>{period === 'month' ? t('billing.perMonthShort') : t('billing.perYearShort')}</span>
+            </p>
+            <p className="checkout-billed">
+              {period === 'month' ? t('billing.billedMonthly') : t('billing.billedYearly', { perMonth: eur(proPrice('yearly').perMonth) })}
+            </p>
+          </div>
+          <fieldset className="checkout-period">
+            <legend className="sr-only">{t('landing.price.period')}</legend>
+            {(['month', 'year'] as const).map((i) => (
+              <label key={i} className={period === i ? 'on' : ''}>
+                <input type="radio" name="interval" value={i} checked={period === i} onChange={() => setPeriod(i)} />
+                {i === 'month' ? t('landing.price.monthly') : t('landing.price.yearly')}
+                {i === 'year' && <small>{t('landing.price.save', { amount: eur(yearlySaving()) })}</small>}
+              </label>
+            ))}
+          </fieldset>
+          <ul className="checkout-feats">
+            {BENEFITS.map((k) => (
+              <li key={k}><Check weight="bold" aria-hidden="true" /> {t(`landing.price.pro.${k}`)}</li>
+            ))}
+          </ul>
+          <div className="checkout-fine">
+            <p><ShieldCheck weight="bold" aria-hidden="true" /> {t('billing.guarantee')}</p>
+            <p>
+              {t('billing.mor')} <a href="/refunds" target="_blank" rel="noopener">{t('billing.refunds')}<span className="sr-only"> {t('nav.newTab')}</span></a>
+            </p>
+          </div>
         </div>
       </section>
       <section className="checkout-pay" aria-label={t('billing.payment')}>
         <div className="checkout-card">
           {error && <p className="checkout-error" role="alert">{error}</p>}
           {!frameReady && !error && <p className="checkout-loading" role="status">{t('billing.loadingCheckout')}</p>}
+          {/* Paddle's form ends with its own total ("€5.00 now, then …"), so no total of ours */}
           <div className={FRAME_TARGET} />
-          <p className="checkout-total">
-            <span>{t('billing.totalToday')}</span> <b>{shown(period)}</b>
-          </p>
         </div>
       </section>
     </div>
