@@ -21,6 +21,7 @@ import { parseBoosters, reconcileBoosts, stopsAllowed } from './boost.js';
 import { discordAccountIds, unlinkedDiscordEmailIds, discordAccountOf, isDiscordId, pickPersona } from './link.js';
 import { clip, defaultChallenge, matchSets, setAvailable } from './pick.js';
 import { toBotSolution, type BotStats } from './solution.js';
+import { APP_VERSION, CHANGELOG, latestEnglish } from '../../shared/changelog.js';
 
 const solving = new Set<string>(); // Discord ids with a solve running: one at a time, so the quota check cannot race
 const solveLimit = createLimiter({ windowMs: 60_000, max: 6 }); // per Discord user, on top of the bot's 30 s cooldown
@@ -90,6 +91,9 @@ export function registerBotRoutes(app: FastifyInstance): void {
         return { day: await currentDay(), live: false };
       }
     });
+
+    // the newest changelog entries, English only: the bot posts the ones missing in 📜・changelog
+    s.get('/api/bot/changelog', async () => ({ version: APP_VERSION, entries: latestEnglish(CHANGELOG, 5) }));
 
     s.get<{ Querystring: { discordId?: string; q?: string } }>('/api/bot/sets', async (req) => {
       const { acc } = await botUser(req.query.discordId);
