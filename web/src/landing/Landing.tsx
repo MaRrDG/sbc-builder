@@ -1,6 +1,7 @@
 // Public landing page (/): what FC Solver does and why it beats market-price solvers.
 // Lazy-loaded by Root for everyone (signed in or not); the app itself lives under /dashboard.
 import { LegalLinks } from '../legal/LegalPage';
+import { APP_VERSION } from '../../../shared/changelog';
 import { useEffect, type MouseEvent, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
@@ -145,6 +146,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         <nav aria-label={t('landing.footer.nav')}>
           {link({ view: 'setup' }, 'lp-link', t('landing.footer.setup'))}
           {link({ view: 'guide' }, 'lp-link', t('landing.footer.guide'))}
+          {link({ view: 'changelog' }, 'lp-link', `${t('landing.footer.changelog')} · v${APP_VERSION}`)}
         </nav>
         <p>{t('landing.footer.legal')}</p>
         <LegalLinks navigate={navigate} className="lp-link" />

@@ -4108,6 +4108,18 @@ a.adm-kpi:hover { background: var(--surface-2); }
   margin-top: 6px;
 }
 
+.changelog-version {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink-2);
+  font-family: var(--font-num);
+  font-size: 15px;
+  vertical-align: middle;
+}
+
 .legal-intro {
   font-size: 15px;
 }

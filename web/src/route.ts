@@ -10,6 +10,7 @@
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
 //   /terms  /privacy  /cookies              legal pages (public)
+//   /changelog            what changed (public)
 // Old app paths without /dashboard (/sbc/16, /club, ...) still parse; useRoute rewrites the address bar.
 import { useCallback, useEffect, useState } from 'react';
 import type { LegalDoc } from './legal/docs';
@@ -34,6 +35,7 @@ export type Route =
   | { view: 'objectives'; step: ObjStep }
   | { view: 'admin'; page: AdminPage; userId: string | null; query: string }
   | { view: 'legal'; doc: LegalDoc }
+  | { view: 'changelog' }
   | { view: 'signin'; next: string }
   | { view: 'ssoCallback' };
 
@@ -69,6 +71,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (a === 'guide') return { view: 'guide' };
   if (a === 'daily') return { view: 'daily', practice: b === 'practice' };
   if (a === 'terms' || a === 'privacy' || a === 'cookies') return { view: 'legal', doc: a };
+  if (a === 'changelog') return { view: 'changelog' };
   const [x, y, z] = a === 'dashboard' ? parts.slice(1) : parts;
   if (x === 'club') return { view: 'club' };
   if (x === 'evolutions') return { view: 'evolutions' };
@@ -110,6 +113,7 @@ export function routePath(r: Route): string {
       return `/${r.doc}`;
     case 'setup':
     case 'guide':
+    case 'changelog':
       return `/${r.view}`;
     case 'daily':
       return r.practice ? '/daily/practice' : '/daily';

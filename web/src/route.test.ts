@@ -23,11 +23,12 @@ test('routePath round-trips', () => {
     { view: 'sbcs', setId: null, challengeId: null },
     { view: 'sbcs', setId: 16, challengeId: null },
     { view: 'sbcs', setId: 16, challengeId: 39 },
-    { view: 'club' }, { view: 'evolutions' }, { view: 'settings' }, adminRoute('overview'), { view: 'setup' }, { view: 'guide' },
+    { view: 'club' }, { view: 'evolutions' }, { view: 'settings' }, adminRoute('overview'), { view: 'setup' }, { view: 'guide' }, { view: 'changelog' },
   ];
   for (const r of routes) assert.deepEqual(parseRoute(routePath(r)), r, routePath(r));
   assert.equal(routePath({ view: 'sbcs', setId: 16, challengeId: 39 }), '/dashboard/sbc/16/39');
   assert.equal(routePath({ view: 'setup' }), '/setup');
+  assert.equal(routePath({ view: 'changelog' }), '/changelog');
 });
 
 test('canonicalPath rewrites old app URLs only', () => {

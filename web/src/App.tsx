@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
-import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
 import { DiscordIcon } from './components/DiscordIcon';
 import {
   api, ApiError, setPersona,
@@ -11,6 +11,7 @@ import { SolverOptions, DEFAULT_OPTIONS, exclusionCount } from './components/Sol
 import { LocalOptions } from './components/LocalOptions';
 import { SetList } from './components/SetList';
 import { ClubView } from './components/ClubView';
+import { useChangelogUnread } from './changelog/seen';
 import { GalleryList } from './components/gallery/GalleryList';
 import { GallerySet } from './components/gallery/GallerySet';
 import { LegalLinks } from './legal/LegalPage';
@@ -136,6 +137,7 @@ export default function App({
   const [filter, setFilter] = useState('');
   const [menuOpen, setMenuOpen] = useState(false); // phone navigation menu
   const dailyOpen = useDailyPending(true, true); // the dashboard is signed in only
+  const changelogUnread = useChangelogUnread();
   const [syncing, setSyncing] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -558,7 +560,7 @@ export default function App({
     setError(null);
   };
 
-  const go = (v: Exclude<View, 'signin' | 'ssoCallback' | 'legal' | 'daily'>) => {
+  const go = (v: Exclude<View, 'signin' | 'ssoCallback' | 'legal' | 'daily' | 'changelog'>) => {
     setShowOptions(false);
     setMenuOpen(false);
     // pressing SBCs again goes back to the list
@@ -879,6 +881,24 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           <button type="button" className="nav-item" aria-current={view === 'guide' ? 'page' : undefined} onClick={() => go('guide')}>
             <BookOpenText weight="bold" aria-hidden="true" />
             <span>{t('nav.guide')}</span>
+          </button>
+          {/* the changelog is its own public page (/changelog), like the Daily */}
+          <button
+            type="button"
+            className="nav-item"
+            onClick={() => {
+              setMenuOpen(false);
+              navigate({ view: 'changelog' });
+              window.scrollTo(0, 0);
+            }}
+          >
+            <ClockCounterClockwise weight="bold" aria-hidden="true" />
+            <span>{t('nav.changelog')}</span>
+            {changelogUnread && (
+              <i className="new-dot">
+                <span className="sr-only">{t('changelog.new')}</span>
+              </i>
+            )}
           </button>
           {admin && (
             <>

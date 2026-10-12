@@ -37,6 +37,10 @@ const PAGES: Record<string, PageMeta> = {
     title: 'Cookie policy · FC Solver',
     description: 'FC Solver uses only strictly necessary cookies and cookieless statistics: no advertising or tracking cookies, no consent banner.',
   },
+  '/changelog': {
+    title: 'Changelog · FC Solver',
+    description: 'What changed in FC Solver, the EA FC 27 SBC solver: every update, newest first.',
+  },
   '/daily': {
     title: 'FC Solver Daily · Guess today\'s EA FC player',
     description:
