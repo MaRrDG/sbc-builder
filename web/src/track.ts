@@ -22,6 +22,8 @@ export interface TrackEvents {
   reminder_on: undefined;
   checkout_open: { interval: 'month' | 'year' };
   checkout_done: { interval: 'month' | 'year' };
+  pwa_install_prompt: { platform: 'android' | 'ios' };
+  pwa_installed: undefined;
 }
 
 type Owt = { trackEvent?: (name: string, props?: Record<string, string>) => void; trackPayment?: (amountInCents: number, currency: string, transactionId: string) => void };

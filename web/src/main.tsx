@@ -5,6 +5,8 @@ import Root from './Root';
 import { I18nProvider } from './i18n';
 import { refFromUrl, saveRef } from './ref';
 import { applyNoTrack } from './track';
+import { registerServiceWorker } from './pwa/register';
+import { startInstallCapture } from './pwa/install';
 // fonts are served by us, not Google (no visitor IP goes to a third party)
 import '@fontsource/geist/400.css';
 import '@fontsource/geist/500.css';
@@ -16,6 +18,8 @@ import '@fontsource/barlow-condensed/700.css';
 import './styles.css';
 
 applyNoTrack(); // before the deferred analytics script runs: admins are not counted
+startInstallCapture(); // before React: beforeinstallprompt can fire before the first render
+registerServiceWorker();
 
 const ref = refFromUrl(location.search);
 if (ref) saveRef(ref);

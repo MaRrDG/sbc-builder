@@ -31,6 +31,8 @@ Never personal data: no email, names, user / persona ids, usernames, invite code
 | `sbc_open` | an SBC set opened from the list | — |
 | `solve` | a solve answered | `found`, `deep`: `yes` / `no` |
 | `checkout_open` | the Paddle checkout opened on `/dashboard/upgrade` (again on a plan switch) | `interval`: `month` / `year` |
+| `pwa_install_prompt` | the user asked to install the app (Android: the native prompt opened; iPhone: the steps sheet opened) | `platform`: `android` / `ios` |
+| `pwa_installed` | the browser reported the app installed | — |
 | `checkout_done` | Paddle said the checkout completed (Premium itself comes from the webhook) | `interval`: `month` / `year` |
 | `daily_start` | first guess of a game | `mode`: `daily` / `practice`; `signed_in` |
 | `daily_end` | game over | `mode`; `won`; `tries` 1–5; `streak` `0` / `1-6` / `7-13` / `14-29` / `30+` (daily only) |
