@@ -306,6 +306,11 @@ export interface PlanInfo {
   boost: { since: number | null; graceUntil: number | null } | null;
 }
 
+/** Paddle subscription as /api/me reports it (null without one or while billing is off). */
+export interface BillingState { subscribed: boolean; interval: 'month' | 'year'; status: 'active' | 'trialing' | 'past_due' | 'paused' | 'canceled'; periodEnd: number; cancelAt: number | null }
+export interface BillingConfig { env: 'sandbox' | 'production'; clientToken: string; prices: { month: string; year: string } }
+export interface CheckoutData { priceId: string; customData: { userId: string }; email: string | null; customerId: string | null }
+
 /** A server error; `code` + `params` let the UI say it in the user's language. */
 export class ApiError extends Error {
   constructor(message: string, public code: string | null, public params: Record<string, string | number>) {
@@ -437,7 +442,7 @@ export const api = {
     saveProfile: (p: { username?: string; leaderboard?: boolean; asked?: true }) => req<DailyProfile>('/api/me/daily-profile', { method: 'PUT', body: p }),
   },
   me: () =>
-    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; takenOver: boolean; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null }>('/api/me'),
+    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; takenOver: boolean; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null; billing: BillingState | null }>('/api/me'),
   onboarding: (a: ({ heardFrom: HeardFrom; futYears: FutYears } | { skip: true }) & { code?: string }) =>
     req<{ ok: true; redeem?: RedeemResult | { error: string } }>('/api/me/onboarding', { method: 'PUT', body: a }),
   prefs: (p: { lang?: string; evoEmails?: boolean; dailyReminder?: boolean }) => req<{ ok: true }>('/api/me/prefs', { method: 'PUT', body: p }),
@@ -446,6 +451,9 @@ export const api = {
   unlinkPersona: (personaId: number) => req<{ ok: true }>(`/api/personas/${personaId}`, { method: 'DELETE' }),
   referral: () => req<ReferralInfo>('/api/referral'),
   redeem: (code: string) => req<RedeemResult>('/api/redeem', { method: 'POST', body: { code } }),
+  billingConfig: () => req<BillingConfig>('/api/billing/config'),
+  billingCheckout: (interval: 'month' | 'year') => req<CheckoutData>('/api/billing/checkout', { method: 'POST', body: { interval } }),
+  billingPortal: () => req<{ url: string }>('/api/billing/portal', { method: 'POST' }),
   spendPoints: (days: 7 | 14 | 30, gift: boolean) =>
     req<{ premiumUntil: number | null } | { giftCode: string }>('/api/points/spend', { method: 'POST', body: { days, gift } }),
   status: () =>

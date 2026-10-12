@@ -18,16 +18,20 @@ The script sends nothing on localhost, in iframes, for bots, or on another domai
 
 ## Events
 
+Revenue: on `checkout.completed` the upgrade screen also calls `owt.trackPayment(amountInCents, currency, transactionId)` (`trackPayment` in `track.ts`; Paddle's transaction id, nothing about the user).
+
 Never personal data: no email, names, user / persona ids, usernames, invite codes, SBC names. A new event goes into `TrackEvents` in `web/src/track.ts` and into this table. Page views (including SPA navigations) are counted by the script itself.
 
 | Event | When | Props |
 |---|---|---|
-| `cta_click` | landing "start" / "sign in" (signed out) | `where`: `header` / `hero` / `pricing` / `invite` |
+| `cta_click` | landing "start" / "sign in" (signed out), the Pricing "Go Premium" button | `where`: `header` / `hero` / `pricing` / `premium` / `invite` |
 | `signin_done` | sign-in completed | `method`: `google` / `email`; `new`: `yes` / `no` (Google: account created < 10 min ago) |
 | `extension_linked` | the extension linked an EA account | — |
 | `sync_done` | a club / SBC sync finished (seen in an open dashboard) | `kind`: `club` / `sbcs`; `ok`: `yes` / `no` |
 | `sbc_open` | an SBC set opened from the list | — |
 | `solve` | a solve answered | `found`, `deep`: `yes` / `no` |
+| `checkout_open` | the Paddle checkout opened on `/dashboard/upgrade` (again on a plan switch) | `interval`: `month` / `year` |
+| `checkout_done` | Paddle said the checkout completed (Premium itself comes from the webhook) | `interval`: `month` / `year` |
 | `daily_start` | first guess of a game | `mode`: `daily` / `practice`; `signed_in` |
 | `daily_end` | game over | `mode`; `won`; `tries` 1–5; `streak` `0` / `1-6` / `7-13` / `14-29` / `30+` (daily only) |
 | `daily_share` | result copied | `mode` |

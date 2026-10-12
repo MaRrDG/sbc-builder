@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwis
 import { DiscordIcon } from './components/DiscordIcon';
 import {
   api, ApiError, setPersona,
-  type Account, type Challenge, type GalleryResponse, type Meta, type Player, type PlanInfo, type Prefs, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
+  type Account, type Challenge, type GalleryResponse, type Meta, type Player, type BillingState, type PlanInfo, type Prefs, type SbcSet, type SolveOptions, type SolveResult, type SyncStatus,
 } from './api';
 import { Pitch, ReqTick } from './components/Pitch';
 import { PointsArea } from './components/PointsArea';
@@ -30,6 +30,9 @@ import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
+import { UpgradePage } from './components/billing/UpgradePage';
+import { billingConfig } from './billing/paddle';
+import { UpgradeContext } from './billing/upgrade';
 import { InvitePage } from './components/InvitePage';
 import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
@@ -98,6 +101,8 @@ export default function App({
   const [admin, setAdmin] = useState(false);
   const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
+  const [billing, setBilling] = useState<BillingState | null>(null); // Paddle subscription (/api/me)
+  const [billingOn, setBillingOn] = useState(false); // all PADDLE_* set on the server
   const founders = useFounders();
   const [onboarded, setOnboarded] = useState(true); // until /api/me says otherwise
   // the extension tried to link an EA account that already has 3 FC Solver accounts
@@ -224,7 +229,8 @@ export default function App({
 
   // Boot (and after the extension links a new EA account): who am I, which personas are mine.
   const loadMe = useCallback(async () => {
-    const { user, personas, admin, plan: p, prefs: pr, onboarding, takenOver: to, linkBlocked: lb } = await api.me();
+    const { user, personas, admin, plan: p, prefs: pr, onboarding, takenOver: to, linkBlocked: lb, billing: b } = await api.me();
+    setBilling(b);
     setMe(user);
     setAdmin(admin);
     if (admin) disableTracking(); // admins are not counted (track.ts)
@@ -250,6 +256,10 @@ export default function App({
     } else if (pick.personaId !== activeIdRef.current) await selectAccount(pick.personaId);
     return personas;
   }, [selectAccount]);
+
+  useEffect(() => {
+    void billingConfig().then((c) => setBillingOn(!!c));
+  }, []);
 
   useEffect(() => {
     let cancelled = false; // StrictMode runs this twice; only the live run may select
@@ -402,7 +412,7 @@ export default function App({
   // the tab title follows the screen
   useEffect(() => {
     const name =
-      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'accounts' ? 'Linked accounts' : view === 'invite' ? 'Invite friends' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery' : view === 'objectives' ? 'Objectives'
+      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'accounts' ? 'Linked accounts' : view === 'invite' ? 'Invite friends' : view === 'upgrade' ? 'Premium' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery' : view === 'objectives' ? 'Objectives'
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
@@ -635,6 +645,9 @@ export default function App({
       : (plan?.quota ?? null);
   const effectivePlan = plan ? { ...plan, quota: effectiveQuota } : plan;
   const outOfSolves = !!effectiveQuota && effectiveQuota.used >= effectiveQuota.limit;
+  // "Go Premium" buttons: only while billing is on and there is something to buy (not admins, lifetime or subscribed)
+  const lifetime = plan?.source === 'admin' || (plan?.source === 'paid' && plan.premiumUntil === null);
+  const upgrade = billingOn && plan && !lifetime && !billing?.subscribed ? () => go('upgrade') : null;
   const noteQuota = (r: SolveResult) => {
     if (r.quota === undefined) return;
     // the server said unlimited but our local plan still says Free: the admin changed it while the page was open
@@ -715,6 +728,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
   );
 
   return (
+    <UpgradeContext.Provider value={upgrade}>
     <div className="app">
       <ClubSyncModal status={status} players={club.length} live={!!account?.session} />
       {survey /* never on top of a running club sync: that dialog blocks the page */}
@@ -1051,6 +1065,10 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             )
           )}
 
+          {!showGuide && view === 'upgrade' && (
+            <UpgradePage plan={effectivePlan} billing={billing} onActivated={loadMe} onSettings={() => go('settings')} />
+          )}
+
           {!showGuide && view === 'invite' && effectivePlan && (
             <InvitePage plan={effectivePlan} founders={founders} onPlanChange={() => void loadMe()} />
           )}
@@ -1066,6 +1084,8 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
               </header>
               <PlanCard
                 plan={effectivePlan}
+                billing={billing}
+                onUpgrade={upgrade}
                 now={now}
                 discordInvite={discordInvite}
                 onInvite={() => navigate({ view: 'invite' })}
@@ -1241,6 +1261,12 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                     {outOfSolves && effectiveQuota?.resetsAt && (
                       <div className="notice-inline" role="status">
                         {t('quota.out', { until: untilText(t, effectiveQuota.resetsAt, now) })}
+                        {upgrade && (
+                          <>
+                            {' '}
+                            <button type="button" className="text" onClick={upgrade}>{t('billing.goPremium')}</button>
+                          </>
+                        )}
                       </div>
                     )}
                     {scoreTarget > 0 ? (
@@ -1415,6 +1441,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
         </>
       )}
     </div>
+    </UpgradeContext.Provider>
   );
 }
 

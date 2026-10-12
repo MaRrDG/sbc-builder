@@ -16,7 +16,7 @@ export function InvitePage({ plan, founders, onPlanChange }: { plan: PlanInfo; f
   const [msg, setMsg] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const lifetime = plan.tier === 'premium' && plan.source !== 'boost' && plan.premiumUntil === null;
+  const lifetime = plan.tier === 'premium' && plan.source !== 'boost' && plan.source !== 'subscription' && plan.premiumUntil === null;
 
   const load = () =>
     api.referral().then(
@@ -96,6 +96,7 @@ export function InvitePage({ plan, founders, onPlanChange }: { plan: PlanInfo; f
           <div className="invite-spend">
             <h3>{t('invite.exchange')}</h3>
             {lifetime && <p className="invite-note">{t('invite.lifetimeNote')}</p>}
+            {plan.source === 'subscription' && <p className="invite-note">{t('invite.subscribedNote')}</p>}
             <ul className="invite-options">
               {OPTIONS.map((o) => (
                 <li key={o.days}>

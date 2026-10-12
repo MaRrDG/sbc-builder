@@ -1,11 +1,13 @@
 // A Premium screen for a Free user: the real UI with example data, blurred and inert, with the offer on top.
-// Billing does not exist yet, so the buy button stays disabled and nothing navigates away.
+// The buy button opens /dashboard/upgrade; while billing is off it stays disabled ("coming soon").
 import type { ReactNode } from 'react';
 import { Crown } from '@phosphor-icons/react';
+import { useUpgrade } from '../billing/upgrade';
 import { useI18n } from '../i18n';
 
 export function PremiumPreview({ title, body, children }: { title: string; body: string; children: ReactNode }) {
   const { t } = useI18n();
+  const upgrade = useUpgrade();
   return (
     <div className="premium-preview">
       <div className="premium-preview-demo" inert aria-hidden="true">
@@ -17,10 +19,10 @@ export function PremiumPreview({ title, body, children }: { title: string; body:
         </span>
         <h2 id="premium-preview-title">{title}</h2>
         <p>{body}</p>
-        <button type="button" className="premium-preview-buy" disabled>
-          {t('premium.buy')}
+        <button type="button" className="premium-preview-buy" disabled={!upgrade} onClick={upgrade ?? undefined}>
+          {upgrade ? t('billing.goPremium') : t('premium.buy')}
         </button>
-        <p className="premium-preview-soon">{t('premium.soon')}</p>
+        {!upgrade && <p className="premium-preview-soon">{t('premium.soon')}</p>}
       </section>
     </div>
   );

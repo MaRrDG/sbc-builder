@@ -2,7 +2,8 @@
 // Lazy-loaded by Root for everyone (signed in or not); the app itself lives under /dashboard.
 import { LEGAL, LEGAL_DOCS } from '../legal/docs';
 import { APP_VERSION } from '../../../shared/changelog';
-import { useEffect, type MouseEvent, type ReactNode } from 'react';
+import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
+import { billingConfig } from '../billing/paddle';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { DiscordLink, useDiscordInvite } from '../components/DiscordLink';
@@ -33,6 +34,10 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
   const founders = useFounders();
   const invite = useDiscordInvite();
   const dailyOpen = useDailyPending(authReady, signedIn);
+  const [billingOn, setBillingOn] = useState(false);
+  useEffect(() => {
+    void billingConfig().then((c) => setBillingOn(!!c));
+  }, []);
   // the page is lazy-loaded, so the browser's own jump to /#why happened before the section existed
   useEffect(() => {
     let id = window.location.hash.slice(1);
@@ -152,7 +157,13 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         <Pillars />
         <Objectives />
         <Steps link={link} />
-        <Pricing cta={cta('pricing')} founders={founders} link={link} />
+        <Pricing
+          cta={cta('pricing')}
+          founders={founders}
+          link={link}
+          // signed out: /signin?next=/dashboard/upgrade, so the checkout opens right after sign-in
+          buy={billingOn && authReady ? link(signedIn ? { view: 'upgrade' } : { view: 'signin', next: '/dashboard/upgrade' }, 'lp-btn', t('billing.goPremium'), () => track('cta_click', { where: 'premium' })) : null}
+        />
         <Invite cta={!authReady ? placeholder('lp-btn', t('landing.invite.cta')) : link(signedIn ? { view: 'invite' } : signin, 'lp-btn', t('landing.invite.cta'), signedIn ? undefined : () => track('cta_click', { where: 'invite' }))} />
         <Faq />
       </main>

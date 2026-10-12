@@ -6,6 +6,7 @@
 //   /dashboard/evolutions evolutions
 //   /dashboard/gallery    gallery list      /dashboard/gallery/<set>  a gallery set
 //   /dashboard/objectives[/formation|/squad]  objectives squad wizard: pick → formation → squad
+//   /dashboard/upgrade    buy Premium (Paddle checkout)
 //   /dashboard/invite     invite friends     /dashboard/settings   settings          /dashboard/accounts   linked accounts          /dashboard/admin[/users[/:id]|/accounts|/codes|/daily][?filters]   admin panel (admins only)
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
@@ -28,6 +29,7 @@ export type Route =
   | { view: 'settings' }
   | { view: 'accounts' }
   | { view: 'invite' }
+  | { view: 'upgrade' }
   | { view: 'setup' }
   | { view: 'guide' }
   | { view: 'daily'; practice: boolean }
@@ -78,6 +80,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (x === 'settings') return { view: 'settings' };
   if (x === 'accounts') return { view: 'accounts' };
   if (x === 'invite') return { view: 'invite' };
+  if (x === 'upgrade') return { view: 'upgrade' };
   if (x === 'objectives') return { view: 'objectives', step: y === 'formation' || y === 'squad' ? y : 'pick' };
   if (x === 'gallery') return { view: 'gallery', setId: y && /^[a-z0-9-]+$/.test(y) ? y : null };
   if (x === 'admin') {
@@ -122,6 +125,7 @@ export function routePath(r: Route): string {
     case 'settings':
     case 'accounts':
     case 'invite':
+    case 'upgrade':
       return `/dashboard/${r.view}`;
     case 'objectives':
       return r.step === 'pick' ? '/dashboard/objectives' : `/dashboard/objectives/${r.step}`;

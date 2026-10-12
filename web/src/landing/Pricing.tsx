@@ -1,4 +1,4 @@
-// Free vs Premium. Display only until billing exists: the Premium button is disabled ("Coming soon").
+// Free vs Premium. The Premium button opens the upgrade screen while billing is on, else it is disabled ("Coming soon").
 import { useState, type ReactNode } from 'react';
 import { Check, SoccerBall } from '@phosphor-icons/react';
 import type { Route } from '../route';
@@ -9,11 +9,12 @@ import type { Founders } from './Founders';
 
 interface Props {
   cta: ReactNode;
+  buy: ReactNode | null; // null: billing off
   founders: Founders | null;
   link: (r: Route, className: string, children: ReactNode) => ReactNode;
 }
 
-export function Pricing({ cta, founders, link }: Props) {
+export function Pricing({ cta, buy, founders, link }: Props) {
   const { t, lang } = useI18n();
   const [billing, setBilling] = useState<Billing>('yearly');
   const pro = proPrice(billing);
@@ -76,9 +77,11 @@ export function Pricing({ cta, founders, link }: Props) {
           {list([t('landing.price.pro.f1'), t('landing.price.pro.f2'), t('landing.price.pro.f4'), t('landing.price.pro.f5'), t('landing.price.pro.f7'), t('landing.price.pro.f6'), t('landing.price.pro.f3')])}
           <p className="lp-boost-note">{t('landing.price.pro.boost')}</p>
           {founders && <p className="lp-founders-note">{t('landing.founders.planNote', { count: founders.left, limit: founders.limit })}</p>}
-          <button type="button" className="lp-btn" disabled>
-            {t('landing.price.pro.soon')}
-          </button>
+          {buy ?? (
+            <button type="button" className="lp-btn" disabled>
+              {t('landing.price.pro.soon')}
+            </button>
+          )}
         </article>
       </div>
     </section>

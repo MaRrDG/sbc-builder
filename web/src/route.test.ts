@@ -121,3 +121,9 @@ test('daily routes', () => {
   assert.equal(routePath({ view: 'daily', practice: false }), '/daily');
   assert.equal(routePath({ view: 'daily', practice: true }), '/daily/practice');
 });
+
+test('upgrade screen round-trips under /dashboard', () => {
+  assert.deepEqual(parseRoute('/dashboard/upgrade'), { view: 'upgrade' });
+  assert.deepEqual(parseRoute('/upgrade'), { view: 'upgrade' }); // old app path without /dashboard
+  assert.equal(routePath({ view: 'upgrade' }), '/dashboard/upgrade');
+});

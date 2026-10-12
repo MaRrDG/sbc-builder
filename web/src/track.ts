@@ -6,7 +6,7 @@ type YN = 'yes' | 'no';
 type Mode = 'daily' | 'practice';
 
 export interface TrackEvents {
-  cta_click: { where: 'header' | 'hero' | 'pricing' | 'invite' | 'daily' };
+  cta_click: { where: 'header' | 'hero' | 'pricing' | 'premium' | 'invite' | 'daily' };
   signin_done: { method: 'google' | 'email'; new: YN };
   extension_linked: undefined;
   sync_done: { kind: 'club' | 'sbcs'; ok: YN };
@@ -20,9 +20,11 @@ export interface TrackEvents {
   premium_view: { where: 'landing' | 'daily' | 'quota' };
   discord_click: { where: 'landing' | 'daily' | 'sidebar' | 'accounts' };
   reminder_on: undefined;
+  checkout_open: { interval: 'month' | 'year' };
+  checkout_done: { interval: 'month' | 'year' };
 }
 
-type Owt = { trackEvent?: (name: string, props?: Record<string, string>) => void };
+type Owt = { trackEvent?: (name: string, props?: Record<string, string>) => void; trackPayment?: (amountInCents: number, currency: string, transactionId: string) => void };
 declare global {
   interface Window {
     owt?: Owt;
@@ -53,6 +55,16 @@ export function track<K extends keyof TrackEvents>(name: K, ...props: TrackEvent
   try {
     if (typeof window === 'undefined' || window._trk_disabled) return;
     window.owt?.trackEvent?.(name, cleanProps(props[0] as Record<string, unknown> | undefined));
+  } catch {
+    /* analytics never breaks the app */
+  }
+}
+
+/** A Paddle payment as revenue (amount, currency and Paddle's transaction id only, nothing about the user). */
+export function trackPayment(amountInCents: number, currency: string, transactionId: string): void {
+  try {
+    if (typeof window === 'undefined' || window._trk_disabled) return;
+    window.owt?.trackPayment?.(amountInCents, currency, transactionId);
   } catch {
     /* analytics never breaks the app */
   }
