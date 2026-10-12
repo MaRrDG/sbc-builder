@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
 import { DiscordIcon } from './components/DiscordIcon';
 import {
@@ -628,7 +628,12 @@ export default function App({
     return (
       <>
         {survey}
-        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} />
+        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver}>
+          {/* Premium does not need an EA account: the upgrade screen opens before setup too */}
+          {view === 'upgrade' && (
+            <UpgradePage plan={plan} billing={billing} onActivated={loadMe} onSettings={() => navigate({ view: 'sbcs', setId: null, challengeId: null })} />
+          )}
+        </Onboarding>
       </>
     );
 
@@ -1445,8 +1450,9 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
   );
 }
 
-function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
+function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, children }: {
   error: string | null; lang: Lang; setLang: (l: Lang) => void; email: string; onSignOut: () => void; takenOver: boolean;
+  children?: ReactNode; // shown instead of the setup guide (the upgrade screen)
 }) {
   const { t } = useI18n();
   return (
@@ -1461,9 +1467,13 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
       </p>
       {/* the account taken over may have been the only one: say why it is gone */}
       {takenOver && <p className="banner" role="status">{t('notice.takenOver')}</p>}
-      <h1>{t('onb.title')}</h1>
-      <p className="lede">{t('onb.lede')}</p>
-      <SetupGuide />
+      {children || (
+        <>
+          <h1>{t('onb.title')}</h1>
+          <p className="lede">{t('onb.lede')}</p>
+          <SetupGuide />
+        </>
+      )}
       {error && <p className="banner">{error}</p>}
     </div>
   );
