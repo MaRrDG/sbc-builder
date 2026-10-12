@@ -9,6 +9,7 @@ import { langFor, tr, type Lang } from './i18n.js';
 import { categoryOf, findOwnMessage, findText } from './guild.js';
 import { BotApiError, botApi } from './api.js';
 import { alreadyAnnounced, dailyInfoMessage, dailyPost } from './daily.js';
+import { changelogPost, toPost, type BotEntry } from './changelog.js';
 import { onAutocomplete, onCommand } from './handlers.js';
 import { onEndPoll, onPoll, postFinishedPolls } from './polls.js';
 
@@ -48,6 +49,19 @@ async function announceDaily(guild: Guild): Promise<void> {
   }
 }
 
+/** Posts the changelog entries missing from 📝・changelog (English, oldest first). Retried on the next tick on failure. */
+async function postChangelog(guild: Guild): Promise<void> {
+  try {
+    const { entries } = await botApi<{ entries: BotEntry[] }>(cfg, '/api/bot/changelog', { timeoutMs: 10_000 });
+    const ch = await findText(guild, CAT.info, CH.changelog);
+    const recent = await ch.messages.fetch({ limit: 50 });
+    const seen = [...recent.values()].map((m) => ({ authorId: m.author.id, content: m.content }));
+    for (const e of toPost(entries, seen, client.user!.id)) await ch.send(changelogPost(e, cfg.siteUrl, avatarUrl(client.user!)));
+  } catch (e) {
+    console.warn(`[bot] changelog: ${(e as Error).message}`);
+  }
+}
+
 type BoostAnswer = { changed: boolean; linked: boolean; active: boolean };
 
 /** Full booster list to the app (heals missed events and links made after boosting). Only after a complete member fetch, else it could look like mass un-boosting. */
@@ -82,6 +96,8 @@ client.once(Events.ClientReady, async (c) => {
     const g = guild;
     void announceDaily(g);
     setInterval(() => void announceDaily(g), 60_000);
+    void postChangelog(g);
+    setInterval(() => void postChangelog(g), 10 * 60_000);
     void postFinishedPolls(g, c.user.id, avatarUrl(c.user));
     setInterval(() => void postFinishedPolls(g, c.user.id, avatarUrl(c.user)), 60_000);
     void reconcileBoosts(g);

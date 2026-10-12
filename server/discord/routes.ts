@@ -92,7 +92,7 @@ export function registerBotRoutes(app: FastifyInstance): void {
       }
     });
 
-    // the newest changelog entries, English only: the bot posts the ones missing in 📜・changelog
+    // the newest changelog entries, English only: the bot posts the ones missing in 📝・changelog
     s.get('/api/bot/changelog', async () => ({ version: APP_VERSION, entries: latestEnglish(CHANGELOG, 5) }));
 
     s.get<{ Querystring: { discordId?: string; q?: string } }>('/api/bot/sets', async (req) => {

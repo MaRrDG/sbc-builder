@@ -11,7 +11,7 @@ Users see what changed in FC Solver, on the site (English / Romanian / Italian) 
 - One product version, `APP_VERSION = '1'`, shown as "v1". `package.json` becomes `1.0.0`.
 - The extension becomes `1.0.0` too; every extension change still bumps its patch (`1.0.1`, …) because the update notice compares versions. On the site and Discord it is just part of v1.
 - Entries are hand-written by Claude in the same change as the user-visible commit: user-facing wording (not commit messages), each language written for itself, reviewed by the owner in the diff before push.
-- Discord gets a new read-only channel `📜・changelog` in the INFO category; `📢・announcements` stays as it is.
+- Discord gets a new read-only channel `📝・changelog` in the INFO category; `📢・announcements` stays as it is.
 - Dashboard: a "Changelog" sidebar link with a small unread dot.
 
 ## Data
@@ -48,7 +48,7 @@ First entry: "FC Solver v1" with a short summary of what exists today (SBC solve
 
 ## Discord bot
 
-- `discord/layout.ts`: `CH.changelog = '📜・changelog'` in `CAT.info`, `readOnly: true`, topic "What changed in FC Solver". Created by `npm run discord:setup`.
+- `discord/layout.ts`: `CH.changelog = '📝・changelog'` in `CAT.info`, `readOnly: true`, topic "What changed in FC Solver". Created by `npm run discord:setup`.
 - `discord/changelog.ts` (pure, tested):
   - `changelogMessage(id)` → content line `Changelog <id>` (what dedupe reads).
   - `changelogPost(entry, siteUrl, icon)` → content line + brand embed (title `FC Solver v1 · 12 Oct 2026`, bullets, link to `/changelog`), button "Read the changelog", no mentions.

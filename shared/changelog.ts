@@ -1,4 +1,4 @@
-// What changed in FC Solver, for users: the /changelog page (en / ro / it) and the bot's 📜・changelog posts (English).
+// What changed in FC Solver, for users: the /changelog page (en / ro / it) and the bot's 📝・changelog posts (English).
 // One entry per deploy day with user-visible changes, newest first. Each language is written for its readers, not
 // machine-translated. A second entry on the same day gets the id `YYYY-MM-DD-2`. `npm test` checks the list.
 
@@ -26,21 +26,21 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Your Club, Evolutions, the FUT Gallery planner and Objectives squads, all from what the web app already loads',
         'FC Solver Daily: guess the EA FC player of the day, with streaks and a leaderboard',
         'Our Discord server, with /sbc, /stats and /daily straight from the bot',
-        'This changelog: every update is listed here and posted in 📜・changelog on Discord',
+        'This changelog: every update is listed here and posted in 📝・changelog on Discord',
       ],
       ro: [
         'FC Solver v1: cel mai ieftin lot din clubul tău pentru fiecare SBC, pe un teren ca în web app',
         'Clubul, Evolutions, planificatorul FUT Gallery și loturile pentru Objectives, toate din ce încarcă deja web app-ul',
         'FC Solver Daily: ghicești jucătorul EA FC al zilei, cu serii și clasament',
         'Serverul nostru de Discord, cu /sbc, /stats și /daily direct din bot',
-        'Acest changelog: fiecare update apare aici și în 📜・changelog pe Discord',
+        'Acest changelog: fiecare update apare aici și în 📝・changelog pe Discord',
       ],
       it: [
         'FC Solver v1: la rosa più economica del tuo club per ogni SBC, su un campo identico a quello della web app',
         'Il tuo Club, le Evoluzioni, il planner della FUT Gallery e le rose per gli Obiettivi, tutto da ciò che la web app carica già',
         'FC Solver Daily: indovina il giocatore EA FC del giorno, con serie e classifica',
         'Il nostro server Discord, con /sbc, /stats e /daily direttamente dal bot',
-        'Questo changelog: ogni aggiornamento è elencato qui e pubblicato in 📜・changelog su Discord',
+        'Questo changelog: ogni aggiornamento è elencato qui e pubblicato in 📝・changelog su Discord',
       ],
     },
   },

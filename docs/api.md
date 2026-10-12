@@ -558,7 +558,7 @@ Only the bot container calls these, over the compose network. Header `X-Bot-Toke
 
 ### `GET /api/bot/changelog`
 
-`{ "version": "1", "entries": [{ "id": "2026-10-12", "date": "2026-10-12", "items": ["…"] }] }`: the 5 newest changelog entries (`shared/changelog.ts`), newest first, English items only. The bot posts the ones missing from 📜・changelog.
+`{ "version": "1", "entries": [{ "id": "2026-10-12", "date": "2026-10-12", "items": ["…"] }] }`: the 5 newest changelog entries (`shared/changelog.ts`), newest first, English items only. The bot posts the ones missing from 📝・changelog.
 
 The other routes take the Discord user id (`discordId`, 17–20 digits; the user connected Discord in Linked accounts) and use the user's most recently linked EA account. Errors: `400 badRequest`, `409 tooManyStops` (boosts only), `404 discordNotLinked`, `409 noPersona` (no EA account linked). Every answer that knows the user carries `lang` (`en` / `ro`, from the site language).
 
