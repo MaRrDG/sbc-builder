@@ -27,6 +27,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'FC Solver Daily: guess the EA FC player of the day, with streaks and a leaderboard',
         'Our Discord server, with /sbc, /stats and /daily straight from the bot',
         'This changelog: every update is listed here and posted in 📝・changelog on Discord',
+        'Premium as a subscription: 5 € a month or 36 € a year, paid securely through Paddle, cancel anytime in Settings',
+        'Changed your mind? A full refund within 14 days of any payment, see the new refund policy',
       ],
       ro: [
         'FC Solver v1: cel mai ieftin lot din clubul tău pentru fiecare SBC, pe un teren ca în web app',
@@ -34,6 +36,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'FC Solver Daily: ghicești jucătorul EA FC al zilei, cu serii și clasament',
         'Serverul nostru de Discord, cu /sbc, /stats și /daily direct din bot',
         'Acest changelog: fiecare update apare aici și în 📝・changelog pe Discord',
+        'Premium ca abonament: 5 € pe lună sau 36 € pe an, cu plata sigură prin Paddle, și îl anulezi oricând din Setări',
+        'Te-ai răzgândit? Îți dăm banii înapoi integral în 14 zile de la orice plată, vezi noua politică de rambursare',
       ],
       it: [
         'FC Solver v1: la rosa più economica del tuo club per ogni SBC, su un campo identico a quello della web app',
@@ -41,6 +45,8 @@ export const CHANGELOG: ChangelogEntry[] = [
         'FC Solver Daily: indovina il giocatore EA FC del giorno, con serie e classifica',
         'Il nostro server Discord, con /sbc, /stats e /daily direttamente dal bot',
         'Questo changelog: ogni aggiornamento è elencato qui e pubblicato in 📝・changelog su Discord',
+        'Premium in abbonamento: 5 € al mese o 36 € all’anno, pagamento sicuro tramite Paddle, disdici quando vuoi dalle Impostazioni',
+        'Hai cambiato idea? Rimborso completo entro 14 giorni da ogni pagamento: trovi tutto nella nuova politica di rimborso',
       ],
     },
   },
