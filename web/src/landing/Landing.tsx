@@ -6,7 +6,7 @@ import { useEffect, type MouseEvent, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { DiscordLink, useDiscordInvite } from '../components/DiscordLink';
-import { CaretRight, SoccerBall } from '@phosphor-icons/react';
+import { ArrowUpRight, CaretRight, ChartLineUp, SoccerBall } from '@phosphor-icons/react';
 import { routePath, type Route } from '../route';
 import { Hero } from './Hero';
 import { DailyTeaser } from './DailyTeaser';
@@ -169,12 +169,14 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         <div className="lp-footer-end">
           <LangMenu lang={lang} setLang={setLang} label={t('top.language')} up />
           <DiscordLink invite={invite} variant="foot" where="landing" />
-          <p className="lp-credit">
-            {t('landing.footer.analytics')}{' '}
-            <a className="lp-link" href="https://openwebtrack.one/" target="_blank" rel="noopener">
-              OpenWebTrack<span className="sr-only"> {t('nav.newTab')}</span>
-            </a>
-          </p>
+          <a className="lp-credit" href="https://openwebtrack.one/" target="_blank" rel="noopener">
+            <ChartLineUp weight="bold" aria-hidden="true" />
+            <span>
+              {t('landing.footer.analytics')} <b>OpenWebTrack</b>
+            </span>
+            <ArrowUpRight weight="bold" aria-hidden="true" />
+            <span className="sr-only"> {t('nav.newTab')}</span>
+          </a>
         </div>
       </footer>
       <ToTop ctaKey={`${authReady}-${signedIn}`} />

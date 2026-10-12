@@ -142,7 +142,16 @@
 .lp-footer p { grid-column: 1 / 9; max-width: 70ch; margin: 0; }
 .lp-footer .legal-links { grid-column: 9 / -1; gap: 16px; }
 .lp-footer-end { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; grid-column: 1 / -1; }
-.lp-footer .lp-credit { margin: 0 0 0 auto; }
+.lp-credit {
+  display: inline-flex; align-items: center; gap: 8px; margin-left: auto;
+  padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface-2); color: var(--ink-2); font-size: 14px; text-decoration: none;
+  transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
+}
+.lp-credit b { color: var(--ink); font-weight: 600; }
+.lp-credit svg { flex: none; }
+.lp-credit:hover, .lp-credit:focus-visible { border-color: var(--ink-3); color: var(--ink); }
+@media (max-width: 860px) { .lp-credit { margin-left: 0; } }
 
 /* 861-1180px: anchors stay, so the language button shows its flag only and "Sign in" goes
    (the CTA leads to sign-in anyway); the bar then fits in Romanian too */
