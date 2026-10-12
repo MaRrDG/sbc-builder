@@ -8,7 +8,7 @@ export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'cookies'];
 
 export const OPERATOR = 'Mario Dragut';
 export const CONTACT = 'dragutmariotheodor1@gmail.com';
-export const UPDATED = '2026-10-09';
+export const UPDATED = '2026-10-12';
 
 export interface Section {
   id: string;
@@ -138,7 +138,7 @@ const en: Record<LegalDoc, Doc> = {
           '- Clerk, Inc. (USA): sign-in and user accounts. Transfers to the USA rely on the EU-US Data Privacy Framework and Standard Contractual Clauses.',
           '- Google: only if you sign in with Google.',
           '- Cloudflare, Inc.: network, DNS and protection against attacks; traffic passes through its servers.',
-          '- OpenWebTrack (hosted in the EU): cookieless, aggregated website statistics (pages viewed, referrer, country, device type). No cookies and no cross-site tracking.',
+          '- OpenWebTrack (hosted in the EU): cookieless website statistics, looked at in aggregate (pages viewed, referrer, country, device type, and which features are used, such as solving an SBC or finishing the Daily). No cookies, no personal data in the events and no cross-site tracking.',
           '- Our server and database, operated by us.',
           'We do not sell personal data and do not use it for advertising.',
         ],
@@ -193,7 +193,7 @@ const en: Record<LegalDoc, Doc> = {
         id: 'stats',
         h: 'Statistics',
         p: [
-          'We count visits with OpenWebTrack in cookieless mode: no cookie or identifier is stored on your device, and results are only looked at in aggregate.',
+          'We count visits with OpenWebTrack in cookieless mode, so no cookie is set. To tell one visit from another, it keeps a random id in this tab\'s session storage, deleted when you close the tab; it is not linked to your account. Besides pages, it counts which features are used (for example a sign-in, a sync, a solved SBC, a finished Daily and its number of tries), never your email, name, EA account or usernames. Results are only looked at in aggregate. Admins are not counted.',
         ],
       },
       {
@@ -324,7 +324,7 @@ const ro: Record<LegalDoc, Doc> = {
           '- Clerk, Inc. (SUA): autentificare și conturi de utilizator. Transferurile în SUA se bazează pe EU-US Data Privacy Framework și pe clauze contractuale standard.',
           '- Google: doar dacă te autentifici cu Google.',
           '- Cloudflare, Inc.: rețea, DNS și protecție împotriva atacurilor; traficul trece prin serverele sale.',
-          '- OpenWebTrack (găzduit în UE): statistici agregate despre site, fără cookie-uri (pagini vizitate, sursa vizitei, țara, tipul dispozitivului). Fără cookie-uri și fără urmărire între site-uri.',
+          '- OpenWebTrack (găzduit în UE): statistici despre site fără cookie-uri, analizate doar agregat (pagini vizitate, sursa vizitei, țara, tipul dispozitivului și ce funcții sunt folosite, de exemplu rezolvarea unui SBC sau terminarea jocului Daily). Fără cookie-uri, fără date personale în evenimente și fără urmărire între site-uri.',
           '- Serverul și baza noastră de date, administrate de noi.',
           'Nu vindem date personale și nu le folosim pentru publicitate.',
         ],
@@ -379,7 +379,7 @@ const ro: Record<LegalDoc, Doc> = {
         id: 'stats',
         h: 'Statistici',
         p: [
-          'Numărăm vizitele cu OpenWebTrack în modul fără cookie-uri: pe dispozitivul tău nu se salvează niciun cookie sau identificator, iar rezultatele sunt analizate doar agregat.',
+          'Numărăm vizitele cu OpenWebTrack în modul fără cookie-uri, deci nu se pune niciun cookie. Ca să deosebească o vizită de alta, păstrează un id aleator în stocarea de sesiune a tabului, șters când închizi tabul; nu este legat de contul tău. Pe lângă pagini, numără ce funcții sunt folosite (de exemplu o autentificare, un sync, un SBC rezolvat, un joc Daily terminat și numărul de încercări), niciodată emailul, numele, contul EA sau username-urile. Rezultatele sunt analizate doar agregat. Administratorii nu sunt numărați.',
         ],
       },
       {
@@ -510,7 +510,7 @@ const it: Record<LegalDoc, Doc> = {
           '- Clerk, Inc. (USA): accesso e account utente. I trasferimenti verso gli USA si basano sul Data Privacy Framework UE-USA e sulle Clausole contrattuali standard.',
           '- Google: solo se accedi con Google.',
           '- Cloudflare, Inc.: rete, DNS e protezione dagli attacchi; il traffico passa attraverso i suoi server.',
-          '- OpenWebTrack (ospitato nell\'UE): statistiche del sito aggregate e senza cookie (pagine visitate, provenienza, Paese, tipo di dispositivo). Nessun cookie e nessun tracciamento tra siti.',
+          '- OpenWebTrack (ospitato nell\'UE): statistiche del sito senza cookie, esaminate solo in forma aggregata (pagine visitate, provenienza, Paese, tipo di dispositivo e quali funzioni vengono usate, ad esempio risolvere una SBC o finire il Daily). Nessun cookie, nessun dato personale negli eventi e nessun tracciamento tra siti.',
           '- Il nostro server e il nostro database, gestiti da noi.',
           'Non vendiamo dati personali e non li usiamo per la pubblicità.',
         ],
@@ -565,7 +565,7 @@ const it: Record<LegalDoc, Doc> = {
         id: 'stats',
         h: 'Statistiche',
         p: [
-          'Contiamo le visite con OpenWebTrack in modalità senza cookie: sul tuo dispositivo non viene salvato alcun cookie o identificativo, e i risultati vengono esaminati solo in forma aggregata.',
+          'Contiamo le visite con OpenWebTrack in modalità senza cookie, quindi non viene impostato alcun cookie. Per distinguere una visita dall\'altra conserva un identificativo casuale nella memoria di sessione della scheda, cancellato quando chiudi la scheda; non è collegato al tuo account. Oltre alle pagine, conta quali funzioni vengono usate (ad esempio un accesso, una sincronizzazione, una SBC risolta, un Daily finito e il numero di tentativi), mai la tua email, il nome, l\'account EA o gli username. I risultati vengono esaminati solo in forma aggregata. Gli amministratori non vengono contati.',
         ],
       },
       {

@@ -41,6 +41,7 @@ Unit tests only for pure logic (`npm test`). Verify with typecheck + build, and 
 - Discord bot: never calls EA or the DB; `/api/bot/*` only, `runSolve` shared with `/api/solve` (same quota).
 - Security: headers + a report-only CSP in `server/index.ts` (`csp()`); a new external script / API / font / frame origin must be added there (watch the `[csp]` log). Anything printed from the request host (zip, robots, sitemap, canonical) goes through `publicOrigin()` (`server/origins.ts`). Per-IP limits in `server/limits.ts`.
 - Version: everything is v1 (`APP_VERSION`, `package.json` 1.0.0) until the owner says the app launches. A user-visible change → a new entry (or new items in today's entry) in `shared/changelog.ts`, written for users in en / ro / it (each language written, not machine-translated); internal changes get none.
+- Analytics: custom events only through `track()` (`web/src/track.ts`, typed list); a new event → `TrackEvents` + `docs/analytics.md`. Never personal data in event props (no email, names, ids, usernames, codes). Cookieless script only.
 - New endpoint or payload change → update `docs/api.md`. Extension change → bump `extension/manifest.json` version + `extension/release.json`.
 - The extension zip folder stays `fc27-sbc-builder` (users unzip updates over it; a new name = a new extension and lost keys). Domain, container, nginx vhost and `localStorage` keys keep the old `sbc-*` names too; only user-facing branding is "FC Solver".
 
