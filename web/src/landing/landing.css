@@ -129,29 +129,41 @@
   display: grid;
   grid-template-columns: var(--lp-cols);
   column-gap: var(--col-gap);
-  row-gap: 16px;
-  align-items: center;
-  padding-block: 48px 64px;
+  row-gap: 40px;
+  padding-block: 0 40px;
   color: var(--ink-3);
-  font-size: 13px;
+  font-size: 14px;
 }
 /* the rule spans the content width, not the gutters */
-.lp-footer::before { content: ''; grid-column: 1 / -1; margin-bottom: 32px; border-top: 1px solid var(--line); }
-.lp-footer img { grid-column: 1 / 6; }
-.lp-footer nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 20px; grid-column: 7 / -1; }
-.lp-footer p { grid-column: 1 / 9; max-width: 70ch; margin: 0; }
-.lp-footer .legal-links { grid-column: 9 / -1; gap: 16px; }
-.lp-footer-end { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; grid-column: 1 / -1; }
+.lp-footer::before { content: ''; grid-column: 1 / -1; margin-top: 48px; margin-bottom: 8px; border-top: 1px solid var(--line); }
+.lp-foot-brand { grid-column: 1 / 5; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; }
+.lp-foot-brand p { max-width: 32ch; margin: 0; color: var(--ink-2); line-height: 1.5; }
+.lp-foot-cols { grid-column: 6 / -1; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; }
+.lp-foot-cols h2 { margin: 0 0 14px; color: var(--ink); font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.lp-foot-cols ul { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.lp-foot-link { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); text-decoration: none; }
+.lp-foot-link:hover, .lp-foot-link:focus-visible { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.lp-foot-link svg { width: 12px; height: 12px; }
+.lp-foot-bottom {
+  grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 32px;
+  padding-top: 24px; border-top: 1px solid var(--line);
+}
+.lp-foot-bottom p { max-width: 75ch; margin: 0; line-height: 1.6; }
+.lp-foot-ea { display: block; font-size: 12px; }
 .lp-credit {
-  display: inline-flex; align-items: center; gap: 8px; margin-left: auto;
-  padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px;
-  background: var(--surface-2); color: var(--ink-2); font-size: 14px; text-decoration: none;
-  transition: border-color 0.15s var(--ease), color 0.15s var(--ease);
+  display: inline-flex; align-items: center; gap: 8px;
+  color: var(--ink-2); text-decoration: none; white-space: nowrap;
 }
 .lp-credit b { color: var(--ink); font-weight: 600; }
 .lp-credit svg { flex: none; }
-.lp-credit:hover, .lp-credit:focus-visible { border-color: var(--ink-3); color: var(--ink); }
-@media (max-width: 860px) { .lp-credit { margin-left: 0; } }
+.lp-credit:hover b, .lp-credit:focus-visible b { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 860px) {
+  .lp-foot-brand, .lp-foot-cols { grid-column: 1 / -1; }
+}
+@media (max-width: 560px) {
+  .lp-foot-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 28px; }
+  .lp-credit { white-space: normal; }
+}
 
 /* 861-1180px: anchors stay, so the language button shows its flag only and "Sign in" goes
    (the CTA leads to sign-in anyway); the bar then fits in Romanian too */
@@ -210,10 +222,6 @@
   .lp-nav { margin-left: 4px; }
   .lp-nav a:not(.lp-nav-daily) { display: none; }
   .lp-signin { display: inline; } /* room again once the anchors are gone */
-  .lp-footer img,
-  .lp-footer nav,
-  .lp-footer p,
-  .lp-footer .legal-links { grid-column: 1 / -1; justify-content: flex-start; }
 }
 @media (max-width: 480px) {
   .lp-signin { display: none; }

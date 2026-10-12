@@ -1,6 +1,6 @@
 // Public landing page (/): what FC Solver does and why it beats market-price solvers.
 // Lazy-loaded by Root for everyone (signed in or not); the app itself lives under /dashboard.
-import { LegalLinks } from '../legal/LegalPage';
+import { LEGAL, LEGAL_DOCS } from '../legal/docs';
 import { APP_VERSION } from '../../../shared/changelog';
 import { useEffect, type MouseEvent, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
@@ -158,17 +158,50 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
       </main>
 
       <footer className="lp-footer">
-        <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="124" height="32" />
-        <nav aria-label={t('landing.footer.nav')}>
-          {link({ view: 'setup' }, 'lp-link', t('landing.footer.setup'))}
-          {link({ view: 'guide' }, 'lp-link', t('landing.footer.guide'))}
-          {link({ view: 'changelog' }, 'lp-link', `${t('landing.footer.changelog')} · v${APP_VERSION}`)}
-        </nav>
-        <p>{t('landing.footer.legal')}</p>
-        <LegalLinks navigate={navigate} className="lp-link" />
-        <div className="lp-footer-end">
+        <div className="lp-foot-brand">
+          <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="124" height="32" />
+          <p>{t('landing.footer.tagline')}</p>
           <LangMenu lang={lang} setLang={setLang} label={t('top.language')} up />
-          <DiscordLink invite={invite} variant="foot" where="landing" />
+        </div>
+        <nav className="lp-foot-cols" aria-label={t('landing.footer.nav')}>
+          <div>
+            <h2>{t('landing.footer.product')}</h2>
+            <ul>
+              <li>{link({ view: 'setup' }, 'lp-foot-link', t('landing.footer.setup'))}</li>
+              <li>{link({ view: 'guide' }, 'lp-foot-link', t('landing.footer.guide'))}</li>
+              <li><a className="lp-foot-link" href="#pricing">{t('landing.nav.pricing')}</a></li>
+              <li>{link({ view: 'changelog' }, 'lp-foot-link', t('landing.footer.changelog'))}</li>
+            </ul>
+          </div>
+          <div>
+            <h2>{t('landing.footer.community')}</h2>
+            <ul>
+              {invite && (
+                <li>
+                  <a className="lp-foot-link" href={invite} target="_blank" rel="noopener noreferrer" onClick={() => track('discord_click', { where: 'landing' })}>
+                    {t('discord.short')} <ArrowUpRight weight="bold" aria-hidden="true" />
+                    <span className="sr-only"> {t('nav.newTab')}</span>
+                  </a>
+                </li>
+              )}
+              <li>{link({ view: 'daily', practice: false }, 'lp-foot-link', t('landing.nav.daily'))}</li>
+              <li><a className="lp-foot-link" href="#invite">{t('nav.invite')}</a></li>
+            </ul>
+          </div>
+          <div>
+            <h2>{t('landing.footer.legalTitle')}</h2>
+            <ul>
+              {LEGAL_DOCS.map((d) => (
+                <li key={d}>{link({ view: 'legal', doc: d }, 'lp-foot-link', LEGAL[lang][d].title)}</li>
+              ))}
+            </ul>
+          </div>
+        </nav>
+        <div className="lp-foot-bottom">
+          <p>
+            {t('landing.footer.rights', { year: new Date().getFullYear() })} · v{APP_VERSION}
+            <span className="lp-foot-ea">{t('landing.footer.legal')}</span>
+          </p>
           <a className="lp-credit" href="https://openwebtrack.one/" target="_blank" rel="noopener">
             <ChartLineUp weight="bold" aria-hidden="true" />
             <span>
