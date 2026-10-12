@@ -1,4 +1,7 @@
 {
+  "1.0.1": [
+    "Works with FC Solver on its new home, fc-solver.app"
+  ],
   "1.0.0": [
     "FC Solver v1: same extension, new version number to match the site"
   ],

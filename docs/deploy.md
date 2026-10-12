@@ -1,10 +1,25 @@
 # Deploy
 
-Production runs on a single Ubuntu host behind nginx and Cloudflare (Apache is installed on the host but inactive).
+Both environments run on one Ubuntu host (`root@185.137.122.79`) behind nginx and Cloudflare (Apache is installed on the host but inactive).
 
 ```
-Browser ──HTTPS──► Cloudflare (SSL: Flexible) ──HTTP :80──► nginx vhost ──► 127.0.0.1:5178 ──► container "sbc-builder"
+Browser ──HTTPS──► Cloudflare (SSL: Full (strict)) ──HTTPS :443──► nginx vhost (Cloudflare Origin Certificate) ──► 127.0.0.1:<port> ──► container
 ```
+
+## Environments
+
+| | prod | dev |
+|---|---|---|
+| domain | `fc-solver.app` (`www.` → 301) | `sbc-builder.mario-theodor.ro` |
+| branch | `main` | `dev` |
+| folder | `/var/www/fc-solver` | `/var/www/sbc-builder` |
+| `.env` | `APP_NAME=fc-solver`, `APP_PORT=5179` | defaults (`sbc-builder`, `5178`) |
+| containers | `fc-solver`, `fc-solver-db`, `fc-solver-bot` | `sbc-builder`, `sbc-builder-db` |
+| nginx | `deploy/fc-solver.app.nginx.conf` | `deploy/sbc-builder.nginx.conf` |
+| Clerk | own production instance (fc-solver.app) | production instance (sbc-builder.mario-theodor.ro) |
+| Discord bot | yes (`--profile discord`) | no (one bot token, one server) |
+
+Each has its own database, `data/` and `.env`; nothing is shared. Work lands on `dev`; a release is `git checkout main && git merge --ff-only dev && git push`, then the prod deploy below in `/var/www/fc-solver`. Admins: `ADMIN_EMAILS` (comma list; default the owner's address). Certificates: Cloudflare Origin Certificates in `/etc/ssl/cloudflare/` (`snippets/ssl-mario-theodor.ro.conf`, `snippets/ssl-fc-solver.app.conf`, host-only).
 
 ## Image
 
@@ -37,9 +52,9 @@ Other environment variables: `DATABASE_URL` (required; set by compose in product
 ## Releasing
 
 ```bash
-cd /var/www/sbc-builder
+cd /var/www/fc-solver          # prod (main); dev: /var/www/sbc-builder (dev)
 git pull
-docker compose up -d --build
+docker compose --profile discord up -d --build   # dev: docker compose up -d --build (no bot)
 docker compose logs -f --tail=50
 ```
 
@@ -85,7 +100,9 @@ The first deploy with the history tables starts counting from the cache once:
 docker compose exec app npm run history:baseline   # safe to re-run
 ```
 
-The server folder is a git checkout of `dev` (owned by root); `data/` is git-ignored and survives pulls and rebuilds.
+Prod is the same with `git clone -b main … /var/www/fc-solver`, `APP_NAME=fc-solver` + `APP_PORT=5179` + `SITE_URL=https://fc-solver.app` in its `.env`, the prod Clerk keys, `docker compose --profile discord up -d --build` (no `db:import`: prod starts empty) and `deploy/fc-solver.app.nginx.conf` → `sites-available/fc-solver.app.conf`.
+
+Each server folder is a git checkout (prod `main`, dev `dev`, owned by root); `data/` is git-ignored and survives pulls and rebuilds.
 
 ## Clerk
 

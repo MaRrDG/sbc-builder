@@ -4,13 +4,13 @@
 // a spoofed one would point everybody at someone else's server.
 
 const DEFAULT_ORIGINS =
-  'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5178,http://127.0.0.1:5178,https://sbc-builder.mario-theodor.ro';
+  'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5178,http://127.0.0.1:5178,https://fc-solver.app,https://sbc-builder.mario-theodor.ro';
 
 const trim = (s: string) => s.trim().replace(/\/+$/, '');
 
 /** SITE_ORIGINS (comma list) plus SITE_URL. Read on each call: .env is loaded after imports. */
 export function siteOrigins(): string[] {
-  const list = (process.env.SITE_ORIGINS ?? DEFAULT_ORIGINS).split(',').map(trim).filter(Boolean);
+  const list = (process.env.SITE_ORIGINS || DEFAULT_ORIGINS).split(',').map(trim).filter(Boolean);
   const site = trim(process.env.SITE_URL ?? '');
   return site && !list.includes(site) ? [...list, site] : list;
 }

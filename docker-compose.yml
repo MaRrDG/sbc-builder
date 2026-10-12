@@ -1,15 +1,16 @@
+# One file for every environment: APP_NAME / APP_PORT in .env tell them apart (dev: sbc-builder on 5178, prod: fc-solver on 5179).
 services:
   app:
-    image: sbc-builder:latest
+    image: ${APP_NAME:-sbc-builder}:latest
     build:
       context: .
       args:
         VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:?set VITE_CLERK_PUBLISHABLE_KEY in .env}
-    container_name: sbc-builder
+    container_name: ${APP_NAME:-sbc-builder}
     restart: unless-stopped
     # only nginx on the host talks to it
     ports:
-      - "127.0.0.1:5178:5178"
+      - "127.0.0.1:${APP_PORT:-5178}:5178"
     volumes:
       - ./data:/app/data
     environment:
@@ -19,6 +20,8 @@ services:
       CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:?set CLERK_SECRET_KEY in .env}
       # the domain search engines index (canonical links, sitemap); other hosts answer noindex
       SITE_URL: ${SITE_URL:-}
+      # origins whose Clerk session tokens are accepted (comma list); empty = localhost + SITE_URL
+      SITE_ORIGINS: ${SITE_ORIGINS:-}
       # evolution emails (Resend); without the key they are only logged. EMAIL_SECRET signs unsubscribe links (default: CLERK_SECRET_KEY)
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
@@ -40,9 +43,9 @@ services:
 
   bot:
     # same image as app; only started with: docker compose --profile discord up -d
-    image: sbc-builder:latest
+    image: ${APP_NAME:-sbc-builder}:latest
     pull_policy: never
-    container_name: sbc-builder-bot
+    container_name: ${APP_NAME:-sbc-builder}-bot
     profiles: [discord]
     restart: unless-stopped
     command: ["node", "--import", "tsx", "discord/index.ts"]
@@ -59,7 +62,7 @@ services:
 
   db:
     image: postgres:18-alpine
-    container_name: sbc-builder-db
+    container_name: ${APP_NAME:-sbc-builder}-db
     restart: unless-stopped
     # no ports: only the app reaches it, over the compose network
     environment:

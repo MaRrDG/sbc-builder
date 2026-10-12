@@ -8,7 +8,7 @@ import { users } from '../db/schema.js';
 
 // read on use: .env is loaded by initDb(), after this module is imported
 export const adminEmails = () =>
-  (process.env.ADMIN_EMAILS ?? 'dragutmariotheodor1@gmail.com')
+  (process.env.ADMIN_EMAILS || 'dragutmariotheodor1@gmail.com')
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
