@@ -30,6 +30,7 @@ import { SetupGuide } from './components/SetupGuide';
 import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
+import { InstallBanner, InstallNavItem } from './components/InstallApp';
 import { UpgradePage } from './components/billing/UpgradePage';
 import { billingConfig } from './billing/paddle';
 import { UpgradeContext } from './billing/upgrade';
@@ -910,6 +911,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <BookOpenText weight="bold" aria-hidden="true" />
             <span>{t('nav.guide')}</span>
           </button>
+          <InstallNavItem />
           {/* the changelog is its own public page (/changelog), like the Daily */}
           <button
             type="button"
@@ -969,6 +971,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
         </nav>
 
         <main className="main">
+          <InstallBanner />
           <div className="main-inner">
           {showGuide && (
             <section className="guide-panel">

@@ -4672,3 +4672,24 @@ a.adm-kpi:hover { background: var(--surface-2); }
   .checkout-pay { padding: 16px; align-items: flex-start; }
   .checkout-card { padding: 16px; }
 }
+
+/* Install the app (PWA): one-time phone banner and the iOS steps sheet */
+.install-banner {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: start;
+  margin: 0 0 16px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface);
+}
+.install-banner > svg { margin-top: 2px; color: var(--gold); font-size: 22px; }
+.install-banner h2 { margin: 0 0 4px; font-size: 15px; }
+.install-banner p { margin: 0; font-size: 13px; line-height: 1.4; color: var(--ink-2); }
+.install-banner-actions { display: flex; align-items: center; gap: 4px; }
+.install-banner-actions .ghost { width: 44px; height: 44px; justify-content: center; }
+.ios-install {
+  width: min(400px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--line); border-radius: var(--r-box);
+  background: var(--surface-2); color: var(--ink);
+}
+.ios-install::backdrop { background: oklch(0.1 0.02 220 / 0.6); }
+.ios-install h2 { margin: 0 0 12px; font-size: 18px; }
+.ios-install ol { margin: 0 0 12px; padding: 0; list-style: none; display: grid; gap: 10px; }
+.ios-install li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.4; }
+.ios-install li svg { flex: none; margin-top: 2px; color: var(--go); }
+.ios-install p { margin: 0 0 16px; font-size: 13px; }
