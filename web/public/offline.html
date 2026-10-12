@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#0d1411">
+  <title>FC Solver · Offline</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px 16px;
+      background: linear-gradient(160deg, oklch(0.19 0.035 215) 0%, oklch(0.25 0.06 190) 100%);
+      color: oklch(0.965 0.008 200); font: 16px/1.45 system-ui, sans-serif; text-align: center;
+    }
+    main { max-width: 360px; display: grid; gap: 16px; justify-items: center; }
+    img { height: 32px; width: auto; }
+    h1 { margin: 8px 0 0; font-size: 24px; }
+    p { margin: 0; color: oklch(0.8 0.018 205); }
+    button {
+      min-height: 44px; padding: 0 20px; border: 0; border-radius: 8px;
+      background: oklch(0.84 0.17 163); color: oklch(0.22 0.05 165); font: 700 16px system-ui, sans-serif; cursor: pointer;
+    }
+    button:focus-visible { outline: 2px solid oklch(0.965 0.008 200); outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main>
+    <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="124" height="32">
+    <h1 id="t">You're offline</h1>
+    <p id="b">FC Solver needs the internet to load your club and SBCs. Check your connection and try again.</p>
+    <button type="button" id="r" onclick="location.reload()">Try again</button>
+  </main>
+  <script>
+    (function () {
+      var text = {
+        ro: ['Ești offline', 'FC Solver are nevoie de internet ca să-ți încarce clubul și SBC-urile. Verifică-ți conexiunea și încearcă din nou.', 'Încearcă din nou'],
+        it: ['Sei offline', 'FC Solver ha bisogno di internet per caricare il tuo club e le SBC. Controlla la connessione e riprova.', 'Riprova'],
+      };
+      var saved = null;
+      try { saved = localStorage.getItem('fcs-lang'); } catch (e) {} // the site's language key (web/src/i18n.tsx STORE)
+      var lang = (saved || navigator.language || 'en').slice(0, 2);
+      var s = text[lang];
+      if (!s) return;
+      document.documentElement.lang = lang;
+      document.getElementById('t').textContent = s[0];
+      document.getElementById('b').textContent = s[1];
+      document.getElementById('r').textContent = s[2];
+    })();
+  </script>
+</body>
+</html>

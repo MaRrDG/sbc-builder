@@ -14,6 +14,7 @@
     "test": "node --import tsx --test 'server/**/*.test.ts' 'web/src/**/*.test.ts' 'discord/**/*.test.ts' 'shared/**/*.test.ts'",
     "discord:setup": "tsx discord/setup.ts",
     "discord:assets": "tsx scripts/discord-assets.ts",
+    "pwa:icons": "tsx scripts/pwa-icons.ts",
     "discord:bot": "tsx discord/index.ts",
     "db:generate": "drizzle-kit generate",
     "db:import": "tsx scripts/db-import.ts",

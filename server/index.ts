@@ -729,8 +729,10 @@ if (existsSync(dist))
     root: dist,
     index: false, // "/" is a page like the others: its <head> is filled by sendPage (route below)
     // Vite hashes asset names, so they can be cached forever; index.html must always be revalidated
-    setHeaders: (res, path) =>
-      res.header('Cache-Control', path.includes(`${join('dist', 'assets')}`) ? 'public, max-age=31536000, immutable' : 'no-cache'),
+    setHeaders: (res, path) => {
+      res.header('Cache-Control', path.includes(`${join('dist', 'assets')}`) ? 'public, max-age=31536000, immutable' : 'no-cache');
+      if (path.endsWith('offline.html')) res.header('X-Robots-Tag', 'noindex'); // the PWA's offline fallback, not a page
+    },
   });
 
 if (existsSync(dist)) app.get('/', (req, reply) => sendPage(req, reply, '/'));
