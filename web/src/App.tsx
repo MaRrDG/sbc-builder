@@ -937,23 +937,26 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                 <ChartBar weight="bold" aria-hidden="true" />
                 <span>{t('nav.admin')}</span>
               </button>
-              <ul className="nav-sub" aria-label={t('admin.tabs')}>
-                {ADMIN_TABS.map((tab) => {
-                  const r = adminRoute(tab.page);
-                  return (
-                    <li key={tab.page}>
-                      <a
-                        className="nav-item nav-sub-item"
-                        href={routePath(r)}
-                        aria-current={adminActive === tab.page ? 'page' : undefined}
-                        onClick={goAdmin(r)}
-                      >
-                        <span>{t(tab.key)}</span>
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
+              {/* the admin sections show only while you are in the admin panel */}
+              {view === 'admin' && (
+                <ul className="nav-sub" aria-label={t('admin.tabs')}>
+                  {ADMIN_TABS.map((tab) => {
+                    const r = adminRoute(tab.page);
+                    return (
+                      <li key={tab.page}>
+                        <a
+                          className="nav-item nav-sub-item"
+                          href={routePath(r)}
+                          aria-current={adminActive === tab.page ? 'page' : undefined}
+                          onClick={goAdmin(r)}
+                        >
+                          <span>{t(tab.key)}</span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
             </>
           )}
           {/* on phones the top bar only has the logo; its controls live in this menu */}

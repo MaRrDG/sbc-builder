@@ -271,7 +271,12 @@ h3 {
   padding: 16px 10px;
   border-right: 1px solid var(--line);
   background: oklch(0.18 0.025 222 / 0.55);
+  /* more items than the window is tall (admin sections, short laptop screens): scroll, never squash */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
+.sidebar > * { flex-shrink: 0; }
 
 .nav-item {
   display: flex;
