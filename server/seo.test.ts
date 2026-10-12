@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { analyticsOrigins, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
+import { analyticsFor, analyticsOrigins, analyticsWarnings, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 
 const HTML = `<html><head>
 <title>FC Solver</title>
@@ -95,4 +95,22 @@ test('the preview image URL carries its version', () => {
   const out = renderHead(HTML, '/', 'https://fcsolver.gg', true, 'abc123');
   assert.match(out, /<meta property="og:image" content="https:\/\/fcsolver\.gg\/og\.png\?v=abc123" \/>/);
   assert.match(out, /<meta name="twitter:image" content="https:\/\/fcsolver\.gg\/og\.png\?v=abc123" \/>/);
+});
+
+test('analytics: never on admin pages', () => {
+  assert.equal(analyticsFor('/dashboard/admin'), false);
+  assert.equal(analyticsFor('/dashboard/admin/users/x'), false);
+  assert.equal(analyticsFor('/dashboard/administrator'), true);
+  assert.equal(analyticsFor('/dashboard'), true);
+  assert.equal(analyticsFor('/daily'), true);
+});
+
+test('analytics snippet warnings: cookieless, deferred, site and domain set', () => {
+  const ok = '<script defer src="https://owt.example/script.cookieless.js" data-website-id="abc" data-domain="fc-solver.app"></script>';
+  assert.deepEqual(analyticsWarnings(ok), []);
+  assert.deepEqual(analyticsWarnings(''), []);
+  assert.equal(analyticsWarnings(ok.replace('script.cookieless.js', 'script.js')).length, 1);
+  assert.equal(analyticsWarnings(ok.replace('defer ', '')).length, 1);
+  assert.equal(analyticsWarnings(ok.replace(' data-domain="fc-solver.app"', '')).length, 1);
+  assert.equal(analyticsWarnings(ok.replace(' data-website-id="abc"', '')).length, 1);
 });

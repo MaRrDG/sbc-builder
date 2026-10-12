@@ -138,3 +138,18 @@ export function analyticsOrigins(snippet = analyticsSnippet()): string[] {
 
 /** index.html with the analytics snippet at the end of <head>. */
 export const withAnalytics = (html: string, snippet = analyticsSnippet()) => (snippet ? html.replace('</head>', `${snippet}\n  </head>`) : html);
+
+/** Pages that never load the tracker: the admin panel (admins are not counted, see web/src/track.ts). */
+export const analyticsFor = (path: string) => !/^\/dashboard\/admin(\/|$)/.test(path);
+
+/** What is wrong with the snippet for us: the cookie-setting script (we promise cookieless), no `defer` (the app must run
+ *  first to switch tracking off for admins), or the attributes the script needs to send anything. */
+export function analyticsWarnings(snippet = analyticsSnippet()): string[] {
+  if (!snippet) return [];
+  const out: string[] = [];
+  if (!/script\.cookieless\.js/.test(snippet)) out.push('not the cookieless script (use /script.cookieless.js; /script.js sets cookies)');
+  if (!/\sdefer(\s|=|>)/.test(snippet)) out.push('no defer attribute');
+  if (!/data-website-id\s*=/.test(snippet)) out.push('no data-website-id');
+  if (!/data-domain\s*=/.test(snippet)) out.push('no data-domain');
+  return out;
+}

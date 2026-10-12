@@ -4,6 +4,7 @@ import { ClerkProvider } from '@clerk/react';
 import Root from './Root';
 import { I18nProvider } from './i18n';
 import { refFromUrl, saveRef } from './ref';
+import { applyNoTrack } from './track';
 // fonts are served by us, not Google (no visitor IP goes to a third party)
 import '@fontsource/geist/400.css';
 import '@fontsource/geist/500.css';
@@ -13,6 +14,8 @@ import '@fontsource/barlow-condensed/500.css';
 import '@fontsource/barlow-condensed/600.css';
 import '@fontsource/barlow-condensed/700.css';
 import './styles.css';
+
+applyNoTrack(); // before the deferred analytics script runs: admins are not counted
 
 const ref = refFromUrl(location.search);
 if (ref) saveRef(ref);
