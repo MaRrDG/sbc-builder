@@ -6,7 +6,7 @@ import { api, type BillingConfig, type BillingState, type PlanInfo } from '../..
 import { useI18n } from '../../i18n';
 import { errorText } from '../../messages';
 import { formatEur, proPrice, yearlySaving } from '../../landing/pricing-rules';
-import { billingConfig, loadPaddle, onPaddleEvent, pricePreview, type PaddleEvent } from '../../billing/paddle';
+import { FRAME_TARGET, billingConfig, loadPaddle, onPaddleEvent, pricePreview, type PaddleEvent } from '../../billing/paddle';
 import { track, trackPayment } from '../../track';
 
 type Interval = 'month' | 'year';
@@ -14,7 +14,6 @@ type Phase = 'loading' | 'off' | 'pick' | 'activating' | 'slow' | 'done';
 
 const POLL_MS = 2000;
 const POLL_MAX_MS = 30_000;
-const FRAME = 'paddle-frame';
 
 export function UpgradePage({ plan, billing, onActivated, onSettings }: {
   plan: PlanInfo | null;
@@ -104,7 +103,7 @@ export function UpgradePage({ plan, billing, onActivated, onSettings }: {
             variant: 'one-page',
             theme: 'dark',
             locale: lang,
-            frameTarget: FRAME,
+            frameTarget: FRAME_TARGET,
             frameInitialHeight: 450,
             frameStyle: 'width: 100%; min-width: 286px; background-color: transparent; border: none;',
             allowLogout: false,
@@ -195,7 +194,7 @@ export function UpgradePage({ plan, billing, onActivated, onSettings }: {
         <div className="settings-card upgrade-checkout">
           {error && <p className="signin-error" role="alert">{error}</p>}
           {!frameReady && !error && <p className="muted" role="status">{t('billing.loadingCheckout')}</p>}
-          <div className={FRAME} />
+          <div className={FRAME_TARGET} />
         </div>
       </div>
     </section>

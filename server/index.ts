@@ -115,16 +115,17 @@ function csp(): string {
     .map((o) => `https://clerk.${new URL(o).host}`);
   const clerkAll = [...clerk, 'https://*.clerk.accounts.dev', 'https://*.clerk.com'].join(' ');
   const stats = analyticsOrigins().join(' '); // ANALYTICS_SNIPPET (OpenWebTrack)
-  // Paddle.js (script + styles), its checkout API and the inline checkout frame (server/billing/)
+  // Paddle.js (script, its styles and fonts), its APIs (price preview, checkout) and the inline checkout frame (server/billing/)
+  const paddleCdn = 'https://cdn.paddle.com https://sandbox-cdn.paddle.com';
   const paddleFrames = 'https://buy.paddle.com https://sandbox-buy.paddle.com';
-  const paddleApi = 'https://checkout-service.paddle.com https://sandbox-checkout-service.paddle.com';
+  const paddleApi = 'https://api.paddle.com https://sandbox-api.paddle.com https://checkout-service.paddle.com https://sandbox-checkout-service.paddle.com';
   return [
     "default-src 'self'",
-    `script-src 'self' ${clerkAll} https://challenges.cloudflare.com ${stats} https://cdn.paddle.com`,
+    `script-src 'self' ${clerkAll} https://challenges.cloudflare.com ${stats} ${paddleCdn}`,
     `connect-src 'self' ${clerkAll} https://clerk-telemetry.com ${stats} ${paddleApi}`,
     "img-src 'self' data: blob: https:",
-    "style-src 'self' 'unsafe-inline' https://cdn.paddle.com",
-    "font-src 'self' data:",
+    `style-src 'self' 'unsafe-inline' ${paddleCdn}`,
+    `font-src 'self' data: ${paddleCdn}`,
     `frame-src https://challenges.cloudflare.com ${clerkAll} ${paddleFrames}`,
     "worker-src 'self' blob:",
     "object-src 'none'",

@@ -4608,7 +4608,7 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .upgrade-fine { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; margin: 0; font-size: 13px; color: var(--ink-3); }
 .upgrade-fine a { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); }
 .upgrade-checkout { min-height: 480px; }
-.upgrade-checkout .paddle-frame { min-width: 0; }
+.upgrade-checkout .fcs-checkout { min-width: 0; }
 .onboarding .upgrade-grid { grid-template-columns: minmax(0, 1fr); } /* no EA account yet: narrow setup layout */
 .plan-warn { color: var(--bad); }
 @media (max-width: 860px) {

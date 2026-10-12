@@ -26,6 +26,9 @@ declare global {
 }
 
 const SRC = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+/** Class of the inline checkout's container. Never `paddle-frame…`: Paddle.js gives its iframes that class and
+ *  removes old ones before opening, which would delete a container React still owns (insertBefore crash). */
+export const FRAME_TARGET = 'fcs-checkout';
 
 // one listener at a time: the screen that opened the checkout
 let listener: ((e: PaddleEvent) => void) | null = null;
