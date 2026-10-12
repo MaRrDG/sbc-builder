@@ -302,7 +302,7 @@ export interface PlanInfo {
   premiumUntil: number | null;
   quota: Quota | null;
   founder: boolean;
-  source: 'admin' | 'paid' | 'boost' | null;
+  source: 'admin' | 'subscription' | 'paid' | 'boost' | null;
   boost: { since: number | null; graceUntil: number | null } | null;
 }
 

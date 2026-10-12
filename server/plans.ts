@@ -1,6 +1,8 @@
 // A signed-in user's plan and quota, for /api/me, /api/solve and the admin screen.
 import { isAdmin } from './admin/auth.js';
+import { subscriptionOf } from './db/billing.js';
 import { grantPendingInvite } from './db/referrals.js';
+import { subscriptionActive } from './billing/rules.js';
 import { claimFounderSpot, foundersTaken, linkedInOrder, planRow } from './db/users.js';
 import { foundersLimit, foundersState, type FoundersState } from './founders.js';
 import { boostState, effectivePlan, planSource, quotaState, weeklyLimit, type BoostState, type PlanRow, type PlanSource, type Quota, type Tier } from './plan.js';
@@ -10,7 +12,7 @@ export interface PlanInfo {
   premiumUntil: number | null;
   quota: Quota | null; // null: Premium, no limit
   founder: boolean; // Founding 50: Premium for life
-  source: PlanSource | null; // why Premium: admin, paid or a Discord boost
+  source: PlanSource | null; // why Premium: admin, a subscription, paid or a Discord boost
   boost: BoostState | null;
 }
 
@@ -23,8 +25,10 @@ export function planInfo(row: PlanRow, admin: boolean, now: number): PlanInfo {
 }
 
 export async function planFor(userId: string): Promise<PlanInfo> {
-  const row = (await planRow(userId)) ?? { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0, founderAt: null, discordId: null, boostSince: null, boostEndedAt: null };
-  return planInfo(row, await isAdmin(userId), Date.now());
+  const [stored, sub, admin] = await Promise.all([planRow(userId), subscriptionOf(userId), isAdmin(userId)]);
+  const row = stored ?? { plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0, founderAt: null, discordId: null, boostSince: null, boostEndedAt: null };
+  const now = Date.now();
+  return planInfo({ ...row, subscriptionActive: subscriptionActive(sub, now) }, admin, now);
 }
 
 /** Founding 50: linking `personaId` may earn `userId` lifetime Premium. Never throws: a link is not a purchase. */

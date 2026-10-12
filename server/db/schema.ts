@@ -91,8 +91,10 @@ export const users = pgTable('users', {
   // Discord boost Premium (server/plan.ts boostState): boosting since, or when the boost ended (12 h grace)
   boostSince: timestamp('boost_since', { withTimezone: true }),
   boostEndedAt: timestamp('boost_ended_at', { withTimezone: true }),
+  paddleCustomerId: text('paddle_customer_id'), // Paddle customer (server/billing/), set by the first subscription webhook
 }, (t) => [
   uniqueIndex('users_discord_id').on(t.discordId),
+  uniqueIndex('users_paddle_customer_id').on(t.paddleCustomerId),
   uniqueIndex('users_founder_persona').on(t.founderPersona),
   uniqueIndex('users_username_lower').on(sql`lower(${t.username})`),
 ]); // one spot per EA account, even without the lock
@@ -182,13 +184,39 @@ export const linkTokens = pgTable('link_tokens', {
   usedAt: timestamp('used_at', { withTimezone: true }),
 });
 
+/** Paddle subscriptions, written only by signed webhooks (server/billing/routes.ts) or the admin resync. */
+export const subscriptions = pgTable(
+  'subscriptions',
+  {
+    id: text('id').primaryKey(), // Paddle subscription id
+    userId: text('user_id').notNull().references(() => users.id),
+    customerId: text('customer_id').notNull(),
+    status: text('status').notNull(), // 'active' | 'trialing' | 'past_due' | 'paused' | 'canceled'
+    priceId: text('price_id').notNull(),
+    interval: text('interval').notNull(), // 'month' | 'year'
+    currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }).notNull(),
+    cancelAt: timestamp('cancel_at', { withTimezone: true }), // scheduled cancel at period end
+    eventAt: timestamp('event_at', { withTimezone: true }).notNull(), // occurred_at of the newest event applied
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('subscriptions_user').on(t.userId)],
+);
+
+/** Paddle webhook event ids already handled (idempotency); pruned after 180 days like `events`. */
+export const billingEvents = pgTable('billing_events', {
+  eventId: text('event_id').primaryKey(),
+  type: text('type').notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 /** Admin history: solves, syncs, EA throttles and per-day EA request counts (server/db/events.ts). */
 export const events = pgTable(
   'events',
   {
     id: serial('id').primaryKey(),
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
-    type: text('type').notNull(), // 'solve' | 'sync' | 'ea_error' | 'ea_day'
+    type: text('type').notNull(), // 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'billing'
     userId: text('user_id'),
     personaId: bigint('persona_id', { mode: 'number' }),
     data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),

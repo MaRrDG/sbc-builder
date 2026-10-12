@@ -1,8 +1,10 @@
 // Users for the admin panel: filtered, sorted and paged in SQL; account state comes from the cache.
 import { and, asc, count, desc, eq, exists, gt, gte, ilike, inArray, isNotNull, lt, lte, not, or, sql, type SQL } from 'drizzle-orm';
+import { activeSubscribers, subscriptionActiveSql, subscriptionOf } from '../db/billing.js';
 import { db } from '../db/index.js';
 import { events, personas, users } from '../db/schema.js';
 import { latestExtension } from '../extension.js';
+import { subscriptionActive } from '../billing/rules.js';
 import { BOOST_GRACE_MS } from '../plan.js';
 import { planInfo } from '../plans.js';
 import { adminEmails } from './auth.js';
@@ -13,12 +15,13 @@ import { clampPage, fillDays, isOutdated, isProblem, lastDays, likePattern, PAGE
 const DAY = 24 * 60 * 60 * 1000;
 export const TZ = () => process.env.SBC_DROP_TZ ?? 'Europe/Bucharest';
 
-/** Effective Premium, same rule as plan.ts planSource: admins, stored premium not yet ended, or a Discord boost (+ grace). */
+/** Effective Premium, same rule as plan.ts planSource: admins, a subscription, stored premium not yet ended, or a Discord boost (+ grace). */
 export function premiumSql(now: Date): SQL {
   const admins = adminEmails();
   const stored = and(eq(users.plan, 'premium'), or(sql`${users.premiumUntil} is null`, gt(users.premiumUntil, now)))!;
   const boost = and(isNotNull(users.discordId), or(isNotNull(users.boostSince), gt(users.boostEndedAt, new Date(now.getTime() - BOOST_GRACE_MS))))!;
-  return admins.length ? or(stored, boost, inArray(sql`lower(${users.email})`, admins))! : or(stored, boost)!;
+  const sub = subscriptionActiveSql(now);
+  return admins.length ? or(stored, boost, sub, inArray(sql`lower(${users.email})`, admins))! : or(stored, boost, sub)!;
 }
 export const expiringSql = (now: Date): SQL =>
   and(eq(users.plan, 'premium'), gt(users.premiumUntil, now), lte(users.premiumUntil, new Date(now.getTime() + 7 * DAY)))!;
@@ -69,6 +72,7 @@ export async function listUsers(q: UserQuery) {
     : [];
   const online = new Set(accs.filter((a) => a.online).map((a) => a.personaId));
   const admins = adminEmails();
+  const subscribed = await activeSubscribers(rows.map((r) => r.u.id));
   return {
     total: n,
     page,
@@ -82,7 +86,7 @@ export async function listUsers(q: UserQuery) {
         createdAt: u.createdAt.getTime(),
         lastSeenAt: u.lastSeenAt.getTime(),
         planSet: u.plan === 'premium' ? ('premium' as const) : ('free' as const),
-        plan: planInfo(u, admin, now.getTime()),
+        plan: planInfo({ ...u, subscriptionActive: subscribed.has(u.id) }, admin, now.getTime()),
         admin,
         accounts: mine.length,
         online: mine.filter((o) => online.has(o.personaId)).length,
@@ -114,13 +118,13 @@ export async function userDetail(id: string) {
   if (!u) return null;
   const now = Date.now();
   const admin = !!u.email && adminEmails().includes(u.email.toLowerCase());
-  const [accs, own] = await Promise.all([accountRows(), owners()]);
+  const [accs, own, sub] = await Promise.all([accountRows(), owners(), subscriptionOf(id)]);
   const mine = [...own.entries()].filter(([, o]) => o.userId === id);
   const byId = new Map(accs.map((a) => [a.personaId, a]));
   return {
     user: { id: u.id, email: u.email, createdAt: u.createdAt.getTime(), lastSeenAt: u.lastSeenAt.getTime(), admin },
     planSet: u.plan === 'premium' ? ('premium' as const) : ('free' as const),
-    plan: planInfo(u, admin, now),
+    plan: planInfo({ ...u, subscriptionActive: subscriptionActive(sub, now) }, admin, now),
     accounts: mine.flatMap(([pid, o]) => {
       const a = byId.get(pid);
       return a ? [{ ...a, linkedAt: o.linkedAt, previousUserId: o.previousUserId }] : [];

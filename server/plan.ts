@@ -13,6 +13,7 @@ export interface PlanRow {
   discordId?: string | null; // boost Premium needs a linked Discord account
   boostSince?: Date | null; // boosting the Discord server now (server/discord/boost.ts)
   boostEndedAt?: Date | null; // the boost ended here; Premium lasts BOOST_GRACE_MS more
+  subscriptionActive?: boolean; // a Paddle subscription counts now (server/billing/rules.ts)
 }
 
 export interface Quota {
@@ -29,7 +30,7 @@ export interface BoostState {
   since: number | null;
   graceUntil: number | null;
 }
-export type PlanSource = 'admin' | 'paid' | 'boost';
+export type PlanSource = 'admin' | 'subscription' | 'paid' | 'boost';
 
 const paidActive = (row: PlanRow, now: number) => row.plan === 'premium' && (!row.premiumUntil || row.premiumUntil.getTime() > now);
 
@@ -41,9 +42,10 @@ export function boostState(row: PlanRow, now: number): BoostState | null {
   return end > now ? { since: null, graceUntil: end } : null;
 }
 
-/** Why a user is Premium: admin, paid (codes, points, founders, admin grant), or a Discord boost. Separate sources: a boost never consumes paid days. */
+/** Why a user is Premium: admin, a Paddle subscription, paid (codes, points, founders, admin grant), or a Discord boost. Separate sources: a boost never consumes paid days; paid days keep counting under a subscription. */
 export function planSource(row: PlanRow, admin: boolean, now: number): PlanSource | null {
   if (admin) return 'admin';
+  if (row.subscriptionActive) return 'subscription';
   if (paidActive(row, now)) return 'paid';
   return boostState(row, now) ? 'boost' : null;
 }

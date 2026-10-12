@@ -62,6 +62,7 @@ import { mergeGroups, nameAwards, SHARED_OBJECTIVES_KEY } from './objectives/sha
 import type { Condition, EaCategory } from './objectives/types.js';
 import { db, initDb } from './db/index.js';
 import { logEvent, pruneEvents } from './db/events.js';
+import { pruneBillingEvents } from './db/billing.js';
 import { isPointsChallenge, pointsTarget } from './points.js';
 import { users } from './db/schema.js';
 import { clubPlayers, metaFor, runSolve, type SolveBody } from './solve-run.js';
@@ -749,8 +750,12 @@ installDailyIngest();
 installHistory();
 scheduleDaily();
 void pruneEvents();
+void pruneBillingEvents();
 void backfillFounders().catch((e) => console.error(`[founders] backfill failed: ${(e as Error).message}`));
-setInterval(() => void pruneEvents(), 24 * 60 * 60 * 1000).unref();
+setInterval(() => {
+  void pruneEvents();
+  void pruneBillingEvents();
+}, 24 * 60 * 60 * 1000).unref();
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
 console.log(`FC Solver API on http://localhost:${PORT}`);
 

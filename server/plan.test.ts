@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { WEEK_MS, effectivePlan, quotaState, weeklyLimit, type PlanRow } from './plan.js';
+import { WEEK_MS, effectivePlan, planSource, quotaState, weeklyLimit, type PlanRow } from './plan.js';
 
 const NOW = Date.UTC(2026, 8, 24, 12);
 const row = (p: Partial<PlanRow> = {}): PlanRow => ({ plan: 'free', premiumUntil: null, quotaStart: null, quotaUsed: 0, ...p });
@@ -40,4 +40,21 @@ test('weeklyLimit', () => {
   assert.equal(weeklyLimit('15'), 15);
   assert.equal(weeklyLimit('0'), 20);
   assert.equal(weeklyLimit('abc'), 20);
+});
+
+test('planSource: order admin → subscription → paid → boost', () => {
+  const paid = { plan: 'premium', premiumUntil: new Date(NOW + 1000) };
+  const boost = { discordId: 'd', boostSince: new Date(NOW - 1000) };
+  assert.equal(planSource(row({ subscriptionActive: true, ...paid, ...boost }), true, NOW), 'admin');
+  assert.equal(planSource(row({ subscriptionActive: true, ...paid, ...boost }), false, NOW), 'subscription');
+  assert.equal(planSource(row({ subscriptionActive: false, ...paid, ...boost }), false, NOW), 'paid');
+  assert.equal(planSource(row({ ...boost }), false, NOW), 'boost');
+  assert.equal(planSource(row({ subscriptionActive: true }), false, NOW), 'subscription');
+  assert.equal(effectivePlan(row({ subscriptionActive: true }), false, NOW), 'premium');
+  assert.equal(planSource(row(), false, NOW), null);
+});
+
+test('planSource: lifetime Premium stays paid, admin stays admin', () => {
+  assert.equal(planSource(row({ plan: 'premium', founderAt: new Date(NOW - 1000) }), false, NOW), 'paid');
+  assert.equal(planSource(row({ plan: 'premium' }), true, NOW), 'admin');
 });
