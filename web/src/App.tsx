@@ -1474,6 +1474,8 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
       </p>
       {/* the account taken over may have been the only one: say why it is gone */}
       {takenOver && <p className="banner" role="status">{t('notice.takenOver')}</p>}
+      {/* phones without an EA account land here, not in the dashboard: offer the install here too */}
+      <InstallBanner />
       {isPhone(navigator.userAgent) ? (
         // the extension cannot run on a phone: say where the setup happens, keep the guide readable
         <>
