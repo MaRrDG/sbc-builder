@@ -21,7 +21,7 @@ Registered only in production builds (`import.meta.env.PROD`), scope `/`.
 - **Navigations** (`request.mode === 'navigate'`): network only; on a network failure, the cached `/offline.html`.
 - **Same-origin `GET /assets/*`** (Vite hashed, immutable): cache first, filled on use.
 - **Everything else** (`/api/*`, other same-origin files, every cross-origin request: Clerk, Paddle, EA, analytics, fonts): not intercepted (no `respondWith`), the browser handles it.
-- Install: pre-cache `/offline.html` (+ the icons it shows); `skipWaiting()`. Activate: delete caches whose name is not the current `CACHE` (`fcs-v1`); `clients.claim()`.
+- Install: pre-cache `/offline.html` (+ the icons it shows); `skipWaiting()`. Activate: delete caches whose name is not the current `CACHE` (`fcs-v2`; old hashed assets dropped after 30 days unused); `clients.claim()`.
 - Served by the server with `Cache-Control: no-cache` so a new worker is picked up on the next visit.
 
 ## Manifest and iOS
