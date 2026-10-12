@@ -127,3 +127,8 @@ test('upgrade screen round-trips under /dashboard', () => {
   assert.deepEqual(parseRoute('/upgrade'), { view: 'upgrade' }); // old app path without /dashboard
   assert.equal(routePath({ view: 'upgrade' }), '/dashboard/upgrade');
 });
+
+test('refund policy is a public legal page', () => {
+  assert.deepEqual(parseRoute('/refunds'), { view: 'legal', doc: 'refunds' });
+  assert.equal(routePath({ view: 'legal', doc: 'refunds' }), '/refunds');
+});

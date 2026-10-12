@@ -10,7 +10,7 @@
 //   /dashboard/invite     invite friends     /dashboard/settings   settings          /dashboard/accounts   linked accounts          /dashboard/admin[/users[/:id]|/accounts|/codes|/daily][?filters]   admin panel (admins only)
 //   /setup                extension setup   /guide                 how it works
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
-//   /terms  /privacy  /cookies              legal pages (public)
+//   /terms  /privacy  /cookies  /refunds    legal pages (public)
 //   /changelog            what changed (public)
 // Old app paths without /dashboard (/sbc/16, /club, ...) still parse; useRoute rewrites the address bar.
 import { useCallback, useEffect, useState } from 'react';
@@ -72,7 +72,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (a === 'setup') return { view: 'setup' };
   if (a === 'guide') return { view: 'guide' };
   if (a === 'daily') return { view: 'daily', practice: b === 'practice' };
-  if (a === 'terms' || a === 'privacy' || a === 'cookies') return { view: 'legal', doc: a };
+  if (a === 'terms' || a === 'privacy' || a === 'cookies' || a === 'refunds') return { view: 'legal', doc: a };
   if (a === 'changelog') return { view: 'changelog' };
   const [x, y, z] = a === 'dashboard' ? parts.slice(1) : parts;
   if (x === 'club') return { view: 'club' };

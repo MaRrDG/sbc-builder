@@ -37,6 +37,10 @@ const PAGES: Record<string, PageMeta> = {
     title: 'Cookie policy · FC Solver',
     description: 'FC Solver uses only strictly necessary cookies and cookieless statistics: no advertising or tracking cookies, no consent banner.',
   },
+  '/refunds': {
+    title: 'Refund policy · FC Solver',
+    description: 'FC Solver Premium subscriptions are sold by Paddle: a full refund on request within 14 days of any payment, and cancel anytime.',
+  },
   '/changelog': {
     title: 'Changelog · FC Solver',
     description: 'What changed in FC Solver, the EA FC 27 SBC solver: every update, newest first.',
@@ -48,7 +52,7 @@ const PAGES: Record<string, PageMeta> = {
   },
 };
 
-const LEGAL_PATHS = new Set(['/terms', '/privacy', '/cookies']);
+const LEGAL_PATHS = new Set(['/terms', '/privacy', '/cookies', '/refunds']);
 
 /** Public sub-pages that share a page's head and point their canonical link at it (not in the sitemap). */
 const SAME_AS: Record<string, string> = { '/daily/practice': '/daily' };

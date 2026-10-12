@@ -16,3 +16,12 @@ test('every legal document exists in every language with the same sections', () 
 test('the privacy policy names a contact in every language', () => {
   for (const lang of ['en', 'ro', 'it'] as const) assert.ok(JSON.stringify(LEGAL[lang].privacy).includes(CONTACT), lang);
 });
+
+test('refund policy exists and Paddle is named where payments are covered, in every language', () => {
+  assert.ok(LEGAL_DOCS.includes('refunds'));
+  for (const lang of ['en', 'ro', 'it'] as const) {
+    const refunds = JSON.stringify(LEGAL[lang].refunds);
+    assert.ok(refunds.includes('14') && refunds.includes('Paddle'), `${lang}/refunds`);
+    for (const doc of ['terms', 'privacy', 'cookies'] as const) assert.ok(JSON.stringify(LEGAL[lang][doc]).includes('Paddle'), `${lang}/${doc}`);
+  }
+});

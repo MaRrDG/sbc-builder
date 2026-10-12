@@ -1,4 +1,4 @@
-// /terms, /privacy, /cookies: public for everyone, signed in or not, and not waiting for Clerk.
+// /terms, /privacy, /cookies, /refunds: public for everyone, signed in or not, and not waiting for Clerk.
 import { useEffect, type MouseEvent } from 'react';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';

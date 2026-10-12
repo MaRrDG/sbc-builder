@@ -3,8 +3,9 @@
 // Change UPDATED whenever a document's meaning changes.
 import type { Lang } from '../i18n';
 
-export type LegalDoc = 'terms' | 'privacy' | 'cookies';
-export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'cookies'];
+export type LegalDoc = 'terms' | 'privacy' | 'cookies' | 'refunds';
+export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'cookies', 'refunds'];
+const PADDLE_TERMS = 'paddle.com/legal/checkout-buyer-terms';
 
 export const OPERATOR = 'Mario Dragut';
 export const CONTACT = 'dragutmariotheodor1@gmail.com';
@@ -85,7 +86,7 @@ const en: Record<LegalDoc, Doc> = {
         h: 'Plans',
         p: [
           'FC Solver has a Free plan and a Premium plan. Free includes a weekly number of solves (shown in the app next to the Solve button and in Settings); only a solve that finds a squad counts, and the week starts with your first counted solve and resets 7 days later. Premium removes the limit and adds global solver settings. We may grant or end Premium, and change the Free limit, with notice in the app. Boosting the FC Solver Discord server with a connected Discord account gives Premium while you are boosting and for 12 hours after the boost ends; if you disconnect Discord, it ends at once, even within those 12 hours. It does not use up Premium days from codes or points.',
-          'Prices shown on the website for Premium are indicative; paid plans are not on sale yet. When they are, their price, billing and cancellation terms will be shown before you pay, and these terms will be updated.',
+          `Premium can also be bought as a subscription, monthly or yearly, at the prices shown on the website and at checkout (VAT included). Our order process is run by our online reseller Paddle.com, which is the Merchant of Record for all our orders: you buy from Paddle, which charges you, sends the receipt and handles VAT, cancellations and refunds, under its buyer terms (${PADDLE_TERMS}). The subscription renews automatically at the end of each period until you cancel it in Settings (Manage subscription); after cancelling, Premium stays until the paid period ends. Refunds follow our refund policy (/refunds). Premium from a subscription is switched on when Paddle confirms the payment to us.`,
         ],
       },
       {
@@ -120,6 +121,7 @@ const en: Record<LegalDoc, Doc> = {
           '- FC Solver Daily, when you play signed in: the day, your guesses and whether you won, to keep your stats and streak. Signed out, the game keeps its state only in your browser.',
           '- FC Solver Daily leaderboard, only if you choose to appear: your username, wins, games played and streak are public on /daily. You can hide yourself or change the username in Settings at any time. Signed-out games are counted only as anonymous totals.',
           '- Discord, only if you connect it in Linked accounts: your Discord account id and username (from Clerk\'s Discord connection), and, to grant Premium for boosting our server, your boost status and dates. We also keep a history of the SBCs and objectives completed on each EA account, to show progress. The /sbc and /stats commands of our Discord bot answer publicly in the channel where you use them, so the club players and stats they show are visible to everyone on that server.',
+          '- Payments, only if you subscribe: your Paddle customer and subscription ids, the plan, its status and renewal dates, and the amounts and currency of payments and refunds. Your card details, billing name, address and the email used at checkout are handled by Paddle and never reach us.',
         ],
       },
       {
@@ -139,6 +141,7 @@ const en: Record<LegalDoc, Doc> = {
           '- Google: only if you sign in with Google.',
           '- Cloudflare, Inc.: network, DNS and protection against attacks; traffic passes through its servers.',
           '- OpenWebTrack (hosted in the EU): cookieless website statistics, looked at in aggregate (pages viewed, referrer, country, device type, and which features are used, such as solving an SBC or finishing the Daily). No cookies, no personal data in the events and no cross-site tracking.',
+          '- Paddle.com Market Ltd (UK) and its group: our reseller (Merchant of Record) for subscriptions; it processes your name, email, country, billing address and payment details as an independent controller under its own privacy policy, and tells us only what is listed above under Payments.',
           '- Our server and database, operated by us.',
           'We do not sell personal data and do not use it for advertising.',
         ],
@@ -147,7 +150,7 @@ const en: Record<LegalDoc, Doc> = {
         id: 'keep',
         h: 'How long we keep it',
         p: [
-          'Account and EA data: while your account exists; club and SBC data are overwritten at each sync. EA request counters: a few days. Server logs are kept for a limited time and then rotated out. After you ask us to delete your account we remove your data within 30 days, except the shared SBC data described above, which no longer points to you once the persona is removed.',
+          'Account and EA data: while your account exists; club and SBC data are overwritten at each sync. EA request counters: a few days. Server logs are kept for a limited time and then rotated out. After you ask us to delete your account we remove your data within 30 days, except the shared SBC data described above, which no longer points to you once the persona is removed. Subscription records stay while your account exists; the payment history in our admin log is kept 180 days. Paddle keeps invoices as long as tax law requires.',
         ],
       },
       {
@@ -179,6 +182,7 @@ const en: Record<LegalDoc, Doc> = {
         p: [
           '- Clerk (sign-in), for example __session, __client_uat and __client: keep you signed in. Set on our domain and on Clerk\'s sign-in domain; they last as long as your session or until you sign out.',
           '- Cloudflare, for example __cf_bm or cf_clearance: tell people from bots and protect the website. They last up to 30 minutes, or longer after a security check.',
+          '- Paddle checkout: only when you open the payment form on the upgrade screen, Paddle\'s checkout frame (buy.paddle.com) sets its own strictly necessary cookies to run the payment securely and prevent fraud.',
         ],
       },
       {
@@ -201,6 +205,41 @@ const en: Record<LegalDoc, Doc> = {
         h: 'Your choices',
         p: [
           'You can block or delete cookies in your browser; if you block the necessary ones, signing in will not work. Questions: ' + CONTACT + '.',
+        ],
+      },
+    ],
+  },
+  refunds: {
+    title: 'Refund policy',
+    intro: 'Premium subscriptions are sold by our reseller Paddle.com, the Merchant of Record for all our orders. This policy says when you get your money back.',
+    sections: [
+      {
+        id: 'window',
+        h: '14 days, no questions asked',
+        p: [
+          'If you are not happy with Premium, ask for a refund within 14 days of a payment and you get the full amount of that payment back. This applies to the first payment and to every renewal, monthly or yearly.',
+          'After 14 days a payment is not refunded, including the unused part of a period; you can still cancel so the subscription does not renew.',
+        ],
+      },
+      {
+        id: 'how',
+        h: 'How to ask',
+        p: [
+          `Use the link in your Paddle receipt email, or go to paddle.net and find your order with the email you paid with. You can also write to us at ${CONTACT} and we will ask Paddle to refund you. Refunds go back to the card or account you paid with; your bank may take a few days to show it.`,
+        ],
+      },
+      {
+        id: 'cancel',
+        h: 'Cancelling',
+        p: [
+          'Cancel anytime in Settings → Manage subscription (Paddle\'s customer portal). Premium stays until the end of the period you paid for and the subscription does not renew. A refund also ends Premium from that payment.',
+        ],
+      },
+      {
+        id: 'law',
+        h: 'Your legal rights',
+        p: [
+          'This policy adds to your rights as a consumer and does not limit them. Where a law gives you a right to cancel or to a refund, for example the EU right of withdrawal, Paddle applies it as described in its buyer terms (paddle.com/legal/checkout-buyer-terms).',
         ],
       },
     ],
@@ -271,7 +310,7 @@ const ro: Record<LegalDoc, Doc> = {
         h: 'Planuri',
         p: [
           'FC Solver are un plan Free și un plan Premium. Free include un număr săptămânal de rezolvări (afișat în aplicație lângă butonul Rezolvă și în Setări); contează doar o rezolvare care găsește o echipă, iar săptămâna începe la prima rezolvare numărată și se resetează după 7 zile. Premium elimină limita și adaugă setări globale pentru solver. Putem acorda sau încheia Premium și putem schimba limita Free, cu anunț în aplicație. Un boost pe serverul de Discord FC Solver, cu contul de Discord conectat, oferă Premium cât timp dai boost și încă 12 ore după ce boost-ul se termină; dacă deconectezi Discord, se încheie imediat, chiar și în aceste 12 ore. Nu consumă zilele Premium din coduri sau puncte.',
-          'Prețurile afișate pe site pentru Premium sunt orientative; planurile plătite nu sunt încă de vânzare. Când vor fi, prețul, facturarea și condițiile de anulare îți vor fi arătate înainte de plată, iar acești termeni vor fi actualizați.',
+          `Premium se poate cumpăra și ca abonament, lunar sau anual, la prețurile afișate pe site și la plată (TVA inclus). Comenzile sunt procesate de revânzătorul nostru online Paddle.com, care este Merchant of Record pentru toate comenzile noastre: cumperi de la Paddle, care te taxează, îți trimite chitanța și se ocupă de TVA, anulări și rambursări, conform termenilor săi pentru cumpărători (${PADDLE_TERMS}). Abonamentul se reînnoiește automat la finalul fiecărei perioade până îl anulezi din Setări (Gestionează abonamentul); după anulare, Premium rămâne activ până se termină perioada plătită. Rambursările urmează politica noastră de rambursare (/refunds). Premium din abonament se activează când Paddle ne confirmă plata.`,
         ],
       },
       {
@@ -306,6 +345,7 @@ const ro: Record<LegalDoc, Doc> = {
           '- FC Solver Daily, când joci autentificat: ziua, încercările tale și dacă ai câștigat, pentru statistici și serie. Neautentificat, jocul își păstrează starea doar în browserul tău.',
           '- Clasamentul FC Solver Daily, doar dacă alegi să apari: username-ul, victoriile, jocurile și seria ta sunt publice pe /daily. Te poți ascunde sau poți schimba username-ul oricând din Setări. Jocurile fără cont sunt numărate doar ca totaluri anonime.',
           '- Discord, doar dacă îl conectezi în Conturi conectate: id-ul și username-ul contului tău Discord (din conexiunea Discord a Clerk) și, pentru a acorda Premium pentru boost pe serverul nostru, starea și datele boost-ului. Păstrăm și un istoric al SBC-urilor și obiectivelor completate pe fiecare cont EA, pentru a-ți arăta progresul. Comenzile /sbc și /stats ale botului nostru de Discord răspund public în canalul în care le folosești, deci jucătorii și statisticile clubului afișate sunt vizibile tuturor de pe acel server.',
+          '- Plăți, doar dacă te abonezi: id-ul tău de client și de abonament Paddle, planul, starea lui și datele de reînnoire, plus sumele și moneda plăților și rambursărilor. Datele cardului, numele și adresa de facturare și emailul folosit la plată sunt gestionate de Paddle și nu ajung niciodată la noi.',
         ],
       },
       {
@@ -325,6 +365,7 @@ const ro: Record<LegalDoc, Doc> = {
           '- Google: doar dacă te autentifici cu Google.',
           '- Cloudflare, Inc.: rețea, DNS și protecție împotriva atacurilor; traficul trece prin serverele sale.',
           '- OpenWebTrack (găzduit în UE): statistici despre site fără cookie-uri, analizate doar agregat (pagini vizitate, sursa vizitei, țara, tipul dispozitivului și ce funcții sunt folosite, de exemplu rezolvarea unui SBC sau terminarea jocului Daily). Fără cookie-uri, fără date personale în evenimente și fără urmărire între site-uri.',
+          '- Paddle.com Market Ltd (Regatul Unit) și grupul său: revânzătorul nostru (Merchant of Record) pentru abonamente; prelucrează numele, emailul, țara, adresa de facturare și datele de plată ca operator independent, conform propriei politici de confidențialitate, și ne transmite doar ce e listat mai sus la Plăți.',
           '- Serverul și baza noastră de date, administrate de noi.',
           'Nu vindem date personale și nu le folosim pentru publicitate.',
         ],
@@ -333,7 +374,7 @@ const ro: Record<LegalDoc, Doc> = {
         id: 'keep',
         h: 'Cât timp le păstrăm',
         p: [
-          'Datele contului și datele EA: cât timp există contul; datele despre club și SBC-uri sunt suprascrise la fiecare sincronizare. Contoarele de cereri EA: câteva zile. Jurnalele serverului sunt păstrate un timp limitat, apoi șterse prin rotație. După ce ne ceri ștergerea contului, îți ștergem datele în cel mult 30 de zile, cu excepția datelor partajate despre SBC-uri descrise mai sus, care nu mai trimit la tine după ce persona e ștearsă.',
+          'Datele contului și datele EA: cât timp există contul; datele despre club și SBC-uri sunt suprascrise la fiecare sincronizare. Contoarele de cereri EA: câteva zile. Jurnalele serverului sunt păstrate un timp limitat, apoi șterse prin rotație. După ce ne ceri ștergerea contului, îți ștergem datele în cel mult 30 de zile, cu excepția datelor partajate despre SBC-uri descrise mai sus, care nu mai trimit la tine după ce persona e ștearsă. Datele abonamentului rămân cât există contul; istoricul plăților din jurnalul nostru de administrare se păstrează 180 de zile. Paddle păstrează facturile cât cere legea fiscală.',
         ],
       },
       {
@@ -365,6 +406,7 @@ const ro: Record<LegalDoc, Doc> = {
         p: [
           '- Clerk (autentificare), de exemplu __session, __client_uat și __client: te țin autentificat. Sunt setate pe domeniul nostru și pe domeniul de autentificare Clerk; durează cât sesiunea ta sau până te deconectezi.',
           '- Cloudflare, de exemplu __cf_bm sau cf_clearance: deosebesc oamenii de boți și protejează site-ul. Durează până la 30 de minute sau mai mult după o verificare de securitate.',
+          '- Plata Paddle: doar când deschizi formularul de plată de pe ecranul de upgrade, fereastra de plată Paddle (buy.paddle.com) își setează propriile cookie-uri strict necesare, ca plata să meargă în siguranță și să prevină frauda.',
         ],
       },
       {
@@ -387,6 +429,41 @@ const ro: Record<LegalDoc, Doc> = {
         h: 'Opțiunile tale',
         p: [
           'Poți bloca sau șterge cookie-urile din browser; dacă le blochezi pe cele necesare, autentificarea nu va funcționa. Întrebări: ' + CONTACT + '.',
+        ],
+      },
+    ],
+  },
+  refunds: {
+    title: 'Politica de rambursare',
+    intro: 'Abonamentele Premium sunt vândute de revânzătorul nostru Paddle.com, Merchant of Record pentru toate comenzile noastre. Politica aceasta spune când îți primești banii înapoi.',
+    sections: [
+      {
+        id: 'window',
+        h: '14 zile, fără întrebări',
+        p: [
+          'Dacă nu ești mulțumit de Premium, cere rambursarea în cel mult 14 zile de la o plată și primești înapoi toată suma acelei plăți. Se aplică primei plăți și fiecărei reînnoiri, lunare sau anuale.',
+          'După 14 zile plata nu se mai rambursează, nici partea nefolosită dintr-o perioadă; poți totuși anula, ca abonamentul să nu se mai reînnoiască.',
+        ],
+      },
+      {
+        id: 'how',
+        h: 'Cum ceri',
+        p: [
+          `Folosește linkul din emailul cu chitanța Paddle sau intră pe paddle.net și caută comanda după emailul cu care ai plătit. Ne poți scrie și nouă la ${CONTACT}, iar noi îi cerem lui Paddle rambursarea. Banii se întorc pe cardul sau în contul cu care ai plătit; banca poate avea nevoie de câteva zile ca să-i afișeze.`,
+        ],
+      },
+      {
+        id: 'cancel',
+        h: 'Anularea',
+        p: [
+          'Anulezi oricând din Setări → Gestionează abonamentul (portalul de client Paddle). Premium rămâne până la finalul perioadei plătite, iar abonamentul nu se mai reînnoiește. O rambursare încheie și Premium-ul din acea plată.',
+        ],
+      },
+      {
+        id: 'law',
+        h: 'Drepturile tale legale',
+        p: [
+          'Politica aceasta se adaugă drepturilor tale de consumator și nu le limitează. Când legea îți dă dreptul de a renunța sau la o rambursare, de exemplu dreptul de retragere din UE, Paddle îl aplică așa cum scrie în termenii săi pentru cumpărători (paddle.com/legal/checkout-buyer-terms).',
         ],
       },
     ],
@@ -457,7 +534,7 @@ const it: Record<LegalDoc, Doc> = {
         h: 'Piani',
         p: [
           "FC Solver ha un piano Free e un piano Premium. Il piano Free include un numero settimanale di risoluzioni (indicato nell'app accanto al pulsante Risolvi e nelle Impostazioni); conta solo una risoluzione che trova una rosa, e la settimana inizia con la tua prima risoluzione conteggiata e si azzera 7 giorni dopo. Premium elimina il limite e aggiunge le impostazioni globali del solver. Possiamo concedere o terminare Premium, e modificare il limite del piano Free, con un avviso nell'app. Un boost al server Discord di FC Solver, con l'account Discord collegato, dà Premium finché stai boostando e per 12 ore dopo la fine del boost; se scolleghi Discord, termina subito, anche entro queste 12 ore. Non consuma i giorni Premium da codici o punti.",
-          'I prezzi indicati sul sito per Premium sono indicativi; i piani a pagamento non sono ancora in vendita. Quando lo saranno, prezzo, fatturazione e condizioni di disdetta verranno mostrati prima del pagamento, e questi termini verranno aggiornati.',
+          `Premium si può acquistare anche come abbonamento, mensile o annuale, ai prezzi indicati sul sito e al momento del pagamento (IVA inclusa). Il processo d'ordine è gestito dal nostro rivenditore online Paddle.com, che è il Merchant of Record per tutti i nostri ordini: acquisti da Paddle, che ti addebita l'importo, invia la ricevuta e gestisce IVA, disdette e rimborsi, secondo i suoi termini per gli acquirenti (${PADDLE_TERMS}). L'abbonamento si rinnova automaticamente alla fine di ogni periodo finché non lo disdici dalle Impostazioni (Gestisci abbonamento); dopo la disdetta, Premium resta attivo fino alla fine del periodo pagato. I rimborsi seguono la nostra politica di rimborso (/refunds). Il Premium dell'abbonamento si attiva quando Paddle ci conferma il pagamento.`,
         ],
       },
       {
@@ -492,6 +569,7 @@ const it: Record<LegalDoc, Doc> = {
           '- FC Solver Daily, quando giochi con l\'accesso: il giorno, i tuoi tentativi e se hai vinto, per statistiche e serie. Senza accesso, il gioco conserva lo stato solo nel tuo browser.',
           '- Classifica di FC Solver Daily, solo se scegli di comparire: il tuo username, le vittorie, le partite giocate e la serie sono pubblici su /daily. Puoi nasconderti o cambiare username in qualsiasi momento nelle Impostazioni. Le partite senza accesso sono contate solo come totali anonimi.',
           '- Discord, solo se lo colleghi in Account collegati: l\'id e lo username del tuo account Discord (dalla connessione Discord di Clerk) e, per concedere Premium per il boost del nostro server, lo stato e le date del boost. Conserviamo anche una cronologia delle SBC e degli obiettivi completati su ogni account EA, per mostrarti i progressi. I comandi /sbc e /stats del nostro bot Discord rispondono pubblicamente nel canale in cui li usi, quindi i giocatori e le statistiche del club mostrati sono visibili a tutti su quel server.',
+          '- Pagamenti, solo se ti abboni: i tuoi id cliente e abbonamento Paddle, il piano, il suo stato e le date di rinnovo, e importi e valuta di pagamenti e rimborsi. I dati della carta, nome e indirizzo di fatturazione e l\'email usata al pagamento sono gestiti da Paddle e non arrivano mai a noi.',
         ],
       },
       {
@@ -511,6 +589,7 @@ const it: Record<LegalDoc, Doc> = {
           '- Google: solo se accedi con Google.',
           '- Cloudflare, Inc.: rete, DNS e protezione dagli attacchi; il traffico passa attraverso i suoi server.',
           '- OpenWebTrack (ospitato nell\'UE): statistiche del sito senza cookie, esaminate solo in forma aggregata (pagine visitate, provenienza, Paese, tipo di dispositivo e quali funzioni vengono usate, ad esempio risolvere una SBC o finire il Daily). Nessun cookie, nessun dato personale negli eventi e nessun tracciamento tra siti.',
+          '- Paddle.com Market Ltd (Regno Unito) e il suo gruppo: il nostro rivenditore (Merchant of Record) per gli abbonamenti; tratta nome, email, Paese, indirizzo di fatturazione e dati di pagamento come titolare autonomo secondo la propria informativa, e ci comunica solo quanto indicato sopra alla voce Pagamenti.',
           '- Il nostro server e il nostro database, gestiti da noi.',
           'Non vendiamo dati personali e non li usiamo per la pubblicità.',
         ],
@@ -519,7 +598,7 @@ const it: Record<LegalDoc, Doc> = {
         id: 'keep',
         h: 'Per quanto tempo li conserviamo',
         p: [
-          "Dati dell'account e dati EA: finché il tuo account esiste; i dati del club e delle SBC vengono sovrascritti a ogni sincronizzazione. Contatori delle richieste a EA: pochi giorni. I log del server vengono conservati per un periodo limitato e poi eliminati a rotazione. Dopo che ci chiedi di eliminare il tuo account, rimuoviamo i tuoi dati entro 30 giorni, tranne i dati SBC condivisi descritti sopra, che non rimandano più a te una volta rimossa la persona.",
+          "Dati dell'account e dati EA: finché il tuo account esiste; i dati del club e delle SBC vengono sovrascritti a ogni sincronizzazione. Contatori delle richieste a EA: pochi giorni. I log del server vengono conservati per un periodo limitato e poi eliminati a rotazione. Dopo che ci chiedi di eliminare il tuo account, rimuoviamo i tuoi dati entro 30 giorni, tranne i dati SBC condivisi descritti sopra, che non rimandano più a te una volta rimossa la persona. I dati dell'abbonamento restano finché esiste il tuo account; lo storico dei pagamenti nel nostro registro di amministrazione è conservato 180 giorni. Paddle conserva le fatture per il tempo richiesto dalla legge fiscale.",
         ],
       },
       {
@@ -551,6 +630,7 @@ const it: Record<LegalDoc, Doc> = {
         p: [
           "- Clerk (accesso), per esempio __session, __client_uat e __client: ti mantengono connesso. Vengono impostati sul nostro dominio e sul dominio di accesso di Clerk; durano quanto la tua sessione o finché non esci.",
           '- Cloudflare, per esempio __cf_bm o cf_clearance: distinguono le persone dai bot e proteggono il sito. Durano fino a 30 minuti, o di più dopo un controllo di sicurezza.',
+          '- Pagamento Paddle: solo quando apri il modulo di pagamento nella schermata di upgrade, il riquadro di pagamento di Paddle (buy.paddle.com) imposta i propri cookie strettamente necessari per far funzionare il pagamento in sicurezza e prevenire le frodi.',
         ],
       },
       {
@@ -573,6 +653,41 @@ const it: Record<LegalDoc, Doc> = {
         h: 'Le tue scelte',
         p: [
           "Puoi bloccare o eliminare i cookie dal tuo browser; se blocchi quelli necessari, l'accesso non funzionerà. Domande: " + CONTACT + '.',
+        ],
+      },
+    ],
+  },
+  refunds: {
+    title: 'Politica di rimborso',
+    intro: 'Gli abbonamenti Premium sono venduti dal nostro rivenditore Paddle.com, Merchant of Record per tutti i nostri ordini. Questa politica spiega quando ricevi indietro i tuoi soldi.',
+    sections: [
+      {
+        id: 'window',
+        h: '14 giorni, senza domande',
+        p: [
+          "Se Premium non ti soddisfa, chiedi il rimborso entro 14 giorni da un pagamento e ricevi indietro l'intero importo di quel pagamento. Vale per il primo pagamento e per ogni rinnovo, mensile o annuale.",
+          'Dopo 14 giorni un pagamento non viene rimborsato, nemmeno per la parte non usata di un periodo; puoi comunque disdire perché l’abbonamento non si rinnovi.',
+        ],
+      },
+      {
+        id: 'how',
+        h: 'Come chiederlo',
+        p: [
+          `Usa il link nell'email con la ricevuta di Paddle, oppure vai su paddle.net e trova l'ordine con l'email con cui hai pagato. Puoi anche scriverci a ${CONTACT} e chiederemo noi a Paddle di rimborsarti. Il rimborso torna sulla carta o sul conto con cui hai pagato; la banca può impiegare qualche giorno a mostrarlo.`,
+        ],
+      },
+      {
+        id: 'cancel',
+        h: 'Disdetta',
+        p: [
+          "Disdici quando vuoi da Impostazioni → Gestisci abbonamento (il portale clienti di Paddle). Premium resta attivo fino alla fine del periodo pagato e l'abbonamento non si rinnova. Un rimborso chiude anche il Premium di quel pagamento.",
+        ],
+      },
+      {
+        id: 'law',
+        h: 'I tuoi diritti di legge',
+        p: [
+          "Questa politica si aggiunge ai tuoi diritti di consumatore e non li limita. Quando la legge ti dà un diritto di recesso o di rimborso, per esempio il diritto di recesso UE, Paddle lo applica come descritto nei suoi termini per gli acquirenti (paddle.com/legal/checkout-buyer-terms).",
         ],
       },
     ],
