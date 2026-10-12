@@ -874,6 +874,7 @@ export const it: Record<Keys, string> = {
   'landing.obj.card.assist': 'Fornisci 5 assist con un giocatore dell\'Inghilterra',
   'landing.obj.demoAlt': 'Tre obiettivi vengono spuntati e la squadra illumina i giocatori che li coprono.',
   'landing.footer.legal': 'FC Solver non è affiliato né approvato da Electronic Arts. EA SPORTS FC, Ultimate Team e la grafica delle carte appartengono a EA.',
+  'landing.footer.analytics': 'Statistiche senza cookie offerte da',
   'landing.footer.nav': 'Piè di pagina',
   'landing.footer.setup': 'Guida di configurazione',
   'landing.footer.guide': 'Come funziona',

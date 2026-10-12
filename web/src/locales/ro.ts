@@ -887,6 +887,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.obj.card.assist': 'Dă 5 pase decisive cu un jucător din Anglia',
   'landing.obj.demoAlt': 'Trei obiective sunt bifate, iar echipa evidențiază jucătorii care le acoperă.',
   'landing.footer.legal': 'FC Solver nu este afiliat cu Electronic Arts și nu este susținut de EA. EA SPORTS FC, Ultimate Team și arta cardurilor aparțin EA.',
+  'landing.footer.analytics': 'Statistici fără cookie-uri oferite de',
   'landing.footer.nav': 'Subsol',
   'landing.footer.setup': 'Ghid de instalare',
   'landing.footer.guide': 'Cum funcționează',

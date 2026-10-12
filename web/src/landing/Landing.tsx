@@ -169,6 +169,12 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         <div className="lp-footer-end">
           <LangMenu lang={lang} setLang={setLang} label={t('top.language')} up />
           <DiscordLink invite={invite} variant="foot" where="landing" />
+          <p className="lp-credit">
+            {t('landing.footer.analytics')}{' '}
+            <a className="lp-link" href="https://openwebtrack.one/" target="_blank" rel="noopener">
+              OpenWebTrack<span className="sr-only"> {t('nav.newTab')}</span>
+            </a>
+          </p>
         </div>
       </footer>
       <ToTop ctaKey={`${authReady}-${signedIn}`} />

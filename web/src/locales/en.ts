@@ -870,6 +870,7 @@ export const en = {
   'landing.obj.card.assist': 'Assist 5 goals using an English player',
   'landing.obj.demoAlt': 'Three objectives get ticked and the squad lights up the players that cover them.',
   'landing.footer.legal': 'FC Solver is not affiliated with or endorsed by Electronic Arts. EA SPORTS FC, Ultimate Team and the card art belong to EA.',
+  'landing.footer.analytics': 'Cookieless analytics by',
   'landing.footer.nav': 'Footer',
   'landing.footer.setup': 'Setup guide',
   'landing.footer.guide': 'How it works',
