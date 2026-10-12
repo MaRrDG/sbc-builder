@@ -19,6 +19,7 @@ const toSub = (r: Row): SubRow => ({
   currentPeriodEnd: r.currentPeriodEnd,
   cancelAt: r.cancelAt,
   eventAt: r.eventAt,
+  pastDueSince: r.pastDueSince,
 });
 
 /** The user's subscription that counts now, else their newest one (for "ended on" / past due), else null. */
@@ -31,7 +32,9 @@ export async function subscriptionOf(userId: string): Promise<SubRow | null> {
 /** Same rule as rules.ts subscriptionActive, in SQL, for the admin filters. */
 export function subscriptionActiveSql(now: Date): SQL {
   const live = and(inArray(subscriptions.status, ['active', 'trialing']), gt(subscriptions.currentPeriodEnd, now));
-  const grace = and(eq(subscriptions.status, 'past_due'), gt(subscriptions.currentPeriodEnd, new Date(now.getTime() - PAST_DUE_GRACE_MS)));
+  // raw sql: postgres-js binds strings, not Dates
+  const since = sql`coalesce(${subscriptions.pastDueSince}, ${subscriptions.currentPeriodEnd})`;
+  const grace = and(eq(subscriptions.status, 'past_due'), sql`${since} > ${new Date(now.getTime() - PAST_DUE_GRACE_MS).toISOString()}::timestamptz`);
   return sql`exists (select 1 from ${subscriptions} where ${subscriptions.userId} = "users"."id" and (${or(live, grace)}))`;
 }
 
@@ -61,9 +64,14 @@ export interface SubResult {
   unknownUser?: string; // custom_data.userId that has no users row
 }
 
-async function writeSub(tx: Tx, next: SubRow): Promise<void> {
+/** `ordered`: webhooks never overwrite a newer row. Two first events of one subscription (created / activated / updated
+ *  arrive together) can both find no row to lock, so the insert itself must refuse to go back in time. */
+async function writeSub(tx: Tx, next: SubRow, ordered: boolean): Promise<void> {
   const values = { ...next, updatedAt: new Date() };
-  await tx.insert(subscriptions).values(values).onConflictDoUpdate({ target: subscriptions.id, set: values });
+  await tx
+    .insert(subscriptions)
+    .values(values)
+    .onConflictDoUpdate({ target: subscriptions.id, set: values, ...(ordered ? { setWhere: sql`${subscriptions.eventAt} <= excluded.event_at` } : {}) });
   // remember the customer for the portal, unless another user already has it
   await tx
     .update(users)
@@ -83,14 +91,14 @@ export async function applySubscriptionEvent(ev: PaddleSubEvent, prices: { month
       const [u] = await tx.select({ id: users.id }).from(users).where(eq(users.id, next.userId));
       if (!u) return { fresh: true, prev, row: null, unknownUser: next.userId };
     }
-    await writeSub(tx, next);
+    await writeSub(tx, next, true);
     return { fresh: true, prev, row: next };
   });
 }
 
 /** Admin resync: the state Paddle has now replaces ours (no event id, no ordering check). */
 export async function replaceSubscription(next: SubRow): Promise<void> {
-  await db.transaction((tx) => writeSub(tx, next));
+  await db.transaction((tx) => writeSub(tx, next, false));
 }
 
 export async function subscriptionById(id: string): Promise<SubRow | null> {

@@ -7,7 +7,7 @@ Code: `server/billing/` (`rules.ts` pure rules, `paddle.ts` the only Paddle-spec
 ## Rules
 
 - Premium state changes **only** from signed webhooks (or the admin resync). The checkout success callback in the browser only starts polling `/api/me`.
-- A subscription counts while `active` / `trialing` and its period has not ended, or `past_due` until 3 days after the period end (Paddle retries the card). A cancel "at period end" stays `active` with `cancelAt` until then.
+- A subscription counts while `active` / `trialing` and its period has not ended, or `past_due` until 3 days after the first failed renewal (`past_due_since`; Paddle retries the card and already moved the period forward). A cancel "at period end" stays `active` with `cancelAt` until then.
 - `planSource` order: admin → subscription → paid (codes, points, founders, admin grant) → boost. Paid days keep counting under a subscription.
 - Admins and lifetime Premium (founders) cannot open a checkout (`alreadyPremium`); a subscribed user cannot open a second one (`alreadySubscribed`).
 
@@ -67,7 +67,7 @@ Paddle handles them (Paddle dashboard → Transactions → refund, or the user a
 
 ## Admin
 
-The admin user detail shows the subscription row and the `billing` events (subscribed, renewed, canceled, payment failed, refund / chargeback, unmatched). **Resync from Paddle** replaces our row with what Paddle has now, for a missed or broken webhook. A paid subscription without a known user (`unmatched` event) is found in Paddle by its subscription id and fixed by hand.
+The admin user detail shows the subscription row and the `billing` events (subscribed, renewed, canceled, payment failed, refund / chargeback, unmatched). **Resync from Paddle** replaces our row with what Paddle has now, for a missed or broken webhook. A paid subscription without a known user (`unmatched` event) shows in the Overview's "needs attention" list for 30 days; find the buyer (Paddle dashboard: customer email) and use **Attach Paddle subscription** on that user's page. A subscription whose price is not `PADDLE_PRICE_MONTH` / `_YEAR` still renews and cancels (it keeps its interval) and logs `unmatched` / `unknownPrice` on the user.
 
 ## Going live
 

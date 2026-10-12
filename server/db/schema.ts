@@ -197,6 +197,7 @@ export const subscriptions = pgTable(
     currentPeriodEnd: timestamp('current_period_end', { withTimezone: true }).notNull(),
     cancelAt: timestamp('cancel_at', { withTimezone: true }), // scheduled cancel at period end
     eventAt: timestamp('event_at', { withTimezone: true }).notNull(), // occurred_at of the newest event applied
+    pastDueSince: timestamp('past_due_since', { withTimezone: true }), // first failed renewal; the 3-day grace counts from here
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },

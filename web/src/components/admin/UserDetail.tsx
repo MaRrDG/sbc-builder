@@ -26,6 +26,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
   const [until, setUntil] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [attachId, setAttachId] = useState('');
 
   // Sync the form from the loaded user only when it's a different user (or right after a plan
   // save), never on an unrelated reload (trust toggle, sync, quota reset) — that would wipe an
@@ -81,6 +82,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
       if (x.kind === 'canceled') return t('admin.event.billingCanceled');
       if (x.kind === 'past_due') return t('admin.event.billingPastDue');
       if (x.kind === 'refunded') return t('admin.event.billingRefunded', { amount });
+      if (x.kind === 'attached') return t('admin.event.billingAttached', { id: String(x.subscriptionId ?? '') });
       return t('admin.event.billingUnmatched', { reason: String(x.reason ?? '') });
     }
     if (e.type === 'ea_error') return t('admin.event.throttle');
@@ -163,6 +165,12 @@ export function UserDetail({ route, navigate }: AdminProps) {
             </p>
           </>
         )}
+        <form className="adm-actions" onSubmit={(e) => { e.preventDefault(); void act('attach', () => api.adminBillingAttach(id, attachId)); }}>
+          <label>{t('admin.user.attach')}{' '}
+            <input value={attachId} onChange={(e) => setAttachId(e.target.value)} placeholder="sub_…" spellCheck={false} />
+          </label>
+          <button type="submit" className="ghost wide" disabled={!!busy || !attachId.trim()}>{t('admin.user.attachGo')}</button>
+        </form>
         {msg && <p role="status" className="muted">{msg}</p>}
       </section>
 

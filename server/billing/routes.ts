@@ -12,7 +12,7 @@ import { planRow } from '../db/users.js';
 import { SessionError } from '../ea.js';
 import { createLimiter } from '../limits.js';
 import { billingConfig, getSubscription, portalUrl, type BillingConfig } from './paddle.js';
-import { applyEvent, checkoutRefusal, logKind, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
+import { applyEvent, checkoutRefusal, intervalOf, logKind, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
 
 const webhookLimit = createLimiter({ windowMs: 60_000, max: 120 });
 const SUB_EVENTS = new Set(['subscription.created', 'subscription.activated', 'subscription.updated', 'subscription.canceled', 'subscription.past_due', 'subscription.paused', 'subscription.resumed']);
@@ -65,6 +65,11 @@ async function handle(c: BillingConfig, env: Required<Pick<Envelope, 'event_id' 
       log.warn(`[billing] unmatched ${type} ${ev.data.id}: ${reason}`);
       logEvent({ type: 'billing', userId: null, data: { kind: 'unmatched', reason, subscriptionId: ev.data.id, customerId: ev.data.customer_id } });
       return;
+    }
+    if (r.row && !intervalOf(r.row.priceId, c.prices)) {
+      // a price that is not PADDLE_PRICE_MONTH / _YEAR (changed env, another price on the product): applied, but say so
+      log.warn(`[billing] ${type} ${r.row.id}: price ${r.row.priceId} is not one of ours`);
+      logEvent({ type: 'billing', userId: r.row.userId, data: { kind: 'unmatched', reason: 'unknownPrice', subscriptionId: r.row.id, customerId: r.row.customerId } });
     }
     if (kind && r.row) logEvent({ type: 'billing', userId: r.row.userId, data: { ...kind, subscriptionId: r.row.id, interval: r.row.interval } });
     return;
@@ -124,6 +129,30 @@ export function registerBillingRoutes(app: FastifyInstance) {
     const next: SubRow | null = applyEvent({ ...sub, eventAt: new Date(0) }, { eventId: 'resync', type: 'resync', occurredAt: new Date(), data }, c.prices);
     if (!next) throw new SessionError('Paddle sent a price that is not ours.', 409, 'unknownPrice');
     await replaceSubscription(next);
+    return { subscription: next };
+  });
+
+  /** Admin: give a Paddle subscription that reached us without a known user (an `unmatched` event) to this user. */
+  app.post<{ Params: { id: string }; Body: { subscriptionId?: unknown } }>('/api/admin/users/:id/billing-attach', async (req) => {
+    await requireAdmin(req);
+    const c = needConfig();
+    const subId = typeof req.body?.subscriptionId === 'string' ? req.body.subscriptionId.trim() : '';
+    if (!/^sub_[a-z0-9]+$/.test(subId)) throw new SessionError('Not a Paddle subscription id.', 400, 'invalid');
+    const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, req.params.id));
+    if (!u) throw new SessionError('No such user.', 404, 'notFound');
+    const owner = (await subscriptionById(subId))?.userId;
+    if (owner && owner !== u.id) throw new SessionError('This subscription belongs to another user.', 409, 'alreadySubscribed');
+    let data: PaddleSubEvent['data'];
+    try {
+      data = await getSubscription(c, subId);
+    } catch (e) {
+      req.log.error(`[billing] attach ${subId}: ${(e as Error).message}`);
+      throw new SessionError('The payments provider did not answer, try again in a minute.', 502, 'billingDown');
+    }
+    const next = applyEvent(null, { eventId: 'attach', type: 'attach', occurredAt: new Date(), data: { ...data, custom_data: { userId: u.id } } }, c.prices);
+    if (!next) throw new SessionError('Paddle sent a price that is not ours.', 409, 'unknownPrice');
+    await replaceSubscription(next);
+    logEvent({ type: 'billing', userId: u.id, data: { kind: 'attached', subscriptionId: subId } });
     return { subscription: next };
   });
 

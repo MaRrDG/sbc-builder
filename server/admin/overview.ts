@@ -1,7 +1,7 @@
 // Admin dashboard: KPIs, daily series, what needs attention, extension versions. Reads DB + cache only.
 import { and, count, eq, gte, sql } from 'drizzle-orm';
 import { db } from '../db/index.js';
-import { brickReports, challenges, events, sbcSets, trustedAccounts, users } from '../db/schema.js';
+import { brickReports, challenges, events, sbcSets, subscriptions, trustedAccounts, users } from '../db/schema.js';
 import { latestExtension } from '../extension.js';
 import { meterDay } from '../meter.js';
 import { lastSbcDrop } from '../sync.js';
@@ -14,7 +14,9 @@ const DAY = 24 * 60 * 60 * 1000;
 
 export type AttentionItem =
   | { kind: 'error' | 'paused' | 'atLimit' | 'outdated'; personaId: number; personaName: string; userId: string | null; detail: string | null }
-  | { kind: 'expiring'; userId: string; email: string; until: number };
+  | { kind: 'expiring'; userId: string; email: string; until: number }
+  // a Paddle subscription no user could be found for (attach it from a user's page)
+  | { kind: 'billing'; userId: null; subscriptionId: string; reason: string; at: number };
 
 export async function overview(range: 7 | 30) {
   const now = Date.now();
@@ -69,7 +71,22 @@ export async function overview(range: 7 | 30) {
   const eaRequests = fillDays(days, [...eaDays].filter((r) => r.day !== meterDay()), (r) => Number(r.n));
   eaRequests[eaRequests.length - 1] = eaToday; // today comes from the live meters
 
+  // unmatched Paddle subscriptions of the last 30 days that no one has attached since
+  const unmatched = await db
+    .select({ at: events.at, data: events.data })
+    .from(events)
+    .where(
+      and(
+        eq(events.type, 'billing'),
+        sql`${events.data}->>'kind' = 'unmatched'`,
+        sql`${events.userId} is null`,
+        gte(events.at, new Date(now - 30 * DAY)),
+        sql`not exists (select 1 from ${subscriptions} where ${subscriptions.id} = ${events.data}->>'subscriptionId')`,
+      ),
+    );
+
   const attention: AttentionItem[] = [
+    ...unmatched.map((u) => ({ kind: 'billing' as const, userId: null, subscriptionId: String(u.data.subscriptionId ?? ''), reason: String(u.data.reason ?? ''), at: u.at.getTime() })),
     ...accs.flatMap((a): AttentionItem[] => {
       const base = { personaId: a.personaId, personaName: a.personaName, userId: a.ownerId };
       if (a.error) return [{ kind: 'error' as const, ...base, detail: a.error }];

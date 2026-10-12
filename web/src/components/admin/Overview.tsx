@@ -44,9 +44,12 @@ export function Overview({ navigate }: AdminProps) {
   const attentionText = (a: AdminAttention) =>
     a.kind === 'expiring'
       ? t('admin.attention.expiring', { email: a.email, time: new Date(a.until).toLocaleDateString() })
-      : t(`admin.attention.${a.kind}`, { name: a.personaName, detail: a.detail ?? '' });
+      : a.kind === 'billing'
+        ? t('admin.attention.billing', { id: a.subscriptionId, reason: a.reason, time: new Date(a.at).toLocaleString() })
+        : t(`admin.attention.${a.kind}`, { name: a.personaName, detail: a.detail ?? '' });
+  // an unmatched payment has no user yet: the users list, where the admin finds whom to attach it to
   const attentionRoute = (a: AdminAttention) =>
-    a.userId ? adminRoute('user', { userId: a.userId }) : accounts(`q=${a.kind === 'expiring' ? '' : a.personaId}`);
+    a.userId ? adminRoute('user', { userId: a.userId }) : a.kind === 'billing' ? users('') : accounts(`q=${a.kind === 'expiring' ? '' : a.personaId}`);
 
   return (
     <>

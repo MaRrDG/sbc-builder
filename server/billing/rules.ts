@@ -13,6 +13,7 @@ export interface SubRow {
   currentPeriodEnd: Date;
   cancelAt: Date | null;
   eventAt: Date;
+  pastDueSince: Date | null; // first failed renewal of the current dunning run; the grace counts from here
 }
 
 export interface PaddleSubEvent {
@@ -30,7 +31,7 @@ export interface PaddleSubEvent {
   };
 }
 
-/** Paddle retries the card for a while; keep Premium this long after the period ends. */
+/** Paddle retries the card for a while; keep Premium this long after the first failed payment. */
 export const PAST_DUE_GRACE_MS = 3 * 24 * 60 * 60 * 1000;
 const SIGNATURE_TOLERANCE_S = 5 * 60;
 
@@ -63,11 +64,12 @@ export function intervalOf(priceId: string, prices: { month: string; year: strin
   return null;
 }
 
-/** Next row for a subscription event; null = ignore (older than the row, unknown price, or no user for a new row). */
+/** Next row for a subscription event; null = ignore (older than the row, or a new row with a foreign price or no user).
+ *  An existing row whose price is no longer one of ours keeps its interval, so renewals and cancels still apply. */
 export function applyEvent(prev: SubRow | null, ev: PaddleSubEvent, prices: { month: string; year: string }): SubRow | null {
   if (prev && ev.occurredAt.getTime() < prev.eventAt.getTime()) return null;
   const priceId = ev.data.items[0]?.price.id ?? '';
-  const interval = intervalOf(priceId, prices);
+  const interval = intervalOf(priceId, prices) ?? prev?.interval;
   if (!interval) return null;
   const userId = prev?.userId ?? ev.data.custom_data?.userId;
   if (!userId) return null;
@@ -83,6 +85,7 @@ export function applyEvent(prev: SubRow | null, ev: PaddleSubEvent, prices: { mo
     currentPeriodEnd: endsAt ? new Date(endsAt) : prev?.currentPeriodEnd ?? ev.occurredAt,
     cancelAt: change?.action === 'cancel' ? new Date(change.effective_at) : null,
     eventAt: ev.occurredAt,
+    pastDueSince: ev.data.status !== 'past_due' ? null : prev?.status === 'past_due' && prev.pastDueSince ? prev.pastDueSince : ev.occurredAt,
   };
 }
 
@@ -90,7 +93,8 @@ export function subscriptionActive(row: SubRow | null, now: number): boolean {
   if (!row) return false;
   const end = row.currentPeriodEnd.getTime();
   if (row.status === 'active' || row.status === 'trialing') return end > now;
-  if (row.status === 'past_due') return now < end + PAST_DUE_GRACE_MS;
+  // Paddle moves the billing period forward even when the renewal fails, so count from the failure (older rows: period end)
+  if (row.status === 'past_due') return now < (row.pastDueSince?.getTime() ?? end) + PAST_DUE_GRACE_MS;
   return false;
 }
 

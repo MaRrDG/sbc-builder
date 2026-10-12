@@ -78,6 +78,7 @@ test('applyEvent creates a row from the first event', () => {
     currentPeriodEnd: new Date('2026-11-12T12:00:00Z'),
     cancelAt: null,
     eventAt: new Date('2026-10-12T12:00:00Z'),
+    pastDueSince: null,
   });
 });
 
@@ -86,8 +87,16 @@ test('applyEvent ignores a new row without userId', () => {
   assert.equal(applyEvent(null, ev({ custom_data: {} }), PRICES), null);
 });
 
-test('applyEvent ignores an unknown price', () => {
+test('applyEvent ignores an unknown price on a new row', () => {
   assert.equal(applyEvent(null, ev({ items: [{ price: { id: 'pri_other' } }] }), PRICES), null);
+});
+
+test('applyEvent keeps an existing row moving when its price is not ours any more (interval kept)', () => {
+  const first = applyEvent(null, ev(), PRICES)!;
+  const next = applyEvent(first, ev({ status: 'canceled', items: [{ price: { id: 'pri_other' } }] }, '2026-10-20T00:00:00Z', 'subscription.canceled'), PRICES)!;
+  assert.equal(next.status, 'canceled');
+  assert.equal(next.interval, 'month');
+  assert.equal(next.priceId, 'pri_other');
 });
 
 test('applyEvent renewal moves the period end', () => {
@@ -114,10 +123,16 @@ test('applyEvent canceled keeps the last known period end when Paddle sends none
   assert.deepEqual(next.currentPeriodEnd, new Date('2026-11-12T12:00:00Z'));
 });
 
-test('applyEvent past_due updates the status', () => {
+test('applyEvent past_due updates the status and remembers when it started', () => {
   const first = applyEvent(null, ev(), PRICES)!;
   const next = applyEvent(first, ev({ status: 'past_due' }, '2026-11-12T12:05:00Z', 'subscription.past_due'), PRICES)!;
   assert.equal(next.status, 'past_due');
+  assert.deepEqual(next.pastDueSince, new Date('2026-11-12T12:05:00Z'));
+  // a later past_due update keeps the first failure; back to active clears it
+  const again = applyEvent(next, ev({ status: 'past_due' }, '2026-11-14T00:00:00Z', 'subscription.updated'), PRICES)!;
+  assert.deepEqual(again.pastDueSince, new Date('2026-11-12T12:05:00Z'));
+  const paid = applyEvent(again, ev({ status: 'active' }, '2026-11-15T00:00:00Z', 'subscription.updated'), PRICES)!;
+  assert.equal(paid.pastDueSince, null);
 });
 
 test('applyEvent ignores an event older than the row', () => {
@@ -138,8 +153,8 @@ test('applyEvent keeps userId on an existing row when custom_data is absent', ()
   assert.equal(next.priceId, 'pri_year');
 });
 
-function row(status: SubRow['status'], periodEnd: number): SubRow {
-  return { id: 's', userId: 'u', customerId: 'c', status, priceId: 'p', interval: 'month', currentPeriodEnd: new Date(periodEnd), cancelAt: null, eventAt: new Date(0) };
+function row(status: SubRow['status'], periodEnd: number, pastDueSince: number | null = null): SubRow {
+  return { id: 's', userId: 'u', customerId: 'c', status, priceId: 'p', interval: 'month', currentPeriodEnd: new Date(periodEnd), cancelAt: null, eventAt: new Date(0), pastDueSince: pastDueSince === null ? null : new Date(pastDueSince) };
 }
 
 test('subscriptionActive per status', () => {
@@ -191,4 +206,11 @@ test('checkoutRefusal', () => {
   assert.equal(checkoutRefusal({ plan: 'premium', premiumUntil: null }, false, false), 'alreadyPremium'); // lifetime
   assert.equal(checkoutRefusal({ plan: 'premium', premiumUntil: new Date(NOW + 1000) }, false, false), null); // days from codes: may subscribe
   assert.equal(checkoutRefusal(free, false, true), 'alreadySubscribed');
+});
+
+test('subscriptionActive measures the past_due grace from the first failed payment, not the (moved) period end', () => {
+  const failedAt = NOW - 2 * 24 * 3600e3;
+  const periodEnd = NOW + 28 * 24 * 3600e3; // Paddle already moved the period forward
+  assert.equal(subscriptionActive(row('past_due', periodEnd, failedAt), NOW), true);
+  assert.equal(subscriptionActive(row('past_due', periodEnd, NOW - PAST_DUE_GRACE_MS), NOW), false);
 });
