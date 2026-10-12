@@ -93,3 +93,41 @@ export function subscriptionActive(row: SubRow | null, now: number): boolean {
   if (row.status === 'past_due') return now < end + PAST_DUE_GRACE_MS;
   return false;
 }
+
+export type LogKind =
+  | { kind: 'subscribed' | 'renewed'; amount: number; currency: string }
+  | { kind: 'canceled' | 'past_due' }
+  | { kind: 'refunded'; amount: number; currency: string; action: string };
+
+interface LooseData {
+  origin?: string;
+  currency_code?: string;
+  details?: { totals?: { grand_total?: string } } | null;
+  action?: string;
+  status?: string;
+  totals?: { total?: string; currency_code?: string } | null;
+}
+
+/** What a webhook means for the admin history (amounts in minor units, no card or customer data); null = nothing to log. */
+export function logKind(type: string, data: LooseData): LogKind | null {
+  switch (type) {
+    case 'transaction.completed':
+      return { kind: data.origin === 'subscription_recurring' ? 'renewed' : 'subscribed', amount: Number(data.details?.totals?.grand_total ?? 0), currency: data.currency_code ?? '' };
+    case 'subscription.canceled':
+      return { kind: 'canceled' };
+    case 'subscription.past_due':
+      return { kind: 'past_due' };
+    case 'adjustment.created':
+    case 'adjustment.updated':
+      if ((data.action !== 'refund' && data.action !== 'chargeback') || data.status !== 'approved') return null;
+      return { kind: 'refunded', amount: Number(data.totals?.total ?? 0), currency: data.totals?.currency_code ?? '', action: data.action };
+    default:
+      return null;
+  }
+}
+
+/** Who may not open a checkout: admins and lifetime Premium (nothing to buy), and anyone already subscribed. */
+export function checkoutRefusal(row: { plan: string; premiumUntil: Date | null }, admin: boolean, subscribed: boolean): 'alreadyPremium' | 'alreadySubscribed' | null {
+  if (admin || (row.plan === 'premium' && row.premiumUntil === null)) return 'alreadyPremium';
+  return subscribed ? 'alreadySubscribed' : null;
+}

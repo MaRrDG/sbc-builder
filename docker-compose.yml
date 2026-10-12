@@ -32,6 +32,13 @@ services:
       BOT_API_TOKEN: ${BOT_API_TOKEN:-}
       # invite link shown on the Linked accounts screen and in the sidebar ("Join our Discord"); empty = hidden
       DISCORD_INVITE_URL: ${DISCORD_INVITE_URL:-}
+      # Paddle billing (docs/billing.md); any one empty = billing off. sandbox on dev, production on prod
+      PADDLE_ENV: ${PADDLE_ENV:-}
+      PADDLE_API_KEY: ${PADDLE_API_KEY:-}
+      PADDLE_CLIENT_TOKEN: ${PADDLE_CLIENT_TOKEN:-}
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
+      PADDLE_PRICE_MONTH: ${PADDLE_PRICE_MONTH:-}
+      PADDLE_PRICE_YEAR: ${PADDLE_PRICE_YEAR:-}
     depends_on:
       db:
         condition: service_healthy

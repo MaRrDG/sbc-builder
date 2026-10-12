@@ -133,6 +133,7 @@ export async function userDetail(id: string) {
     solves: await solvesByDay(id, lastDays(30, now, TZ())),
     latestExtension: (await latestExtension()).version,
     referral: await referralOf(u.id, u.invitedBy),
+    subscription: sub ? { ...sub, currentPeriodEnd: sub.currentPeriodEnd.getTime(), cancelAt: sub.cancelAt?.getTime() ?? null, eventAt: sub.eventAt.getTime() } : null,
   };
 }
 

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { applyEvent, PAST_DUE_GRACE_MS, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
+import { applyEvent, checkoutRefusal, logKind, PAST_DUE_GRACE_MS, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
 
 const SECRET = 'pdl_ntfset_test_secret';
 const BODY = '{"event_id":"evt_1","event_type":"subscription.created"}';
@@ -161,4 +161,34 @@ test('subscriptionActive gives past_due a 3 day grace after period end', () => {
   const end = NOW - PAST_DUE_GRACE_MS;
   assert.equal(subscriptionActive(row('past_due', end + 1), NOW), true);
   assert.equal(subscriptionActive(row('past_due', end), NOW), false);
+});
+
+test('logKind: first payment vs renewal, with amount and currency', () => {
+  const tx = (origin: string) => ({ origin, currency_code: 'EUR', details: { totals: { grand_total: '500' } } });
+  assert.deepEqual(logKind('transaction.completed', tx('web')), { kind: 'subscribed', amount: 500, currency: 'EUR' });
+  assert.deepEqual(logKind('transaction.completed', tx('subscription_recurring')), { kind: 'renewed', amount: 500, currency: 'EUR' });
+});
+
+test('logKind: subscription states', () => {
+  assert.deepEqual(logKind('subscription.canceled', {}), { kind: 'canceled' });
+  assert.deepEqual(logKind('subscription.past_due', {}), { kind: 'past_due' });
+  assert.equal(logKind('subscription.updated', {}), null);
+  assert.equal(logKind('customer.created', {}), null);
+});
+
+test('logKind: approved refunds and chargebacks only', () => {
+  const adj = (action: string, status: string) => ({ action, status, totals: { total: '3600', currency_code: 'EUR' } });
+  assert.deepEqual(logKind('adjustment.updated', adj('refund', 'approved')), { kind: 'refunded', amount: 3600, currency: 'EUR', action: 'refund' });
+  assert.deepEqual(logKind('adjustment.created', adj('chargeback', 'approved')), { kind: 'refunded', amount: 3600, currency: 'EUR', action: 'chargeback' });
+  assert.equal(logKind('adjustment.created', adj('refund', 'pending_approval')), null);
+  assert.equal(logKind('adjustment.updated', adj('credit', 'approved')), null);
+});
+
+test('checkoutRefusal', () => {
+  const free = { plan: 'free', premiumUntil: null };
+  assert.equal(checkoutRefusal(free, false, false), null);
+  assert.equal(checkoutRefusal(free, true, false), 'alreadyPremium'); // admin
+  assert.equal(checkoutRefusal({ plan: 'premium', premiumUntil: null }, false, false), 'alreadyPremium'); // lifetime
+  assert.equal(checkoutRefusal({ plan: 'premium', premiumUntil: new Date(NOW + 1000) }, false, false), null); // days from codes: may subscribe
+  assert.equal(checkoutRefusal(free, false, true), 'alreadySubscribed');
 });

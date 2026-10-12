@@ -17,6 +17,7 @@ import { isTabPoll } from './job-rules.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { isAdmin } from './admin/auth.js';
 import { registerAdminRoutes } from './admin/routes.js';
+import { billingOf, registerBillingRoutes } from './billing/routes.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteContext, siteUser } from './auth.js';
 import { linkDecision, overLinkLimit, PERSONA_USER_LIMIT } from './auth-rules.js';
 import { backfillFounders, foundersNow, grantFounderSpot, grantInviteOnLink, planFor } from './plans.js';
@@ -114,14 +115,17 @@ function csp(): string {
     .map((o) => `https://clerk.${new URL(o).host}`);
   const clerkAll = [...clerk, 'https://*.clerk.accounts.dev', 'https://*.clerk.com'].join(' ');
   const stats = analyticsOrigins().join(' '); // ANALYTICS_SNIPPET (OpenWebTrack)
+  // Paddle.js (script + styles), its checkout API and the inline checkout frame (server/billing/)
+  const paddleFrames = 'https://buy.paddle.com https://sandbox-buy.paddle.com';
+  const paddleApi = 'https://checkout-service.paddle.com https://sandbox-checkout-service.paddle.com';
   return [
     "default-src 'self'",
-    `script-src 'self' ${clerkAll} https://challenges.cloudflare.com ${stats}`,
-    `connect-src 'self' ${clerkAll} https://clerk-telemetry.com ${stats}`,
+    `script-src 'self' ${clerkAll} https://challenges.cloudflare.com ${stats} https://cdn.paddle.com`,
+    `connect-src 'self' ${clerkAll} https://clerk-telemetry.com ${stats} ${paddleApi}`,
     "img-src 'self' data: blob: https:",
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://cdn.paddle.com",
     "font-src 'self' data:",
-    `frame-src https://challenges.cloudflare.com ${clerkAll}`,
+    `frame-src https://challenges.cloudflare.com ${clerkAll} ${paddleFrames}`,
     "worker-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
@@ -134,7 +138,7 @@ app.addHook('onSend', async (req, reply) => {
   reply.header('X-Content-Type-Options', 'nosniff');
   reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
   reply.header('X-Frame-Options', 'DENY');
-  reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://buy.paddle.com" "https://sandbox-buy.paddle.com")');
   if (req.headers['x-forwarded-proto'] === 'https') reply.header('Strict-Transport-Security', 'max-age=15552000');
   if (String(reply.getHeader('content-type') ?? '').startsWith('text/html')) reply.header('Content-Security-Policy-Report-Only', csp());
 });
@@ -251,6 +255,7 @@ app.get('/api/me', async (req) => {
     return a ? [a.toJSON()] : [];
   });
   return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId), prefs: await prefsOf(userId), onboarding: { done: !!row?.onboardedAt },
+    billing: await billingOf(userId), // Paddle subscription, null without one or while billing is off
     // an EA account of mine that another user has since proved with EA: why the setup screen is back
     takenOver: personas.length === 0 && (await takenOverFrom(userId)),
     // a link refused for the persona limit (cleared by any successful link): who to write to
@@ -418,6 +423,7 @@ app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, rep
 
 // ---- admin (site, ADMIN_EMAILS): server/admin/routes.ts ----------------------------
 registerAdminRoutes(app);
+registerBillingRoutes(app);
 registerDailyRoutes(app);
 registerBotRoutes(app);
 registerDiscordSiteRoutes(app);

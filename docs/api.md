@@ -79,7 +79,7 @@ Signed in with Clerk; only the `Authorization` header is needed.
 { "user": { "id": "user_2Rf…", "email": "you@example.com" }, "personas": [{ "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true }] }
 ```
 
-The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null, "founder": true|false, "source": "admin"|"paid"|"boost"|null, "boost": { "since": 1790000000000|null, "graceUntil": 1790043200000|null }|null }` (`server/plan.ts`). `source` says why the user is Premium (paid wins over boost); `boost` is set while the user boosts the FC Solver Discord server (`since`) or during the 12 h after the boost ended (`graceUntil`). Boost Premium needs Discord connected in Linked accounts and never consumes paid Premium days. `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium. Also `"prefs": { "lang": "en"|"ro"|"it", "evoEmails": true|false, "dailyReminder": true|false }`, the email language, whether evolution emails are on and whether the Daily reminder is on (opt-in, default `false`; both emails only go out while the user is Premium, the preference is kept when Premium ends). Also `"onboarding": { "done": true|false }`: whether the user answered or skipped the onboarding survey (the site asks while it is `false`). Also `"linkBlocked": { "at": 1790000000000, "limit": 3, "supportEmail": "…"|null }|null`: the extension's last link attempt for this user was refused because that EA account already has `limit` FC Solver accounts; the site shows a "contact support" notice (`supportEmail` from the `SUPPORT_EMAIL` env). Cleared by the next successful link. Support lifts it by deleting a row from `persona_links`. Also `"takenOver": true|false`: the user owns no EA account now and one they owned was since proved by another user with EA (`personas.previous_user_id`); the setup screen says so.
+The EA accounts this user owns (same shape as `account` in `/api/status`). Also `"admin": true|false` (email in `ADMIN_EMAILS`), so the site shows the Admin screen, and `"plan": { "tier": "free"|"premium", "premiumUntil": 1790000000000|null, "quota": { "used": 3, "limit": 20, "resetsAt": 1790605200000|null }|null, "founder": true|false, "source": "admin"|"subscription"|"paid"|"boost"|null, "boost": { "since": 1790000000000|null, "graceUntil": 1790043200000|null }|null }` (`server/plan.ts`). `source` says why the user is Premium (order: admin, subscription, paid, boost; paid days from codes / points keep running under a subscription); `boost` is set while the user boosts the FC Solver Discord server (`since`) or during the 12 h after the boost ended (`graceUntil`). Boost Premium needs Discord connected in Linked accounts and never consumes paid Premium days. `quota` is `null` for Premium (no limit); for Free, `resetsAt` is `null` until the first counted solve opens the 7-day window. Admins are always Premium. Also `"prefs": { "lang": "en"|"ro"|"it", "evoEmails": true|false, "dailyReminder": true|false }`, the email language, whether evolution emails are on and whether the Daily reminder is on (opt-in, default `false`; both emails only go out while the user is Premium, the preference is kept when Premium ends). Also `"onboarding": { "done": true|false }`: whether the user answered or skipped the onboarding survey (the site asks while it is `false`). Also `"linkBlocked": { "at": 1790000000000, "limit": 3, "supportEmail": "…"|null }|null`: the extension's last link attempt for this user was refused because that EA account already has `limit` FC Solver accounts; the site shows a "contact support" notice (`supportEmail` from the `SUPPORT_EMAIL` env). Cleared by the next successful link. Support lifts it by deleting a row from `persona_links`. Also `"billing": { "subscribed": true|false, "interval": "month"|"year", "status": "active"|"trialing"|"past_due"|"paused"|"canceled", "periodEnd": ms, "cancelAt": ms|null }|null`: the user's Paddle subscription (the one that counts now, else the newest), `null` without one or while billing is off; `subscribed` is the Premium rule (`active` / `trialing` until `periodEnd`, `past_due` until 3 days after it); `cancelAt` is a cancel scheduled at the period end. Also `"takenOver": true|false`: the user owns no EA account now and one they owned was since proved by another user with EA (`personas.previous_user_id`); the setup screen says so.
 
 ### `PUT /api/me/prefs`
 
@@ -170,6 +170,30 @@ Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Pric
 ### `POST /api/points/spend`
 
 `{ "days": 7|14|30, "gift": false }` → `{ "premiumUntil": ms|null }`, or with `"gift": true` → `{ "giftCode": "ABC234" }` (a code for another user, once). Bad body → `400 { "error": "invalid spend" }`; not enough points → `400 pointsLow`.
+
+## Billing (Paddle)
+
+Recurring Premium through Paddle (Merchant of Record), see [billing.md](billing.md). Every route answers `404` `billingOff` unless all six `PADDLE_*` env vars are set. Premium state changes only through the signed webhook (or the admin resync), never from the browser. Error `code`s: `billingOff`, `alreadyPremium` (admin or lifetime Premium: nothing to buy), `alreadySubscribed`, `noSubscription`, `billingDown` (Paddle did not answer), `unknownPrice`.
+
+### `GET /api/billing/config` (public)
+
+`{ "env": "sandbox"|"production", "clientToken": "test_…", "prices": { "month": "pri_…", "year": "pri_…" } }`: what Paddle.js needs. The client token is public by design; the API key never leaves the server.
+
+### `POST /api/billing/checkout` (site)
+
+`{ "interval": "month"|"year" }` → `{ "priceId": "pri_…", "customData": { "userId": "user_…" }, "email": "…"|null, "customerId": "ctm_…"|null }`, passed as-is to `Paddle.Checkout.open`. `customData.userId` is how the webhook finds the user; the server decides it. `customerId` reuses the user's Paddle customer after a first purchase. `409 alreadyPremium` / `409 alreadySubscribed`.
+
+### `POST /api/billing/portal` (site)
+
+→ `{ "url": "https://customer-portal.paddle.com/…" }`, a short-lived Paddle customer portal link (cancel, card, invoices, switch plan) for the user's subscription. `404 noSubscription`, `502 billingDown`.
+
+### `POST /api/billing/webhook` (Paddle)
+
+Paddle notifications, raw JSON body (256 KB max), `Paddle-Signature: ts=…;h1=…` (HMAC-SHA256 of `ts:body` with `PADDLE_WEBHOOK_SECRET`, 5 min tolerance). Bad or missing signature → `401`, nothing stored; malformed envelope → `400`; 120 per minute per IP. Each `event_id` is handled once (`billing_events`; a redelivery → `200`, nothing done). `subscription.created|activated|updated|canceled|past_due|paused|resumed` upsert the `subscriptions` row (an event older than the row's `event_at` is ignored); `transaction.completed` (first payment / renewal) and approved `adjustment.created|updated` refunds and chargebacks go to the admin history (`events` type `billing`, amount in minor units + currency only). A subscription without a known `customData.userId` or with a foreign price is logged as `unmatched` for the admin. Any other type → `200`. A DB failure → `500` so Paddle retries.
+
+### `POST /api/admin/users/:id/billing-resync` (admin)
+
+Replaces the user's subscription row with the subscription as Paddle has it now (`GET /subscriptions/:id`) → `{ "subscription": … }`. `404 noSubscription`. The admin user detail shows that row (`subscription`, `null` without one) and `billing` events.
 
 ## Daily game
 

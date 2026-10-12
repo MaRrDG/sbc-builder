@@ -485,6 +485,7 @@ export const api = {
   adminPlan: (userId: string, tier: 'free' | 'premium', premiumUntil: string | null) =>
     req<{ ok: true }>('/api/admin/plan', { method: 'POST', body: { userId, tier, premiumUntil } }),
   adminQuotaReset: (userId: string) => req<{ ok: true }>('/api/admin/quota-reset', { method: 'POST', body: { userId } }),
+  adminBillingResync: (userId: string) => req<unknown>(`/api/admin/users/${encodeURIComponent(userId)}/billing-resync`, { method: 'POST' }),
   adminDaily: (day: number | null) => req<AdminDailyDay>(`/api/admin/daily${day === null ? '' : `?day=${day}`}`),
   adminDailyLeaderboard: () => req<{ rows: AdminDailyLbRow[] }>('/api/admin/daily/leaderboard'),
   adminDailyClearUsername: (userId: string) =>
@@ -546,8 +547,9 @@ export interface AdminUserDetail {
   solves: { days: string[]; found: number[]; notFound: number[] };
   latestExtension: string;
   referral: { points: number; invitedBy: { id: string; email: string } | null; invited: number; inviteCode: string | null };
+  subscription: { id: string; customerId: string; status: string; interval: 'month' | 'year'; currentPeriodEnd: number; cancelAt: number | null; eventAt: number } | null;
 }
-export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost'; personaId: number | null; data: Record<string, unknown>; setName?: string | null; challengeName?: string | null }
+export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost' | 'billing'; personaId: number | null; data: Record<string, unknown>; setName?: string | null; challengeName?: string | null }
 export type AdminAttention =
   | { kind: 'error' | 'paused' | 'atLimit' | 'outdated'; personaId: number; personaName: string; userId: string | null; detail: string | null }
   | { kind: 'expiring'; userId: string; email: string; until: number };

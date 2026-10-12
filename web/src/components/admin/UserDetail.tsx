@@ -74,6 +74,15 @@ export function UserDetail({ route, navigate }: AdminProps) {
     }
     if (e.type === 'sync') return t(x.ok ? 'admin.event.syncOk' : 'admin.event.syncFail', { what: whatText(x.what), error: String(x.error ?? '') });
     if (e.type === 'boost') return t(x.via === 'unlink' ? 'admin.event.boostUnlink' : x.action === 'start' ? 'admin.event.boostStart' : 'admin.event.boostStop');
+    if (e.type === 'billing') {
+      const amount = x.currency ? new Intl.NumberFormat(undefined, { style: 'currency', currency: String(x.currency) }).format(Number(x.amount ?? 0) / 100) : '';
+      if (x.kind === 'subscribed') return t('admin.event.billingSubscribed', { interval: String(x.interval ?? ''), amount });
+      if (x.kind === 'renewed') return t('admin.event.billingRenewed', { amount });
+      if (x.kind === 'canceled') return t('admin.event.billingCanceled');
+      if (x.kind === 'past_due') return t('admin.event.billingPastDue');
+      if (x.kind === 'refunded') return t('admin.event.billingRefunded', { amount });
+      return t('admin.event.billingUnmatched', { reason: String(x.reason ?? '') });
+    }
     if (e.type === 'ea_error') return t('admin.event.throttle');
     return t('admin.event.eaDay', { day: String(x.day), n: Number(x.count), count: Number(x.count) });
   };
@@ -140,6 +149,19 @@ export function UserDetail({ route, navigate }: AdminProps) {
           </p>
         ) : (
           <p className="muted">{t('admin.user.unlimited')}</p>
+        )}
+        {d.subscription && (
+          <>
+            <h3>{t('admin.user.subTitle')}</h3>
+            <p>
+              <code>{d.subscription.id}</code>{' '}
+              {t('admin.user.subRow', { interval: d.subscription.interval, status: d.subscription.status, end: new Date(d.subscription.currentPeriodEnd).toLocaleString() })}
+              {d.subscription.cancelAt && ` · ${t('admin.user.subCancelAt', { date: new Date(d.subscription.cancelAt).toLocaleDateString() })}`}{' '}
+              <button type="button" className="ghost wide" disabled={!!busy} onClick={() => void act('resync', () => api.adminBillingResync(id))}>
+                {t('admin.user.resync')}
+              </button>
+            </p>
+          </>
         )}
         {msg && <p role="status" className="muted">{msg}</p>}
       </section>
