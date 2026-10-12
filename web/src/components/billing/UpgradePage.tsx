@@ -1,27 +1,31 @@
-// /dashboard/upgrade: pick monthly / yearly, pay in Paddle's inline checkout. Premium comes from
-// Paddle's webhook to our server; after "checkout.completed" this screen only waits for /api/me to say so.
+// /dashboard/upgrade: a checkout page of its own (no sidebar), dark summary left, Paddle's inline form on a
+// white card right; stacked under 860px. Premium comes from Paddle's webhook to our server; after
+// "checkout.completed" this screen only waits for /api/me to say so.
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowSquareOut, Check, CheckCircle, Crown, ShieldCheck } from '@phosphor-icons/react';
+import { ArrowLeft, Check, CheckCircle, Crown, ShieldCheck } from '@phosphor-icons/react';
 import { api, type BillingConfig, type BillingState, type PlanInfo } from '../../api';
 import { useI18n } from '../../i18n';
 import { errorText } from '../../messages';
 import { formatEur, proPrice, yearlySaving } from '../../landing/pricing-rules';
 import { FRAME_TARGET, billingConfig, loadPaddle, onPaddleEvent, pricePreview, type PaddleEvent } from '../../billing/paddle';
 import { track, trackPayment } from '../../track';
+import { LangMenu } from '../LangMenu';
 
 type Interval = 'month' | 'year';
 type Phase = 'loading' | 'off' | 'pick' | 'activating' | 'slow' | 'done';
 
 const POLL_MS = 2000;
 const POLL_MAX_MS = 30_000;
+const BENEFITS = ['f1', 'f2', 'f7', 'f5', 'f4', 'f6'];
 
-export function UpgradePage({ plan, billing, onActivated, onSettings }: {
+export function UpgradePage({ plan, billing, onActivated, onSettings, onBack }: {
   plan: PlanInfo | null;
   billing: BillingState | null;
   onActivated: () => Promise<unknown>;
   onSettings: () => void;
+  onBack: () => void;
 }) {
-  const { t, lang } = useI18n();
+  const { t, lang, setLang } = useI18n();
   const [config, setConfig] = useState<BillingConfig | null>(null);
   const [phase, setPhase] = useState<Phase>('loading');
   const [period, setPeriod] = useState<Interval>('month');
@@ -101,7 +105,7 @@ export function UpgradePage({ plan, billing, onActivated, onSettings }: {
           settings: {
             displayMode: 'inline',
             variant: 'one-page',
-            theme: 'dark',
+            theme: 'light',
             locale: lang,
             frameTarget: FRAME_TARGET,
             frameInitialHeight: 450,
@@ -131,32 +135,33 @@ export function UpgradePage({ plan, billing, onActivated, onSettings }: {
   );
 
   const eur = (n: number) => formatEur(n, lang);
+  // Paddle's localised total (currency and tax for the visitor's country), else the landing price
   const shown = (i: Interval) => (config && prices[config.prices[i]]) || eur(proPrice(i === 'month' ? 'monthly' : 'yearly').billed);
-  const benefits = ['f1', 'f2', 'f4', 'f5', 'f7', 'f6', 'f3'].map((k) => t(`landing.price.pro.${k}`));
 
-  const head = (
-    <header className="page-head">
-      <div>
-        <h1>{t('billing.title')}</h1>
-        <p className="muted">{t('billing.lede')}</p>
-      </div>
-    </header>
+  const top = (
+    <div className="checkout-top">
+      <button type="button" className="checkout-back" onClick={onBack}>
+        <ArrowLeft weight="bold" aria-hidden="true" />
+        <img src="/brand/logo-on-dark.svg" alt="" width="124" height="32" />
+        <span className="sr-only">{t('billing.back')}</span>
+      </button>
+      <LangMenu lang={lang} setLang={setLang} label={t('top.language')} compact />
+    </div>
   );
 
-  if (phase === 'loading') return <section className="upgrade-page">{head}<p className="muted" role="status">{t('admin.loading')}</p></section>;
-
   const notice = (title: string, body: string, action?: ReactNode) => (
-    <section className="upgrade-page">
-      {head}
-      <div className="settings-card upgrade-notice" role="status">
-        <h2><CheckCircle weight="fill" aria-hidden="true" /> {title}</h2>
+    <div className="checkout checkout-single">
+      {top}
+      <section className="checkout-notice" role="status">
+        <h1><CheckCircle weight="fill" aria-hidden="true" /> {title}</h1>
         <p>{body}</p>
         {action}
-      </div>
-    </section>
+      </section>
+    </div>
   );
   const toSettings = <button type="button" className="ghost bordered" onClick={onSettings}>{t('billing.toSettings')}</button>;
 
+  if (phase === 'loading') return <div className="checkout checkout-single">{top}<p className="muted" role="status">{t('admin.loading')}</p></div>;
   if (phase === 'done') return notice(t('billing.doneTitle'), t('billing.doneBody'), toSettings);
   if (phase === 'activating') return notice(t('billing.activatingTitle'), t('billing.activatingBody'));
   if (phase === 'slow') return notice(t('billing.slowTitle'), t('billing.slowBody'), toSettings);
@@ -165,38 +170,51 @@ export function UpgradePage({ plan, billing, onActivated, onSettings }: {
   if (subscribed) return notice(t('billing.haveTitle'), t('billing.subscribedBody'), toSettings);
 
   return (
-    <section className="upgrade-page">
-      {head}
-      <div className="upgrade-grid">
-        <div className="settings-card upgrade-summary">
-          <h2><Crown weight="fill" aria-hidden="true" /> {t('landing.price.pro.name')}</h2>
-          <fieldset className="upgrade-toggle">
-            <legend className="sr-only">{t('landing.price.period')}</legend>
-            {(['month', 'year'] as const).map((i) => (
-              <label key={i} className={period === i ? 'on' : ''}>
-                <input type="radio" name="interval" value={i} checked={period === i} onChange={() => setPeriod(i)} />
-                <span className="upgrade-option-name">{t(i === 'month' ? 'landing.price.monthly' : 'landing.price.yearly')}</span>
-                <span className="upgrade-option-price">{i === 'month' ? t('billing.perMonth', { price: shown(i) }) : t('billing.perYear', { price: shown(i) })}</span>
-                {i === 'year' && <small>{t('landing.price.save', { amount: eur(yearlySaving()) })}</small>}
-              </label>
-            ))}
-          </fieldset>
-          <ul className="upgrade-feats">
-            {benefits.map((b) => (
-              <li key={b}><Check weight="bold" aria-hidden="true" /> {b}</li>
-            ))}
-          </ul>
-          <p className="upgrade-fine">
-            <ShieldCheck aria-hidden="true" /> {t('billing.mor')}{' '}
-            <a href="/refunds" target="_blank" rel="noopener">{t('billing.refunds')}<ArrowSquareOut aria-hidden="true" /><span className="sr-only"> {t('nav.newTab')}</span></a>
+    <div className="checkout">
+      <section className="checkout-summary" aria-labelledby="checkout-title">
+        {top}
+        <div className="checkout-offer">
+          <p className="checkout-kicker">{t('billing.subscribeTo')}</p>
+          <h1 id="checkout-title"><Crown weight="fill" aria-hidden="true" /> {t('billing.product')}</h1>
+          <p className="checkout-price">
+            <b>{shown(period)}</b> <span>{period === 'month' ? t('billing.perMonthShort') : t('billing.perYearShort')}</span>
+          </p>
+          <p className="checkout-billed">
+            {period === 'month' ? t('billing.billedMonthly') : t('billing.billedYearly', { perMonth: eur(proPrice('yearly').perMonth) })}
           </p>
         </div>
-        <div className="settings-card upgrade-checkout">
-          {error && <p className="signin-error" role="alert">{error}</p>}
-          {!frameReady && !error && <p className="muted" role="status">{t('billing.loadingCheckout')}</p>}
-          <div className={FRAME_TARGET} />
+        <fieldset className="checkout-period">
+          <legend className="sr-only">{t('landing.price.period')}</legend>
+          {(['month', 'year'] as const).map((i) => (
+            <label key={i} className={period === i ? 'on' : ''}>
+              <input type="radio" name="interval" value={i} checked={period === i} onChange={() => setPeriod(i)} />
+              {i === 'month' ? t('landing.price.monthly') : t('landing.price.yearly')}
+              {i === 'year' && <small>{t('landing.price.save', { amount: eur(yearlySaving()) })}</small>}
+            </label>
+          ))}
+        </fieldset>
+        <ul className="checkout-feats">
+          {BENEFITS.map((k) => (
+            <li key={k}><Check weight="bold" aria-hidden="true" /> {t(`landing.price.pro.${k}`)}</li>
+          ))}
+        </ul>
+        <div className="checkout-fine">
+          <p><ShieldCheck weight="bold" aria-hidden="true" /> {t('billing.guarantee')}</p>
+          <p>
+            {t('billing.mor')} <a href="/refunds" target="_blank" rel="noopener">{t('billing.refunds')}<span className="sr-only"> {t('nav.newTab')}</span></a>
+          </p>
         </div>
-      </div>
-    </section>
+      </section>
+      <section className="checkout-pay" aria-label={t('billing.payment')}>
+        <div className="checkout-card">
+          {error && <p className="checkout-error" role="alert">{error}</p>}
+          {!frameReady && !error && <p className="checkout-loading" role="status">{t('billing.loadingCheckout')}</p>}
+          <div className={FRAME_TARGET} />
+          <p className="checkout-total">
+            <span>{t('billing.totalToday')}</span> <b>{shown(period)}</b>
+          </p>
+        </div>
+      </section>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
 import { DiscordIcon } from './components/DiscordIcon';
 import {
@@ -624,16 +624,18 @@ export default function App({
   if (linked === null) return <div className="boot" aria-busy="true" />;
   // asked right after sign-up, on the setup screen, or once in the app for older users
   const survey = <OnboardingModal open={!onboarded && status?.club?.state !== 'running'} onDone={() => setOnboarded(true)} founders={founders} />;
+  // the checkout is a page of its own (no sidebar), and Premium needs no EA account: it opens before setup too
+  const toDashboard = () => navigate({ view: 'sbcs', setId: null, challengeId: null });
+  if (view === 'upgrade')
+    return (
+      <UpgradePage plan={plan} billing={billing} onActivated={loadMe} onBack={toDashboard}
+        onSettings={() => (linked.length ? go('settings') : toDashboard())} />
+    );
   if (linked.length === 0)
     return (
       <>
         {survey}
-        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver}>
-          {/* Premium does not need an EA account: the upgrade screen opens before setup too */}
-          {view === 'upgrade' && (
-            <UpgradePage plan={plan} billing={billing} onActivated={loadMe} onSettings={() => navigate({ view: 'sbcs', setId: null, challengeId: null })} />
-          )}
-        </Onboarding>
+        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} />
       </>
     );
 
@@ -1070,10 +1072,6 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             )
           )}
 
-          {!showGuide && view === 'upgrade' && (
-            <UpgradePage plan={effectivePlan} billing={billing} onActivated={loadMe} onSettings={() => go('settings')} />
-          )}
-
           {!showGuide && view === 'invite' && effectivePlan && (
             <InvitePage plan={effectivePlan} founders={founders} onPlanChange={() => void loadMe()} />
           )}
@@ -1450,9 +1448,8 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
   );
 }
 
-function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, children }: {
+function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
   error: string | null; lang: Lang; setLang: (l: Lang) => void; email: string; onSignOut: () => void; takenOver: boolean;
-  children?: ReactNode; // shown instead of the setup guide (the upgrade screen)
 }) {
   const { t } = useI18n();
   return (
@@ -1467,13 +1464,9 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, childre
       </p>
       {/* the account taken over may have been the only one: say why it is gone */}
       {takenOver && <p className="banner" role="status">{t('notice.takenOver')}</p>}
-      {children || (
-        <>
-          <h1>{t('onb.title')}</h1>
-          <p className="lede">{t('onb.lede')}</p>
-          <SetupGuide />
-        </>
-      )}
+      <h1>{t('onb.title')}</h1>
+      <p className="lede">{t('onb.lede')}</p>
+      <SetupGuide />
       {error && <p className="banner">{error}</p>}
     </div>
   );
