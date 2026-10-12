@@ -21,6 +21,7 @@ import { localStats } from './stats';
 import { DAILY_FINISHED } from './usePending';
 import { clearGame, loadGame, loadPlays, markHelpSeen, recordPlay, saveGame, seenHelp } from './store';
 import './daily.css';
+import { streakBucket, track, yn } from '../track';
 
 interface Props {
   signedIn: boolean;
@@ -43,6 +44,11 @@ const reducedMotion = () => media('(prefers-reduced-motion: reduce)');
 /** phones get the stats as a sheet at the end; wider screens show them inline next to the card */
 const phone = () => media('(max-width: 640px)');
 type SheetKind = 'help' | 'stats' | 'lb' | 'prompt';
+/** Streak after this game for a player without an account (from the plays this browser kept). */
+function localStreak(day: number, won: boolean, guesses: number): number {
+  return localStats([...loadPlays().filter((p) => p.day !== day), { day, won, guesses }], day).current;
+}
+
 /** a signed-in player who was never asked whether to appear on the leaderboard */
 const unasked = (inf: DailyInfo) => inf.signedIn && !!inf.me && !inf.me.asked;
 
@@ -132,6 +138,9 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
   }, [authReady, signedIn, practice]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => window.clearTimeout(statsTimer.current), []);
+  useEffect(() => {
+    if (sheet === 'lb') track('daily_leaderboard');
+  }, [sheet]);
 
   /** Opens a sheet once the reveal has played (at once without motion), unless another one is open. */
   function later(s: SheetKind, then: SheetKind | null) {
@@ -166,6 +175,8 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
     try {
       const r: DailyGuess = practice ? await api.daily.practiceGuess(token!, p.i, state) : await api.daily.guess(p.i, info.signedIn ? undefined : state, info.day);
       if (id !== run.current) return; // the mode or the game changed meanwhile
+      const mode = practice ? 'practice' : 'daily';
+      if (!game.rows.length) track('daily_start', { mode, signed_in: yn(info.signedIn) }); // the first guess, so reloads don't count
       const next: Game = {
         rows: [...game.rows, r.row],
         finished: r.finished,
@@ -178,6 +189,10 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
       setFresh(next.rows.length - 1);
       setState(r.state);
       if (r.finished) setReveal(true);
+      if (r.finished) {
+        const streak = practice ? undefined : (r.stats?.current ?? (info.signedIn ? undefined : localStreak(info.day, r.won, next.rows.length)));
+        track('daily_end', { mode, won: yn(r.won), tries: next.rows.length, streak: streak === undefined ? undefined : streakBucket(streak) });
+      }
       if (practice) return;
       if (r.finished) window.dispatchEvent(new Event(DAILY_FINISHED)); // the nav dots go at once
       if (info.signedIn) {

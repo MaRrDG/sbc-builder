@@ -7,6 +7,7 @@ import type { Route } from '../route';
 import { Countdown } from './Countdown';
 import { shareText } from './share';
 import { StatsBody } from './Sheets';
+import { track } from '../track';
 
 interface Props {
   game: { rows: DailyRow[]; won: boolean; answer?: DailyAnswer };
@@ -37,6 +38,7 @@ export function EndPanel({ game, info, practice, signedIn, animate, stats, point
     const text = shareText({ day: info.day, rows: game.rows.map((r) => r.tiles), won: game.won, max: info.maxGuesses, url: info.share });
     try {
       await navigator.clipboard.writeText(text);
+      track('daily_share', { mode: practice ? 'practice' : 'daily' });
       setCopied(true);
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setCopied(false), 2000);
