@@ -11,7 +11,7 @@ Browser ──HTTPS──► Cloudflare (SSL: Flexible) ──HTTP :80──► 
 `Dockerfile` has two stages:
 
 1. `web`: `npm ci` and `vite build` → `dist/`.
-2. runtime (`node:24-bookworm-slim`): Python 3 venv with OR-Tools, production node modules (incl. `tsx`), `server/` (with the DB migrations in `server/db/migrations/`), `scripts/`, `solver/cpsat.py`, `extension/`, `dist/`. Runs as the unprivileged `node` user.
+2. runtime (`node:24-bookworm-slim`): Python 3 venv with OR-Tools, production node modules (incl. `tsx`), `server/` (with the DB migrations in `server/db/migrations/`), `shared/` (code both the site and the server use, e.g. the changelog), `scripts/`, `solver/cpsat.py`, `extension/`, `dist/`. Runs as the unprivileged `node` user.
 
 ## Compose
 
@@ -42,6 +42,8 @@ git pull
 docker compose up -d --build
 docker compose logs -f --tail=50
 ```
+
+The changelog ships with the code: an entry added to `shared/changelog.ts` shows on `/changelog` after the deploy, and the bot posts it in `📝・changelog` within 10 minutes (English only; it looks for its own post first, so restarts never post twice; on an empty channel it posts only the newest entry). The first release with the changelog needs the Discord setup step again (step 4 under [Discord](#discord)) to create the channel.
 
 After the first deploy with the DB, fill it once from the cached accounts: `docker compose exec app npm run db:import`. Trusted accounts (their brick layout wins): `docker compose exec app npm run db:trust <personaId> <note>`.
 
