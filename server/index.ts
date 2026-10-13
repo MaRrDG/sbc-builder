@@ -49,6 +49,7 @@ import { CARD_DIR } from './evo-card.js';
 import { prefsOf, setPrefs, trainingsOf } from './db/evos.js';
 import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
+import { isKnownPath } from '../shared/paths.js';
 import { analyticsFor, analyticsOrigins, analyticsWarnings, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
@@ -807,6 +808,7 @@ let plainHtml: string | null = null; // read once; a new build restarts the serv
 let ogVersion: string | null = null;
 for (const w of analyticsWarnings()) console.warn(`[analytics] ANALYTICS_SNIPPET: ${w}`);
 async function sendPage(req: FastifyRequest, reply: FastifyReply, path: string) {
+  if (!isKnownPath(path)) reply.code(404); // the site shows its 404 page (shared/paths.ts)
   plainHtml ??= await readFile(join(dist, 'index.html'), 'utf8');
   const indexHtml = analyticsFor(path) ? withAnalytics(plainHtml) : plainHtml;
   ogVersion ??= await readFile(join(dist, 'og.png'))

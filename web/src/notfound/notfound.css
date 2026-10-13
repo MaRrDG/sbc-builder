@@ -1,0 +1,464 @@
+/* 404 walkout (NotFound.tsx). Timeline: tunnel 0-0.6s, nation 0.6s, position 1.4s, club 2.2s,
+   flash + card flip 3s, text 3.6s, then an idle float. Every intro animation fills backwards, so
+   with the animations off (.nf-skip, reduced motion) each element simply rests in its final state. */
+
+.nf {
+  --cw: clamp(150px, 38vw, 228px);
+  --gold: oklch(0.86 0.13 85);
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  justify-items: center;
+  overflow: hidden;
+  padding: 0 16px 40px;
+  background: var(--bg-0);
+  color: var(--ink);
+}
+
+/* ---- scene ---- */
+.nf-scene {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.nf-tunnel {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 34%, oklch(0.34 0.07 185 / 0.9), transparent 70%),
+    radial-gradient(ellipse 120% 90% at 50% 34%, oklch(0.22 0.04 210), oklch(0.11 0.03 225) 80%);
+  animation: nf-fade 600ms ease-out backwards;
+}
+
+.nf-beams,
+.nf-beams::after {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 220vmax;
+  height: 220vmax;
+  margin: -110vmax 0 0 -110vmax;
+  background: repeating-conic-gradient(from 0deg, oklch(0.84 0.17 163 / 0.13) 0deg 5deg, transparent 5deg 15deg);
+  mask: radial-gradient(circle, #000 4%, transparent 32%);
+  animation: nf-spin 40s linear infinite, nf-fade 900ms 200ms ease-out backwards;
+}
+
+/* the gold walkout light: peaks when the card lands, then stays as a soft glow */
+.nf-beams::after {
+  content: '';
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  mask: none;
+  background: repeating-conic-gradient(from 7deg, oklch(0.88 0.14 85 / 0.32) 0deg 3deg, transparent 3deg 12deg);
+  opacity: 0.45;
+  animation: nf-spin-back 26s linear infinite, nf-gold 1600ms 2900ms ease-out backwards;
+}
+
+.nf-floor {
+  position: absolute;
+  left: 50%;
+  top: calc(34% + var(--cw) * 0.62);
+  width: min(560px, 90vw);
+  height: 90px;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, oklch(0.88 0.14 85 / 0.35), oklch(0.84 0.17 163 / 0.12) 55%, transparent);
+  filter: blur(6px);
+  animation: nf-fade 700ms 3000ms ease-out backwards;
+}
+
+.nf-ghost {
+  position: absolute;
+  --card-w: 150px;
+  rotate: var(--r);
+  animation: nf-ghost-in 1200ms 3200ms ease-out backwards, nf-drift 9s 4400ms ease-in-out infinite alternate;
+}
+.nf-ghost-left { left: -2%; }
+.nf-ghost-right { right: -2%; }
+.nf-ghost .card {
+  filter: blur(var(--b)) brightness(0.4) saturate(0.8);
+  animation: none;
+}
+
+.nf-flash {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: 160vmax;
+  height: 160vmax;
+  margin: -80vmax 0 0 -80vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, oklch(0.98 0.04 90 / 0.95), oklch(0.88 0.14 85 / 0.45) 12%, transparent 34%);
+  opacity: 0;
+  animation: nf-flash 900ms 2950ms ease-out;
+}
+
+/* ---- top bar ---- */
+.nf-top {
+  width: min(1120px, 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 0 0;
+  animation: nf-fade 500ms ease-out backwards;
+}
+.nf-logo img { display: block; height: 34px; width: auto; }
+
+/* ---- stage ---- */
+.nf-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: calc(var(--cw) * 1.39 + 64px);
+  margin-top: 8px;
+  perspective: 1100px;
+}
+
+.nf-clues {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.nf-clue {
+  grid-area: 1 / 1;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  opacity: 0;
+  font-family: var(--font-num);
+  color: var(--gold);
+  text-shadow: 0 0 24px oklch(0.88 0.14 85 / 0.6);
+  animation: nf-clue 820ms ease-out backwards;
+}
+.nf-clue-1 { animation-delay: 600ms; }
+.nf-clue-2 { animation-delay: 1400ms; }
+.nf-clue-3 { animation-delay: 2200ms; }
+.nf-clue-icon {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  border: 2px solid oklch(0.88 0.14 85 / 0.7);
+  background: oklch(0.2 0.04 210 / 0.7);
+  font-size: 54px;
+  box-shadow: 0 0 40px oklch(0.88 0.14 85 / 0.35), inset 0 0 20px oklch(0.88 0.14 85 / 0.2);
+}
+.nf-clue-big { font-size: 104px; font-weight: 700; line-height: 0.9; letter-spacing: 0.02em; }
+.nf-clue-label {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  text-shadow: none;
+}
+
+.nf-sparks {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+.nf-sparks i {
+  grid-area: 1 / 1;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 10px 2px oklch(0.88 0.14 85 / 0.7);
+  opacity: 0;
+  rotate: var(--a);
+  animation: nf-burst 1100ms calc(3050ms + var(--s) * 0.15s) ease-out, nf-twinkle 2.6s calc(4300ms + var(--s) * 2.6s) ease-in-out infinite;
+}
+
+.nf-drop { animation: nf-drop 950ms 2950ms cubic-bezier(0.2, 0.9, 0.25, 1.15) backwards; }
+
+.nf-tilt {
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 260ms var(--ease);
+  animation: nf-float 6s 4200ms ease-in-out infinite;
+}
+
+.nf-card {
+  position: relative;
+  display: block;
+  width: var(--cw);
+  aspect-ratio: 576 / 800;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transform-style: preserve-3d;
+  animation: nf-flip 1100ms 2950ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+}
+.nf-card:focus-visible { outline: 2px solid var(--go); outline-offset: 6px; border-radius: 14px; }
+
+.nf-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  font-family: var(--font-num);
+  line-height: 1;
+  /* on the faces, not the card: a filter on a 3D parent flattens it and shows the back through */
+  filter: drop-shadow(0 18px 30px oklch(0.1 0.03 220 / 0.7)) drop-shadow(0 0 26px oklch(0.88 0.14 85 / 0.35));
+}
+.nf-back {
+  display: grid;
+  place-items: center;
+  transform: rotateY(180deg);
+  clip-path: polygon(50% 0, 100% 9%, 100% 78%, 50% 100%, 0 78%, 0 9%);
+  background:
+    repeating-linear-gradient(135deg, oklch(0.3 0.06 180 / 0.6) 0 8px, transparent 8px 16px),
+    linear-gradient(160deg, oklch(0.34 0.07 175), oklch(0.18 0.04 215));
+}
+.nf-back img { width: 34%; height: auto; filter: drop-shadow(0 0 14px oklch(0.84 0.17 163 / 0.6)); }
+
+.nf-card-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.nf-rating { position: absolute; top: 19%; left: 13%; font-size: calc(var(--cw) * 0.165); font-weight: 700; letter-spacing: -0.02em; }
+.nf-pos { position: absolute; top: 35%; left: 16%; font-size: calc(var(--cw) * 0.11); font-weight: 600; }
+.nf-portrait {
+  position: absolute;
+  top: 14%;
+  right: 9%;
+  width: 48%;
+  text-align: center;
+  font-size: calc(var(--cw) * 0.5);
+  font-weight: 700;
+  opacity: 0.85;
+  text-shadow: 0 4px 0 oklch(0.3 0.05 70 / 0.25);
+  animation: nf-wobble 3.2s 4200ms ease-in-out infinite;
+}
+.nf-name {
+  position: absolute;
+  top: 64.5%;
+  left: 10%;
+  right: 10%;
+  text-align: center;
+  font-size: calc(var(--cw) * 0.11);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nf-badges {
+  position: absolute;
+  top: 77%;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 8%;
+  font-size: calc(var(--cw) * 0.09);
+  opacity: 0.8;
+}
+/* a light sweep once the card lands; on desktop it follows the pointer */
+.nf-sheen {
+  position: absolute;
+  inset: 0;
+  /* exactly the card's shape: the art itself is the mask */
+  mask: var(--art) center / 100% 100% no-repeat;
+  background: linear-gradient(105deg, transparent 40%, oklch(1 0 0 / 0.4) 50%, transparent 60%) no-repeat;
+  background-size: 250% 100%;
+  background-position: var(--gx, 50%) 0;
+  transition: background-position 260ms var(--ease);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+.nf-tilt:not([style*='--gx']) .nf-sheen { animation: nf-sheen 1400ms 3700ms ease-in-out backwards; }
+
+/* ---- copy ---- */
+.nf-copy {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 560px;
+  text-align: center;
+}
+.nf-copy > * { animation: nf-rise 600ms ease-out backwards; }
+.nf-copy > :nth-child(1) { animation-delay: 3600ms; }
+.nf-copy > :nth-child(2) { animation-delay: 3700ms; }
+.nf-copy > :nth-child(3) { animation-delay: 3800ms; }
+.nf-copy > :nth-child(4) { animation-delay: 3850ms; }
+.nf-copy > :nth-child(5) { animation-delay: 3950ms; }
+.nf-copy > :nth-child(6) { animation-delay: 4100ms; }
+
+.nf-req {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: oklch(0.68 0.19 25 / 0.12);
+  border: 1px solid oklch(0.68 0.19 25 / 0.45);
+  font-size: 13px;
+}
+.nf-req svg { color: var(--bad); font-size: 16px; flex: none; }
+.nf-req-state { color: var(--bad); font-weight: 600; }
+.nf-req-state::before { content: '·'; margin-right: 8px; color: var(--ink-3); }
+
+.nf h1 {
+  margin: 4px 0 0;
+  font-family: var(--font-num);
+  font-size: clamp(32px, 7vw, 48px);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+.nf-lead { margin: 0; color: var(--ink-2); font-size: 15px; }
+.nf-path { margin: 0; max-width: 100%; }
+.nf-path code {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: oklch(0.27 0.03 220 / 0.8);
+  color: var(--ink-3);
+  font-size: 13px;
+}
+
+.nf-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
+.nf-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 20px;
+  border-radius: 8px;
+  border: 1px solid oklch(0.62 0.02 210 / 0.5);
+  background: oklch(0.27 0.03 220 / 0.85);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform 160ms var(--ease), background 160ms var(--ease);
+}
+.nf-btn:hover { background: var(--surface-2); transform: translateY(-1px); }
+.nf-btn-go { border-color: transparent; background: var(--go); color: oklch(0.2 0.04 200); }
+.nf-btn-go:hover { background: oklch(0.88 0.15 163); }
+.nf-btn:focus-visible, .nf-replay:focus-visible, .nf-skipbtn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.nf-replay {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.nf-replay:hover { color: var(--ink); }
+
+.nf-skipbtn {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid oklch(0.62 0.02 210 / 0.5);
+  background: oklch(0.2 0.03 220 / 0.8);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  animation: nf-gone 300ms 3500ms ease-out forwards;
+}
+
+/* ---- skip / reduced motion: the final frame at once ---- */
+.nf-skip .nf-clue,
+.nf-skip .nf-flash,
+.nf-skip .nf-drop,
+.nf-skip .nf-card,
+.nf-skip .nf-sparks i,
+.nf-skip .nf-copy > *,
+.nf-skip .nf-floor,
+.nf-skip .nf-sheen,
+.nf-skip .nf-tunnel { animation: none; }
+.nf-skip .nf-ghost { animation: nf-drift 9s ease-in-out infinite alternate; }
+.nf-skip .nf-beams::after { animation: nf-spin-back 26s linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nf *,
+  .nf *::after { animation: none !important; transition: none !important; }
+  .nf-skipbtn { display: none; }
+}
+
+@media (max-width: 860px) {
+  .nf-ghost { --card-w: 92px; }
+  .nf-ghost-wide { display: none; }
+  .nf-clue-big { font-size: 80px; }
+  .nf-clue-icon { width: 80px; height: 80px; font-size: 44px; }
+}
+
+/* ---- keyframes ---- */
+@keyframes nf-fade { from { opacity: 0; } }
+@keyframes nf-spin { to { rotate: 360deg; } }
+@keyframes nf-spin-back { to { rotate: -360deg; } }
+@keyframes nf-gold {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  100% { opacity: 0.45; }
+}
+@keyframes nf-flash {
+  0% { opacity: 0; scale: 0.3; }
+  18% { opacity: 1; }
+  100% { opacity: 0; scale: 1.1; }
+}
+@keyframes nf-clue {
+  0% { opacity: 0; scale: 0.55; filter: blur(8px); }
+  22% { opacity: 1; scale: 1; filter: blur(0); }
+  72% { opacity: 1; scale: 1.04; }
+  100% { opacity: 0; scale: 1.5; filter: blur(6px); }
+}
+@keyframes nf-drop {
+  0% { opacity: 0; transform: translateY(-36vh) scale(0.35); }
+  40% { opacity: 1; }
+  100% { transform: none; }
+}
+@keyframes nf-flip {
+  0% { transform: rotateY(-1260deg) rotateZ(-8deg); }
+  100% { transform: rotateY(0) rotateZ(0); }
+}
+@keyframes nf-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -10px; }
+}
+@keyframes nf-wobble {
+  0%, 100% { rotate: 0deg; }
+  20% { rotate: -6deg; }
+  40% { rotate: 5deg; }
+  55% { rotate: 0deg; }
+}
+@keyframes nf-sheen {
+  from { background-position: 100% 0; }
+  to { background-position: 0% 0; }
+}
+@keyframes nf-burst {
+  0% { opacity: 1; transform: translateY(0) scale(1.4); }
+  100% { opacity: 0; transform: translateY(calc(var(--d) * -1)) scale(0.4); }
+}
+@keyframes nf-twinkle {
+  0%, 100% { opacity: 0; transform: translateY(calc(var(--d) * -0.82)) scale(0.5); }
+  50% { opacity: 0.8; transform: translateY(calc(var(--d) * -0.9)) scale(1); }
+}
+@keyframes nf-ghost-in { from { opacity: 0; translate: 0 30px; } }
+@keyframes nf-drift { to { translate: 0 -18px; } }
+@keyframes nf-rise { from { opacity: 0; transform: translateY(12px); } }
+@keyframes nf-gone { to { opacity: 0; visibility: hidden; } }

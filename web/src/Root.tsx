@@ -26,6 +26,7 @@ const Guide = lazy(() => import('./components/Guide').then((m) => ({ default: m.
 const SetupGuide = lazy(() => import('./components/SetupGuide').then((m) => ({ default: m.SetupGuide })));
 const Landing = lazy(() => import('./landing/Landing'));
 const Daily = lazy(() => import('./daily/Daily'));
+const NotFound = lazy(() => import('./notfound/NotFound'));
 
 /** A lazy screen: the skeleton while its code loads, a reload note if the code cannot load. */
 const Lazy = ({ children }: { children: ReactNode }) => (
@@ -53,7 +54,7 @@ export default function Root() {
     isSignedIn ? () => setRefused(true) : () => navigate(toSignIn(), true),
   );
 
-  const publicView = route.view === 'landing' || route.view === 'legal' || route.view === 'changelog' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup' || route.view === 'daily';
+  const publicView = route.view === 'landing' || route.view === 'legal' || route.view === 'changelog' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup' || route.view === 'daily' || route.view === 'notFound';
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn && !publicView) navigate(toSignIn(), true);
@@ -101,6 +102,14 @@ export default function Root() {
     return (
       <Lazy>
         <Daily signedIn={!!isSignedIn} authReady={isLoaded} practice={route.practice} navigate={navigate} />
+      </Lazy>
+    );
+
+  // an unknown address: the 404 walkout, for everyone, without waiting for Clerk
+  if (route.view === 'notFound')
+    return (
+      <Lazy>
+        <NotFound path={route.path} signedIn={!!isSignedIn} navigate={navigate} />
       </Lazy>
     );
 

@@ -24,14 +24,17 @@ export const CHANGELOG: ChangelogEntry[] = [
       en: [
         'Faster dashboard: your SBCs and club show up at once when you open FC Solver, and syncs show their progress live in the new activity panel without blocking the page',
         'Extension 1.0.3: syncs start right away',
+        'A new 404 page: a wrong link now opens a pack instead of a blank screen',
       ],
       ro: [
         'Dashboard mai rapid: SBC-urile și clubul apar imediat ce deschizi FC Solver, iar sincronizările își arată progresul în timp real în noul panou de activitate, fără să blocheze pagina',
         'Extensia 1.0.3: sincronizările pornesc pe loc',
+        'Pagină 404 nouă: un link greșit deschide acum un pachet, nu un ecran gol',
       ],
       it: [
         'Dashboard più veloce: SBC e club compaiono subito quando apri FC Solver, e le sincronizzazioni mostrano i progressi in tempo reale nel nuovo pannello attività, senza bloccare la pagina',
         'Estensione 1.0.3: le sincronizzazioni partono subito',
+        'Nuova pagina 404: un link sbagliato ora apre un pacchetto invece di una schermata vuota',
       ],
     },
   },

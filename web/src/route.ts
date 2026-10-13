@@ -12,9 +12,11 @@
 //   /signin               sign in (?next=)  /signin/callback       Google redirect
 //   /terms  /privacy  /cookies  /refunds    legal pages (public)
 //   /changelog            what changed (public)
+//   anything else         404 page (shared/paths.ts decides; the server answers it with status 404)
 // Old app paths without /dashboard (/sbc/16, /club, ...) still parse; useRoute rewrites the address bar.
 import { useCallback, useEffect, useState } from 'react';
 import type { LegalDoc } from './legal/docs';
+import { isKnownPath } from '../../shared/paths';
 
 /** Objectives wizard steps: pick objectives, pick a formation, see the squad. */
 export type ObjStep = 'pick' | 'formation' | 'squad';
@@ -39,7 +41,8 @@ export type Route =
   | { view: 'legal'; doc: LegalDoc }
   | { view: 'changelog' }
   | { view: 'signin'; next: string }
-  | { view: 'ssoCallback' };
+  | { view: 'ssoCallback' }
+  | { view: 'notFound'; path: string };
 
 const id = (s: string | undefined) => (s && /^\d+$/.test(s) ? Number(s) : null);
 
@@ -60,6 +63,7 @@ export const adminRoute = (page: AdminPage, extra: { userId?: string; query?: st
 });
 
 export function parseRoute(path: string, search = '', hash = ''): Route {
+  if (!isKnownPath(path)) return { view: 'notFound', path };
   const parts = path.split('/').filter(Boolean);
   const [a, b] = parts;
   if (a === undefined) {
@@ -108,6 +112,8 @@ export function routePath(r: Route): string {
   switch (r.view) {
     case 'landing':
       return '/';
+    case 'notFound':
+      return r.path;
     case 'signin':
       return r.next && r.next !== '/dashboard' ? `/signin?next=${encodeURIComponent(r.next)}` : '/signin';
     case 'ssoCallback':

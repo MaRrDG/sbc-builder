@@ -132,3 +132,10 @@ test('refund policy is a public legal page', () => {
   assert.deepEqual(parseRoute('/refunds'), { view: 'legal', doc: 'refunds' });
   assert.equal(routePath({ view: 'legal', doc: 'refunds' }), '/refunds');
 });
+
+test('unknown paths are the 404 page and stay where they are', () => {
+  assert.deepEqual(parseRoute('/nope'), { view: 'notFound', path: '/nope' });
+  assert.deepEqual(parseRoute('/dashboard/nope'), { view: 'notFound', path: '/dashboard/nope' });
+  assert.equal(canonicalPath(parseRoute('/nope'), '/nope'), null);
+  assert.deepEqual(parseRoute('/club'), { view: 'club' });
+});
