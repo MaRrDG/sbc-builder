@@ -397,13 +397,16 @@ app.get('/api/status', async (req) => {
   return { account: acc, sync: await getStatus(acc), extension: await latestExtension() };
 });
 
-/** Latest extension release; the extension polls this to show its own update notice. */
 /** Live dashboard updates (server-sent events): the status on change, which cache keys changed, a heartbeat. */
 app.get('/api/stream', async (req, reply) => {
   const { userId, acc } = await siteContext(req);
   if (!takeStream(userId)) throw new SessionError('Too many open FC Solver tabs.', 429, 'tooManyStreams');
   reply.hijack();
   const res = reply.raw;
+  if (req.raw.destroyed || res.destroyed) {
+    dropStream(userId); // the tab left during the auth lookup: 'close' already fired
+    return;
+  }
   res.writeHead(200, {
     'Content-Type': 'text/event-stream; charset=utf-8',
     'Cache-Control': 'no-cache, no-transform',
@@ -444,6 +447,7 @@ app.get('/api/stream', async (req, reply) => {
   void push().catch(() => {});
 });
 
+/** Latest extension release; the extension polls this to show its own update notice. */
 app.get('/api/extension/version', () => latestExtension());
 
 /** Founding 50 spots, for the landing page (public; cached 30 s). */
