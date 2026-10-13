@@ -20,6 +20,8 @@ import { loadAccounts, accountByKey, accountById, hello, type Account } from './
 import { isAdmin } from './admin/auth.js';
 import { registerAdminRoutes } from './admin/routes.js';
 import { billingOf, registerBillingRoutes } from './billing/routes.js';
+import { cancelDeletion, requestDeletion, scheduleDeletions } from './deletion.js';
+import { deleteAtOf } from './db/deletion.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteContext, siteUser } from './auth.js';
 import { linkDecision, overLinkLimit, PERSONA_USER_LIMIT } from './auth-rules.js';
 import { backfillFounders, foundersNow, grantFounderSpot, grantInviteOnLink, planFor } from './plans.js';
@@ -257,13 +259,14 @@ function sendTagged(req: FastifyRequest, reply: FastifyReply, body: unknown) {
 /** Who is signed in and which EA personas they own. */
 app.get('/api/me', async (req) => {
   const userId = await siteUser(req);
-  const [[row], ids, admin, plan, prefs, billing] = await Promise.all([
+  const [[row], ids, admin, plan, prefs, billing, deleteAt] = await Promise.all([
     db.select({ email: users.email, onboardedAt: users.onboardedAt, linkBlockedAt: users.linkBlockedAt }).from(users).where(eq(users.id, userId)),
     personasOf(userId),
     isAdmin(userId),
     planFor(userId),
     prefsOf(userId),
     billingOf(userId),
+    deleteAtOf(userId),
   ]);
   const personas = ids.flatMap((id) => {
     const a = accountById(id);
@@ -271,10 +274,23 @@ app.get('/api/me', async (req) => {
   });
   return { user: { id: userId, email: row?.email ?? '' }, personas, admin, plan, prefs, onboarding: { done: !!row?.onboardedAt },
     billing, // Paddle subscription, null without one or while billing is off
+    deleteAt: deleteAt?.getTime() ?? null, // account deletion scheduled for (ms), null when none
     // an EA account of mine that another user has since proved with EA: why the setup screen is back
     takenOver: personas.length === 0 && (await takenOverFrom(userId)),
     // a link refused for the persona limit (cleared by any successful link): who to write to
     linkBlocked: row?.linkBlockedAt ? { at: row.linkBlockedAt.getTime(), limit: PERSONA_USER_LIMIT, supportEmail: process.env.SUPPORT_EMAIL || null } : null };
+});
+
+/** Schedule the account's deletion in 7 days (stops the Paddle renewal); `confirm` is the typed confirm word. */
+app.post<{ Body: { confirm?: unknown } }>('/api/me/delete', async (req) => {
+  const userId = await siteUser(req);
+  return requestDeletion(userId, req.body?.confirm);
+});
+
+/** Keep the account: clears the date and undoes the scheduled subscription cancel. */
+app.post('/api/me/delete/cancel', async (req) => {
+  const userId = await siteUser(req);
+  return cancelDeletion(userId);
 });
 
 /** The onboarding survey: both answers, or a skip. Asked once: a second answer is ignored. */
@@ -891,6 +907,7 @@ installLedger();
 installDailyIngest();
 installHistory();
 scheduleDaily();
+scheduleDeletions();
 void pruneEvents();
 void pruneBillingEvents();
 void backfillFounders().catch((e) => console.error(`[founders] backfill failed: ${(e as Error).message}`));

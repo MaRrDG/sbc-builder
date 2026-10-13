@@ -1453,6 +1453,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'admin.event.billingSubscribed': 'Abonat ({interval}): {amount}',
   'admin.event.billingRenewed': 'Abonament reînnoit: {amount}',
   'admin.event.billingCanceled': 'Abonament anulat',
+  'admin.event.accountDeleteRequested': 'A cerut ștergerea contului',
+  'admin.event.accountDeleteCancelled': 'A anulat ștergerea contului',
   'admin.event.billingPastDue': 'Plata a eșuat, Paddle reîncearcă',
   'admin.event.billingRefunded': 'Rambursare / chargeback: {amount}',
   'admin.event.billingUnmatched': 'Abonament Paddle fără utilizator ({reason})',

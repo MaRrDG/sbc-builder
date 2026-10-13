@@ -85,6 +85,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
       if (x.kind === 'attached') return t('admin.event.billingAttached', { id: String(x.subscriptionId ?? '') });
       return t('admin.event.billingUnmatched', { reason: String(x.reason ?? '') });
     }
+    if (e.type === 'account') return t(x.action === 'deleteCancelled' ? 'admin.event.accountDeleteCancelled' : 'admin.event.accountDeleteRequested');
     if (e.type === 'ea_error') return t('admin.event.throttle');
     return t('admin.event.eaDay', { day: String(x.day), n: Number(x.count), count: Number(x.count) });
   };

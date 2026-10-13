@@ -16,7 +16,7 @@ Code: `server/billing/` (`rules.ts` pure rules, `paddle.ts` the only Paddle-spec
 Sandbox (`sandbox-vendors.paddle.com`) for dev and local, live (`vendors.paddle.com`) for prod. In each:
 
 1. **Catalog → Products**: "FC Solver Premium" (tax category: standard digital goods / SaaS). Two prices: monthly 5.00 EUR, yearly 36.00 EUR, recurring, **tax: included in price**. Copy the price ids (`pri_…`) into `PADDLE_PRICE_MONTH` / `PADDLE_PRICE_YEAR`.
-2. **Developer tools → Authentication**: an API key (`PADDLE_API_KEY`, server only) with read/write on customers (portal sessions) and read on subscriptions; a client-side token (`PADDLE_CLIENT_TOKEN`, public).
+2. **Developer tools → Authentication**: an API key (`PADDLE_API_KEY`, server only) with read/write on customers (portal sessions) and **read/write on subscriptions** (account deletion cancels / un-cancels); a client-side token (`PADDLE_CLIENT_TOKEN`, public).
 3. **Developer tools → Notifications**: a destination `https://<host>/api/billing/webhook`, events `subscription.created`, `subscription.activated`, `subscription.updated`, `subscription.canceled`, `subscription.past_due`, `subscription.paused`, `subscription.resumed`, `transaction.completed`, `adjustment.created`, `adjustment.updated`. Copy its secret key into `PADDLE_WEBHOOK_SECRET`.
 4. **Checkout → Checkout settings**: default payment link `https://<host>/dashboard/upgrade`; approve the website domain (live: Paddle reviews the domain, the terms, privacy and refund pages first). Set (or set again) the payment link only AFTER the domain shows "Checkout approved": saved while the domain is in review, live drops it silently and every checkout fails with `transaction_default_checkout_url_not_set` ("Something went wrong" in the frame).
 5. **Customer portal**: on (cancel, update payment method, invoices, plan switch between the two prices).
@@ -64,6 +64,16 @@ Expected: `200` (sending it again → `200`, nothing changes), a wrong secret or
 ## Refunds
 
 Paddle handles them (Paddle dashboard → Transactions → refund, or the user asks Paddle). Our policy (`/refunds`): full refund on request within 14 days of a payment. A refunded or charged-back payment shows in the user's admin history; cancelling the subscription is a separate action (portal or Paddle dashboard).
+
+## Account deletion
+
+The only Paddle writes the server makes (`server/deletion.ts` → `server/billing/paddle.ts`), never touching `subscriptions` locally: the webhook that follows updates the row as for any portal action.
+
+- `POST /api/me/delete` → `POST /subscriptions/{id}/cancel` `{ "effective_from": "next_billing_period" }` for each renewing subscription without a scheduled cancel (no refund; a 4xx when Paddle already has it cancelled / scheduled counts as done).
+- `POST /api/me/delete/cancel` → `PATCH /subscriptions/{id}` `{ "scheduled_change": null }` for each subscription with `cancelAt` (a 4xx = nothing to undo). Note: this also undoes a cancel the user had scheduled in the portal before asking for deletion (we keep no record of who scheduled it).
+- Deletion day (hourly job) → `POST /subscriptions/{id}/cancel` `{ "effective_from": "immediately" }` for every subscription not `canceled`, then the user's rows go. The late `subscription.canceled` webhook finds no user and is ignored (`unknownUser`). Paddle keeps its own customer and invoice records (Merchant of Record).
+
+Billing off (no `PADDLE_*`): these steps are skipped.
 
 ## Admin
 

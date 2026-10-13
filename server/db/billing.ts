@@ -29,6 +29,11 @@ export async function subscriptionOf(userId: string): Promise<SubRow | null> {
   return rows.find((r) => subscriptionActive(r, now)) ?? rows[0] ?? null;
 }
 
+/** Every subscription row of the user (account deletion: which ones to stop). */
+export async function subscriptionsOf(userId: string): Promise<SubRow[]> {
+  return (await db.select().from(subscriptions).where(eq(subscriptions.userId, userId))).map(toSub);
+}
+
 /** Same rule as rules.ts subscriptionActive, in SQL, for the admin filters. */
 export function subscriptionActiveSql(now: Date): SQL {
   const live = and(inArray(subscriptions.status, ['active', 'trialing']), gt(subscriptions.currentPeriodEnd, now));

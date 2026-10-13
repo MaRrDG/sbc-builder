@@ -1412,6 +1412,8 @@ export const en = {
   'admin.event.billingSubscribed': 'Subscribed ({interval}): {amount}',
   'admin.event.billingRenewed': 'Subscription renewed: {amount}',
   'admin.event.billingCanceled': 'Subscription canceled',
+  'admin.event.accountDeleteRequested': 'Asked to delete the account',
+  'admin.event.accountDeleteCancelled': 'Cancelled the account deletion',
   'admin.event.billingPastDue': 'Payment failed, Paddle is retrying',
   'admin.event.billingRefunded': 'Refund / chargeback: {amount}',
   'admin.event.billingUnmatched': 'Paddle subscription without a user ({reason})',

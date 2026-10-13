@@ -1416,6 +1416,8 @@ export const it: Record<Keys, string> = {
   'admin.event.billingSubscribed': 'Abbonato ({interval}): {amount}',
   'admin.event.billingRenewed': 'Abbonamento rinnovato: {amount}',
   'admin.event.billingCanceled': 'Abbonamento annullato',
+  'admin.event.accountDeleteRequested': 'Ha chiesto di eliminare l’account',
+  'admin.event.accountDeleteCancelled': 'Ha annullato l’eliminazione dell’account',
   'admin.event.billingPastDue': 'Pagamento non riuscito, Paddle riprova',
   'admin.event.billingRefunded': 'Rimborso / chargeback: {amount}',
   'admin.event.billingUnmatched': 'Abbonamento Paddle senza utente ({reason})',
