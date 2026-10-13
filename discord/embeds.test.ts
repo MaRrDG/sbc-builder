@@ -71,6 +71,9 @@ test('errors: set not available, bad request, solve already running', () => {
   assert.match(errorText(new BotApiError('x', 409, 'setNotAvailable'), 'en', 'x'), /done or cannot be repeated/);
   assert.match(errorText(new BotApiError('x', 400, 'badRequest'), 'ro', 'x'), /Alege SBC-ul/);
   assert.match(errorText(new BotApiError('x', 429, 'botRateLimited'), 'en', 'x'), /Too many solves/);
+  assert.match(errorText(new BotApiError('x', 409, 'solveRunning'), 'en', 'x'), /already have a solve running/);
+  assert.match(errorText(new BotApiError('x', 503, 'solverBusy'), 'ro', 'x'), /Solverul e ocupat/);
+  assert.match(errorText(new BotApiError('x', 504, 'solverTimeout'), 'en', 'x'), /took too long/);
 });
 
 test('clip is code-point safe', () => {

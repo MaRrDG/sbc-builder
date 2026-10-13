@@ -89,6 +89,9 @@ export function errorText(e: unknown, lang: Lang, siteUrl: string): string {
     case 'needsLayout': return tr(lang, 'err.needsLayout');
     case 'pointsDone': return tr(lang, 'err.pointsDone');
     case 'cannotPost': return tr(lang, 'err.cannotPost');
+    case 'solveRunning': return tr(lang, 'err.solveRunning');
+    case 'solverBusy': return tr(lang, 'err.solverBusy');
+    case 'solverTimeout': return tr(lang, 'err.solverTimeout');
     default: return tr(lang, 'err.generic');
   }
 }
