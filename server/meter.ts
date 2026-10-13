@@ -13,6 +13,8 @@ export interface MeterData {
   count: number;
   byPath: Record<string, number>;
   recent: { at: number; method: string; path: string; status: number | null }[];
+  pausedUntil?: number; // EA throttling pause, kept across restarts
+  overLogged?: boolean; // the over-budget log entry was written today
 }
 
 const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date());
@@ -29,7 +31,6 @@ export function shouldLogRollover(stale: MeterData | null): boolean {
 
 export class RequestMeter {
   private data: MeterData | null = null;
-  private pausedUntil = 0;
 
   constructor(
     private cacheKey: string,
@@ -42,7 +43,7 @@ export class RequestMeter {
       const stale = this.data;
       // the finished day, for the admin chart
       if (shouldLogRollover(stale)) logEvent({ type: 'ea_day', personaId: this.personaId, data: { day: stale!.day, count: stale!.count } });
-      this.data = { day: today(), count: 0, byPath: {}, recent: stale?.recent ?? [] };
+      this.data = { day: today(), count: 0, byPath: {}, recent: stale?.recent ?? [], pausedUntil: stale?.pausedUntil };
       if (stale) {
         // persist the rollover now, not just on the next record(): otherwise a restart before then
         // (tsx watch, a redeploy) reads the old day from cache again and logs it a second time
@@ -56,10 +57,16 @@ export class RequestMeter {
     return this.data;
   }
 
+  private async pausedUntil(): Promise<number | null> {
+    const until = (await this.load()).pausedUntil ?? 0;
+    return until > Date.now() ? until : null;
+  }
+
   /** Throws before the request is sent when today's budget is used up. */
   async check() {
-    if (Date.now() < this.pausedUntil) {
-      const min = Math.ceil((this.pausedUntil - Date.now()) / 60000);
+    const until = await this.pausedUntil();
+    if (until) {
+      const min = Math.ceil((until - Date.now()) / 60000);
       throw new SessionError(`EA asked us to slow down. FC Solver pauses its EA requests for ${min} more min.`, 429, 'paused', { min });
     }
     const d = await this.load();
@@ -72,24 +79,30 @@ export class RequestMeter {
       );
   }
 
-  async record(method: string, path: string, status: number | null) {
+  async record(method: string, path: string, status: number | null, kind?: string) {
     const d = await this.load();
     const ep = endpoint(path);
     d.count++;
     d.byPath[ep] = (d.byPath[ep] ?? 0) + 1;
     d.recent = [{ at: Date.now(), method, path: ep, status }, ...d.recent].slice(0, RECENT);
+    // a job ran past the cap (its cost estimate was low): once a day in the admin log, to tune job-cost.ts
+    if (d.count > DAILY_LIMIT && !d.overLogged) {
+      d.overLogged = true;
+      logEvent({ type: 'ea_error', personaId: this.personaId, data: { code: 'overBudget', kind: kind ?? null, count: d.count } });
+    }
     await writeCache(this.cacheKey, d);
   }
 
-  /** EA signalled throttling: stop sending anything for this account for a while. */
-  pause() {
-    this.pausedUntil = Date.now() + COOLDOWN_MS;
+  /** EA signalled throttling: stop sending anything for this account for a while (kept across restarts). */
+  async pause() {
+    const d = await this.load();
+    d.pausedUntil = Date.now() + COOLDOWN_MS;
+    await writeCache(this.cacheKey, d);
     logEvent({ type: 'ea_error', personaId: this.personaId, data: { code: 'throttle' } });
   }
 
   async summary() {
     const d = await this.load();
-    const pausedUntil = this.pausedUntil > Date.now() ? this.pausedUntil : null;
-    return { today: d.count, limit: DAILY_LIMIT, pausedUntil, byPath: d.byPath, recent: d.recent.slice(0, 10) };
+    return { today: d.count, limit: DAILY_LIMIT, pausedUntil: await this.pausedUntil(), byPath: d.byPath, recent: d.recent.slice(0, 10) };
   }
 }

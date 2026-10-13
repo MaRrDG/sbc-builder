@@ -169,7 +169,7 @@ export class Utas {
         throw new SessionError('EA session expired. Reopen the web app to refresh it.', 401, 'sessionExpired');
       }
       if (THROTTLE_CODES.includes(res.status)) {
-        this.meter?.pause();
+        await this.meter?.pause();
         throw new SessionError(`EA is rate limiting / blocking requests (HTTP ${res.status}). Try again later.`, 429, 'eaThrottled', { status: res.status });
       }
       if (!res.ok) throw new Error(`EA ${path} -> HTTP ${res.status}`);

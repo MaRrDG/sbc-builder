@@ -604,9 +604,9 @@ app.post<{ Params: { id: string }; Body: { method: string; path: string; status:
     if (!job || typeof method !== 'string' || typeof path !== 'string' || !path.startsWith('/'))
       return reply.code(400).send({ error: 'invalid call' });
     markCall(acc, job);
-    await acc.meter.record(method.toUpperCase().slice(0, 8), path.slice(0, 200), Number.isInteger(status) ? status : null);
+    await acc.meter.record(method.toUpperCase().slice(0, 8), path.slice(0, 200), Number.isInteger(status) ? status : null, job.kind);
     if (THROTTLE_CODES.includes(status ?? 0)) {
-      acc.meter.pause();
+      await acc.meter.pause();
       notify(acc.id);
     }
     return { ok: true };
