@@ -196,7 +196,7 @@ export async function guessToday(userId: string | null, assetId: number, state: 
   // a counter failure never fails the guess
   await recordAnonGuess(t.day, assetId, p.finished ? { won: p.won, guesses: p.guesses.length } : null)
     .catch((e) => console.warn('[daily] anon count failed:', (e as Error).message));
-  // signed out: the answer stays hidden until the next drop (see game.ts); Practice below still shows it
+  // signed out: a lost game's answer stays hidden until the next drop (see game.ts); Practice below still shows it
   return result(gameView(p, t.answer, playerById, { hideAnswer: true }), { state: signState(await dailySecret(), { k, g: p.guesses }) });
 }
 

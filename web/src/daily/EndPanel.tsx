@@ -86,7 +86,7 @@ export function EndPanel({ game, info, practice, signedIn, animate, stats, point
       )}
       {!practice && !signedIn && (
         <p className="dg-invite">
-          {/* signed out: the answer stays hidden until the next drop */}
+          {/* signed out and lost: the answer stays hidden until the next drop */}
           {game.answer === null ? t('daily.hiddenNote') : t('daily.signIn')} {link({ view: 'signin', next: '/daily' }, 'dg-invite-link', t('landing.signIn'))}
         </p>
       )}

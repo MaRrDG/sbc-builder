@@ -1,7 +1,8 @@
 // One game (daily or practice): which guesses are allowed and what the browser may see. Before the
 // game ends the view never carries the answer's id, name or portrait, only tiles and, after 3 misses,
-// the silhouette (rating, position, rarity, card type). A signed-out finished game carries `answer: null`
-// (hidden until the next drop), so a throwaway signed-out loss is no oracle for the signed-in game.
+// the silhouette (rating, position, rarity, card type). A signed-out lost game carries `answer: null`
+// (hidden until the next drop), so a throwaway signed-out loss is no oracle for the signed-in game. A win
+// keeps it: the winning guess already is the answer.
 import { compareTiles } from './compare.js';
 import type { CardType, Gender, PlayerRow, Tiles } from './types.js';
 
@@ -40,7 +41,7 @@ export function gameView(p: Progress, answer: PlayerRow, lookup: (id: number) =>
     return g ? [guessRow(g, answer)] : [];
   });
   const view: GameView = { rows, finished: p.finished, won: p.won };
-  if (p.finished) view.answer = opts.hideAnswer ? null : { ...toPublic(answer), fullName: answer.fullName, rareflag: answer.rareflag };
+  if (p.finished) view.answer = opts.hideAnswer && !p.won ? null : { ...toPublic(answer), fullName: answer.fullName, rareflag: answer.rareflag };
   else if (p.guesses.length >= SILHOUETTE_AFTER)
     view.silhouette = { rating: answer.rating, position: answer.position, rareflag: answer.rareflag, cardType: answer.cardType };
   return view;

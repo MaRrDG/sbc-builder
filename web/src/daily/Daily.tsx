@@ -35,7 +35,7 @@ interface Game {
   finished: boolean;
   won: boolean;
   silhouette?: DailySilhouette;
-  /** null: finished signed out, the answer is revealed after the next drop */
+  /** null: lost signed out, the answer is revealed after the next drop */
   answer?: DailyAnswer | null;
 }
 const EMPTY: Game = { rows: [], finished: false, won: false };

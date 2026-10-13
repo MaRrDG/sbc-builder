@@ -38,7 +38,7 @@ function SilhouetteCard({ s, meta }: { s: DailySilhouette; meta: Meta | null }) 
 interface Props {
   meta: Meta | null;
   silhouette?: DailySilhouette;
-  /** null: the game is over but the answer stays hidden until the next drop (signed out) */
+  /** null: the game was lost signed out; the answer stays hidden until the next drop */
   answer?: DailyAnswer | null;
   won: boolean;
   /** the game just ended in this visit: play the reveal (otherwise show the end state at once) */
