@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename, stat } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -29,14 +30,53 @@ export async function readCache<T>(key: string): Promise<Cached<T> | null> {
   }
 }
 
+// Read-through copy of the last parsed entry per key, for hot read-only paths (status poll, set list,
+// club, solve). Shared between callers: never mutate what readShared returns; use readCache to edit.
+const shared = new Map<string, Cached<unknown> | null>();
+const generation = new Map<string, number>(); // bumped on every write: a slow read never overwrites a newer write
+const SHARED_MAX = 400;
+
+function share(key: string, entry: Cached<unknown> | null) {
+  shared.delete(key);
+  shared.set(key, entry);
+  if (shared.size > SHARED_MAX) shared.delete(shared.keys().next().value as string);
+}
+
+export async function readShared<T>(key: string): Promise<Readonly<Cached<T>> | null> {
+  if (shared.has(key)) {
+    const hit = shared.get(key) as Cached<T> | null;
+    share(key, hit); // most recently used
+    return hit;
+  }
+  const gen = generation.get(key) ?? 0;
+  const entry = await readCache<T>(key);
+  if ((generation.get(key) ?? 0) === gen) share(key, entry);
+  return entry;
+}
+
+const writing = new Map<string, Promise<unknown>>();
+
 /** `fetchedAt` defaults to now; pass the old one for local edits that are not a fresh fetch. */
-export async function writeCache<T>(key: string, data: T, fetchedAt = Date.now()): Promise<Cached<T>> {
+export function writeCache<T>(key: string, data: T, fetchedAt = Date.now()): Promise<Cached<T>> {
+  // one write per key at a time, in call order
+  const run = (writing.get(key) ?? Promise.resolve()).catch(() => {}).then(() => write(key, data, fetchedAt));
+  writing.set(key, run);
+  void run.finally(() => {
+    if (writing.get(key) === run) writing.delete(key);
+  }).catch(() => {});
+  return run;
+}
+
+async function write<T>(key: string, data: T, fetchedAt: number): Promise<Cached<T>> {
   const entry: Cached<T> = { fetchedAt, data };
   const path = file(key);
   await mkdir(dirname(path), { recursive: true });
-  // write-then-rename so a crash never leaves a half-written cache file
-  await writeFile(path + '.tmp', JSON.stringify(entry));
-  await rename(path + '.tmp', path);
+  // write-then-rename so a crash never leaves a half-written cache file; a unique tmp name per write
+  const tmp = `${path}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
+  await writeFile(tmp, JSON.stringify(entry));
+  await rename(tmp, path);
+  generation.set(key, (generation.get(key) ?? 0) + 1);
+  share(key, entry);
   for (const fn of listeners) {
     try {
       fn(key, data);
