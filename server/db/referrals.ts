@@ -1,13 +1,28 @@
 // Invites, promo and gift codes, points. Every write runs in a transaction: a code row is locked
 // FOR UPDATE while it is used, and a user's points under a per-user advisory lock.
-import { and, desc, eq, sql } from 'drizzle-orm';
-import { checkRedeem, maskEmail, checkSpend, extendPremium, generateCode, INVITE_DAYS, isLifetime, normalizeCode, PRICES, rewardDays,
-  type CodeKind, type CodeRow, type RedeemError, type SpendDays } from '../referrals.js';
+import { and, desc, eq, gte, sql } from 'drizzle-orm';
+import { checkRedeem, maskEmail, checkSpend, extendPremium, generateCode, giftWindowStart, INVITE_DAYS, invitePointAllowed, isLifetime, normalizeCode,
+  PRICES, rewardDays, sharePersona, type CodeKind, type CodeRow, type RedeemError, type SpendDays } from '../referrals.js';
 import { db } from './index.js';
-import { codes, personas, pointLedger, redemptions, users } from './schema.js';
+import { codes, personaLinks, personas, pointLedger, redemptions, users } from './schema.js';
 
 const POINTS_LOCK = 4151; // per user: (POINTS_LOCK, hashtext(userId))
+const REDEEM_LOCK = 4152; // per receiver: two parallel gift redemptions cannot both pass the gift limit
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/** Every EA persona a user owns now or was ever linked to (`personas` + `persona_links`). */
+async function personasOf(tx: Tx | typeof db, userId: string): Promise<number[]> {
+  const owned = await tx.select({ id: personas.personaId }).from(personas).where(eq(personas.userId, userId));
+  const linked = await tx.select({ id: personaLinks.personaId }).from(personaLinks).where(eq(personaLinks.userId, userId));
+  return [...owned, ...linked].map((r) => r.id);
+}
+
+/** Every user that owns, owned or was ever linked to a persona. */
+async function usersOfPersona(tx: Tx | typeof db, personaId: number): Promise<string[]> {
+  const [p] = await tx.select({ u: personas.userId, prev: personas.previousUserId }).from(personas).where(eq(personas.personaId, personaId));
+  const linked = await tx.select({ u: personaLinks.userId }).from(personaLinks).where(eq(personaLinks.personaId, personaId));
+  return [p?.u, p?.prev, ...linked.map((r) => r.u)].filter((u): u is string => !!u);
+}
 
 async function freshCode(tx: Tx | typeof db): Promise<string> {
   for (let i = 0; i < 8; i++) {
@@ -49,11 +64,20 @@ export async function redeem(userId: string, raw: string) {
   let result;
   try {
     result = await db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(${REDEEM_LOCK}, hashtext(${userId}))`);
       const [row] = c ? await tx.select().from(codes).where(eq(codes.code, c)).for('update') : [];
       wasInvite = row?.kind === 'invite';
       const [inv] = await tx.select({ id: redemptions.id }).from(redemptions).where(and(eq(redemptions.userId, userId), eq(redemptions.kind, 'invite')));
       const [mine] = c ? await tx.select({ id: redemptions.id }).from(redemptions).where(and(eq(redemptions.userId, userId), eq(redemptions.code, c))) : [];
-      const err = checkRedeem((row as CodeRow | undefined) ?? null, { userId, usedInvite: !!inv, usedThis: !!mine, now: Date.now() });
+      const now = Date.now();
+      let gift: { giftsRecent: number; sharesEa: boolean } | undefined;
+      if (row?.kind === 'gift') {
+        const [n] = await tx.select({ n: sql<number>`count(*)::int` }).from(redemptions)
+          .where(and(eq(redemptions.userId, userId), eq(redemptions.kind, 'gift'), gte(redemptions.at, giftWindowStart(now))));
+        const sharesEa = !!row.ownerId && sharePersona(await personasOf(tx, row.ownerId), await personasOf(tx, userId));
+        gift = { giftsRecent: n?.n ?? 0, sharesEa };
+      }
+      const err = checkRedeem((row as CodeRow | undefined) ?? null, { userId, usedInvite: !!inv, usedThis: !!mine, now, gift });
       if (err) return { ok: false as const, code: err };
       const code = row as CodeRow;
       await tx.update(codes).set({ uses: sql`${codes.uses} + 1` }).where(eq(codes.code, code.code));
@@ -79,7 +103,8 @@ export async function redeem(userId: string, raw: string) {
   return { ...result, pending, founder: await isFounder(userId) };
 }
 
-/** On an EA link: the 7 days for a pending invite, and the inviter's point (one per persona, ever). */
+/** On an EA link: the 7 days for a pending invite, and the inviter's point (one per persona, ever; none when the
+ *  inviter is or was linked to that persona themselves). */
 export async function grantPendingInvite(userId: string, personaId: number): Promise<boolean> {
   return db.transaction(async (tx) => {
     const [r] = await tx.select().from(redemptions)
@@ -88,7 +113,7 @@ export async function grantPendingInvite(userId: string, personaId: number): Pro
     const [code] = await tx.select({ ownerId: codes.ownerId }).from(codes).where(eq(codes.code, r.code));
     await tx.update(redemptions).set({ status: 'granted', grantedAt: new Date() }).where(eq(redemptions.id, r.id));
     await addPremium(tx, userId, INVITE_DAYS); // a founder is for life already: no change
-    if (code?.ownerId)
+    if (code?.ownerId && invitePointAllowed(code.ownerId, await usersOfPersona(tx, personaId)))
       await tx.insert(pointLedger).values({ userId: code.ownerId, delta: 1, reason: 'invite', ref: userId, personaId }).onConflictDoNothing();
     return true;
   });

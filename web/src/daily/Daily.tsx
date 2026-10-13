@@ -354,7 +354,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
         <HowTo />
       </Sheet>
       <Sheet open={sheet === 'stats'} title={t('daily.stats')} onClose={() => setSheet(null)}>
-        <StatsBody stats={stats} signedIn={signedIn} today={!practice && game.finished && game.won ? game.rows.length : null} points={points} />
+        <StatsBody stats={stats} signedIn={signedIn} today={!practice && game.finished && game.won ? game.rows.length : null} points={points} eaLinked={info?.eaLinked} />
       </Sheet>
       <Sheet open={sheet === 'lb'} title={t('daily.lb.title')} onClose={() => setSheet((s) => (s === 'lb' ? null : s))}>
         <Leaderboard

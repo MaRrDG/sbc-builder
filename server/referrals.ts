@@ -18,7 +18,29 @@ export interface CodeRow {
   disabled: boolean;
 }
 
-export type RedeemError = 'codeUnknown' | 'codeDisabled' | 'codeExpired' | 'codeFull' | 'codeOwn' | 'inviteUsed' | 'codeUsed';
+/** Unknown, disabled, expired and used-up codes all answer `codeInvalid`: a guess learns nothing about which codes exist. */
+export type RedeemError = 'codeInvalid' | 'codeOwn' | 'inviteUsed' | 'codeUsed' | 'giftLimit' | 'giftSameEa';
+
+/** A receiver redeems at most GIFT_LIMIT gift codes per rolling GIFT_WINDOW_DAYS. */
+export const GIFT_LIMIT = 2;
+export const GIFT_WINDOW_DAYS = 30;
+export const giftWindowStart = (now: number) => new Date(now - GIFT_WINDOW_DAYS * 86_400_000);
+
+/** True when the two users share an EA persona (each list: current `personas` plus `persona_links`). */
+export function sharePersona(a: Iterable<number>, b: Iterable<number>): boolean {
+  const mine = new Set(a);
+  for (const p of b) if (mine.has(p)) return true;
+  return false;
+}
+
+/** Why a gift cannot go to this receiver: too many gifts lately, or the giver is on the same EA account. */
+export function checkGift(ctx: { giftsRecent: number; sharesEa: boolean }): 'giftLimit' | 'giftSameEa' | null {
+  if (ctx.sharesEa) return 'giftSameEa';
+  return ctx.giftsRecent >= GIFT_LIMIT ? 'giftLimit' : null;
+}
+
+/** The inviter earns no point when they are or were linked to the invitee's persona (a self-invite). */
+export const invitePointAllowed = (ownerId: string, personaUsers: Iterable<string>): boolean => ![...personaUsers].includes(ownerId);
 
 /** An email for the inviter's friends table: 2 chars of the local part (1 when it has 2 or fewer), then ••• and the domain. */
 export function maskEmail(email: string | null | undefined): string | null {
@@ -42,15 +64,14 @@ export function normalizeCode(raw: unknown): string | null {
   return /^[A-Z0-9]{4,20}$/.test(c) ? c : null;
 }
 
-/** Why this user cannot use this code now, or null when they can. */
-export function checkRedeem(code: CodeRow | null, ctx: { userId: string; usedInvite: boolean; usedThis: boolean; now: number }): RedeemError | null {
-  if (!code) return 'codeUnknown';
-  if (code.disabled) return 'codeDisabled';
-  if (code.expiresAt && code.expiresAt.getTime() <= ctx.now) return 'codeExpired';
+/** Why this user cannot use this code now, or null when they can. Gift checks run only when `gift` is given. */
+export function checkRedeem(code: CodeRow | null, ctx: { userId: string; usedInvite: boolean; usedThis: boolean; now: number; gift?: { giftsRecent: number; sharesEa: boolean } }): RedeemError | null {
+  if (!code || code.disabled || (code.expiresAt && code.expiresAt.getTime() <= ctx.now)) return 'codeInvalid';
   if (code.ownerId === ctx.userId) return 'codeOwn';
   if (code.kind === 'invite' && ctx.usedInvite) return 'inviteUsed';
   if (ctx.usedThis) return 'codeUsed';
-  if (code.maxUses !== null && code.uses >= code.maxUses) return 'codeFull';
+  if (code.maxUses !== null && code.uses >= code.maxUses) return 'codeInvalid';
+  if (code.kind === 'gift' && ctx.gift) return checkGift(ctx.gift);
   return null;
 }
 

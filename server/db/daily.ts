@@ -1,7 +1,7 @@
 // Postgres side of the Daily game (rules live in server/daily/*).
 import { and, asc, desc, eq, gte, isNotNull, sql } from 'drizzle-orm';
 import { db } from './index.js';
-import { dailyAnonStats, dailyAnswers, dailyGuessCounts, dailyPlays, players, pointLedger, users } from './schema.js';
+import { dailyAnonStats, dailyAnswers, dailyGuessCounts, dailyPlays, personas, players, pointLedger, users } from './schema.js';
 import type { PlayerRow } from '../daily/types.js';
 import { applyGuess, type GuessError, type Progress } from '../daily/game.js';
 import { pointsForWin, streakOf, type Play } from '../daily/streak.js';
@@ -69,6 +69,12 @@ export async function playOf(userId: string, day: number): Promise<number[]> {
   return r?.g ?? [];
 }
 
+/** The lowest EA persona id the user owns now, or null without an EA account (no Daily points then). */
+export async function lowestPersonaOf(userId: string, tx: Pick<typeof db, 'select'> = db): Promise<number | null> {
+  const [r] = await tx.select({ id: sql<number | null>`min(${personas.personaId})` }).from(personas).where(eq(personas.userId, userId));
+  return r?.id == null ? null : Number(r.id);
+}
+
 /** One guess of a signed-in user, under a row lock: two tabs cannot add two guesses or two point grants. */
 export async function guessDaily(userId: string, day: number, answer: number, guess: number, known: (id: number) => boolean):
   Promise<{ progress: Progress; points: { added: number; streak: number } | null } | { error: GuessError }> {
@@ -82,9 +88,16 @@ export async function guessDaily(userId: string, day: number, answer: number, gu
       .where(and(eq(dailyPlays.userId, userId), eq(dailyPlays.day, day)));
     if (!res.won) return { progress: res, points: null };
     const streak = streakOf(await playsOf(userId, tx), day).current;
-    const added = pointsForWin(streak, res.guesses.length);
-    if (added > 0)
-      await tx.insert(pointLedger).values({ userId, delta: added, reason: 'daily_streak', ref: String(day) }).onConflictDoNothing();
+    let added = pointsForWin(streak, res.guesses.length);
+    if (added > 0) {
+      // points need an EA account the user owns now; the grant is tied to it so a second FC Solver account on the
+      // same EA account gets nothing that day (point_ledger_daily_persona)
+      const personaId = await lowestPersonaOf(userId, tx);
+      const done = personaId === null ? [] : await tx.insert(pointLedger)
+        .values({ userId, delta: added, reason: 'daily_streak', ref: String(day), personaId })
+        .onConflictDoNothing().returning({ id: pointLedger.id });
+      if (!done.length) added = 0;
+    }
     return { progress: res, points: { added, streak } };
   });
 }

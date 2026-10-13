@@ -27,6 +27,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'A new 404 page: a wrong link now opens a pack instead of a blank screen',
         'Settings → Your data: download everything FC Solver keeps about you, or delete your account (you have 7 days to change your mind)',
         'Daily: if you lose while signed out, the answer is revealed after the next drop (yesterday\'s player is shown on the Daily page). A win in 1 guess still keeps your streak, but pays no points and doesn\'t count on the leaderboard',
+        'Gift codes: you can redeem up to 2 every 30 days, and a gift from another FC Solver account on your own EA account no longer works. Daily streak points now need an EA account linked to FC Solver (once a day per EA account); without one, your streak still counts',
       ],
       ro: [
         'Dashboard mai rapid: SBC-urile și clubul apar imediat ce deschizi FC Solver, iar sincronizările își arată progresul în timp real în noul panou de activitate, fără să blocheze pagina',
@@ -34,6 +35,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Pagină 404 nouă: un link greșit deschide acum un pachet, nu un ecran gol',
         'Setări → Datele tale: descarci tot ce păstrează FC Solver despre tine sau îți ștergi contul (ai 7 zile să te răzgândești)',
         'Daily: dacă pierzi jucând fără cont, răspunsul apare după următorul drop (jucătorul de ieri e afișat pe pagina Daily). O victorie din prima încercare îți păstrează seria, dar nu aduce puncte și nu contează în clasament',
+        'Coduri cadou: poți folosi cel mult 2 la 30 de zile, iar un cadou de la un cont legat de același cont EA ca al tău nu mai merge. Punctele pentru seriile din Daily cer acum un cont EA legat de FC Solver (o dată pe zi pentru fiecare cont EA); fără el, seria ta contează în continuare',
       ],
       it: [
         'Dashboard più veloce: SBC e club compaiono subito quando apri FC Solver, e le sincronizzazioni mostrano i progressi in tempo reale nel nuovo pannello attività, senza bloccare la pagina',
@@ -41,6 +43,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Nuova pagina 404: un link sbagliato ora apre un pacchetto invece di una schermata vuota',
         'Impostazioni → I tuoi dati: scarica tutto ciò che FC Solver conserva su di te, oppure elimina il tuo account (hai 7 giorni per ripensarci)',
         'Daily: se perdi giocando senza accedere, la risposta viene svelata dopo il prossimo drop (il giocatore di ieri è sulla pagina Daily). Una vittoria al primo tentativo mantiene la serie, ma non dà punti e non conta in classifica',
+        'Codici regalo: puoi riscattarne al massimo 2 ogni 30 giorni, e un regalo da un account collegato al tuo stesso account EA non funziona più. I punti serie del Daily ora richiedono un account EA collegato a FC Solver (una volta al giorno per ogni account EA); senza, la tua serie conta comunque',
       ],
     },
   },

@@ -81,7 +81,7 @@ export function EndPanel({ game, info, practice, signedIn, animate, stats, point
       {fallback && <textarea ref={area} className="dg-share-text" readOnly rows={fallback.split('\n').length} value={fallback} aria-label={t('daily.share')} />}
       {!practice && (
         <div className="dg-end-stats">
-          <StatsBody stats={stats} signedIn={signedIn} today={game.won ? game.rows.length : null} points={points} />
+          <StatsBody stats={stats} signedIn={signedIn} today={game.won ? game.rows.length : null} points={points} eaLinked={info.eaLinked} />
         </div>
       )}
       {!practice && !signedIn && (

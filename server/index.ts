@@ -85,6 +85,7 @@ const DEV = process.env.NODE_ENV !== 'production';
 const apiLimit = createLimiter({ windowMs: 60_000, max: 600 });
 const proofLimit = createLimiter({ windowMs: 60_000, max: 5 }); // new EA sessions to prove (each one calls EA)
 const redeemLimit = createLimiter({ windowMs: 60_000, max: 10 }); // codes cannot be guessed by trying
+const redeemUserLimit = createLimiter({ windowMs: 86_400_000, max: 20 }); // per user: rotating IPs does not help either
 const reportLimit = createLimiter({ windowMs: 60_000, max: 20 });
 const exportLimit = createLimiter({ windowMs: 60_000, max: 1 }); // a data export reads a lot: once a minute per user
 const tooMany = () => new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
@@ -315,7 +316,7 @@ app.put<{ Body: Record<string, unknown> }>('/api/me/onboarding', async (req, rep
   await saveOnboarding(userId, answer);
   // a code typed on the survey: a bad one never blocks the answer
   const raw = req.body?.code;
-  if (typeof raw !== 'string' || !raw.trim() || !redeemLimit(req.ip)) return { ok: true };
+  if (typeof raw !== 'string' || !raw.trim() || !redeemLimit(req.ip) || !redeemUserLimit(userId)) return { ok: true };
   const r = await redeem(userId, raw);
   return { ok: true, redeem: r.ok ? { kind: r.kind, days: r.days, pending: r.pending, founder: r.founder } : { error: r.code } };
 });
@@ -330,7 +331,7 @@ app.get('/api/referral', async (req) => {
 /** Use an invite, promo or gift code. */
 app.post<{ Body: { code?: unknown } }>('/api/redeem', async (req, reply) => {
   const userId = await siteUser(req);
-  if (!redeemLimit(req.ip)) throw tooMany();
+  if (!redeemLimit(req.ip) || !redeemUserLimit(userId)) throw tooMany();
   const r = await redeem(userId, typeof req.body?.code === 'string' ? req.body.code : '');
   if (!r.ok) return reply.code(400).send({ error: r.code, code: r.code, params: {} });
   return { kind: r.kind, days: r.days, pending: r.pending, founder: r.founder };

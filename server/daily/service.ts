@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { SessionError } from '../ea.js';
 import { DATA_DIR } from '../store.js';
 import { lastSbcDrop } from '../sync.js';
-import { answerFor, answersSince, firstAnswer, guessDaily, insertAnswer, playOf, playsOf, recordAnonGuess } from '../db/daily.js';
+import { answerFor, answersSince, firstAnswer, guessDaily, insertAnswer, lowestPersonaOf, playOf, playsOf, recordAnonGuess } from '../db/daily.js';
 import { leaderboardSource, profileOf } from '../db/dailyProfile.js';
 import { dayFor, dropDate, nextDropAfter, staleDay } from './day.js';
 import { applyGuess, gameView, progressOf, toPublic, type GameView, type GuessRow, type Silhouette, type Answer } from './game.js';
@@ -153,7 +153,8 @@ export async function dailyInfo(userId: string | null) {
   if (!userId) return base;
   const guesses = await playOf(userId, t.day);
   const view = gameView(progressOf(guesses, t.answer.assetId), t.answer, playerById);
-  return { ...base, me: await profileOf(userId), game: { ...view, stats: statsOf(await playsOf(userId), t.day) } };
+  // eaLinked: streak points need an EA account the user owns (server/db/daily.ts guessDaily)
+  return { ...base, me: await profileOf(userId), eaLinked: (await lowestPersonaOf(userId)) !== null, game: { ...view, stats: statsOf(await playsOf(userId), t.day) } };
 }
 
 let lbCache: { at: number; rows: LbRow[] } | null = null;

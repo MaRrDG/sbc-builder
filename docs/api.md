@@ -171,7 +171,7 @@ The player card shown in an evolution email, rendered when the email is sent (`s
 
 ## Referrals (site)
 
-Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Prices: 7 days = 2 points, 14 days = 3, 30 days = 5. Error `code`s (translated as `err.<code>`): `codeUnknown`, `codeDisabled`, `codeExpired`, `codeFull`, `codeOwn`, `inviteUsed` (this user already used an invite), `codeUsed` (promo or gift already used), `pointsLow`, `pointsLifetime` (lifetime Premium cannot spend points on days), plus `rateLimited` (429).
+Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Prices: 7 days = 2 points, 14 days = 3, 30 days = 5. Error `code`s (translated as `err.<code>`): `codeInvalid` (unknown, disabled, expired or used-up code: one answer for all four, so guessing learns nothing about which codes exist), `codeOwn`, `inviteUsed` (this user already used an invite), `codeUsed` (promo or gift already used), `giftLimit` (the receiver already redeemed 2 gift codes in the last 30 days), `giftSameEa` (the gift's owner and the receiver share an EA account, current owner or ever linked, either side), `pointsLow`, `pointsLifetime` (lifetime Premium cannot spend points on days), plus `rateLimited` (429).
 
 ### `GET /api/referral`
 
@@ -179,7 +179,7 @@ Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Pric
 
 ### `POST /api/redeem`
 
-`{ "code": "k7m-2qx" }` (typed freely: case and dashes are normalised) → `{ "kind": "invite"|"promo"|"gift", "days": 7, "pending": true|false, "founder": true|false }`. `pending: true` is an invite whose 7 days wait until the user links an EA account (the reward fires on the `/api/hello` link, which also gives the inviter 1 point, at most one per EA account ever). Failure → `400 { "error", "code", "params": {} }`. Limited to 10 per minute per IP (`429 rateLimited`).
+`{ "code": "k7m-2qx" }` (typed freely: case and dashes are normalised) → `{ "kind": "invite"|"promo"|"gift", "days": 7, "pending": true|false, "founder": true|false }`. `pending: true` is an invite whose 7 days wait until the user links an EA account (the reward fires on the `/api/hello` link, which also gives the inviter 1 point, at most one per EA account ever, and none when the inviter is or was linked to that EA account). Failure → `400 { "error", "code", "params": {} }`. Limited to 10 per minute per IP (an IPv6 address counts per /64) and 20 per day per user (`429 rateLimited`); the onboarding `code` field shares both limits.
 
 ### `POST /api/points/spend`
 
@@ -221,7 +221,7 @@ A `GameView` is `{ rows: GuessRow[], finished, won, silhouette?, answer?: Answer
 
 ### `GET /api/daily`
 
-`{ day, date, nextAt, maxGuesses: 5, share, signedIn, players, previous, me?, game? }`. `previous`: `{ day, answer: Answer }` of yesterday's game (for everyone), `null` when there was none. `nextAt`: ms of the next drop. `share`: host + `/daily` without protocol. `players`: size of the autocomplete list (`GET /api/daily/players`). `me` and `game` (signed in only): `me` is the `DailyProfile` `{ username: string | null, leaderboard: boolean, asked: boolean }`; `game` is the saved `GameView` of today plus `stats`. Never carries the answer of an unfinished game.
+`{ day, date, nextAt, maxGuesses: 5, share, signedIn, players, previous, me?, game? }`. `previous`: `{ day, answer: Answer }` of yesterday's game (for everyone), `null` when there was none. `nextAt`: ms of the next drop. `share`: host + `/daily` without protocol. `players`: size of the autocomplete list (`GET /api/daily/players`). `me`, `eaLinked` and `game` (signed in only): `me` is the `DailyProfile` `{ username: string | null, leaderboard: boolean, asked: boolean }`; `eaLinked`: the user owns an EA account (streak points need one; the site shows a note instead of the next reward when false); `game` is the saved `GameView` of today plus `stats`. Never carries the answer of an unfinished game.
 
 ### `GET /api/daily/players`
 
@@ -229,7 +229,7 @@ A `GameView` is `{ rows: GuessRow[], finished, won, silhouette?, answer?: Answer
 
 ### `POST /api/daily/guess`
 
-`{ assetId, state?, day? }` -> `GuessResult = { row, finished, won, silhouette?, answer?, state?, stats?, points? }`. `row`: the compared tiles of this guess. `silhouette` (rating, position, rareflag, card type) appears from the 3rd wrong guess on while the game is in progress, and stays at the end; `answer` appears only once the game is finished (`null` for a lost signed-out daily game, see `GameView`). `day`: the `day` of the game the guess is for (the site always sends `GET /api/daily`'s `day`); when it is not today's (the page stayed open across the drop) the guess is refused with `dailyExpired` before anything is saved, signed in or not. A missing `day` counts as today. Signed in: state lives in `daily_plays` (one row lock per user and day), `stats` comes when finished and `points: { added, streak }` on a win (one grant per day; a win in 1 guess keeps the streak but has `added: 0`, `server/daily/streak.ts` `pointsForWin`). A bad or expired `Authorization` token is `401 signIn` (here and on `GET /api/daily`), never a silent signed-out game; no header at all means signed out. Signed out: send no `state` on the first guess (omitting `state` always starts a fresh signed-out game), then send back the `state` of the last answer; it is a signed token, so replaying an older same-day token only buys extra tries, and anonymous games never earn points. A tampered or other-day token is `dailyExpired`.
+`{ assetId, state?, day? }` -> `GuessResult = { row, finished, won, silhouette?, answer?, state?, stats?, points? }`. `row`: the compared tiles of this guess. `silhouette` (rating, position, rareflag, card type) appears from the 3rd wrong guess on while the game is in progress, and stays at the end; `answer` appears only once the game is finished (`null` for a lost signed-out daily game, see `GameView`). `day`: the `day` of the game the guess is for (the site always sends `GET /api/daily`'s `day`); when it is not today's (the page stayed open across the drop) the guess is refused with `dailyExpired` before anything is saved, signed in or not. A missing `day` counts as today. Signed in: state lives in `daily_plays` (one row lock per user and day), `stats` comes when finished and `points: { added, streak }` on a win (one grant per day; a win in 1 guess keeps the streak but has `added: 0`, `server/daily/streak.ts` `pointsForWin`; `added` is also 0 when the user owns no EA account, or when another FC Solver account on the same EA account already got today's grant: the grant stores the user's lowest owned persona id, unique per persona and day). A bad or expired `Authorization` token is `401 signIn` (here and on `GET /api/daily`), never a silent signed-out game; no header at all means signed out. Signed out: send no `state` on the first guess (omitting `state` always starts a fresh signed-out game), then send back the `state` of the last answer; it is a signed token, so replaying an older same-day token only buys extra tries, and anonymous games never earn points. A tampered or other-day token is `dailyExpired`.
 
 ### `POST /api/daily/practice`
 
@@ -383,7 +383,7 @@ Creates a promo code. Body: `{ "days": 30 | null, "code"?: "SUMMER26", "maxUses"
 
 ### `PATCH /api/admin/codes/:code`
 
-`{ "disabled": true | false }`: disables or re-enables a code (redeeming a disabled code gives `codeDisabled`). `:code` is case-insensitive. Returns `{ "ok": true }`; `400` when `disabled` is not a boolean, `404` for an unknown code.
+`{ "disabled": true | false }`: disables or re-enables a code (redeeming a disabled code gives `codeInvalid`). `:code` is case-insensitive. Returns `{ "ok": true }`; `400` when `disabled` is not a boolean, `404` for an unknown code.
 
 ### `GET /api/admin/codes/:code`
 

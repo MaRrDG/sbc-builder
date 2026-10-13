@@ -162,6 +162,13 @@
       "when": 1791897957125,
       "tag": "0022_giant_carmella_unuscione",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1791910892125,
+      "tag": "0023_shocking_nico_minoru",
+      "breakpoints": true
     }
   ]
 }

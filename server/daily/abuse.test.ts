@@ -59,8 +59,9 @@ test('fixed D1: one-guess wins every day no longer top the leaderboard over hone
   assert.equal(r[1].oneGuessWins, 30);
 });
 
-test('audit P1: a 30-day win streak yields 4 points (2 x 7-day Premium), per Clerk account', () => {
-  // documents the farm yield: every account that never loses earns this, no EA persona needed
+test('holds P1: a 30-day win streak yields 4 points (2 x 7-day Premium), per EA account', () => {
+  // the yield of a perfect streak; since P1 it needs a linked EA account and pays once per EA account per day
+  // (server/db/daily.ts guessDaily, unique point_ledger_daily_persona)
   let total = 0;
   for (let s = 1; s <= 30; s++) total += pointsFor(s);
   assert.equal(total, 4);

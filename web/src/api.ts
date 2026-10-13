@@ -464,7 +464,7 @@ export interface DailyRow { player: DailyPlayer; tiles: DailyTiles }
 export interface DailyStats { played: number; won: number; current: number; best: number; dist: number[]; next: { target: number; points: number } }
 export interface DailyGame { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null; stats: DailyStats }
 export interface DailyProfile { username: string | null; leaderboard: boolean; asked: boolean }
-export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; players: number; previous?: { day: number; answer: DailyAnswer } | null; me?: DailyProfile; game?: DailyGame }
+export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; players: number; previous?: { day: number; answer: DailyAnswer } | null; me?: DailyProfile; /** signed in: owns an EA account (streak points need one) */ eaLinked?: boolean; game?: DailyGame }
 export interface DailyLbRow { rank: number; username: string; wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number }
 export interface DailyLeaderboard { rows: DailyLbRow[]; me: (DailyLbRow & { inTop: boolean }) | null; total: number }
 export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
