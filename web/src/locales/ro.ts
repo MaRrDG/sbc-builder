@@ -1078,6 +1078,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'squads.calculateHint': "Citește echipele salvate din web app-ul FC27 (ține-l deschis în browserul ăsta) și îți arată cât valorează fiecare. Durează câteva secunde pe echipă.",
   'squads.recalculateHint': "Ai schimbat o echipă în web app? Apasă din nou Calculează ca s-o citim.",
   'squads.calculatingHint': "Tab-ul cu web app-ul îți citește echipele, pe rând. Valorile apar aici când termină.",
+  'squads.notLoadedDetail': "Încă necalculată. Întoarce-te la toate echipele și apasă Calculează.",
   'squads.unnamed': 'Echipă fără nume',
   'squads.active': 'Activă',
   'squads.split': 'Titulari {starters} · Rezerve {bench}',

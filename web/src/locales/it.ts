@@ -1061,6 +1061,7 @@ export const it: Record<Keys, string> = {
   'squads.calculateHint': "Legge le rose salvate dalla web app FC27 (tienila aperta in questo browser) e ti mostra quanto vale ciascuna. Qualche secondo per rosa.",
   'squads.recalculateHint': "Hai cambiato una rosa nella web app? Premi di nuovo Calcola per rileggerla.",
   'squads.calculatingHint': "La scheda della web app sta leggendo le tue rose, una alla volta. I valori compaiono qui quando ha finito.",
+  'squads.notLoadedDetail': "Non ancora calcolata. Torna a tutte le rose e premi Calcola.",
   'squads.unnamed': 'Rosa senza nome',
   'squads.active': 'Attiva',
   'squads.split': 'Titolari {starters} · Panchina {bench}',

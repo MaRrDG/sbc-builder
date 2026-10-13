@@ -63,6 +63,7 @@ import { cacheClear, cacheGet, cacheKey, cachePrune, cacheSet, type AccountData 
 import { unlinkExtension, useExtensionLink } from './link';
 import { clubJobRunning, gapReload, refetchPlan, singleFlight, type SeenStatus } from './sse';
 import { useLive } from './useLive';
+import { WebAppHint } from './components/WebAppHint';
 
 type StatusResponse = Awaited<ReturnType<typeof api.status>>;
 
@@ -1511,7 +1512,7 @@ export default function App({
               <nav className="challenge-tabs" aria-label={t('set.challenges')}>
                 {challenges === null && [0, 1, 2].map((i) => <span key={i} className="tab-skeleton" />)}
                 {challenges?.length === 0 && (
-                  <p className="muted">{t('set.notLoaded')}</p>
+                  <WebAppHint>{t('set.notLoaded')}</WebAppHint>
                 )}
                 {challenges?.map((c) => (
                   <button

@@ -1057,6 +1057,7 @@ export const en = {
   'squads.calculateHint': "Reads your saved squads from the FC27 web app (keep it open in this browser), then shows what each one is worth. A few seconds per squad.",
   'squads.recalculateHint': "Changed a squad in the web app? Calculate again to read it.",
   'squads.calculatingHint': "The web app tab is reading your squads, one at a time. Values show up here when it is done.",
+  'squads.notLoadedDetail': "Not calculated yet. Go back to all squads and press Calculate.",
   'squads.unnamed': 'Unnamed squad',
   'squads.active': 'Active',
   'squads.split': 'Starters {starters} · Bench {bench}',

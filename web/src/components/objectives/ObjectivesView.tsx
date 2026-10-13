@@ -10,6 +10,7 @@ import { errorText } from '../../messages';
 import type { ObjStep } from '../../route';
 import { layout, Pitch } from '../Pitch';
 import { awardText, conditionLabel, doneKey, loansKey, formationKey, formationLabel, isStale, settingsSummary, pickKey, pruneManual, radioMove, reachableStep, resultKey, splitGroups, timeLeft, objectiveCoverage, dropUncovered, type GroupSplit } from './objectives';
+import { WebAppHint } from '../WebAppHint';
 
 const ROLE_ICON = { score: SoccerBall, assist: HandPointing, xi: UsersThree } as const;
 const NO_IDS = new Set<number>();
@@ -155,7 +156,7 @@ export function ObjectiveGroups({ groups, meta, picked, onToggle, now, onMark, g
                 <span>{g.category}</span>
                 {left && <span>{t('obj.timeLeft', { days: left.days, hours: left.hours })}</span>}
               </p>
-              {groupHint && g.progressKnown === false && <p className="obj-unknown">{t('obj.progressUnknown')}</p>}
+              {groupHint && g.progressKnown === false && <WebAppHint className="obj-unknown">{t('obj.progressUnknown')}</WebAppHint>}
               <Rewards awards={g.awards} />
             </header>
             {g.objectives.length > 0 && (
@@ -204,7 +205,7 @@ function OtherObjectives({ groups, count, onMark, hint }: {
   return (
     <details className="obj-other">
       <summary>{t('obj.other', { count })}</summary>
-      {hint && groups.some((g) => g.progressKnown === false) && <p className="obj-unknown">{t('obj.progressUnknown')}</p>}
+      {hint && groups.some((g) => g.progressKnown === false) && <WebAppHint className="obj-unknown">{t('obj.progressUnknown')}</WebAppHint>}
       {groups.map((g) => (
         <section key={g.id}>
           <h3>{g.title}</h3>
@@ -423,7 +424,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
             {allShared ? t('obj.fetchedShared', { ago: ago(data.fetchedAt) }) : t('obj.fetched', { ago: ago(data.fetchedAt) })}
           </p>
         ) : null}
-        {allShared && data.groups.length > 0 && <p className="obj-unknown">{t('obj.progressUnknown')}</p>}
+        {allShared && data.groups.length > 0 && <WebAppHint className="obj-unknown">{t('obj.progressUnknown')}</WebAppHint>}
       </div>
     </header>
   );

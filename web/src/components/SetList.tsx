@@ -5,6 +5,7 @@ import { repeatOf } from '../repeat';
 import { SetBadge } from './SetBadge';
 import { Pager, clampPage } from './Pager';
 import { useI18n } from '../i18n';
+import { WebAppHint } from './WebAppHint';
 
 const PER_PAGE = 24;
 const KIND_KEY = 'sbc-set-kind';
@@ -134,7 +135,7 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now, 
           {Array.from({ length: 8 }, (_, i) => <div key={i} className="sk-card" />)}
         </div>
       )}
-      {categories.length === 0 && !loading && <p className="muted">{t('sets.empty')}</p>}
+      {categories.length === 0 && !loading && <WebAppHint>{t('sets.empty')}</WebAppHint>}
       {categories.length > 0 && matches.length === 0 && <p className="muted">{q ? t('sets.noMatch', { q: filter }) : t('sets.noneOfKind')}</p>}
       {groups.map(({ cat, sets }) => (
           <section key={cat.categoryId} className="set-section">

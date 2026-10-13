@@ -9,6 +9,7 @@ import { timeLeft } from '../evos';
 import { Card } from './Card';
 import { PremiumPreview } from './PremiumPreview';
 import { DEMO_EVOS, DEMO_META } from './premiumDemo';
+import { WebAppHint } from './WebAppHint';
 
 export function EvosView({ premium, meta, reload, onSettings }: {
   premium: boolean;
@@ -73,7 +74,7 @@ export function EvosView({ premium, meta, reload, onSettings }: {
         <>
           {error && <div className="banner" role="alert">{error}</div>}
           {evos === null && !error && <p className="muted">{t('evos.loading')}</p>}
-          {evos && evos.length === 0 && <p className="muted evo-empty">{t('evos.empty')}</p>}
+          {evos && evos.length === 0 && <WebAppHint className="evo-empty">{t('evos.empty')}</WebAppHint>}
           {sorted.length > 0 && (
             <ul className="evo-list">
               {sorted.map((e) => (

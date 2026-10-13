@@ -9,6 +9,7 @@ import { Card, EmptyCard } from '../Card';
 import { layout } from '../Pitch';
 import { formationLabel } from '../objectives/objectives';
 import { compactCoins, splitSlots } from './squads';
+import { WebAppHint } from '../WebAppHint';
 
 const POSITION_NAMES = ['GK', 'SW', 'RWB', 'RB', 'RCB', 'CB', 'LCB', 'LB', 'LWB', 'RDM', 'CDM', 'LDM', 'RM', 'RCM', 'CM', 'LCM', 'LM', 'RAM', 'CAM', 'LAM', 'RF', 'CF', 'LF', 'RW', 'RS', 'ST', 'LS', 'LW'];
 
@@ -88,9 +89,13 @@ function CalcBar({ busy, error, run, missing }: { busy: boolean; error: unknown;
         {busy ? <ArrowsClockwise weight="bold" className="spin" aria-hidden="true" /> : <Calculator weight="bold" aria-hidden="true" />}
         <span>{busy ? t('squads.calculating') : t('squads.calculate')}</span>
       </button>
-      <p className="muted" role="status">
-        {error !== null ? <span className="squads-calc-error">{errorText(error, t)}</span> : busy ? t('squads.calculatingHint') : missing ? t('squads.calculateHint') : t('squads.recalculateHint')}
-      </p>
+      {!busy && error === null && missing ? (
+        <WebAppHint>{t('squads.calculateHint')}</WebAppHint>
+      ) : (
+        <p className="muted" role="status">
+          {error !== null ? <span className="squads-calc-error">{errorText(error, t)}</span> : busy ? t('squads.calculatingHint') : t('squads.recalculateHint')}
+        </p>
+      )}
     </div>
   );
 }
@@ -151,7 +156,7 @@ export function SquadList({ data, error, retry, onOpen, head = true, calc }: {
       ) : !data ? (
         <p className="muted" role="status">{t('admin.loading')}</p>
       ) : data.squads.length === 0 ? (
-        <p className="squads-empty">{t('squads.empty')}</p>
+        <WebAppHint>{t('squads.empty')}</WebAppHint>
       ) : (
         <>
           <p className="squads-when muted">
@@ -261,7 +266,7 @@ function SquadScreen({ meta, id, reload, onBack, onError }: { meta: Meta; id: nu
         </div>
       </header>
       {!data.loaded ? (
-        <p className="squads-empty">{t('squads.notLoaded')}</p>
+        <WebAppHint>{t('squads.notLoadedDetail')}</WebAppHint>
       ) : (
         <div className="squad-body">
           <dl className="obj-stats squad-stats">
