@@ -96,8 +96,8 @@ export function SolveLoader() {
 }
 
 /** Options (left) and Solve / Cheaper (right) corners of the pitch frame. */
-export function PitchCorners({ lock, solving, outOfSolves, hasResult, localOptions, onSolve, onToggleOptions, cheaper }: {
-  lock: { title: string } | null; solving: boolean; outOfSolves: boolean; hasResult: boolean; localOptions: boolean;
+export function PitchCorners({ lock, solving, outOfSolves, syncWait, hasResult, localOptions, onSolve, onToggleOptions, cheaper }: {
+  lock: { title: string } | null; solving: boolean; outOfSolves: boolean; syncWait: string | null; hasResult: boolean; localOptions: boolean;
   onSolve: (deep?: boolean) => void; onToggleOptions: () => void; cheaper: boolean;
 }) {
   const { t } = useI18n();
@@ -113,16 +113,18 @@ export function PitchCorners({ lock, solving, outOfSolves, hasResult, localOptio
             <SealCheck weight="fill" aria-hidden="true" /> {lock.title}
           </span>
         ) : (
-          <button className="solve" type="button" disabled={solving || outOfSolves} onClick={() => onSolve(false)}>
+          <button className="solve" type="button" disabled={solving || outOfSolves || !!syncWait} title={syncWait ?? undefined} onClick={() => onSolve(false)}>
             <Lightning weight="fill" aria-hidden="true" /> {hasResult ? t('pitch.resolve') : t('pitch.solve')}
           </button>
         )}
         {cheaper && hasResult && !lock && (
-          <button className="solve-deep" type="button" disabled={solving || outOfSolves} onClick={() => onSolve(true)} title={t('pitch.cheaperTitle')}>
+          <button className="solve-deep" type="button" disabled={solving || outOfSolves || !!syncWait} onClick={() => onSolve(true)} title={syncWait ?? t('pitch.cheaperTitle')}>
             {t('pitch.cheaper')}
           </button>
         )}
       </div>
+      {/* a club sync is loading the players: solving now would use the half-read club */}
+      {syncWait && !lock && <p className="solve-wait">{syncWait}</p>}
     </>
   );
 }
@@ -143,6 +145,8 @@ interface Props {
   onPlayerClick: (playerId: number) => void;
   /** the weekly Free quota is used up: Solve and Cheaper are disabled until it resets */
   outOfSolves: boolean;
+  /** a club sync is running: Solve waits for it, with this text (null: solve now) */
+  syncWait: string | null;
   /** players marked to keep out (⊘ badge) */
   marked: Set<number>;
   /** show the Cheaper (deep solve) corner button; default true */
@@ -155,7 +159,7 @@ interface Props {
   loanBadge?: boolean;
 }
 
-export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, marked, cheaper = true, badges, corners = true, loanBadge = false }: Props) {
+export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, placed, selectedId, onPlayerClick, outOfSolves, syncWait, marked, cheaper = true, badges, corners = true, loanBadge = false }: Props) {
   const { t } = useI18n();
   const [showReqs, setShowReqs] = useState(false);
   const positions = meta.formations[challenge.formation] ?? [];
@@ -272,7 +276,7 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
 
       {corners && (
         <PitchCorners
-          lock={lock} solving={solving} outOfSolves={outOfSolves} hasResult={!!result} localOptions={localOptions}
+          lock={lock} solving={solving} outOfSolves={outOfSolves} syncWait={syncWait} hasResult={!!result} localOptions={localOptions}
           onSolve={onSolve} onToggleOptions={onToggleOptions} cheaper={cheaper}
         />
       )}

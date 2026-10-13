@@ -18,11 +18,13 @@ interface Props {
   selectedId: number | null;
   onPlayerClick: (playerId: number) => void;
   outOfSolves: boolean;
+  /** a club sync is running: Solve waits for it, with this text (null: solve now) */
+  syncWait: string | null;
   /** players marked to keep out (⊘ badge) */
   marked: Set<number>;
 }
 
-export function PointsArea({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, selectedId, onPlayerClick, outOfSolves, marked }: Props) {
+export function PointsArea({ meta, challenge, result, solving, onSolve, onToggleOptions, lock, localOptions, selectedId, onPlayerClick, outOfSolves, syncWait, marked }: Props) {
   const { t, lang } = useI18n();
   const n = (v: number) => v.toLocaleString(lang);
   const pts = result?.points;
@@ -84,7 +86,7 @@ export function PointsArea({ meta, challenge, result, solving, onSolve, onToggle
       </div>
 
       <PitchCorners
-        lock={shownLock} solving={solving} outOfSolves={outOfSolves} hasResult={!!result} localOptions={localOptions}
+        lock={shownLock} solving={solving} outOfSolves={outOfSolves} syncWait={syncWait} hasResult={!!result} localOptions={localOptions}
         onSolve={onSolve} onToggleOptions={onToggleOptions} cheaper={false}
       />
     </div>

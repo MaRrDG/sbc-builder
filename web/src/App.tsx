@@ -42,8 +42,8 @@ import { Row, Section } from './components/SettingsRows';
 import { DailyProfileCard } from './components/DailyProfileCard';
 import { LinkedAccounts } from './components/LinkedAccounts';
 import { QuotaMeter } from './components/QuotaMeter';
-import { ClubSyncModal } from './components/ClubSyncModal';
-import { clubSyncRunning } from './club-sync';
+import { ActivityButton, ActivityPanel, ActivityToast } from './components/Activity';
+import { solveWait } from './activity';
 import { OnboardingModal } from './components/OnboardingModal';
 import { RefBanner } from './components/RefBanner';
 import { useFounders } from './landing/Founders';
@@ -153,6 +153,9 @@ export default function App({
   const [showOptions, setShowOptions] = useState(false);
   const [filter, setFilter] = useState('');
   const [menuOpen, setMenuOpen] = useState(false); // phone navigation menu
+  const [activityOpen, setActivityOpen] = useState(false); // sync activity panel under the top bar button
+  const activityBtn = useRef<HTMLButtonElement>(null);
+  const closeActivity = useCallback(() => setActivityOpen(false), []);
   const dailyOpen = useDailyPending(true, true); // the dashboard is signed in only
   const changelogUnread = useChangelogUnread();
   const [syncing, setSyncing] = useState<string | null>(null);
@@ -557,8 +560,11 @@ export default function App({
   }, [streamUp, activeId]);
 
   // Poll sync state when the stream is down, so auto-syncs and new sessions show up without a
-  // reload; faster while the club sync modal shows its progress.
-  const clubSyncing = clubSyncRunning(status, !!account?.session);
+  // reload; faster while a club sync runs in the web app tab (its count moves in the activity panel).
+  const wait = solveWait(status?.jobs ?? []);
+  const clubSyncing = !!wait && wait.state === 'running';
+  // Solve waits for a club sync that is loading players, so it never solves a half-read club
+  const syncWait = wait ? t('activity.solveWait', { done: wait.done, total: wait.total ?? '?' }) : null;
   useEffect(() => {
     if (!activeId || streamUp) return;
     const t = setInterval(async () => {
@@ -700,8 +706,8 @@ export default function App({
     return () => window.removeEventListener('keydown', onKey);
   }, [menuOpen]);
 
-  // On every screen, a visit lets the server refresh a club older than 2 h (ClubSyncModal shows
-  // it); on the SBC screens also the SBC list (30 min cooldown). Needs the web app open.
+  // On every screen, a visit lets the server refresh a club older than 2 h (the activity panel
+  // shows it); on the SBC screens also the SBC list (30 min cooldown). Needs the web app open.
   const onSbcs = view === 'sbcs';
   const live = !!account?.session;
   useEffect(() => {
@@ -769,7 +775,7 @@ export default function App({
 
   // the SBC storage is in by default; "Cheaper?" keeps a club-only squad club only
   const runSolve = async (deep = false, opts = solveOptions, useStorage = !(deep && result?.clubOnly)) => {
-    if (!challenge || lock || outOfSolves) return;
+    if (!challenge || lock || outOfSolves || syncWait) return;
     setSelectedId(null);
     setMarked(new Set());
     setSolving(true);
@@ -932,37 +938,6 @@ export default function App({
 
   const controls = (
     <>
-          <div className="sync">
-            <button
-              type="button"
-              className="ghost"
-              disabled={busy || !account?.session || clubWait > 0}
-              onClick={() => doSync('club')}
-              title={
-clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
-              }
-            >
-              <ArrowsClockwise weight="bold" className={syncing === 'club' || status?.running === 'club' ? 'spin' : ''} />
-              <span>{t('top.club')}</span>
-              <small>
-                {ago(status?.clubAt ?? null)}
-              </small>
-            </button>
-            <span className="ghost sync-info" title={t('top.sbcTitle')}>
-              <ArrowsClockwise weight="bold" className={status?.running === 'sbc' ? 'spin' : ''} />
-              <span>{t('top.sbcs')}</span>
-              <small>
-                {ago(status?.sbcAt ?? null)} ·{' '}
-                {status?.sbcNextAt == null
-                  ? t('top.sbcAuto')
-                  : status.sbcNextAt > now
-                    ? t('top.sbcNext', { m: Math.max(1, Math.ceil((status.sbcNextAt - now) / 60_000)) })
-                    : t('top.sbcReady')}
-              </small>
-            </span>
-            {account && !fresh && <small className="updating" aria-live="polite">{t('top.updating')}</small>}
-          </div>
-
           <button
             type="button"
             className={`ghost icon-label${showGuide ? ' on' : ''}`}
@@ -1000,8 +975,8 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
   return (
     <UpgradeContext.Provider value={upgrade}>
     <div className="app">
-      <ClubSyncModal status={status} players={club.length} live={!!account?.session} />
-      {survey /* never on top of a running club sync: that dialog blocks the page */}
+      {survey}
+      <ActivityToast jobs={status?.jobs ?? []} players={club.length} />
       <GalleryInfo open={galleryInfo} onClose={closeGalleryInfo} />
       <header className="topbar">
         <a className="brand" href="/dashboard" aria-label={t('top.home')}>
@@ -1011,6 +986,32 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
             <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="124" height="32" />
           </picture>
         </a>
+
+        <div className="activity">
+          <ActivityButton
+            status={status}
+            live={!!account?.session}
+            open={activityOpen}
+            onToggle={() => {
+              setMenuOpen(false);
+              setActivityOpen((v) => !v);
+            }}
+            buttonRef={activityBtn}
+          />
+          {account && !fresh && <small className="updating" aria-live="polite">{t('top.updating')}</small>}
+          {activityOpen && (
+            <ActivityPanel
+              status={status}
+              now={now}
+              busy={busy}
+              live={!!account?.session}
+              clubWait={clubWait}
+              onClose={closeActivity}
+              onSyncClub={() => void doSync('club')}
+              buttonRef={activityBtn}
+            />
+          )}
+        </div>
 
         <div className="top-controls">
           {controls}
@@ -1028,7 +1029,6 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
           />
         </div>
 
-        <span className={`session mobile-only ${account?.session ? 'on' : ''}`}>{account?.session ? t('top.live') : t('top.offline')}</span>
         <button
           type="button"
           className="hamburger mobile-only"
@@ -1496,7 +1496,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                     {result?.usedStorage && !result.clubOnly && !solving && (
                       <div className="notice-inline" role="status">
                         {t('set.storageUsed', { count: shownPlayers.filter((p) => p.inStorage).length })}{' '}
-                        <button type="button" className="text" disabled={outOfSolves} onClick={() => void runSolve(false, solveOptions, false)}>
+                        <button type="button" className="text" disabled={outOfSolves || !!syncWait} title={syncWait ?? undefined} onClick={() => void runSolve(false, solveOptions, false)}>
                           {t('set.storageClubOnly')}
                         </button>
                       </div>
@@ -1504,7 +1504,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                     {result?.clubOnly && storage.length > 0 && !solving && (
                       <div className="notice-inline" role="status">
                         {t('set.storageLeftOut', { count: storage.length })}{' '}
-                        <button type="button" className="text" disabled={outOfSolves} onClick={() => void runSolve(false, solveOptions, true)}>
+                        <button type="button" className="text" disabled={outOfSolves || !!syncWait} title={syncWait ?? undefined} onClick={() => void runSolve(false, solveOptions, true)}>
                           {t('set.storageUse')}
                         </button>
                       </div>
@@ -1557,6 +1557,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                         selectedId={selectedId}
                         onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
                         outOfSolves={outOfSolves}
+                        syncWait={syncWait}
                         marked={marked}
                       />
                     ) : (
@@ -1573,6 +1574,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                         selectedId={selectedId}
                         onPlayerClick={(id) => setSelectedId((cur) => (cur === id ? null : id))}
                         outOfSolves={outOfSolves}
+                        syncWait={syncWait}
                         marked={marked}
                       />
                     )}

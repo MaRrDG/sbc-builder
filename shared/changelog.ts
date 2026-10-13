@@ -18,6 +18,24 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-13',
+    date: '2026-10-13',
+    items: {
+      en: [
+        'Faster dashboard: your SBCs and club show up at once when you open FC Solver, and syncs show their progress live in the new activity panel without blocking the page',
+        'Extension 1.0.3: syncs start right away',
+      ],
+      ro: [
+        'Dashboard mai rapid: SBC-urile și clubul apar imediat ce deschizi FC Solver, iar sincronizările își arată progresul în timp real în noul panou de activitate, fără să blocheze pagina',
+        'Extensia 1.0.3: sincronizările pornesc pe loc',
+      ],
+      it: [
+        'Dashboard più veloce: SBC e club compaiono subito quando apri FC Solver, e le sincronizzazioni mostrano i progressi in tempo reale nel nuovo pannello attività, senza bloccare la pagina',
+        'Estensione 1.0.3: le sincronizzazioni partono subito',
+      ],
+    },
+  },
+  {
     id: '2026-10-12',
     date: '2026-10-12',
     items: {

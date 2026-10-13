@@ -699,6 +699,7 @@ export function ObjectivesView({ meta, personaId, extVersionOk, excludeIds, maxR
                 selectedId={null}
                 onPlayerClick={() => {}}
                 outOfSolves={!active.length}
+                syncWait={null}
                 marked={NO_IDS}
                 cheaper={false}
                 corners={false}
