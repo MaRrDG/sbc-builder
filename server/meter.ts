@@ -97,7 +97,12 @@ export class RequestMeter {
   async pause() {
     const d = await this.load();
     d.pausedUntil = Date.now() + COOLDOWN_MS;
-    await writeCache(this.cacheKey, d);
+    try {
+      await writeCache(this.cacheKey, d);
+    } catch (e) {
+      // the in-memory pause still holds; only a restart before the next write would lose it
+      console.error(`[meter] persisting the pause failed: ${(e as Error).message}`);
+    }
     logEvent({ type: 'ea_error', personaId: this.personaId, data: { code: 'throttle' } });
   }
 
