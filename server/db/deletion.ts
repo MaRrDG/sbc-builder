@@ -148,7 +148,8 @@ export async function anonymizeEvents(userId: string, purgedPersonas: number[]):
       .where(and(eq(events.userId, userId), inArray(events.type, ['redeem', 'points', 'daily_win'])));
     await tx.update(events).set({ data: sql`jsonb_set(${events.data}, '{codeOwner}', 'null')` })
       .where(and(eq(events.type, 'redeem'), sql`${events.data}->>'codeOwner' = ${userId}`));
-    await tx.update(events).set({ data: sql`jsonb_set(${events.data}, '{ref}', '""')` })
+    // an invite point on the inviter's row names the invitee (ref) and carries the invitee's IP hash: both go
+    await tx.update(events).set({ data: sql`jsonb_set(${events.data} - 'ipHash', '{ref}', '""')` })
       .where(and(eq(events.type, 'points'), sql`${events.data}->>'ref' = ${userId}`));
     await tx.update(events).set({ data: sql`${events.data} - 'by'` })
       .where(and(eq(events.type, 'points'), sql`${events.data}->>'by' = ${userId}`));

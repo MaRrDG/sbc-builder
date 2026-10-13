@@ -28,7 +28,10 @@ test('sanitizeEvent strips paddle ids from billing events only', () => {
 
 test('sanitizeEvent drops other users\' ids from redeem and points events', () => {
   assert.deepEqual(sanitizeEvent({ type: 'redeem', data: { kind: 'gift', codeOwner: 'user_x', ipHash: 'ab' } }).data, { kind: 'gift', ipHash: 'ab' });
-  assert.deepEqual(sanitizeEvent({ type: 'points', data: { delta: 1, reason: 'invite', ref: 'user_y', ipHash: null } }).data, { delta: 1, reason: 'invite', ref: null, ipHash: null });
+  assert.deepEqual(sanitizeEvent({ type: 'points', data: { delta: 1, reason: 'invite', ref: 'user_y', ipHash: null } }).data, { delta: 1, reason: 'invite', ref: null });
+  // the invitee's IP hash on the inviter's invite point never reaches the inviter's export
+  assert.deepEqual(sanitizeEvent({ type: 'points', data: { delta: 1, reason: 'invite', ref: 'user_y', ipHash: 'cafe' } }).data, { delta: 1, reason: 'invite', ref: null });
+  assert.deepEqual(sanitizeEvent({ type: 'points', data: { delta: 1, reason: 'daily_streak', ref: '2026-10-13', ipHash: 'cafe' } }).data, { delta: 1, reason: 'daily_streak', ref: '2026-10-13', ipHash: 'cafe' });
   assert.deepEqual(sanitizeEvent({ type: 'points', data: { delta: -3, reason: 'admin', ref: 'farm', by: 'user_admin', ipHash: null } }).data, { delta: -3, reason: 'admin', ref: 'farm', ipHash: null });
 });
 

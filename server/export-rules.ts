@@ -38,7 +38,10 @@ export function sanitizeEvent<T extends { type: string; data: Json }>(e: T): T {
   else if (e.type === 'redeem') delete data.codeOwner;
   else if (e.type === 'points') {
     delete data.by;
-    if (data.reason === 'invite') data.ref = null; // the invitee's user id
+    if (data.reason === 'invite') {
+      data.ref = null; // the invitee's user id
+      delete data.ipHash; // the invitee's network, not this user's
+    }
   } else return e;
   return { ...e, data };
 }
