@@ -60,6 +60,7 @@ import { createLimiter } from './limits.js';
 import { buildExport } from './export.js';
 import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
+import { squadFor, squadsFor } from './squads/io.js';
 import { installDailyIngest } from './daily/store.js';
 import { installHistory } from './history/ingest.js';
 import { registerDailyRoutes } from './daily/routes.js';
@@ -737,6 +738,22 @@ app.get('/api/gallery', async (req) => {
   const { userId, acc } = await siteContext(req);
   if ((await planFor(userId)).tier !== 'premium') throw new SessionError('FUT Gallery is a Premium feature.', 403, 'premiumOnly');
   return galleryFor(acc, await metaFor(acc));
+});
+
+// My Squads (Premium): the saved squads the web app loaded, each with its value (EA's marketAverage); cache only
+app.get('/api/squads', async (req) => {
+  const { userId, acc } = await siteContext(req);
+  if ((await planFor(userId)).tier !== 'premium') throw new SessionError('My Squads is a Premium feature.', 403, 'premiumOnly');
+  return squadsFor(acc, await metaFor(acc));
+});
+
+app.get<{ Params: { id: string } }>('/api/squads/:id', async (req, reply) => {
+  const { userId, acc } = await siteContext(req);
+  if ((await planFor(userId)).tier !== 'premium') throw new SessionError('My Squads is a Premium feature.', 403, 'premiumOnly');
+  const id = /^\d{1,9}$/.test(req.params.id) ? Number(req.params.id) : null;
+  const squad = id === null ? null : await squadFor(acc, await metaFor(acc), id);
+  if (!squad) return reply.code(404).send({ error: 'squad not found', code: 'squadNotFound', params: {} });
+  return squad;
 });
 
 // Objectives (Premium): the web app's objectives with the squad condition read from each, plus the groups of

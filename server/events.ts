@@ -7,7 +7,8 @@
 //  - GET /sbs/hub/v2 (or the older /sbs/sets), GET /sbs/setId/{id}/challenges -> SBC list and challenges;
 //  - POST /club pages -> players upserted; a complete unfiltered scan replaces the club
 //    (pages of a club sync job carry its id and are put together per job, see club-pages.ts);
-//  - GET /squad/list + /squad/{id} (or /squad/active) -> active squad;
+//  - GET /squad/list + /squad/{id} (or /squad/active) -> active squad, and every saved squad for My Squads
+//    (`squads` + `squads/<id>`, server/squads/);
 //  - GET /chemistry/profiles -> promo chemistry profiles;
 //  - GET /storagepile -> the SBC storage (players the solver may use on request);
 //  - academy responses (Evolutions) -> timed training rows (server/evos.ts).
@@ -26,6 +27,7 @@ import { saveTrainings } from './db/evos.js';
 import type { EaCategory } from './objectives/types.js';
 import { shareObjectives } from './objectives/shared-io.js';
 import { addClubPage, assembleClub, loadedPlayers } from './club-pages.js';
+import { saveSquad, saveSquadList } from './squads/io.js';
 
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const OBJECTIVES_PATH = '/scmp/objective/categories/all';
@@ -179,10 +181,14 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
   }
   if (method === 'GET' && ev.path === '/squad/list') {
     if (Number.isInteger(res.activeSquadId)) activeSquadIds.set(acc.id, res.activeSquadId as number);
+    await saveSquadList(acc, ev.response); // My Squads; quiet (no UI reload for browsing squads)
     return null;
   }
   const squad = ev.path.match(/^\/squad\/(active|\d+)$/)?.[1];
-  if (method === 'GET' && squad) return onSquad(acc, squad === 'active' ? 'active' : Number(squad), res);
+  if (method === 'GET' && squad) {
+    await saveSquad(acc, ev.response, squad === 'active' ? null : Number(squad)); // any squad, for My Squads
+    return onSquad(acc, squad === 'active' ? 'active' : Number(squad), res);
+  }
   // A challenge's squad as the web app sees it (players already placed, EA's fixed "brick" slots).
   // Kept raw for now: the exact shape still has to be read from real responses.
   const sbcSquad = ev.path.match(/^\/sbs\/challenge\/(\d+)(\/squad)?$/);
