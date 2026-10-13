@@ -2,9 +2,8 @@
 export const DELETE_DELAY_MS = 7 * 24 * 3600 * 1000;
 export const deleteDate = (now: number) => new Date(now + DELETE_DELAY_MS);
 
-const WORDS = new Set(['delete', 'șterge', 'elimina']);
-/** The word typed in the confirm box, in any site language. */
-export const isConfirmWord = (s: unknown) => typeof s === 'string' && WORDS.has(s.trim().toLocaleLowerCase('ro'));
+/** The word typed in the confirm box, in any site language (shared with the site). */
+export { isConfirmWord } from '../shared/confirm-word.js';
 
 /**
  * Which EA accounts lose their data when `userId` goes: those no OTHER user currently owns.

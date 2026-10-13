@@ -22,6 +22,8 @@ export interface AccountInfo {
 
 export class Account {
   readonly meter: RequestMeter;
+  /** Set by forgetAccount (account deletion): a racing request holding this object must not write account.json again. */
+  dropped = false;
 
   constructor(public info: AccountInfo) {
     this.meter = new RequestMeter(`accounts/${info.personaId}/ea-requests`, info.personaId);
@@ -52,8 +54,9 @@ export class Account {
     if (extVersion) this.info.extVersion = extVersion;
   }
 
-  save() {
-    return writeCache(this.key('account'), this.info);
+  async save() {
+    if (this.dropped) return;
+    await writeCache(this.key('account'), this.info);
   }
 
   /** Public view: never leak the SID or the access key. */
@@ -127,6 +130,8 @@ export function listAccounts() {
 
 /** Drop an account from memory (account deletion purges its folder right after). */
 export function forgetAccount(personaId: number): void {
+  const a = accounts.get(personaId);
+  if (a) a.dropped = true;
   accounts.delete(personaId);
 }
 

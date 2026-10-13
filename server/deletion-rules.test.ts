@@ -2,9 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DELETE_DELAY_MS, deleteDate, isConfirmWord, purgePlan } from './deletion-rules.js';
 
-test('confirm word: any language, trimmed, case-insensitive; nothing else', () => {
-  for (const w of ['DELETE', 'delete', ' Delete ', 'ȘTERGE', 'șterge', 'ELIMINA', 'elimina']) assert.equal(isConfirmWord(w), true, w);
-  for (const w of ['', 'DEL', 'yes', 'STERGE', null, 42]) assert.equal(isConfirmWord(w), false, String(w));
+test('confirm word: the shared rule (shared/confirm-word.test.ts)', () => {
+  for (const w of ['DELETE', 'ȘTERGE', 'STERGE', 'şterge', 'elimina']) assert.equal(isConfirmWord(w), true, w);
+  for (const w of ['', 'yes', null]) assert.equal(isConfirmWord(w), false, String(w));
 });
 
 test('deletion date is 7 days ahead', () => {

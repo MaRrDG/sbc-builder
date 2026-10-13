@@ -15,6 +15,7 @@ import {
   deleteAtOf,
   deleteSubsOf,
   dueDeletions,
+  ownerOf,
   personasForPurge,
   purgePersonaRows,
   purgeUserRows,
@@ -63,17 +64,30 @@ export async function requestDeletion(userId: string, confirm: unknown): Promise
   const c = billingConfig();
   if (c) {
     const mine: string[] = [];
+    let cancelledNow = false;
     try {
       for (const s of await subscriptionsOf(userId)) {
-        if (RENEWING.has(s.status) && !s.cancelAt && (await stopRenewal(c, s.id, s.status)) === 'scheduled') mine.push(s.id);
+        if (!RENEWING.has(s.status) || s.cancelAt) continue;
+        const r = await stopRenewal(c, s.id, s.status);
+        if (r === 'scheduled') mine.push(s.id);
+        if (r === 'now') cancelledNow = true;
       }
       await addDeleteSubs(userId, mine);
     } catch (e) {
       console.warn(`[deletion] renewal stop failed: ${(e as Error).message}`);
       if (fresh) {
         // nothing stays scheduled while a renewal still runs: undo this call's cancels, the user retries
-        for (const id of mine) await removeScheduledChange(c, id).catch((x) => console.warn(`[deletion] undo failed: ${(x as Error).message}`));
-        await clearDeletion(userId);
+        const notUndone: string[] = [];
+        for (const id of mine) {
+          await removeScheduledChange(c, id).catch((x) => {
+            console.warn(`[deletion] undo failed: ${(x as Error).message}`);
+            notUndone.push(id);
+          });
+        }
+        // a stop that could not be undone (or a past_due subscription already cancelled) must stay visible:
+        // keep the date, so the banner and Cancel deletion (which retries these) stay available
+        if (notUndone.length || cancelledNow) await addDeleteSubs(userId, notUndone).catch(() => {});
+        else await clearDeletion(userId);
       } else await addDeleteSubs(userId, mine).catch(() => {});
       throw new SessionError('Could not stop the subscription renewal. Try again in a minute.', 502, 'deletePaddle');
     }
@@ -94,8 +108,11 @@ async function mailRequested(userId: string, at: Date): Promise<void> {
 }
 
 /** POST /api/me/delete/cancel: the account stays; only renewals the request itself stopped restart. Nothing scheduled: nothing to do. */
-export async function cancelDeletion(userId: string): Promise<{ deleteAt: null }> {
-  if (!(await deleteAtOf(userId))) return { deleteAt: null };
+export async function cancelDeletion(userId: string, now = Date.now()): Promise<{ deleteAt: null }> {
+  const at = await deleteAtOf(userId);
+  if (!at) return { deleteAt: null };
+  // the date has come: the hourly purge may already be running, too late to keep the account
+  if (at.getTime() <= now) throw new SessionError('Your account is being deleted.', 409, 'deleteInProgress');
   const c = billingConfig();
   const subs = await deleteSubsOf(userId);
   if (c) {
@@ -123,10 +140,12 @@ export interface PurgeDeps {
   paddleCancelNow(subIds: string[]): Promise<void>;
   clerkDelete(userId: string): Promise<void>;
   personasForPurge: typeof personasForPurge;
+  /** fresh read of personas.user_id right before acting on one EA account */
+  ownerOf(personaId: number): Promise<string | null>;
   forgetAccount(personaId: number): void;
   dropKeys(prefix: string): Promise<void>;
   anonymizePersonaEvents(personaId: number): Promise<void>;
-  purgePersonaRows(personaId: number): Promise<void>;
+  purgePersonaRows(personaId: number, userId: string): Promise<void>;
   unlinkUser(personaId: number, userId: string): Promise<void>;
   anonymizeEvents(userId: string, purgedPersonas: number[]): Promise<void>;
   purgeUserRows(userId: string): Promise<void>;
@@ -150,6 +169,7 @@ const defaultDeps: PurgeDeps = {
   },
   clerkDelete: async (userId) => void (await clerkApi().users.deleteUser(userId)),
   personasForPurge,
+  ownerOf,
   forgetAccount,
   dropKeys,
   anonymizePersonaEvents,
@@ -175,14 +195,21 @@ export async function purgeUser(userId: string, deps: PurgeDeps = defaultDeps): 
   }
   const { personas, links } = await deps.personasForPurge(userId);
   const plan = purgePlan(userId, personas, links);
+  const purged: number[] = [];
   for (const id of plan.purge) {
+    const owner = await deps.ownerOf(id); // another user may have linked it since the plan was read
+    if (owner && owner !== userId) {
+      await deps.unlinkUser(id, userId);
+      continue;
+    }
+    purged.push(id);
     deps.forgetAccount(id); // first: an in-flight cache write must not find the account any more
     await deps.dropKeys(`accounts/${id}`);
     await deps.anonymizePersonaEvents(id); // before the rows: once they are gone the next run no longer sees this persona
-    await deps.purgePersonaRows(id);
+    await deps.purgePersonaRows(id, userId);
   }
   for (const id of plan.unlinkOnly) await deps.unlinkUser(id, userId);
-  await deps.anonymizeEvents(userId, plan.purge);
+  await deps.anonymizeEvents(userId, purged);
   await deps.purgeUserRows(userId);
 }
 

@@ -77,20 +77,29 @@ export async function personasForPurge(
   return { personas: rows, links: lRows };
 }
 
+/** The current owner of an EA account (null: no personas row or nobody). */
+export async function ownerOf(personaId: number): Promise<string | null> {
+  const [row] = await db.select({ userId: personas.userId }).from(personas).where(eq(personas.personaId, personaId));
+  return row?.userId ?? null;
+}
+
 /** Admin history keeps this EA account's events without its id. Runs before its rows go, so a crash between can't skip it. */
 export async function anonymizePersonaEvents(personaId: number): Promise<void> {
   await db.update(events).set({ personaId: null }).where(eq(events.personaId, personaId));
 }
 
-/** Every DB row keyed by this EA account (the cache folder goes separately, store.dropKeys(`accounts/<id>`)). */
-export async function purgePersonaRows(personaId: number): Promise<void> {
+/**
+ * Every DB row keyed by this EA account (the cache folder goes separately, store.dropKeys(`accounts/<id>`)).
+ * Other users' persona_links rows stay (two ids and a date): the 3-accounts-ever limit must not reset on delete.
+ */
+export async function purgePersonaRows(personaId: number, userId: string): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.delete(completionMarks).where(eq(completionMarks.personaId, personaId));
     await tx.delete(completions).where(eq(completions.personaId, personaId));
     await tx.delete(evoTrainings).where(eq(evoTrainings.personaId, personaId));
     await tx.delete(brickReports).where(eq(brickReports.personaId, personaId));
     await tx.delete(trustedAccounts).where(eq(trustedAccounts.personaId, personaId));
-    await tx.delete(personaLinks).where(eq(personaLinks.personaId, personaId));
+    await tx.delete(personaLinks).where(and(eq(personaLinks.personaId, personaId), eq(personaLinks.userId, userId)));
     await tx.delete(personas).where(eq(personas.personaId, personaId));
   });
 }
