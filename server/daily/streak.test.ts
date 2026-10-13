@@ -1,10 +1,20 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { nextMilestone, pointsFor, statsOf, streakOf, type Play } from './streak.js';
+import { nextMilestone, pointsFor, pointsForWin, statsOf, streakOf, type Play } from './streak.js';
 
 test('points at 7, 14, 30 and every 30 after', () => {
   const got = Object.fromEntries([0, 1, 6, 7, 8, 14, 29, 30, 31, 37, 44, 60, 67, 74, 90].map((s) => [s, pointsFor(s)]));
   assert.deepEqual(got, { 0: 0, 1: 0, 6: 0, 7: 1, 8: 0, 14: 1, 29: 0, 30: 2, 31: 0, 37: 1, 44: 1, 60: 2, 67: 1, 74: 1, 90: 2 });
+});
+
+test('a win in 1 guess keeps the milestone streak but pays no points; 2+ guesses pay as usual', () => {
+  assert.equal(pointsForWin(7, 1), 0);
+  assert.equal(pointsForWin(30, 1), 0);
+  assert.equal(pointsForWin(7, 2), 1);
+  assert.equal(pointsForWin(30, 5), 2);
+  assert.equal(pointsForWin(8, 3), 0);
+  // the streak itself still counts the 1-guess day
+  assert.equal(streakOf([{ day: 1, won: true, guesses: 2 }, { day: 2, won: true, guesses: 1 }], 2).current, 2);
 });
 
 const won = (from: number, to: number): Play[] => Array.from({ length: to - from + 1 }, (_, i) => ({ day: from + i, won: true, guesses: 3 }));

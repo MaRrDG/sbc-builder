@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  CODE_ALPHABET, PRICES, checkRedeem, checkSpend, extendPremium, generateCode, isLifetime,
+  CODE_ALPHABET, GIFT_LIMIT, PRICES, checkGift, checkRedeem, checkSpend, extendPremium, generateCode, giftWindowStart, invitePointAllowed, isLifetime, sharePersona,
   maskEmail, normalizeCode, parsePromo, parseSpend, rewardDays, type CodeRow,
 } from './referrals.js';
 
@@ -33,15 +33,44 @@ test('normalizeCode', () => {
 });
 
 test('checkRedeem: refusals', () => {
-  assert.equal(checkRedeem(null, ctx), 'codeUnknown');
-  assert.equal(checkRedeem(code({ disabled: true }), ctx), 'codeDisabled');
-  assert.equal(checkRedeem(code({ kind: 'promo', ownerId: null, expiresAt: new Date(NOW - 1) }), ctx), 'codeExpired');
-  assert.equal(checkRedeem(code({ kind: 'promo', ownerId: null, maxUses: 3, uses: 3 }), ctx), 'codeFull');
+  // unknown, disabled, expired and used-up codes look the same to the user
+  assert.equal(checkRedeem(null, ctx), 'codeInvalid');
+  assert.equal(checkRedeem(code({ disabled: true }), ctx), 'codeInvalid');
+  assert.equal(checkRedeem(code({ kind: 'promo', ownerId: null, expiresAt: new Date(NOW - 1) }), ctx), 'codeInvalid');
+  assert.equal(checkRedeem(code({ kind: 'promo', ownerId: null, maxUses: 3, uses: 3 }), ctx), 'codeInvalid');
   assert.equal(checkRedeem(code({ ownerId: 'u_me' }), ctx), 'codeOwn');
   assert.equal(checkRedeem(code({ kind: 'gift', ownerId: 'u_me', days: 7, maxUses: 1 }), ctx), 'codeOwn');
   assert.equal(checkRedeem(code(), { ...ctx, usedInvite: true }), 'inviteUsed');
   assert.equal(checkRedeem(code({ kind: 'promo', ownerId: null }), { ...ctx, usedThis: true }), 'codeUsed');
-  assert.equal(checkRedeem(code({ kind: 'gift', days: 7, maxUses: 1, uses: 1 }), ctx), 'codeFull');
+  assert.equal(checkRedeem(code({ kind: 'gift', days: 7, maxUses: 1, uses: 1 }), ctx), 'codeInvalid');
+});
+
+test('checkRedeem: gift limits', () => {
+  const gift = code({ kind: 'gift', ownerId: 'u_friend', days: 30, maxUses: 1 });
+  assert.equal(checkRedeem(gift, { ...ctx, gift: { giftsRecent: 0, sharesEa: false } }), null);
+  assert.equal(checkRedeem(gift, { ...ctx, gift: { giftsRecent: 1, sharesEa: false } }), null);
+  assert.equal(checkRedeem(gift, { ...ctx, gift: { giftsRecent: GIFT_LIMIT, sharesEa: false } }), 'giftLimit');
+  assert.equal(checkRedeem(gift, { ...ctx, gift: { giftsRecent: 0, sharesEa: true } }), 'giftSameEa');
+  // promo and invite codes are not gifts: the gift context does not apply
+  assert.equal(checkRedeem(code({ kind: 'promo', ownerId: null }), { ...ctx, gift: { giftsRecent: 9, sharesEa: true } }), null);
+  // the code's own refusals come first
+  assert.equal(checkRedeem({ ...gift, uses: 1 }, { ...ctx, gift: { giftsRecent: 9, sharesEa: true } }), 'codeInvalid');
+});
+
+test('checkGift, sharePersona, giftWindowStart', () => {
+  assert.equal(checkGift({ giftsRecent: 1, sharesEa: false }), null);
+  assert.equal(checkGift({ giftsRecent: 2, sharesEa: false }), 'giftLimit');
+  assert.equal(checkGift({ giftsRecent: 0, sharesEa: true }), 'giftSameEa');
+  assert.equal(sharePersona([1, 2], [3, 2]), true);
+  assert.equal(sharePersona([1, 2], [3]), false);
+  assert.equal(sharePersona([], []), false);
+  assert.equal(giftWindowStart(NOW).getTime(), NOW - 30 * DAY);
+});
+
+test('invitePointAllowed: no point for inviting one\'s own persona', () => {
+  assert.equal(invitePointAllowed('owner', ['invitee']), true);
+  assert.equal(invitePointAllowed('owner', ['invitee', 'owner']), false);
+  assert.equal(invitePointAllowed('owner', []), true);
 });
 
 test('checkRedeem: accepted', () => {

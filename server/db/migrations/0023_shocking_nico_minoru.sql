@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "point_ledger_daily_persona" ON "point_ledger" USING btree ("persona_id","ref") WHERE reason = 'daily_streak';

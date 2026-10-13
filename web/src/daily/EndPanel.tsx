@@ -10,7 +10,7 @@ import { StatsBody } from './Sheets';
 import { track } from '../track';
 
 interface Props {
-  game: { rows: DailyRow[]; won: boolean; answer?: DailyAnswer };
+  game: { rows: DailyRow[]; won: boolean; answer?: DailyAnswer | null };
   info: DailyInfo;
   practice: boolean;
   signedIn: boolean;
@@ -51,6 +51,8 @@ export function EndPanel({ game, info, practice, signedIn, animate, stats, point
     <section className={`dg-end${game.won ? ' won' : ' lost'}${animate ? ' late' : ''}`} aria-live="polite">
       {game.won ? (
         <h2 className="dg-end-title">{t('daily.won', { n: game.rows.length, max: info.maxGuesses })}</h2>
+      ) : game.answer === null ? (
+        <h2 className="dg-end-title">{t('daily.lostHidden')}</h2>
       ) : (
         <h2 className="dg-end-title">
           <span className="dg-end-pre">{t('daily.lost')}</span> <strong>{game.answer?.name}</strong>
@@ -79,12 +81,13 @@ export function EndPanel({ game, info, practice, signedIn, animate, stats, point
       {fallback && <textarea ref={area} className="dg-share-text" readOnly rows={fallback.split('\n').length} value={fallback} aria-label={t('daily.share')} />}
       {!practice && (
         <div className="dg-end-stats">
-          <StatsBody stats={stats} signedIn={signedIn} today={game.won ? game.rows.length : null} points={points} />
+          <StatsBody stats={stats} signedIn={signedIn} today={game.won ? game.rows.length : null} points={points} eaLinked={info.eaLinked} />
         </div>
       )}
       {!practice && !signedIn && (
         <p className="dg-invite">
-          {t('daily.signIn')} {link({ view: 'signin', next: '/daily' }, 'dg-invite-link', t('landing.signIn'))}
+          {/* signed out and lost: the answer stays hidden until the next drop */}
+          {game.answer === null ? t('daily.hiddenNote') : t('daily.signIn')} {link({ view: 'signin', next: '/daily' }, 'dg-invite-link', t('landing.signIn'))}
         </p>
       )}
     </section>

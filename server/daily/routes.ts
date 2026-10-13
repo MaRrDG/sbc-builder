@@ -7,6 +7,7 @@ import { SessionError } from '../ea.js';
 import { createLimiter } from '../limits.js';
 import { requestOrigin } from '../extension.js';
 import { publicOrigin } from '../origins.js';
+import { ipHash } from '../ip-hash.js';
 import { dailyInfo, guessPractice, guessToday, invalidateLeaderboard, newPractice, publicLeaderboard } from './service.js';
 import { normalizeUsername } from './username.js';
 import { loadPlayers, namesList } from './store.js';
@@ -40,7 +41,7 @@ export function registerDailyRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { assetId?: unknown; state?: unknown; day?: unknown } }>('/api/daily/guess', async (req) => {
     if (!guessLimit(req.ip)) throw tooMany();
-    return guessToday(await optionalSiteUser(req), assetIdOf(req.body), req.body?.state, req.body?.day);
+    return guessToday(await optionalSiteUser(req), assetIdOf(req.body), req.body?.state, req.body?.day, ipHash(req.ip));
   });
 
   app.post('/api/daily/practice', async (req) => {
@@ -74,6 +75,9 @@ export function registerDailyRoutes(app: FastifyInstance) {
       asked: b.asked === true ? true : undefined,
     });
     if (r === 'usernameTaken') throw new SessionError('That username is taken.', 409, 'usernameTaken');
+    if (r === 'usernameReserved') throw new SessionError('That username is not available.', 400, 'usernameReserved');
+    if (typeof r === 'object' && 'cooldownUntil' in r)
+      throw new SessionError('You can change your username again later.', 429, 'usernameCooldown', { date: r.cooldownUntil.toISOString().slice(0, 10) });
     if (r === 'usernameRequired') throw new SessionError('Pick a username first.', 400, 'usernameRequired');
     invalidateLeaderboard();
     return r;

@@ -37,6 +37,8 @@ services:
       EMAIL_SECRET: ${EMAIL_SECRET:-}
       # OpenWebTrack <script> tag (cookieless); empty = no analytics
       ANALYTICS_SNIPPET: ${ANALYTICS_SNIPPET:-}
+      # 1 = enforce the Content-Security-Policy (dev first); empty = report-only
+      CSP_ENFORCE: ${CSP_ENFORCE:-}
       # Discord bot API (/api/bot/*); empty = off. The bot service gets the same value.
       BOT_API_TOKEN: ${BOT_API_TOKEN:-}
       # invite link shown on the Linked accounts screen and in the sidebar ("Join our Discord"); empty = hidden
@@ -55,6 +57,8 @@ services:
       EA_DAILY_LIMIT: ${EA_DAILY_LIMIT:-}
       CLUB_MANUAL_COOLDOWN_MIN: ${CLUB_MANUAL_COOLDOWN_MIN:-}
       DAILY_SECRET: ${DAILY_SECRET:-}
+      # salt of the IP hashes in the admin event log (empty: derived from EMAIL_SECRET / CLERK_SECRET_KEY)
+      IP_HASH_SALT: ${IP_HASH_SALT:-}
       DAILY_MIN_RATING: ${DAILY_MIN_RATING:-}
       DAILY_RATING_FLOOR: ${DAILY_RATING_FLOOR:-}
       DAILY_MIN_POOL: ${DAILY_MIN_POOL:-}

@@ -21,6 +21,8 @@ Severity is about how much free Premium can be had, or how far the leaderboard c
 
 ### D1 — The Daily answer can be read before the signed-in game (high)
 
+**Status:** Fixed in stage 4 (2026-10-13): a signed-out loss no longer reveals the answer, and 1-guess wins earn no points and no leaderboard rank.
+
 - **Where:** `server/daily/service.ts:148-156` (signed-out branch: `state` null = new game, no tie to the client); `server/daily/game.ts:42` (a finished view carries `answer`); `server/daily/routes.ts:41-44` (signed-out and signed-in share the endpoint).
 - **Scenario:** In a private window, the attacker makes 5 wrong signed-out guesses. The fifth response contains the full answer (`answer.id`, name). They then make one signed-in guess with that id: a win in 1 guess. This works every day, takes 6 requests, and is easy to script. A second Clerk account that loses on purpose gives the same result. Effects: a guaranteed win streak, so guaranteed streak points (see P1), and the top of the leaderboard (`avgGuesses` 1.0 beats every honest player with the same win count; `server/daily/leaderboard.ts:24-28`).
 - **Evidence:** tests `audit D1: a signed-out loss reveals today's answer…` and `audit D1: one-guess wins every day top the leaderboard…` (`server/daily/abuse.test.ts`).
@@ -31,12 +33,16 @@ Severity is about how much free Premium can be had, or how far the leaderboard c
 
 ### P1 — Daily points need only a Clerk account; gift codes transfer them (high)
 
+**Status:** Fixed in stage 4 (2026-10-13): Daily points need a linked EA account, gifts have caps and a same-EA check.
+
 - **Where:** `server/db/daily.ts:62-77` (`guessDaily` grants `daily_streak` points with no persona, plan or account-age check); `server/daily/routes.ts:43` (`optionalSiteUser`, no `X-Persona`); `server/db/referrals.ts:100-117` (`spendPoints` with `gift: true` mints a code); `server/referrals.ts:46-55` (`checkRedeem` only refuses the owner, so any other account can redeem a gift); `server/referrals.ts:63-67` (gifts stack with no cap).
 - **Scenario:** Create N Clerk accounts (disposable emails; how hard this is depends on the Clerk sign-up settings). Each wins every day using D1 and earns 4 points per 30 days (7 → +1, 14 → +1, 30 → +2, repeating). Each farm account turns its points into gift codes (5 points = 30 days) and redeems them on the main account. Two farm accounts are enough for permanent Premium; more accounts produce gift codes to resell. No EA persona is involved, so the `persona_links` limit of 3 and the one-invite-point-per-persona index never apply.
 - **Evidence:** tests `audit P1: a 30-day win streak yields 4 points…`, `audit P1: a gift code bought with points is redeemable by any other account`, `audit P1: gifts stack on Premium without limit`.
 - **Fix:** Grant `daily_streak` points only to users with at least one linked EA persona. Pay at most one Daily point grant per EA persona per day across all accounts linked to it (unique `(persona_id, ref)` where `reason = 'daily_streak'`, with the persona stored on the grant). Also do one or more of: require a linked persona to spend points or redeem a gift; cap gift redemptions per receiver (for example, 2 per 30 days); refuse a gift whose owner and receiver share a persona in `persona_links`.
 
 ### R1 — `CF-Connecting-IP` trusted from any peer (medium, depends on the origin firewall)
+
+**Status:** Fixed on the host in stage 2: `deploy/cloudflare-realip.conf` trusts only Cloudflare ranges for `CF-Connecting-IP`.
 
 - **Where:** `deploy/sbc-builder.conf:10` (`RemoteIPHeader CF-Connecting-IP` with no `RemoteIPTrustedProxy`/`RemoteIPInternalProxy`); `server/index.ts:67` (`trustProxy: ['loopback', 'uniquelocal']`).
 - **Scenario:** The Cloudflare path holds. Cloudflare overwrites `CF-Connecting-IP`; Apache appends the real IP to `X-Forwarded-For`; Fastify takes the rightmost untrusted address, which is the real client, so a forged `X-Forwarded-For` has no effect. The weak point is the origin itself. If it is reachable directly on port 80 (the IP can leak through DNS history or other vhosts), mod_remoteip accepts any `CF-Connecting-IP` value: with no proxy list configured, every peer is trusted. A different value per request then gives a fresh bucket for `guessLimit`, `redeemLimit`, `proofLimit` and `apiLimit`. A private value such as `10.0.0.1` also makes Fastify read further left into an `X-Forwarded-For` the attacker wrote. The impact on points is indirect: dictionary attacks on admin promo codes with custom names (`normalizeCode` allows 4-20 characters) and unthrottled Daily scripting.
@@ -45,17 +51,23 @@ Severity is about how much free Premium can be had, or how far the leaderboard c
 
 ### A1 — No abuse signals, no reversal (medium)
 
+**Status:** Fixed in stage 4 (2026-10-13): redeem / points / daily_win events with salted IP hashes, admin adjust and revoke, user flags.
+
 - **Where:** `server/db/events.ts:6` (`EventType` = `solve | sync | ea_error | ea_day` only); `server/db/schema.ts:136` (`reason 'admin'` is documented, but nothing writes it); `server/admin/routes.ts` (no endpoint to adjust points or revoke grants; only codes can be disabled at `:55`, and plans set at `:97`).
 - **Scenario:** The P1/D1 farm leaves no trace in the event log. An admin can piece it together only by hand: Users → points / invitedBy, Codes → gift owner and redeemer emails, Daily → per-user guesses. Even when farming is spotted, points can't be zeroed and Premium already granted can only be overwritten by hand. Gift codes already handed out keep working unless disabled one at a time.
 - **Fix:** Add event types `redeem` (code kind, owner, receiver), `points` (delta, reason, ref) and `daily_win` (guesses), each with a salted hash of the IP (`/24` or `/64`) so linked accounts can be grouped. Add an admin "adjust points" action that writes `reason 'admin'` rows, and a revoke that also disables that user's unredeemed gift codes. In admin Users, flag accounts with points and no persona, accounts that receive many gifts, and accounts with a high 1-guess win rate.
 
 ### P2 — Self-invite through one's own persona (low)
 
+**Status:** Fixed in stage 4 (2026-10-13): `grantPendingInvite` skips the grant when the inviter shares the persona.
+
 - **Where:** `server/db/referrals.ts:83-95` (`grantPendingInvite`); `server/index.ts:413-433` (link / takeover); `server/referrals.ts:50` (`codeOwn` compares only user ids).
 - **Scenario:** User A owns persona P. A creates account B and redeems A's invite code. B links P using A's own EA session (a takeover with a SID, which A can always provide). A then takes P back. Result: A gets 1 point and B gets 7 days. This is bounded: the point is unique per persona forever (`point_ledger_invite_persona`), and P can reach at most 3 accounts (`PERSONA_USER_LIMIT`), so each persona yields 1 point plus 2 × 7 days. Points are granted only when an EA persona is linked. They can't be frozen, and an unlink does not revoke them (see A1).
 - **Fix:** In `grantPendingInvite`, skip the inviter's point (and optionally the invitee's 7 days) when `code.ownerId` appears in `persona_links` for that persona, or when the link was a takeover (`previousUserId` is set).
 
 ### R2 — Limit keys and the redeem oracle (low)
+
+**Status:** Fixed in stage 4 (2026-10-13): IPv6 limited per /64, per-user redeem limit, one generic invalid-code answer.
 
 - **Where:** `server/limits.ts:10-25` (the key is the exact `req.ip`); `server/index.ts:73,262` (`redeemLimit` per IP, even though the route is signed in); `server/referrals.ts:46-54` (`codeUnknown` vs `codeFull`/`codeExpired`/`codeDisabled`).
 - **Scenario:** One IPv6 /64 holds 2^64 addresses, each with a fresh 10/min redeem bucket. Signed-in routes don't limit per user, so a script that rotates addresses is not slowed. The distinct error codes tell the attacker whether a guessed code exists. Random 6-character codes (32^6 ≈ 1.07e9) stay infeasible to guess; custom-named promo codes do not.
@@ -64,12 +76,16 @@ Severity is about how much free Premium can be had, or how far the leaderboard c
 
 ### L1 — Staff-looking usernames, unlimited renames (low)
 
+**Status:** Fixed in stage 4 (2026-10-13): staff-looking names are reserved and renames have a 7-day cooldown.
+
 - **Where:** `server/daily/username.ts:2-8`; `server/daily/routes.ts:61-80` (`profileLimit` 20/min per IP, no cooldown).
 - **Scenario:** A user takes `admin`, `FCSolver` or `support` on the public leaderboard and uses it for phishing ("DM support for free Premium codes"). Renaming freely also lets a user hold names or churn the leaderboard.
 - **Evidence:** test `audit L1: staff-looking usernames are accepted`.
 - **Fix:** Reserve names containing `admin`, `support`, `fcsolver`, `fc.solver`, `moderator` or `staff`, ignoring case and `._-`. Add a rename cooldown, for example once per 7 days. Admins can already clear a name (`/api/admin/daily/users/:id/clear-username`).
 
 ### I1 — Signed-out tokens are stateless (info)
+
+**Status:** Fixed in stage 4 (2026-10-13): signed-out stats are labelled unverified in admin; the answer is no longer in the signed-out payload.
 
 - **Where:** `server/daily/tokens.ts:25-40`; `server/daily/service.ts:149-155`; `server/db/daily.ts:82-96` (`recordAnonGuess`).
 - **Scenario:** A token with 4 misses can be replayed with any number of different fifth guesses, and `state: null` starts a new game. Signed-out play earns nothing, so the only effect is on admin numbers: `daily_anon_stats` and `daily_guess_counts` can be inflated by anyone at 40 guesses/min/IP (more with R1/R2). The admin Daily summary is therefore not reliable.

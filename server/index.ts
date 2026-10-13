@@ -12,6 +12,7 @@ import { killAllSolvers, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, readShared, ROOT } from './store.js';
 import { etagOf, notModified } from './etag.js';
+import { compactCspReport, cspHeaderName } from './csp-report.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, hasPending, markBlocked, markCall, markPoll, markReady, nextJob, restLeft, waitForWork, wakeAll, isShuttingDown, webAppOpen, webAppReturned } from './jobs.js';
 import { dropStream, endAllStreams, notify, sseFrame, subscribe, takeStream, trackStream } from './live.js';
@@ -22,6 +23,7 @@ import { registerAdminRoutes } from './admin/routes.js';
 import { billingOf, registerBillingRoutes } from './billing/routes.js';
 import { cancelDeletion, requestDeletion, scheduleDeletions } from './deletion.js';
 import { deleteAtOf } from './db/deletion.js';
+import { schedulePrune } from './prune.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteContext, siteUser } from './auth.js';
 import { linkDecision, overLinkLimit, PERSONA_USER_LIMIT } from './auth-rules.js';
 import { backfillFounders, foundersNow, grantFounderSpot, grantInviteOnLink, planFor } from './plans.js';
@@ -70,6 +72,7 @@ import type { Condition, EaCategory } from './objectives/types.js';
 import { closeDb, db, initDb } from './db/index.js';
 import { alert } from './alert.js';
 import { logEvent, pruneEvents } from './db/events.js';
+import { ipHash } from './ip-hash.js';
 import { pruneBillingEvents } from './db/billing.js';
 import { isPointsChallenge, pointsTarget } from './points.js';
 import { users } from './db/schema.js';
@@ -85,6 +88,7 @@ const DEV = process.env.NODE_ENV !== 'production';
 const apiLimit = createLimiter({ windowMs: 60_000, max: 600 });
 const proofLimit = createLimiter({ windowMs: 60_000, max: 5 }); // new EA sessions to prove (each one calls EA)
 const redeemLimit = createLimiter({ windowMs: 60_000, max: 10 }); // codes cannot be guessed by trying
+const redeemUserLimit = createLimiter({ windowMs: 86_400_000, max: 20 }); // per user: rotating IPs does not help either
 const reportLimit = createLimiter({ windowMs: 60_000, max: 20 });
 const exportLimit = createLimiter({ windowMs: 60_000, max: 1 }); // a data export reads a lot: once a minute per user
 const tooMany = () => new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
@@ -115,8 +119,8 @@ app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
   reply.code(status).send({ error: err.message, ...own });
 });
 
-// Security headers on every answer. The CSP is report-only for now: violations are logged
-// (/api/csp-report) until it is known not to break Clerk, the EA card art or the fonts.
+// Security headers on every answer. The CSP is report-only unless CSP_ENFORCE=1: violations are
+// logged (/api/csp-report) until it is known not to break Clerk, the EA card art or the fonts.
 function csp(): string {
   // Clerk's Frontend API lives on clerk.<our domain> in production, *.clerk.accounts.dev in development
   const clerk = siteOrigins()
@@ -150,7 +154,7 @@ app.addHook('onSend', async (req, reply) => {
   reply.header('X-Frame-Options', 'DENY');
   reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://buy.paddle.com" "https://sandbox-buy.paddle.com")');
   if (req.headers['x-forwarded-proto'] === 'https') reply.header('Strict-Transport-Security', 'max-age=15552000');
-  if (String(reply.getHeader('content-type') ?? '').startsWith('text/html')) reply.header('Content-Security-Policy-Report-Only', csp());
+  if (String(reply.getHeader('content-type') ?? '').startsWith('text/html')) reply.header(cspHeaderName(process.env.CSP_ENFORCE), csp());
 });
 
 // Browsers post CSP violations here (report-only phase); kept short and rate limited in the log.
@@ -163,8 +167,7 @@ app.addContentTypeParser(['application/csp-report', 'application/reports+json'],
 });
 app.post('/api/csp-report', async (req, reply) => {
   if (reportLimit(req.ip)) {
-    const r = (req.body as { 'csp-report'?: Record<string, unknown> } | null)?.['csp-report'] ?? req.body;
-    console.warn('[csp]', JSON.stringify(r).slice(0, 500));
+    for (const line of compactCspReport(req.body)) console.warn('[csp]', JSON.stringify(line));
   }
   return reply.code(204).send();
 });
@@ -315,8 +318,8 @@ app.put<{ Body: Record<string, unknown> }>('/api/me/onboarding', async (req, rep
   await saveOnboarding(userId, answer);
   // a code typed on the survey: a bad one never blocks the answer
   const raw = req.body?.code;
-  if (typeof raw !== 'string' || !raw.trim() || !redeemLimit(req.ip)) return { ok: true };
-  const r = await redeem(userId, raw);
+  if (typeof raw !== 'string' || !raw.trim() || !redeemLimit(req.ip) || !redeemUserLimit(userId)) return { ok: true };
+  const r = await redeem(userId, raw, ipHash(req.ip));
   return { ok: true, redeem: r.ok ? { kind: r.kind, days: r.days, pending: r.pending, founder: r.founder } : { error: r.code } };
 });
 
@@ -330,8 +333,8 @@ app.get('/api/referral', async (req) => {
 /** Use an invite, promo or gift code. */
 app.post<{ Body: { code?: unknown } }>('/api/redeem', async (req, reply) => {
   const userId = await siteUser(req);
-  if (!redeemLimit(req.ip)) throw tooMany();
-  const r = await redeem(userId, typeof req.body?.code === 'string' ? req.body.code : '');
+  if (!redeemLimit(req.ip) || !redeemUserLimit(userId)) throw tooMany();
+  const r = await redeem(userId, typeof req.body?.code === 'string' ? req.body.code : '', ipHash(req.ip));
   if (!r.ok) return reply.code(400).send({ error: r.code, code: r.code, params: {} });
   return { kind: r.kind, days: r.days, pending: r.pending, founder: r.founder };
 });
@@ -341,7 +344,7 @@ app.post('/api/points/spend', async (req, reply) => {
   const userId = await siteUser(req);
   const s = parseSpend(req.body);
   if (!s) return reply.code(400).send({ error: 'invalid spend', code: 'invalid', params: {} });
-  const r = await spendPoints(userId, s.days, s.gift);
+  const r = await spendPoints(userId, s.days, s.gift, ipHash(req.ip));
   if (!r.ok) return reply.code(400).send({ error: r.code, code: r.code, params: {} });
   return 'giftCode' in r ? { giftCode: r.giftCode } : { premiumUntil: r.premiumUntil };
 });
@@ -578,7 +581,7 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     // Founding 50: the first links get Premium for life; on 'already' too, so a grant a DB hiccup
     // swallowed is retried (it returns at once for a founder)
     await grantFounderSpot(userId, r.account.id);
-    await grantInviteOnLink(userId, r.account.id); // after the founders grant: a founder stays for life
+    await grantInviteOnLink(userId, r.account.id, ipHash(req.ip)); // after the founders grant: a founder stays for life
     await consumeLinkToken(token!);
     linked = r.account.id;
     // newly linked here: load the club now (the site re-sends tokens every few minutes, so not on 'already')
@@ -922,6 +925,7 @@ installDailyIngest();
 installHistory();
 scheduleDaily();
 scheduleDeletions();
+schedulePrune();
 void pruneEvents();
 void pruneBillingEvents();
 void backfillFounders().catch((e) => console.error(`[founders] backfill failed: ${(e as Error).message}`));

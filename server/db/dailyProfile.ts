@@ -3,6 +3,7 @@ import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from './index.js';
 import { dailyPlays, users } from './schema.js';
 import type { Play } from '../daily/streak.js';
+import { usernameUpdate } from '../daily/username.js';
 
 export interface DailyProfile { username: string | null; leaderboard: boolean; asked: boolean }
 
@@ -14,13 +15,18 @@ export async function profileOf(userId: string): Promise<DailyProfile> {
 
 /** Any update also marks the prompt as answered. A taken username maps the unique-index error. */
 export async function updateProfile(userId: string, p: { username?: string; leaderboard?: boolean; asked?: boolean }):
-  Promise<DailyProfile | 'usernameTaken' | 'usernameRequired'> {
+  Promise<DailyProfile | 'usernameTaken' | 'usernameRequired' | 'usernameReserved' | { cooldownUntil: Date }> {
+  const [row] = await db.select({ changedAt: users.usernameChangedAt }).from(users).where(eq(users.id, userId));
   const cur = await profileOf(userId);
-  const username = p.username ?? cur.username;
+  const u = p.username === undefined ? ({ kind: 'same' } as const) : usernameUpdate(cur.username, p.username, row?.changedAt ?? null, new Date());
+  if (u.kind === 'reserved') return 'usernameReserved';
+  if (u.kind === 'cooldown') return { cooldownUntil: u.until };
+  const username = u.kind === 'rename' || u.kind === 'recase' ? u.username : cur.username;
   if (p.leaderboard && !username) return 'usernameRequired';
   try {
     await db.update(users).set({
-      ...(p.username !== undefined ? { username: p.username } : {}),
+      ...(u.kind === 'rename' ? { username: u.username, usernameChangedAt: new Date() } : {}),
+      ...(u.kind === 'recase' ? { username: u.username } : {}), // a new casing keeps the cooldown clock as it is
       ...(p.leaderboard !== undefined ? { leaderboard: p.leaderboard } : {}),
       leaderboardAskedAt: sql`coalesce(${users.leaderboardAskedAt}, now())`,
     }).where(eq(users.id, userId));
@@ -33,7 +39,7 @@ export async function updateProfile(userId: string, p: { username?: string; lead
 }
 
 export async function clearUsername(userId: string): Promise<boolean> {
-  const r = await db.update(users).set({ username: null, leaderboard: false }).where(eq(users.id, userId)).returning({ id: users.id });
+  const r = await db.update(users).set({ username: null, usernameChangedAt: null, leaderboard: false }).where(eq(users.id, userId)).returning({ id: users.id });
   return r.length > 0;
 }
 

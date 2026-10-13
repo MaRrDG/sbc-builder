@@ -155,3 +155,34 @@ export function fillDays<T extends { day: string }>(days: string[], rows: T[], p
   const by = new Map(rows.map((r) => [r.day, pick(r)]));
   return days.map((d) => by.get(d) ?? 0);
 }
+
+// ---- points: admin adjust / revoke, abuse flags (spec A1) ----------------------------------------
+export const ADJUST_MAX = 1000;
+export const NOTE_MAX = 200;
+
+/** `{ delta: int ≠ 0, |delta| ≤ 1000, note?: string ≤ 200 }`, or null. */
+export function parsePointsAdjust(body: unknown): { delta: number; note: string } | null {
+  const b = (body ?? {}) as { delta?: unknown; note?: unknown };
+  const d = b.delta;
+  if (typeof d !== 'number' || !Number.isInteger(d) || d === 0 || Math.abs(d) > ADJUST_MAX) return null;
+  if (b.note !== undefined && b.note !== null && typeof b.note !== 'string') return null;
+  const note = typeof b.note === 'string' ? b.note.trim() : '';
+  if (note.length > NOTE_MAX) return null;
+  return { delta: d, note };
+}
+/** An adjustment never takes a balance below 0. */
+export const adjustAllowed = (balance: number, delta: number) => balance + delta >= 0;
+/** The one `admin` row a revoke writes: the balance back to 0 (none when it is 0 already). */
+export const revokeDelta = (balance: number) => (balance > 0 ? -balance : 0);
+
+export const FLAG_GIFTS = 3; // gift redemptions received in 30 days
+export const FLAG_ONE_GUESS = 3; // one-guess Daily wins in 30 days
+export type UserFlag = 'noEa' | 'gifts' | 'oneGuess';
+/** Signals for an admin to look at; shown only, never acted on. */
+export function userFlags(u: { points: number; accounts: number; gifts30: number; oneGuess30: number }): UserFlag[] {
+  const f: UserFlag[] = [];
+  if (u.points > 0 && u.accounts === 0) f.push('noEa');
+  if (u.gifts30 >= FLAG_GIFTS) f.push('gifts');
+  if (u.oneGuess30 >= FLAG_ONE_GUESS) f.push('oneGuess');
+  return f;
+}

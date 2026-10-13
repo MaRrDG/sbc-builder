@@ -50,6 +50,10 @@ const lastVisible = new Map<number, boolean>();
 const lastReady = new Map<number, boolean>();
 const lastFinished = new Map<number, number>();
 const lastClubCall = new Map<number, number>();
+/** Drop every in-memory trace of a persona (account deletion / prune). */
+export function forgetJobs(personaId: number): void {
+  for (const m of [queues, lastPoll, lastVisible, lastReady, lastFinished, lastClubCall] as Map<number, unknown>[]) m.delete(personaId);
+}
 const NOT_STARTED = 'The web app tab did not start the sync. Log in to EA in the web app and it runs again.';
 const OPEN_WINDOW = JOB_TIMEOUTS.open; // the extension polls every few seconds while a web app tab is open
 const MAX_SETS_PER_JOB = 40;

@@ -9,7 +9,7 @@ import { EndPanel } from './EndPanel';
 import { MysteryCard } from './MysteryCard';
 
 interface Props {
-  game: { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer };
+  game: { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null };
   info: DailyInfo | null;
   meta: Meta | null;
   max: number;

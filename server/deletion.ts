@@ -2,7 +2,9 @@
 // 7 days ahead and stops the Paddle renewal; signing in and cancelling undoes both; an hourly ticker purges
 // the users whose date has come. Paddle calls never write `subscriptions` (only the signed webhook does).
 import { eq } from 'drizzle-orm';
-import { forgetAccount } from './accounts.js';
+import { forgetAccount as forgetAccountMem } from './accounts.js';
+import { forgetJobs } from './jobs.js';
+import { forgetSync } from './sync.js';
 import { alert } from './alert.js';
 import { clerkApi } from './auth.js';
 import { billingConfig, cancelSubscription, getSubscription, PaddleError, removeScheduledChange, type BillingConfig } from './billing/paddle.js';
@@ -170,7 +172,11 @@ const defaultDeps: PurgeDeps = {
   clerkDelete: async (userId) => void (await clerkApi().users.deleteUser(userId)),
   personasForPurge,
   ownerOf,
-  forgetAccount,
+  forgetAccount: (id: number) => {
+    forgetAccountMem(id);
+    forgetJobs(id);
+    forgetSync(id);
+  },
   dropKeys,
   anonymizePersonaEvents,
   purgePersonaRows,

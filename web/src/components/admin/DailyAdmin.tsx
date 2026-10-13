@@ -100,7 +100,8 @@ function DayView({ day, onDay, navigate }: { day: number | null; onDay: (d: numb
           <KpiCard label={t('admin.daily.won')} value={s.won} />
           <KpiCard label={t('admin.daily.winPct')} value={`${s.winPct}%`} />
           <KpiCard label={t('admin.daily.signedIn')} value={s.signedIn.finished} sub={`${t('admin.daily.won')} ${s.signedIn.won}`} />
-          <KpiCard label={t('admin.daily.anon')} value={s.anon.finished} sub={`${t('admin.daily.won')} ${s.anon.won}`} />
+          <KpiCard label={t('admin.daily.anonUnverified')} title={t('admin.daily.unverifiedHint')} value={s.anon.finished} sub={`${t('admin.daily.won')} ${s.anon.won}`} />
+          <p className="muted adm-kpi-note"><small>{t('admin.daily.unverifiedNote')}</small></p>
         </div>
       </div>
 
@@ -185,6 +186,7 @@ function LeaderboardView({ navigate }: { navigate: AdminProps['navigate'] }) {
     { key: 'winPct', label: t('admin.daily.winPct'), num: true, render: (r) => `${r.winPct}%` },
     { key: 'avg', label: t('daily.lb.avg'), num: true, render: (r) => (r.avgGuesses === null ? '—' : r.avgGuesses.toFixed(1)) },
     { key: 'streak', label: t('daily.lb.streak'), num: true, render: (r) => r.streak },
+    { key: 'oneGuess', label: t('admin.daily.oneGuessWins'), num: true, render: (r) => r.oneGuessWins },
     { key: 'hidden', label: t('admin.daily.hidden'), render: (r) => (r.hidden ? <span className="adm-badge">{t('admin.daily.hidden')}</span> : null) },
     {
       key: 'actions', label: t('admin.daily.clear'), render: (r) =>

@@ -3466,6 +3466,15 @@ button.card:active {
   background: oklch(0.84 0.17 163 / 0.1);
 }
 
+.update.required {
+  border-bottom-color: oklch(0.7 0.18 25 / 0.5);
+  background: oklch(0.7 0.18 25 / 0.12);
+}
+
+.update.required .update-icon {
+  color: var(--bad);
+}
+
 .update-row {
   display: flex;
   align-items: center;
@@ -3984,6 +3993,7 @@ button.card:active {
   height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg-0); color: var(--ink);
 }
 .adm-kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.adm-kpi-note { grid-column: 1 / -1; margin: 0; }
 .adm-kpi { display: grid; gap: 2px; padding: 14px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); color: var(--ink); text-decoration: none; }
 a.adm-kpi:hover { background: var(--surface-2); }
 .adm-kpi span { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
@@ -4027,6 +4037,8 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .adm-pager button { width: 32px; height: 32px; display: grid; place-items: center; border-radius: var(--r-ctl); }
 .adm-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; font-size: 12px; white-space: nowrap; }
 .adm-badge.bad { border-color: var(--bad); color: var(--bad); }
+.adm-flags { display: inline-flex; flex-wrap: wrap; gap: 4px; }
+.adm-confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .adm-bad { color: var(--bad); }
 .adm-dot { display: inline-flex; align-items: center; gap: 6px; }
 .adm-list { display: grid; margin: 0; padding: 0; list-style: none; }

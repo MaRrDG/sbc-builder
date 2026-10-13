@@ -4,9 +4,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { applyGuess, gameView, type Progress } from './game.js';
 import { rankLeaderboard } from './leaderboard.js';
-import { pointsFor, streakOf, type Play } from './streak.js';
+import { pointsFor, pointsForWin, streakOf, type Play } from './streak.js';
 import { openPractice, sealPractice, signState, verifyState } from './tokens.js';
-import { normalizeUsername } from './username.js';
+import { isReservedUsername } from './username.js';
 import type { PlayerRow } from './types.js';
 
 const S = 'audit-secret-0123456789abcdef0123';
@@ -33,26 +33,35 @@ function anonLoss(day: number): Progress {
   return p!;
 }
 
-test('audit D1: a signed-out loss reveals today\'s answer, and a fresh state restarts the day', { todo: 'audit: D1' }, () => {
-  const view = gameView(anonLoss(42), ANSWER, lookup);
-  assert.equal(view.answer?.id, ANSWER.assetId); // the answer the signed-in game is about to ask for
-  // state = null is a brand new game for the same day: unlimited restarts, nothing ties them together
-  assert.ok(!('error' in applyGuess([], 1, ANSWER.assetId, known)));
-  // ...so a signed-in account then wins in one guess
-  assert.deepEqual(applyGuess([], ANSWER.assetId, ANSWER.assetId, known), { guesses: [100], won: true, finished: true });
+test('fixed D1: a signed-out loss no longer reveals today\'s answer (null until the next drop)', () => {
+  const view = gameView(anonLoss(42), ANSWER, lookup, { hideAnswer: true });
+  assert.equal(view.answer, null);
+  assert.equal(JSON.stringify(view).includes(ANSWER.fullName), false);
+  assert.equal(view.rows.length, 5); // the tiles stay
+  // a signed-in finished game still shows it
+  assert.equal(gameView(anonLoss(42), ANSWER, lookup).answer?.id, ANSWER.assetId);
 });
 
-test('audit D1: one-guess wins every day top the leaderboard over honest players with the same wins', { todo: 'audit: D1' }, () => {
+test('fixed D1: a 1-guess win pays no streak points, even on a milestone day', () => {
+  assert.equal(pointsForWin(7, 1), 0);
+  assert.equal(pointsForWin(30, 1), 0);
+  assert.equal(pointsForWin(7, 2), 1);
+});
+
+test('fixed D1: one-guess wins every day no longer top the leaderboard over honest players', () => {
   const days = Array.from({ length: 30 }, (_, i) => i + 1);
   const cheat: Play[] = days.map((day) => ({ day, won: true, guesses: 1 }));
   const honest: Play[] = days.map((day) => ({ day, won: true, guesses: 3 }));
   const r = rankLeaderboard([{ userId: 'h', username: 'honest', plays: honest }, { userId: 'c', username: 'cheat', plays: cheat }], 30);
-  assert.equal(r[0].userId, 'c');
-  assert.equal(r[0].avgGuesses, 1);
+  assert.equal(r[0].userId, 'h');
+  assert.equal(r[1].wins, 0);
+  assert.equal(r[1].avgGuesses, null);
+  assert.equal(r[1].oneGuessWins, 30);
 });
 
-test('audit P1: a 30-day win streak yields 4 points (2 x 7-day Premium), per Clerk account', () => {
-  // documents the farm yield: every account that never loses earns this, no EA persona needed
+test('holds P1: a 30-day win streak yields 4 points (2 x 7-day Premium), per EA account', () => {
+  // the yield of a perfect streak; since P1 it needs a linked EA account and pays once per EA account per day
+  // (server/db/daily.ts guessDaily, unique point_ledger_daily_persona)
   let total = 0;
   for (let s = 1; s <= 30; s++) total += pointsFor(s);
   assert.equal(total, 4);
@@ -78,7 +87,9 @@ test('holds: yesterday\'s state token, a practice state and a forged guess list 
   assert.equal(verifyState(S, `${a}.${macB}`, 'd42'), null);
 });
 
-test('audit I1: a signed-out state token can be replayed to branch the same game', { todo: 'audit: I1' }, () => {
+// I1 is accepted by design: signed-out play earns nothing, so a replayed token can only inflate the anonymous
+// admin counters, which the admin Daily view labels "unverified" (web/src/components/admin/DailyAdmin.tsx).
+test('accepted I1: a signed-out state token can be replayed to branch the same game (stats labelled unverified)', () => {
   const four = signState(S, { k: 'd42', g: [1, 2, 3, 4] });
   // no nonce / no server record: the same 4-miss token is accepted again and again
   assert.ok(verifyState(S, four, 'd42'));
@@ -94,6 +105,6 @@ test('holds: a practice token expires and never carries the answer in clear', ()
   assert.equal(verifyState(S, signState(S, { k: 'px', g: [] }), 'd42'), null);
 });
 
-test('audit L1: staff-looking usernames are accepted', { todo: 'audit: L1' }, () => {
-  for (const n of ['admin', 'FCSolver', 'support', 'Moderator', 'fc.solver']) assert.equal(normalizeUsername(n), n);
+test('audit L1: staff-looking usernames are reserved', () => {
+  for (const n of ['admin', 'FCSolver', 'support', 'Moderator', 'fc.solver']) assert.ok(isReservedUsername(n), n);
 });

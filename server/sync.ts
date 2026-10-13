@@ -41,6 +41,12 @@ const SESSION_GRACE_MS = 20 * 1000;
 const forced = new Map<number, { club: boolean; sbc: boolean }>();
 const edited = new Map<number, number>();
 
+/** Drop the persona's pending forced / edited marks (account deletion / prune). */
+export function forgetSync(personaId: number): void {
+  forced.delete(personaId);
+  edited.delete(personaId);
+}
+
 export function markEdited(acc: Account) {
   edited.set(acc.id, Date.now());
   notify(acc.id, ['edited']);

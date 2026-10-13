@@ -24,9 +24,21 @@ test('ties on wins: fewer average guesses first, then who reached it earlier, th
 
 test('row values: played, win %, avg on wins only (1 decimal), current streak, reachedDay', () => {
   const [row] = rankLeaderboard([u('a', [p(1, true, 2), p(2, false, 5), p(3, true, 3), p(4, true, 4)])], 4);
-  assert.deepEqual(row, { rank: 1, userId: 'a', username: 'a', wins: 3, played: 4, winPct: 75, avgGuesses: 3, streak: 2, reachedDay: 4 });
-  const [r2] = rankLeaderboard([u('b', [p(1, true, 1), p(2, true, 2)])], 2);
-  assert.equal(r2.avgGuesses, 1.5);
+  assert.deepEqual(row, { rank: 1, userId: 'a', username: 'a', wins: 3, played: 4, winPct: 75, avgGuesses: 3, streak: 2, reachedDay: 4, oneGuessWins: 0 });
+  const [r2] = rankLeaderboard([u('b', [p(1, true, 3), p(2, true, 2)])], 2);
+  assert.equal(r2.avgGuesses, 2.5);
+});
+
+test('1-guess wins count for nothing in the ranking (wins, win %, avg, reachedDay) but keep the streak', () => {
+  const [row] = rankLeaderboard([u('a', [p(1, true, 1), p(2, true, 3), p(3, true, 1)])], 3);
+  assert.deepEqual(row, { rank: 1, userId: 'a', username: 'a', wins: 1, played: 3, winPct: 33, avgGuesses: 3, streak: 3, reachedDay: 2, oneGuessWins: 2 });
+  const [only] = rankLeaderboard([u('c', [p(1, true, 1)])], 1);
+  assert.equal(only.wins, 0);
+  assert.equal(only.avgGuesses, null);
+  assert.equal(only.oneGuessWins, 1);
+  // an honest 2-guess winner beats a 1-guess-every-day account
+  const r = rankLeaderboard([u('cheat', [p(1, true, 1), p(2, true, 1)]), u('honest', [p(1, true, 2)])], 2);
+  assert.deepEqual(r.map((x) => x.userId), ['honest', 'cheat']);
 });
 
 test('users with no finished game are left out; only losses rank below any win', () => {

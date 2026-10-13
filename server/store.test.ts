@@ -82,3 +82,9 @@ test('dropKeys: removes one account folder and its shared entries, refuses anyth
     await assert.rejects(dropKeys(bad), bad);
   assert.equal((await readShared<{ v: number }>('accounts/77/x'))?.data.v, 2);
 });
+
+test('isAccountFolder accepts only positive integers without leading zeros', async () => {
+  const { isAccountFolder } = await import('./store.js');
+  for (const ok of ['1', '123456']) assert.equal(isAccountFolder(ok), true);
+  for (const bad of ['0', '012', '-1', '1.5', '1e3', 'abc', '']) assert.equal(isAccountFolder(bad), false);
+});

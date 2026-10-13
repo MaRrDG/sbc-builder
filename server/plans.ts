@@ -44,9 +44,9 @@ export async function grantFounderSpot(userId: string, personaId: number): Promi
 }
 
 /** A pending invite's 7 days + the inviter's point, on an EA link. Never throws, like the founders grant. */
-export async function grantInviteOnLink(userId: string, personaId: number): Promise<void> {
+export async function grantInviteOnLink(userId: string, personaId: number, ipHash: string | null = null): Promise<void> {
   try {
-    await grantPendingInvite(userId, personaId);
+    await grantPendingInvite(userId, personaId, ipHash);
   } catch (e) {
     console.error(`[invite] grant for ${userId} failed: ${(e as Error).message}`);
   }

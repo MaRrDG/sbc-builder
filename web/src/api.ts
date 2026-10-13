@@ -462,12 +462,12 @@ export interface DailyAnswer extends DailyPlayer { fullName: string; rareflag: n
 export interface DailySilhouette { rating: number; position: string; rareflag: number; cardType: DailyCardType }
 export interface DailyRow { player: DailyPlayer; tiles: DailyTiles }
 export interface DailyStats { played: number; won: number; current: number; best: number; dist: number[]; next: { target: number; points: number } }
-export interface DailyGame { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; stats: DailyStats }
+export interface DailyGame { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null; stats: DailyStats }
 export interface DailyProfile { username: string | null; leaderboard: boolean; asked: boolean }
-export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; players: number; me?: DailyProfile; game?: DailyGame }
+export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; players: number; previous?: { day: number; answer: DailyAnswer } | null; me?: DailyProfile; /** signed in: owns an EA account (streak points need one) */ eaLinked?: boolean; game?: DailyGame }
 export interface DailyLbRow { rank: number; username: string; wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number }
 export interface DailyLeaderboard { rows: DailyLbRow[]; me: (DailyLbRow & { inTop: boolean }) | null; total: number }
-export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
+export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
 export interface DailyName { i: number; n: string; f: string; c: number }
 
 export interface DiscordInfo { discord: { username: string } | null; invite: string | null }
@@ -543,6 +543,10 @@ export const api = {
   adminPlan: (userId: string, tier: 'free' | 'premium', premiumUntil: string | null) =>
     req<{ ok: true }>('/api/admin/plan', { method: 'POST', body: { userId, tier, premiumUntil } }),
   adminQuotaReset: (userId: string) => req<{ ok: true }>('/api/admin/quota-reset', { method: 'POST', body: { userId } }),
+  adminPoints: (userId: string, delta: number, note: string) =>
+    req<{ ok: true; points: number }>(`/api/admin/users/${encodeURIComponent(userId)}/points`, { method: 'POST', body: { delta, note } }),
+  adminRevoke: (userId: string) =>
+    req<{ ok: true; delta: number; giftsDisabled: number }>(`/api/admin/users/${encodeURIComponent(userId)}/revoke`, { method: 'POST' }),
   adminBillingAttach: (userId: string, subscriptionId: string) =>
     req<unknown>(`/api/admin/users/${encodeURIComponent(userId)}/billing-attach`, { method: 'POST', body: { subscriptionId } }),
   adminBillingResync: (userId: string) => req<unknown>(`/api/admin/users/${encodeURIComponent(userId)}/billing-resync`, { method: 'POST' }),
@@ -563,7 +567,7 @@ export interface AdminDailyDay {
 }
 export interface AdminDailyLbRow {
   rank: number; userId: string; username: string | null; email: string; hidden: boolean;
-  wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number; reachedDay: number;
+  wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number; reachedDay: number; oneGuessWins: number;
 }
 
 export interface AdminAccount {
@@ -597,6 +601,8 @@ export interface AdminUserRow {
   planSet: 'free' | 'premium'; plan: PlanInfo; admin: boolean;
   accounts: number; online: number; solves7d: number;
   heardFrom: HeardFrom | null; futYears: FutYears | null;
+  /** abuse signals, display only: points without an EA account, ≥3 gifts received / ≥3 one-guess Daily wins in 30 days */
+  flags: ('noEa' | 'gifts' | 'oneGuess')[];
 }
 export type AdminAccountRow = AdminAccount & { ownerId: string | null; ownerEmail: string | null };
 export interface AdminUserDetail {
@@ -609,7 +615,7 @@ export interface AdminUserDetail {
   referral: { points: number; invitedBy: { id: string; email: string } | null; invited: number; inviteCode: string | null };
   subscription: { id: string; customerId: string; status: string; interval: 'month' | 'year'; currentPeriodEnd: number; cancelAt: number | null; eventAt: number } | null;
 }
-export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost' | 'billing' | 'account'; personaId: number | null; data: Record<string, unknown>; setName?: string | null; challengeName?: string | null }
+export interface AdminEvent { id: number; at: number; type: 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost' | 'billing' | 'account' | 'redeem' | 'points' | 'daily_win'; personaId: number | null; data: Record<string, unknown>; setName?: string | null; challengeName?: string | null }
 export type AdminAttention =
   | { kind: 'error' | 'paused' | 'atLimit' | 'outdated'; personaId: number; personaName: string; userId: string | null; detail: string | null }
   | { kind: 'expiring'; userId: string; email: string; until: number }

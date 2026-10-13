@@ -8,9 +8,13 @@ import { ROOT } from './store.js';
 const DIR = join(ROOT, 'extension');
 const DEFAULT_SERVER = 'http://localhost:5178';
 
+/** Oldest extension the site still supports: an older installed one gets a required (not hideable) update notice. */
+export const MIN_EXTENSION = '1.0.0';
+
 export interface ExtensionRelease {
   version: string;
   notes: string[];
+  minVersion: string;
 }
 
 let release: ExtensionRelease | null = null;
@@ -20,8 +24,48 @@ export async function latestExtension(): Promise<ExtensionRelease> {
   if (release) return release;
   const { version } = JSON.parse(await readFile(join(DIR, 'manifest.json'), 'utf8')) as { version: string };
   const notes = JSON.parse(await readFile(join(DIR, 'release.json'), 'utf8')) as Record<string, string[]>;
-  release = { version, notes: notes[version] ?? [] };
+  release = { version, notes: notes[version] ?? [], minVersion: MIN_EXTENSION };
   return release;
+}
+
+const LOCAL_HOST = /^[a-z*]+:\/\/(localhost|127\.0\.0\.1)(:[0-9*]+)?(\/|$)/i;
+
+/** True for http(s)://localhost or 127.0.0.1 (any port). */
+export function isLocalOrigin(origin: string): boolean {
+  return LOCAL_HOST.test(origin);
+}
+
+type Manifest = {
+  host_permissions?: string[];
+  content_scripts?: { matches?: string[] }[];
+  externally_connectable?: { matches?: string[] };
+  [k: string]: unknown;
+};
+
+/**
+ * The manifest as served from `origin`: its own `origin/*` host permission added, and when the
+ * origin is a public one, the localhost / 127.0.0.1 entries (host permissions, content script and
+ * externally_connectable matches) dropped: they are for development only. A content script left
+ * with no matches is removed (Chrome refuses empty ones). Pure; the input is not changed.
+ */
+export function publicManifest(input: Manifest, origin: string): Manifest {
+  const m: Manifest = structuredClone(input);
+  const pattern = `${origin}/*`;
+  const hosts = m.host_permissions ?? [];
+  if (!hosts.includes(pattern)) hosts.push(pattern);
+  m.host_permissions = hosts;
+  if (isLocalOrigin(origin)) return m;
+  const keep = (list: string[]) => list.filter((p) => !LOCAL_HOST.test(p));
+  m.host_permissions = keep(m.host_permissions);
+  if (m.content_scripts) {
+    m.content_scripts = m.content_scripts
+      .map((cs) => (cs.matches ? { ...cs, matches: keep(cs.matches) } : cs))
+      .filter((cs) => !cs.matches || cs.matches.length > 0);
+  }
+  if (m.externally_connectable?.matches) {
+    m.externally_connectable = { ...m.externally_connectable, matches: keep(m.externally_connectable.matches) };
+  }
+  return m;
 }
 
 export async function buildExtensionZip(origin: string): Promise<Uint8Array> {
@@ -38,12 +82,7 @@ export async function buildExtensionZip(origin: string): Promise<Uint8Array> {
     }
     let text = await readFile(join(DIR, rel), 'utf8');
     if (rel.endsWith('.js')) text = text.replaceAll(DEFAULT_SERVER, origin);
-    if (rel === 'manifest.json') {
-      const manifest = JSON.parse(text);
-      const pattern = `${origin}/*`;
-      if (!manifest.host_permissions.includes(pattern)) manifest.host_permissions.push(pattern);
-      text = JSON.stringify(manifest, null, 2);
-    }
+    if (rel === 'manifest.json') text = JSON.stringify(publicManifest(JSON.parse(text), origin), null, 2);
     files[path] = strToU8(text);
   }
   return zipSync(files, { level: 6 });

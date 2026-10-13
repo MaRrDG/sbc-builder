@@ -87,6 +87,7 @@ export const users = pgTable('users', {
   linkBlockedAt: timestamp('link_blocked_at', { withTimezone: true }),
   // FC Solver Daily leaderboard: public name (unique ignoring case), opt-in, and when we asked (asked once)
   username: text('username'),
+  usernameChangedAt: timestamp('username_changed_at', { withTimezone: true }), // last set/change (7-day rename cooldown)
   leaderboard: boolean('leaderboard').notNull().default(false),
   leaderboardAskedAt: timestamp('leaderboard_asked_at', { withTimezone: true }),
   // Discord (Clerk's Discord connection): the id the bot sees and its name
@@ -162,12 +163,14 @@ export const pointLedger = pgTable(
     userId: text('user_id').notNull(),
     delta: integer('delta').notNull(),
     reason: text('reason').notNull(), // 'invite' | 'spend' | 'gift' | 'admin' | 'daily_streak'
-    ref: text('ref').notNull().default(''), // invitee userId / days / gift code
-    personaId: bigint('persona_id', { mode: 'number' }),
+    ref: text('ref').notNull().default(''), // invitee userId / days / gift code / daily day
+    personaId: bigint('persona_id', { mode: 'number' }), // invite: the invitee's persona; daily_streak: the winner's lowest owned persona
     at: timestamp('at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('point_ledger_user').on(t.userId), uniqueIndex('point_ledger_invite_persona').on(t.personaId).where(sql`reason = 'invite'`),
     uniqueIndex('point_ledger_daily').on(t.userId, t.ref).where(sql`reason = 'daily_streak'`),
+    // one Daily grant per EA account per day, across every FC Solver account linked to it
+    uniqueIndex('point_ledger_daily_persona').on(t.personaId, t.ref).where(sql`reason = 'daily_streak'`),
   ],
 );
 

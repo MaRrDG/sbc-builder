@@ -75,9 +75,11 @@ interface StatsProps {
   /** today's winning guess count, highlighted in the distribution */
   today: number | null;
   points: { added: number; streak: number } | null;
+  /** signed in with an EA account: streak points are paid (without one, a note says they need it) */
+  eaLinked?: boolean;
 }
 
-export function StatsBody({ stats, signedIn, today, points }: StatsProps) {
+export function StatsBody({ stats, signedIn, today, points, eaLinked }: StatsProps) {
   const { t } = useI18n();
   const s = stats ?? { played: 0, won: 0, current: 0, best: 0, dist: [0, 0, 0, 0, 0], next: { target: 7, points: 1 } };
   const pct = s.played ? Math.round((s.won / s.played) * 100) : 0;
@@ -121,7 +123,8 @@ export function StatsBody({ stats, signedIn, today, points }: StatsProps) {
           </li>
         ))}
       </ol>
-      {signedIn && s.next.points > 0 && <p className="dg-next">{t('daily.stats.next', { points: s.next.points, target: s.next.target })}</p>}
+      {signedIn && eaLinked && s.next.points > 0 && <p className="dg-next">{t('daily.stats.next', { points: s.next.points, target: s.next.target })}</p>}
+      {signedIn && eaLinked === false && <p className="dg-next">{t('daily.stats.needEa')}</p>}
     </div>
   );
 }

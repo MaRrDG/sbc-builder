@@ -22,7 +22,7 @@ The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extens
 
 **Shutdown.** On `SIGTERM` the server ends open `/api/stream` streams and answers held `/api/jobs/next` polls at once (clients reconnect to the next server), stops running solves (`503 solverBusy`), lets other in-flight requests finish for up to 20 s, then closes the DB.
 
-**Headers.** Every answer carries `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy`, and `Strict-Transport-Security` behind HTTPS. HTML pages carry a `Content-Security-Policy-Report-Only` (see `csp()` in `server/index.ts`); browsers post violations to `POST /api/csp-report` (logged as `[csp]`, 20 a minute per IP), so the policy can be enforced once the log stays quiet. CORS answers `chrome-extension://` origins (and `http://localhost` outside production).
+**Headers.** Every answer carries `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy`, and `Strict-Transport-Security` behind HTTPS. HTML pages carry a `Content-Security-Policy-Report-Only` (see `csp()` in `server/index.ts`), or the enforced `Content-Security-Policy` when `CSP_ENFORCE=1`; both report to `POST /api/csp-report` (20 a minute per IP), logged as one compact `[csp]` line per violation: `{page, directive, blocked, source, line}` with the page path and only the origins of the blocked URL and the source file, never the policy or full URLs (`server/csp-report.ts`). CORS answers `chrome-extension://` origins (and `http://localhost` outside production).
 
 ---
 
@@ -136,9 +136,11 @@ These answer with an `ETag`, `Cache-Control: private, no-cache` and `Vary: X-Per
   "account": { "personaId": 1005016552645, "session": true, "extVersion": "0.3.0", "...": "..." },
   "sync": { "running": "club", "error": null, "errorCode": null, "clubNextAt": null, "club": { "state": "running", "loaded": 400, "expected": 1830 }, "clubAt": 1790064472801, "sbcAt": 1790062053735, "sbcNextAt": 1790063853735, "editedAt": null, "unassigned": 1,
             "ea": { "today": 12, "limit": 150, "pausedUntil": null, "byPath": { "/club": 3 }, "recent": [{ "at": 1790064472801, "method": "POST", "path": "/club", "status": 200 }] } },
-  "extension": { "version": "0.4.0", "notes": ["Update notices in the web app and on the site"] }
+  "extension": { "version": "1.0.3", "notes": ["..."], "minVersion": "1.0.0" }
 }
 ```
+
+`extension.minVersion` (`MIN_EXTENSION` in `server/extension.ts`) is the oldest extension the site supports: when `account.extVersion` is known and older, the site shows the update notice as "update required" (steps open, no hide button). Older than `version` only: the normal, hideable notice.
 
 `ea` counts today's requests to EA for this account (paths grouped, ids replaced by `:id`); `pausedUntil` is set after EA signalled throttling. `editedAt` changes whenever the cache was edited from web app activity; the site gets it pushed over `/api/stream` and reloads what changed; it polls this endpoint only as a fallback when the stream is unavailable. `unassigned` counts pack players not yet sent to the club. `club`: a club sync `queued` or `running` in the web app tab (else `null`), with the players its pages loaded so far and `expected`, the cached club size as a rough total (`null` before the first sync); the site shows it in a non-blocking activity panel (the fallback poll runs every 5 s, every 1.5 s while a club job runs), and Solve waits while a club job runs. `sbcNextAt`: from then on a visit refreshes the SBC list (`sbcAt` + 30 min, `SBC_VISIT_COOLDOWN_MIN`).
 
@@ -171,7 +173,7 @@ The player card shown in an evolution email, rendered when the email is sent (`s
 
 ## Referrals (site)
 
-Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Prices: 7 days = 2 points, 14 days = 3, 30 days = 5. Error `code`s (translated as `err.<code>`): `codeUnknown`, `codeDisabled`, `codeExpired`, `codeFull`, `codeOwn`, `inviteUsed` (this user already used an invite), `codeUsed` (promo or gift already used), `pointsLow`, `pointsLifetime` (lifetime Premium cannot spend points on days), plus `rateLimited` (429).
+Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Prices: 7 days = 2 points, 14 days = 3, 30 days = 5. Error `code`s (translated as `err.<code>`): `codeInvalid` (unknown, disabled, expired or used-up code: one answer for all four, so guessing learns nothing about which codes exist), `codeOwn`, `inviteUsed` (this user already used an invite), `codeUsed` (promo or gift already used), `giftLimit` (the receiver already redeemed 2 gift codes in the last 30 days), `giftSameEa` (the gift's owner and the receiver share an EA account, current owner or ever linked, either side), `pointsLow`, `pointsLifetime` (lifetime Premium cannot spend points on days), plus `rateLimited` (429).
 
 ### `GET /api/referral`
 
@@ -179,7 +181,7 @@ Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Pric
 
 ### `POST /api/redeem`
 
-`{ "code": "k7m-2qx" }` (typed freely: case and dashes are normalised) → `{ "kind": "invite"|"promo"|"gift", "days": 7, "pending": true|false, "founder": true|false }`. `pending: true` is an invite whose 7 days wait until the user links an EA account (the reward fires on the `/api/hello` link, which also gives the inviter 1 point, at most one per EA account ever). Failure → `400 { "error", "code", "params": {} }`. Limited to 10 per minute per IP (`429 rateLimited`).
+`{ "code": "k7m-2qx" }` (typed freely: case and dashes are normalised) → `{ "kind": "invite"|"promo"|"gift", "days": 7, "pending": true|false, "founder": true|false }`. `pending: true` is an invite whose 7 days wait until the user links an EA account (the reward fires on the `/api/hello` link, which also gives the inviter 1 point, at most one per EA account ever, and none when the inviter is or was linked to that EA account). Failure → `400 { "error", "code", "params": {} }`. Limited to 10 per minute per IP (an IPv6 address counts per /64) and 20 per day per user (`429 rateLimited`); the onboarding `code` field shares both limits.
 
 ### `POST /api/points/spend`
 
@@ -217,11 +219,11 @@ Replaces the user's subscription row with the subscription as Paddle has it now 
 
 Public endpoints for the Daily player-guess game (`/daily`). Signed in (Clerk `Authorization: Bearer`, optional) only adds saved state, stats and points; none of them touches EA. The answer is picked at the SBC drop (or on the first request after it) and only appears in a response once the game is `finished`. Errors carry a translatable `code`: `dailyFinished` 409, `dailyRepeat` 409, `dailyUnknownPlayer` 400, `dailyNoPool` 503 (also while the answer pool has fewer than `DAILY_HARD_MIN_POOL` players, default 30), `dailyExpired` 409, `rateLimited` 429.
 
-A `GameView` is `{ rows: GuessRow[], finished, won, silhouette?, answer? }`. `GuessRow = { player, tiles }`: `player` is `{ id, name, nation, league, club, position, rating, cardType: "normal"|"icon"|"hero", gender: 0|1 }` (EA item gender: 0 men, 1 women); `tiles` has one `{ state: "hit"|"near"|"miss", dir?: "up"|"down" }` per column, in the game's order `nation, league, club, position, rating, cardType, gender` (`server/daily/compare.ts`). `near` exists only for nation (same confederation), league (same country), position (same line: defence, midfield, attack; a goalkeeper is never near) and rating (within 2); club, card type and gender are `hit` or `miss`. `dir` (rating only, on every non-hit) points to the answer. `answer` is `player` plus `fullName` and `rareflag`. The answer is usually from the men's top 5 leagues and now and then from the women's top leagues (`DAILY_WOMEN_SHARE`) or the Icons (`DAILY_ICON_SHARE`; league 2118, club 112658, `cardType: "icon"`, `rareflag` 12 for a seeded icon, either gender).
+A `GameView` is `{ rows: GuessRow[], finished, won, silhouette?, answer?: Answer | null }`. `GuessRow = { player, tiles }`: `player` is `{ id, name, nation, league, club, position, rating, cardType: "normal"|"icon"|"hero", gender: 0|1 }` (EA item gender: 0 men, 1 women); `tiles` has one `{ state: "hit"|"near"|"miss", dir?: "up"|"down" }` per column, in the game's order `nation, league, club, position, rating, cardType, gender` (`server/daily/compare.ts`). `near` exists only for nation (same confederation), league (same country), position (same line: defence, midfield, attack; a goalkeeper is never near) and rating (within 2); club, card type and gender are `hit` or `miss`. `dir` (rating only, on every non-hit) points to the answer. `answer` is `player` plus `fullName` and `rareflag`; a signed-out daily game that was lost carries `answer: null` instead (a won one keeps it: the winning guess already is the answer) (the answer is revealed by `previous` after the next drop), so a throwaway signed-out loss tells nothing to a signed-in game. Signed-in games and Practice always carry it at the end. The answer is usually from the men's top 5 leagues and now and then from the women's top leagues (`DAILY_WOMEN_SHARE`) or the Icons (`DAILY_ICON_SHARE`; league 2118, club 112658, `cardType: "icon"`, `rareflag` 12 for a seeded icon, either gender).
 
 ### `GET /api/daily`
 
-`{ day, date, nextAt, maxGuesses: 5, share, signedIn, players, me?, game? }`. `nextAt`: ms of the next drop. `share`: host + `/daily` without protocol. `players`: size of the autocomplete list (`GET /api/daily/players`). `me` and `game` (signed in only): `me` is the `DailyProfile` `{ username: string | null, leaderboard: boolean, asked: boolean }`; `game` is the saved `GameView` of today plus `stats`. Never carries the answer of an unfinished game.
+`{ day, date, nextAt, maxGuesses: 5, share, signedIn, players, previous, me?, game? }`. `previous`: `{ day, answer: Answer }` of yesterday's game (for everyone), `null` when there was none. `nextAt`: ms of the next drop. `share`: host + `/daily` without protocol. `players`: size of the autocomplete list (`GET /api/daily/players`). `me`, `eaLinked` and `game` (signed in only): `me` is the `DailyProfile` `{ username: string | null, leaderboard: boolean, asked: boolean }`; `eaLinked`: the user owns an EA account (streak points need one; the site shows a note instead of the next reward when false); `game` is the saved `GameView` of today plus `stats`. Never carries the answer of an unfinished game.
 
 ### `GET /api/daily/players`
 
@@ -229,7 +231,7 @@ A `GameView` is `{ rows: GuessRow[], finished, won, silhouette?, answer? }`. `Gu
 
 ### `POST /api/daily/guess`
 
-`{ assetId, state?, day? }` -> `GuessResult = { row, finished, won, silhouette?, answer?, state?, stats?, points? }`. `row`: the compared tiles of this guess. `silhouette` (rating, position, rareflag, card type) appears from the 3rd wrong guess on while the game is in progress, and stays at the end; `answer` appears only once the game is finished. `day`: the `day` of the game the guess is for (the site always sends `GET /api/daily`'s `day`); when it is not today's (the page stayed open across the drop) the guess is refused with `dailyExpired` before anything is saved, signed in or not. A missing `day` counts as today. Signed in: state lives in `daily_plays` (one row lock per user and day), `stats` comes when finished and `points: { added, streak }` on a win (one grant per day). A bad or expired `Authorization` token is `401 signIn` (here and on `GET /api/daily`), never a silent signed-out game; no header at all means signed out. Signed out: send no `state` on the first guess (omitting `state` always starts a fresh signed-out game), then send back the `state` of the last answer; it is a signed token, so replaying an older same-day token only buys extra tries, and anonymous games never earn points. A tampered or other-day token is `dailyExpired`.
+`{ assetId, state?, day? }` -> `GuessResult = { row, finished, won, silhouette?, answer?, state?, stats?, points? }`. `row`: the compared tiles of this guess. `silhouette` (rating, position, rareflag, card type) appears from the 3rd wrong guess on while the game is in progress, and stays at the end; `answer` appears only once the game is finished (`null` for a lost signed-out daily game, see `GameView`). `day`: the `day` of the game the guess is for (the site always sends `GET /api/daily`'s `day`); when it is not today's (the page stayed open across the drop) the guess is refused with `dailyExpired` before anything is saved, signed in or not. A missing `day` counts as today. Signed in: state lives in `daily_plays` (one row lock per user and day), `stats` comes when finished and `points: { added, streak }` on a win (one grant per day; a win in 1 guess keeps the streak but has `added: 0`, `server/daily/streak.ts` `pointsForWin`; `added` is also 0 when the user owns no EA account, or when another FC Solver account on the same EA account already got today's grant: the grant stores the user's lowest owned persona id, unique per persona and day). A bad or expired `Authorization` token is `401 signIn` (here and on `GET /api/daily`), never a silent signed-out game; no header at all means signed out. Signed out: send no `state` on the first guess (omitting `state` always starts a fresh signed-out game), then send back the `state` of the last answer; it is a signed token, so replaying an older same-day token only buys extra tries, and anonymous games never earn points. A tampered or other-day token is `dailyExpired`.
 
 ### `POST /api/daily/practice`
 
@@ -245,13 +247,13 @@ Signed-out daily guesses (not Practice, not signed in) also bump anonymous aggre
 
 ### `GET /api/daily/leaderboard`
 
-Public, optional auth, `Cache-Control: no-store`. Only users who opted in with a username are ranked (wins, then lower average guesses on wins, then who reached their last win first). The ranking is cached for 60 s server-side and refreshed on a profile change.
+Public, optional auth, `Cache-Control: no-store`. Only users who opted in with a username are ranked (wins, then lower average guesses on wins, then who reached their last win first). Only wins in 2+ guesses count: `wins`, `winPct`, `avgGuesses` and the tie-break ignore 1-guess wins (`streak` still counts them). The ranking is cached for 60 s server-side and refreshed on a profile change.
 
 `{ rows: PublicLbRow[], me: (PublicLbRow & { inTop: boolean }) | null, total }` with `PublicLbRow = { rank, username, wins, played, winPct, avgGuesses: number | null, streak }`. Top 50 in `rows`; `total` counts all ranked users. `me` only when signed in, opted in and ranked (`inTop` false when below the 50). No user id, email or answer data.
 
 ### `PUT /api/me/daily-profile`
 
-Signed in. Body `{ username?: string, leaderboard?: boolean, asked?: true }` -> `DailyProfile`. Any call also marks the leaderboard prompt as answered (`asked`). `username` is 3-16 letters, digits, `_`, `.` or `-`, unique ignoring case. Errors: `usernameInvalid` 400, `usernameTaken` 409, `usernameRequired` 400 (opting in without a username), `rateLimited` 429 (20 per minute per IP).
+Signed in. Body `{ username?: string, leaderboard?: boolean, asked?: true }` -> `DailyProfile`. Any call also marks the leaderboard prompt as answered (`asked`). `username` is 3-16 letters, digits, `_`, `.` or `-`, unique ignoring case. Errors: `usernameInvalid` 400, `usernameReserved` 400 (contains `admin`, `support`, `fcsolver`, `moderator`, `staff` or `official` once `. _ -` are removed), `usernameTaken` 409, `usernameCooldown` 429 (a different name within 7 days of the last change; params `{ date }` = YYYY-MM-DD it becomes possible; the first name is free), `usernameRequired` 400 (opting in without a username), `rateLimited` 429 (20 per minute per IP). The same name ignoring case is not a change: it is never checked against the reserved words or the cooldown (a name set before a rule keeps working), and a new casing is saved without restarting the 7 days.
 
 ## Admin (site)
 
@@ -305,11 +307,11 @@ Dashboard: KPIs, daily series for the last `range` days (default `7`), what need
 
 The only endpoint that returns the answer of a day (unfinished games included). Default `day` = latest; an unknown day falls back to the latest.
 
-`{ days: { day, date }[], day, date, answer: { id, name, fullName, rating, position, club, league, nation, rareflag, cardType } | null, summary: { finished, won, winPct, dist: number[5], signedIn: { finished, won }, anon: { finished, won } }, topGuessed: { id, name, count }[], games: { userId, email, username, guesses: { id, name }[], won, used, finishedAt: number | null }[] }`. `summary` counts finished signed-in games plus the anonymous counters; `topGuessed` is the top 10 players tried (signed-in guesses plus anonymous counters); `games` are the signed-in games, newest finish first, unfinished last.
+`{ days: { day, date }[], day, date, answer: { id, name, fullName, rating, position, club, league, nation, rareflag, cardType } | null, summary: { finished, won, winPct, dist: number[5], signedIn: { finished, won }, anon: { finished, won } }, topGuessed: { id, name, count }[], games: { userId, email, username, guesses: { id, name }[], won, used, finishedAt: number | null }[] }`. `summary` counts finished signed-in games plus the anonymous counters; `topGuessed` is the top 10 players tried (signed-in guesses plus anonymous counters); `games` are the signed-in games, newest finish first, unfinished last. The anonymous counters are unverified (signed-out tokens are stateless and can be replayed, audit I1); the admin view labels them so.
 
 ### `GET /api/admin/daily/leaderboard`
 
-`{ rows: (LbRow & { email, hidden, username: string | null })[] }`: everyone with a finished game, ranked (users without a username are ranked under their email). `hidden` = not opted in or no username.
+`{ rows: (LbRow & { email, hidden, username: string | null })[] }` (`LbRow` = `PublicLbRow` + `userId`, `reachedDay`, `oneGuessWins`: wins in 1 guess, left out of the ranking): everyone with a finished game, ranked (users without a username are ranked under their email). `hidden` = not opted in or no username.
 
 ### `POST /api/admin/daily/users/:id/clear-username`
 
@@ -333,13 +335,13 @@ Removes the user's username and leaderboard opt-in. `{ ok: true }`; `404` `unkno
     "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000,
     "planSet": "free", "plan": { "tier": "free", "premiumUntil": null, "quota": { "used": 3, "limit": 20, "resetsAt": null } },
     "admin": false, "accounts": 1, "online": 0, "solves7d": 12,
-    "heardFrom": "reddit", "futYears": "4-7"
+    "heardFrom": "reddit", "futYears": "4-7", "flags": ["noEa"]
   }],
   "total": 2, "page": 1, "pageSize": 25
 }
 ```
 
-`accounts`: EA accounts the user owns; `online`: how many of them have a live session; `solves7d`: solves in the last 7 days. `heardFrom` / `futYears`: onboarding answers, `null` when skipped or not asked yet.
+`accounts`: EA accounts the user owns; `online`: how many of them have a live session; `solves7d`: solves in the last 7 days. `heardFrom` / `futYears`: onboarding answers, `null` when skipped or not asked yet. `flags` (abuse signals, display only, `server/admin/query.ts` `userFlags`): `noEa` (point balance > 0 and owns no EA account), `gifts` (≥3 gift codes redeemed in the last 30 days), `oneGuess` (≥3 Daily wins in one guess in the last 30 days).
 
 ### `GET /api/admin/users/:id`
 
@@ -359,7 +361,7 @@ Removes the user's username and leaderboard opt-in. `{ ok: true }`; `404` `unkno
 
 ### `GET /api/admin/users/:id/events?page=`
 
-The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true }, "setName": "Marquee Matchups", "challengeName": "Marquee Matchups" }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`; SBC solves, not `kind: "objectives"`, also carry top-level `setName` / `challengeName` from `sbc_sets` / `challenges` as EA sent them, `null` for an id not in the DB; one lookup per table per page), `sync`, `ea_error`, `ea_day`; the latter three are logged per EA account (`personaId` only, no `userId`), and are matched to a user by the accounts they currently own (`personas` table), not by who owned them at the time. Events older than 180 days are deleted. An unknown user gives an empty list.
+The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true }, "setName": "Marquee Matchups", "challengeName": "Marquee Matchups" }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`; SBC solves, not `kind: "objectives"`, also carry top-level `setName` / `challengeName` from `sbc_sets` / `challenges` as EA sent them, `null` for an id not in the DB; one lookup per table per page), `sync`, `ea_error`, `ea_day`, `boost`, `billing`, `account`, `redeem` (`data`: `kind`, `codeOwner` user id or `null`, `ipHash`), `points` (`data`: `delta`, `reason` = `invite` | `spend` | `gift` | `daily_streak` | `admin`, `ref` (invitee id / days / gift code / Daily day / admin note or `revoke`), admin rows also `by` (admin user id) and, on a revoke, `revoke: true` and `giftsDisabled` (tell a revoke by `revoke`, not by `ref`: an adjust note can say "revoke" too); `ipHash`), `daily_win` (`data`: `guesses`, `ipHash`; signed-in wins only). `ipHash` = first 16 hex of SHA-256(`IP_HASH_SALT` + the request's IPv4 /24 or IPv6 /64), `null` for admin actions; the raw IP is never stored (`server/ip-hash.ts`). `sync`, `ea_error`, `ea_day` are logged per EA account (`personaId` only, no `userId`), and are matched to a user by the accounts they currently own (`personas` table), not by who owned them at the time. Events older than 180 days are deleted. An unknown user gives an empty list.
 
 ### `GET /api/admin/accounts?q=&state=&sort=&dir=&page=`
 
@@ -383,7 +385,7 @@ Creates a promo code. Body: `{ "days": 30 | null, "code"?: "SUMMER26", "maxUses"
 
 ### `PATCH /api/admin/codes/:code`
 
-`{ "disabled": true | false }`: disables or re-enables a code (redeeming a disabled code gives `codeDisabled`). `:code` is case-insensitive. Returns `{ "ok": true }`; `400` when `disabled` is not a boolean, `404` for an unknown code.
+`{ "disabled": true | false }`: disables or re-enables a code (redeeming a disabled code gives `codeInvalid`). `:code` is case-insensitive. Returns `{ "ok": true }`; `400` when `disabled` is not a boolean, `404` for an unknown code.
 
 ### `GET /api/admin/codes/:code`
 
@@ -396,6 +398,14 @@ Creates a promo code. Body: `{ "days": 30 | null, "code"?: "SUMMER26", "maxUses"
 ### `POST /api/admin/plan`
 
 `{ "userId": "user_2Rf…", "tier": "free" | "premium", "premiumUntil": "2026-12-31T23:59:59.000Z" | null }` (`premiumUntil` is an ISO timestamp, ignored — stored as `null` — when `tier` is `"free"`; a date-only string like `"2026-12-31"` parses as UTC midnight, so the admin UI sends the end of that day in the admin's local time instead). Sets the user's plan; the quota columns (`used`, the window) are left as they are. Returns `{ "ok": true }`; `400` on a bad payload (including a non-string, non-null `premiumUntil`), `404` `{ "error": "unknown user", "code": "unknownUser", "params": {} }` for an unknown user.
+
+### `POST /api/admin/users/:id/points`
+
+`{ "delta": 5, "note"?: "…" }`: adds (or with a negative `delta` takes) points: one `point_ledger` row `reason: "admin"`, `ref` = the note. `delta` is a non-zero integer, |delta| ≤ 1000; `note` a string of at most 200 characters (trimmed). Returns `{ "ok": true, "points": <new balance> }`. `400` `code: "invalid"` on a bad payload, `400` `{ "code": "pointsNegative", "params": { "balance": 3 } }` when the balance would go below 0, `404` `unknownUser`. Logged as a `points` event.
+
+### `POST /api/admin/users/:id/revoke`
+
+No body. Zeroes the user's point balance with one `admin` row (`ref: "revoke"`, none when the balance is already 0) and disables the user's unredeemed gift codes. Premium already granted is not touched (use `POST /api/admin/plan`). Returns `{ "ok": true, "delta": -7, "giftsDisabled": 1 }`; `404` `unknownUser`. Logged as a `points` event with `revoke: true`.
 
 ### `POST /api/admin/quota-reset`
 
@@ -690,9 +700,9 @@ Public, no auth, `Cache-Control: public, max-age=300`, under the global per-IP `
 ### `GET /api/extension/version`
 
 ```json
-{ "version": "0.4.0", "notes": ["Update notices in the web app and on the site"] }
+{ "version": "1.0.3", "notes": ["..."], "minVersion": "1.0.0" }
 ```
 
 ### `GET /api/extension.zip`
 
-The extension as a zip, with this server's origin written into it (default server and host permission). The origin is the request's `Host` (+ `X-Forwarded-Proto`), and only when it is one of ours (`SITE_ORIGINS` / `SITE_URL`); any other host gets our canonical origin, so a spoofed header can never produce a zip that talks to someone else's server. Sent with `Cache-Control: no-store`, and the site links it with a `?t=` query, so a cache (Cloudflare) never hands out a zip from before an update.
+The extension as a zip, with this server's origin written into it (default server and host permission). When that origin is not `localhost` / `127.0.0.1`, the manifest's `localhost` / `127.0.0.1` entries (`host_permissions`, content script and `externally_connectable` matches) are dropped (`publicManifest()` in `server/extension.ts`). The origin is the request's `Host` (+ `X-Forwarded-Proto`), and only when it is one of ours (`SITE_ORIGINS` / `SITE_URL`); any other host gets our canonical origin, so a spoofed header can never produce a zip that talks to someone else's server. Sent with `Cache-Control: no-store`, and the site links it with a `?t=` query, so a cache (Cloudflare) never hands out a zip from before an update.

@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 
-interface Props { label: string; value: ReactNode; sub?: ReactNode; href?: string; onOpen?: () => void; tone?: 'bad' }
+interface Props { label: string; value: ReactNode; sub?: ReactNode; href?: string; onOpen?: () => void; tone?: 'bad'; title?: string }
 
-export function KpiCard({ label, value, sub, href, onOpen, tone }: Props) {
+export function KpiCard({ label, value, sub, href, onOpen, tone, title }: Props) {
   const body = (
     <>
       <span>{label}</span>
@@ -12,8 +12,8 @@ export function KpiCard({ label, value, sub, href, onOpen, tone }: Props) {
   );
   const cls = `adm-kpi${tone ? ` ${tone}` : ''}`;
   return href && onOpen ? (
-    <a className={cls} href={href} onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); onOpen(); }}>{body}</a>
+    <a className={cls} title={title} href={href} onClick={(e) => { if (e.metaKey || e.ctrlKey) return; e.preventDefault(); onOpen(); }}>{body}</a>
   ) : (
-    <div className={cls}>{body}</div>
+    <div className={cls} title={title}>{body}</div>
   );
 }

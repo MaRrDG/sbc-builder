@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  clampPage, dayKey, fillDays, filterAccounts, isOutdated, lastDays, likePattern, paginate,
-  parseAccountQuery, parsePage, parseRange, parseUserQuery, versionLess, type AccountLike,
+  adjustAllowed, clampPage, dayKey, fillDays, filterAccounts, isOutdated, lastDays, likePattern, paginate,
+  parseAccountQuery, parsePage, parsePointsAdjust, parseRange, parseUserQuery, revokeDelta, userFlags, versionLess, type AccountLike,
 } from './query.js';
 
 const TZ = 'Europe/Bucharest';
@@ -114,4 +114,26 @@ test('lastDays: consecutive days across DST changes', () => {
 test('fillDays aligns rows and zero-fills', () => {
   const days = ['2026-09-23', '2026-09-24', '2026-09-25'];
   assert.deepEqual(fillDays(days, [{ day: '2026-09-25', n: 4 }, { day: '2026-01-01', n: 9 }], (r) => r.n), [0, 0, 4]);
+});
+
+test('parsePointsAdjust: non-zero integer within ±1000, optional note up to 200 chars', () => {
+  assert.deepEqual(parsePointsAdjust({ delta: 5 }), { delta: 5, note: '' });
+  assert.deepEqual(parsePointsAdjust({ delta: -1000, note: '  farm  ' }), { delta: -1000, note: 'farm' });
+  assert.deepEqual(parsePointsAdjust({ delta: 3, note: null }), { delta: 3, note: '' });
+  for (const bad of [{}, null, { delta: 0 }, { delta: 1.5 }, { delta: '5' }, { delta: 1001 }, { delta: -1001 }, { delta: 1, note: 7 }, { delta: 1, note: 'x'.repeat(201) }])
+    assert.equal(parsePointsAdjust(bad), null, JSON.stringify(bad));
+});
+
+test('adjustAllowed / revokeDelta: never below 0, revoke zeroes', () => {
+  assert.equal(adjustAllowed(5, -5), true);
+  assert.equal(adjustAllowed(5, -6), false);
+  assert.equal(adjustAllowed(0, 3), true);
+  assert.equal(revokeDelta(12), -12);
+  assert.equal(revokeDelta(0), 0);
+});
+
+test('userFlags: noEa, gifts and oneGuess thresholds', () => {
+  assert.deepEqual(userFlags({ points: 0, accounts: 0, gifts30: 2, oneGuess30: 2 }), []);
+  assert.deepEqual(userFlags({ points: 1, accounts: 0, gifts30: 0, oneGuess30: 0 }), ['noEa']);
+  assert.deepEqual(userFlags({ points: 9, accounts: 1, gifts30: 3, oneGuess30: 3 }), ['gifts', 'oneGuess']);
 });

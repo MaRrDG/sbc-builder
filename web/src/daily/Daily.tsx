@@ -2,7 +2,7 @@
 // Signed in, the server keeps today's game and stats; signed out, the browser keeps them (store.ts)
 // and sends back the server's signed state token. Practice lives in memory only.
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ChartBar, Database, Question, Ranking } from '@phosphor-icons/react';
+import { ChartBar, ClockCounterClockwise, Database, Question, Ranking } from '@phosphor-icons/react';
 import { api, ApiError, type DailyAnswer, type DailyGuess, type DailyInfo, type DailyName, type DailyProfile, type DailyRow, type DailySilhouette, type DailyStats, type Meta } from '../api';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
@@ -35,7 +35,8 @@ interface Game {
   finished: boolean;
   won: boolean;
   silhouette?: DailySilhouette;
-  answer?: DailyAnswer;
+  /** null: lost signed out, the answer is revealed after the next drop */
+  answer?: DailyAnswer | null;
 }
 const EMPTY: Game = { rows: [], finished: false, won: false };
 
@@ -287,6 +288,12 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
             <span>{t('daily.base.line', { count: names.length, countText: names.length.toLocaleString(lang) })}</span>
           </p>
         )}
+        {!practice && info?.previous && (
+          <p className="dg-base">
+            <ClockCounterClockwise weight="bold" aria-hidden="true" />
+            <span>{t('daily.previous', { n: info.previous.day, name: info.previous.answer.name })}</span>
+          </p>
+        )}
 
         {loadError ? (
           <p className="dg-load-err" role="alert">
@@ -347,7 +354,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
         <HowTo />
       </Sheet>
       <Sheet open={sheet === 'stats'} title={t('daily.stats')} onClose={() => setSheet(null)}>
-        <StatsBody stats={stats} signedIn={signedIn} today={!practice && game.finished && game.won ? game.rows.length : null} points={points} />
+        <StatsBody stats={stats} signedIn={signedIn} today={!practice && game.finished && game.won ? game.rows.length : null} points={points} eaLinked={info?.eaLinked} />
       </Sheet>
       <Sheet open={sheet === 'lb'} title={t('daily.lb.title')} onClose={() => setSheet((s) => (s === 'lb' ? null : s))}>
         <Leaderboard

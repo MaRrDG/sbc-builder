@@ -26,7 +26,11 @@ export function UserDetail({ route, navigate }: AdminProps) {
   const [until, setUntil] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [msgAt, setMsgAt] = useState<string | null>(null); // the action the message belongs to: shown in its card
   const [attachId, setAttachId] = useState('');
+  const [delta, setDelta] = useState('');
+  const [note, setNote] = useState('');
+  const [confirm, setConfirm] = useState<'adjust' | 'revoke' | null>(null);
 
   // Sync the form from the loaded user only when it's a different user (or right after a plan
   // save), never on an unrelated reload (trust toggle, sync, quota reset) — that would wipe an
@@ -43,8 +47,10 @@ export function UserDetail({ route, navigate }: AdminProps) {
   const act = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
     setMsg(null);
+    setMsgAt(key);
     try {
       await fn();
+      if (key === 'points') (setDelta(''), setNote(''));
       if (key === 'plan') syncedFor.current = null; // pick up the just-saved plan on the next reload
       setMsg(t('admin.user.saved'));
       await reload();
@@ -63,6 +69,8 @@ export function UserDetail({ route, navigate }: AdminProps) {
       </>
     );
 
+  const deltaNum = Number(delta);
+  const deltaOk = /^-?\d+$/.test(delta.trim()) && deltaNum !== 0 && Math.abs(deltaNum) <= 1000;
   const whatText = (w: unknown) => t(w === 'sbc' ? 'admin.account.sbcs' : 'admin.account.club');
   const eventText = (e: AdminEvent) => {
     const x = e.data as Record<string, string | number | boolean>;
@@ -87,6 +95,16 @@ export function UserDetail({ route, navigate }: AdminProps) {
     }
     if (e.type === 'account') return t(x.action === 'deleteCancelled' ? 'admin.event.accountDeleteCancelled' : 'admin.event.accountDeleteRequested');
     if (e.type === 'ea_error') return t('admin.event.throttle');
+    const ip = x.ipHash ? ` · ${t('admin.event.ip', { hash: String(x.ipHash) })}` : '';
+    if (e.type === 'redeem') return t('admin.event.redeem', { kind: String(x.kind ?? '') }) + ip;
+    if (e.type === 'points') {
+      const n = Number(x.delta ?? 0);
+      const revoke = x.revoke === true; // set by the revoke action only; an adjust note may say "revoke" too
+      const base = revoke ? t('admin.event.pointsRevoke', { n: -n, count: Number(x.giftsDisabled ?? 0), gifts: Number(x.giftsDisabled ?? 0) })
+        : t('admin.event.points', { delta: n > 0 ? `+${n}` : String(n), reason: String(x.reason ?? '') });
+      return base + (x.reason === 'admin' && x.ref && !revoke ? ` · “${String(x.ref)}”` : '') + ip;
+    }
+    if (e.type === 'daily_win') return t('admin.event.dailyWin', { n: Number(x.guesses ?? 0), count: Number(x.guesses ?? 0) }) + ip;
     return t('admin.event.eaDay', { day: String(x.day), n: Number(x.count), count: Number(x.count) });
   };
   const evCols: Column<AdminEvent>[] = [
@@ -124,6 +142,39 @@ export function UserDetail({ route, navigate }: AdminProps) {
           <dt>{t('admin.user.invited')}</dt><dd>{d.referral.invited}</dd>
           <dt>{t('admin.user.inviteCode')}</dt><dd>{d.referral.inviteCode ? <code>{d.referral.inviteCode}</code> : '—'}</dd>
         </dl>
+      </section>
+
+      <section className="adm-card">
+        <h2>{t('admin.user.pointsTitle')}</h2>
+        <p>{t('admin.user.pointsNow', { n: d.referral.points })}</p>
+        {confirm === null ? (
+          <>
+            <form className="adm-actions" onSubmit={(e) => { e.preventDefault(); if (deltaOk) setConfirm('adjust'); }}>
+              <label>{t('admin.user.pointsDelta')}{' '}
+                <input type="number" inputMode="numeric" step={1} min={-1000} max={1000} value={delta} onChange={(e) => setDelta(e.target.value)} style={{ width: '7em' }} />
+              </label>
+              <label>{t('admin.user.pointsNote')}{' '}
+                <input value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} />
+              </label>
+              <button type="submit" className="ghost wide" disabled={!!busy || !deltaOk}>{t('admin.user.pointsApply')}</button>
+            </form>
+            <p>
+              <button type="button" className="ghost wide" disabled={!!busy} onClick={() => setConfirm('revoke')}>{t('admin.user.revoke')}</button>{' '}
+              <small className="muted">{t('admin.user.revokeHint')}</small>
+            </p>
+          </>
+        ) : (
+          <div className="adm-confirm" role="group" aria-label={t('admin.user.confirm')}>
+            <span>{confirm === 'adjust' ? t('admin.user.pointsConfirm', { delta: deltaNum > 0 ? `+${deltaNum}` : String(deltaNum) }) : t('admin.user.revokeConfirm', { n: d.referral.points })}</span>
+            <button type="button" className="solve-sm" disabled={!!busy} onClick={() => {
+              const which = confirm;
+              setConfirm(null);
+              void act('points', () => (which === 'adjust' ? api.adminPoints(id, deltaNum, note.trim()) : api.adminRevoke(id)));
+            }}>{t('admin.user.confirm')}</button>
+            <button type="button" className="ghost" onClick={() => setConfirm(null)}>{t('admin.user.cancel')}</button>
+          </div>
+        )}
+        {msg && msgAt === 'points' && <p role="status" className="muted">{msg}</p>}
       </section>
 
       <section className="adm-card">
@@ -172,7 +223,7 @@ export function UserDetail({ route, navigate }: AdminProps) {
           </label>
           <button type="submit" className="ghost wide" disabled={!!busy || !attachId.trim()}>{t('admin.user.attachGo')}</button>
         </form>
-        {msg && <p role="status" className="muted">{msg}</p>}
+        {msg && msgAt !== 'points' && <p role="status" className="muted">{msg}</p>}
       </section>
 
       <section className="adm-section">
