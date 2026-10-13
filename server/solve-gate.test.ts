@@ -50,3 +50,34 @@ test('userLock: one per key until released', () => {
   l.release('u1');
   assert.equal(l.take('u1'), true);
 });
+
+test('hand-off: a newcomer cannot overtake a waiter or exceed max', async () => {
+  const g = createGate(1, 5);
+  let active = 0;
+  let peak = 0;
+  const order: string[] = [];
+  const mk = (name: string, d?: ReturnType<typeof deferred>) => async () => {
+    active++;
+    peak = Math.max(peak, active);
+    order.push(name);
+    if (d) await d.p;
+    active--;
+  };
+  const hold = deferred();
+  const holder = g.run(mk('holder', hold));
+  const waiter = g.run(mk('waiter'));
+  await new Promise((r) => setImmediate(r));
+  // a newcomer arrives in the very tick the holder gives its slot up
+  let newcomer!: Promise<void>;
+  const poll = () => {
+    if (g.stats().running < 1) newcomer = g.run(mk('newcomer'));
+    else queueMicrotask(poll);
+  };
+  hold.resolve();
+  queueMicrotask(poll);
+  await Promise.all([holder, waiter]);
+  await newcomer;
+  assert.equal(peak, 1);
+  assert.deepEqual(order, ['holder', 'waiter', 'newcomer']);
+  assert.deepEqual(g.stats(), { running: 0, queued: 0 });
+});
