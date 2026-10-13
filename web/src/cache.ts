@@ -12,6 +12,12 @@ export interface AccountData {
 
 export const cacheKey = (userId: string, persona: number | null, name: CacheName) => `${userId}:${persona ?? 0}:${name}`;
 export const ownedBy = (key: string, userId: string) => key.startsWith(`${userId}:`);
+/** this user's account data for an EA account that is no longer linked (the `me` copy stays) */
+export function stale(key: string, userId: string, keep: number[]) {
+  if (!ownedBy(key, userId)) return false;
+  const [persona, name] = key.slice(userId.length + 1).split(':');
+  return name === 'data' && !keep.includes(Number(persona));
+}
 
 const STORE = 'kv';
 let db: Promise<IDBDatabase | null> | null = null;
@@ -52,6 +58,10 @@ export function cacheSet(key: string, value: unknown) {
 export async function cacheKeep(userId: string) {
   const keys = (await run<IDBValidKey[]>('readonly', (s) => s.getAllKeys())) ?? [];
   for (const k of keys) if (typeof k === 'string' && !ownedBy(k, userId)) void run('readwrite', (s) => s.delete(k));
+}
+export async function cachePrune(userId: string, keepPersonas: number[]) {
+  const keys = (await run<IDBValidKey[]>('readonly', (s) => s.getAllKeys())) ?? [];
+  for (const k of keys) if (typeof k === 'string' && stale(k, userId, keepPersonas)) void run('readwrite', (s) => s.delete(k));
 }
 export async function cacheClear() {
   await run('readwrite', (s) => s.clear());

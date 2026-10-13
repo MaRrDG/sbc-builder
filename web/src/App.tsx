@@ -56,7 +56,7 @@ import { splitGroups } from './components/objectives/objectives';
 import { compareVersions } from './components/UpdateBanner';
 import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
-import { cacheGet, cacheKey, cacheSet, type AccountData } from './cache';
+import { cacheClear, cacheGet, cacheKey, cachePrune, cacheSet, type AccountData } from './cache';
 import { unlinkExtension, useExtensionLink } from './link';
 
 const ACTIVE = 'sbc-active-persona';
@@ -209,8 +209,12 @@ export default function App({
   const activeIdRef = useRef<number | null>(null);
   activeIdRef.current = activeId;
 
-  const applyData = useCallback((d: AccountData) => {
+  const cachedStatusRef = useRef<SyncStatus | null>(null); // the status drawn from the cache: no news, see the status effect
+  const loadingRef = useRef(0); // account data loads in flight
+
+  const applyData = useCallback((d: AccountData, cached = false) => {
     const { meta: m, club: c, sets: s, status: st } = d;
+    if (cached) cachedStatusRef.current = st.sync;
     setMeta(m);
     setClub(c.players);
     setStorage(c.storage ?? []);
@@ -223,7 +227,10 @@ export default function App({
 
   const loadAccountData = useCallback(async () => {
     const id = activeIdRef.current;
-    const [meta, club, sets, status] = await Promise.all([api.meta(), api.club(), api.sets(), api.status()]);
+    loadingRef.current++;
+    const [meta, club, sets, status] = await Promise.all([api.meta(), api.club(), api.sets(), api.status()]).finally(() => {
+      loadingRef.current--;
+    });
     const d = { meta, club, sets, status };
     if (activeIdRef.current !== id) return; // the user switched account meanwhile
     applyData(d);
@@ -245,16 +252,22 @@ export default function App({
       setChallenges(null);
       // solved squads survive reloads and tab switches; they are only replaced by solving again
       setResults(readLocal<Record<number, SolveResult>>(resultsKey(id), {}));
-      // the last known state of this account at once; never another account's data meanwhile
+      // the network and the last known state of this account in parallel; the cached copy only
+      // while the answer is still out, and never another account's data meanwhile
+      let arrived = false;
+      const net = loadAccountData();
+      net.then(() => (arrived = true), () => undefined);
       const cached = await cacheGet<AccountData>(cacheKey(userId, id, 'data'));
-      if (cached && activeIdRef.current === id) applyData(cached);
-      else if (!cached && prevId !== id && activeIdRef.current === id) {
-        setCategories([]);
-        setClub([]);
-        setStorage([]);
-        setSquad(null);
+      if (!arrived && activeIdRef.current === id) {
+        if (cached) applyData(cached, true);
+        else if (prevId !== id) {
+          setCategories([]);
+          setClub([]);
+          setStorage([]);
+          setSquad(null);
+        }
       }
-      await loadAccountData();
+      await net;
     },
     [loadAccountData, applyData, userId],
   );
@@ -278,9 +291,11 @@ export default function App({
     }
     setPlan(p);
     setPrefs(pr);
-    setOnboarded(onboarding.done);
-    setLinkBlocked(lb);
-    if (to && !cached) setTakenOver(true);
+    if (!cached) {
+      setOnboarded(onboarding.done);
+      setLinkBlocked(lb);
+      if (to) setTakenOver(true);
+    }
     setLinked(personas);
   }, []);
 
@@ -291,6 +306,7 @@ export default function App({
     cacheSet(cacheKey(userId, null, 'me'), m);
     applyMe(m);
     const { personas } = m;
+    void cachePrune(userId, personas.map((a) => a.personaId)); // accounts unlinked since
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
     if (!pick) {
@@ -328,7 +344,7 @@ export default function App({
         setPersona(last);
         setActiveId(last);
         activeIdRef.current = last;
-        applyData(data);
+        applyData(data, true);
       }
     })();
     migrateLegacyKeys()
@@ -388,14 +404,21 @@ export default function App({
   // A sync finished, or the web app changed the cache (an SBC opened or submitted there): reload
   // quietly. Watches the status itself, since the visit and read calls also bring a new one.
   const seenStatus = useRef<{ id: number; running: string | null; editedAt: number | null } | null>(null);
+  const retriedFor = useRef<SyncStatus | null>(null);
   useEffect(() => {
-    if (!activeId || !status || !fresh) return; // a cached status is no news
+    if (!activeId || !status || status === cachedStatusRef.current) return; // a cached status is no news
+    // the account data load failed (still the cached copy): every new status retries it once
+    const retry = !fresh && loadingRef.current === 0 && retriedFor.current !== status;
+    if (retry) {
+      retriedFor.current = status;
+      void loadAccountData().catch(() => {});
+    }
     const prev = seenStatus.current;
     seenStatus.current = { id: activeId, running: status.running, editedAt: status.editedAt };
     if (!prev || prev.id !== activeId) return;
     if (prev.running && !status.running) track('sync_done', { kind: prev.running === 'club' ? 'club' : 'sbcs', ok: yn(!status.error) });
     if ((prev.running && !status.running) || prev.editedAt !== status.editedAt) {
-      void loadAccountData().catch(() => {});
+      if (!retry) void loadAccountData().catch(() => {});
       setDataVersion((v) => v + 1);
       if (setId) void api.challenges(setId).then((r) => setChallenges(r.challenges), () => {});
       if (view === 'gallery' && premium) {
@@ -681,6 +704,7 @@ export default function App({
   const doSignOut = async () => {
     unlinkExtension();
     setPersona(null);
+    await cacheClear(); // nothing of this user stays in the browser
     await signOut({ redirectUrl: '/signin' });
   };
 

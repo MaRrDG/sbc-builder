@@ -159,7 +159,7 @@ export default function Root() {
           <button type="button" className="ghost wide" onClick={() => window.location.reload()}>
             {t('auth.retry')}
           </button>
-          <button type="button" className="ghost wide" onClick={() => void signOut({ redirectUrl: '/signin' })}>
+          <button type="button" className="ghost wide" onClick={() => void cacheClear().then(() => signOut({ redirectUrl: '/signin' }))}>
             {t('auth.signOut')}
           </button>
         </div>
