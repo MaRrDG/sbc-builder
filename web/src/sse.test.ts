@@ -74,23 +74,44 @@ test('singleFlight: a failed run still lets the dirty run go', async () => {
   assert.equal(runs, 2);
 });
 
-test('clubJobRunning: client job running or legacy club sync', () => {
+test('clubJobRunning: client jobs decide; the legacy club sync only without jobs', () => {
   assert.equal(clubJobRunning(null), false);
   assert.equal(clubJobRunning({ running: null, jobs: [] }), false);
   assert.equal(clubJobRunning({ running: null, jobs: [{ kind: 'club', state: 'queued' }] }), false);
+  assert.equal(clubJobRunning({ running: null, jobs: [{ kind: 'club', state: 'paused' }] }), false);
   assert.equal(clubJobRunning({ running: null, jobs: [{ kind: 'sbc', state: 'running' }] }), false);
   assert.equal(clubJobRunning({ running: null, jobs: [{ kind: 'club', state: 'running' }] }), true);
-  assert.equal(clubJobRunning({ running: 'club', jobs: [] }), true);
+  assert.equal(clubJobRunning({ running: 'club', jobs: [] }), true); // legacy account
+  assert.equal(clubJobRunning({ running: 'club' }), true);
+  // client mode: a queued club job may show as `running`, but it loads no pages yet
+  assert.equal(clubJobRunning({ running: 'club', jobs: [{ kind: 'club', state: 'queued' }] }), false);
+});
+
+test('singleFlight: a throwing apply is swallowed and the next run still goes', async () => {
+  let runs = 0;
+  const sf = singleFlight(
+    () => Promise.resolve(++runs),
+    () => {
+      throw new Error('render bug');
+    },
+  );
+  sf.trigger();
+  sf.trigger();
+  await tick();
+  await tick();
+  assert.equal(runs, 2);
 });
 
 test('gapReload: only what changed while the stream was down', () => {
   const s = { running: null, editedAt: 1, clubAt: 2, sbcAt: 3 };
-  assert.deepEqual(gapReload(s, { ...s }), { club: false, sets: false, syncEnded: false });
-  assert.deepEqual(gapReload(s, { ...s, clubAt: 9 }), { club: true, sets: false, syncEnded: false });
-  assert.deepEqual(gapReload(s, { ...s, sbcAt: 9 }), { club: false, sets: true, syncEnded: false });
-  assert.deepEqual(gapReload(s, { ...s, editedAt: 9 }), { club: false, sets: true, syncEnded: false });
-  assert.deepEqual(gapReload({ ...s, running: 'club' }, s), { club: false, sets: false, syncEnded: true });
-  assert.deepEqual(gapReload(s, { ...s, running: 'club' }), { club: false, sets: false, syncEnded: false });
+  const none = { club: false, sets: false, edited: false, syncEnded: false };
+  assert.deepEqual(gapReload(s, { ...s }), none);
+  assert.deepEqual(gapReload(s, { ...s, clubAt: 9 }), { ...none, club: true });
+  assert.deepEqual(gapReload(s, { ...s, sbcAt: 9 }), { ...none, sets: true });
+  // a web app edit (item move, quick sell, SBC submit, evolution) may keep clubAt: club too
+  assert.deepEqual(gapReload(s, { ...s, editedAt: 9 }), { club: true, sets: true, edited: true, syncEnded: false });
+  assert.deepEqual(gapReload({ ...s, running: 'club' }, s), { ...none, syncEnded: true });
+  assert.deepEqual(gapReload(s, { ...s, running: 'club' }), none);
 });
 
 test('parseSse: whole events out, partial kept, comments skipped', () => {

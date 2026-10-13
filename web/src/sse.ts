@@ -52,7 +52,12 @@ export function singleFlight<T>(run: () => Promise<T>, apply: (v: T) => void) {
     void run()
       .then(
         (v) => {
-          if (my === seq) apply(v);
+          if (my !== seq) return;
+          try {
+            apply(v);
+          } catch (e) {
+            console.error('[live] apply failed', e); // never an unhandled rejection
+          }
         },
         () => {},
       )
@@ -83,9 +88,14 @@ interface StatusLike {
   jobs?: { kind: string; state: string }[];
 }
 
-/** A club sync is loading pages for this account right now (client job, or legacy server sync). */
+/**
+ * A club sync is loading pages for this account right now: in client mode a club job in state
+ * `running` (a queued or paused one loads nothing); without jobs (legacy accounts) the server sync.
+ */
 export function clubJobRunning(s: StatusLike | null): boolean {
-  return !!s && (s.running === 'club' || !!s.jobs?.some((j) => j.kind === 'club' && j.state === 'running'));
+  if (!s) return false;
+  if (s.jobs?.length) return s.jobs.some((j) => j.kind === 'club' && j.state === 'running');
+  return s.running === 'club';
 }
 
 export interface SeenStatus {
@@ -97,9 +107,12 @@ export interface SeenStatus {
 
 /** The stream is back after a gap: what its first status says changed while nobody announced it. */
 export function gapReload(prev: SeenStatus, next: SeenStatus) {
+  // a web app edit (item move, quick sell, SBC submit, evolution, storage) may keep clubAt
+  const edited = prev.editedAt !== next.editedAt;
   return {
-    club: prev.clubAt !== next.clubAt,
-    sets: prev.sbcAt !== next.sbcAt || prev.editedAt !== next.editedAt,
+    club: edited || prev.clubAt !== next.clubAt,
+    sets: edited || prev.sbcAt !== next.sbcAt,
+    edited, // evolutions / objectives / gallery may have changed too: bump dataVersion
     syncEnded: !!prev.running && !next.running,
   };
 }

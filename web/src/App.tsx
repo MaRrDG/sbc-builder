@@ -459,7 +459,16 @@ export default function App({
         if (r && activeIdRef.current === id && setIdRef.current === sid) setChallenges(r.challenges);
       },
     );
-    return { club, sets, challenges };
+    const meta = singleFlight(
+      async () => ({ id: activeIdRef.current, m: await api.meta() }),
+      ({ id, m }) => {
+        if (activeIdRef.current !== id) return;
+        setMeta(m);
+        if (dataRef.current?.id === id) dataRef.current.d.meta = m;
+        saveData();
+      },
+    );
+    return { club, sets, challenges, meta };
   }, [saveData]);
   // a club sync announces every page it loads: during it the club is reloaded once, when it ends
   const clubDirty = useRef(false);
@@ -474,6 +483,7 @@ export default function App({
     reloads.club.reset();
     reloads.sets.reset();
     reloads.challenges.reset();
+    reloads.meta.reset();
     clubDirty.current = false;
     latestSyncRef.current = null;
   }, [activeId, reloads]);
@@ -483,6 +493,7 @@ export default function App({
       const id = activeIdRef.current; // an answer for an account the user has left is dropped
       const p = refetchPlan(keys, setIdRef.current);
       if (p.club) refetchClub();
+      if (keys.includes('chemProfiles')) reloads.meta.trigger(); // chemistry profiles come with the meta
       if (p.sets) reloads.sets.trigger();
       if (p.challenges) reloads.challenges.trigger();
       if (p.other) setDataVersion((v) => v + 1);
@@ -497,6 +508,8 @@ export default function App({
     refetchClub();
     reloads.sets.trigger();
     reloads.challenges.trigger();
+    reloads.meta.trigger();
+    setDataVersion((v) => v + 1); // evolutions / objectives, even when the club reload fails or waits
     if (view === 'gallery' && premium) void api.gallery().then((g) => activeIdRef.current === id && setGallery(g), () => {});
   }, [reloads, refetchClub, view, premium]);
 
@@ -521,6 +534,7 @@ export default function App({
               reloads.sets.trigger();
               reloads.challenges.trigger();
             }
+            if (g.edited) setDataVersion((v) => v + 1); // a web app edit: evolutions / objectives too
           }
         }
       }
