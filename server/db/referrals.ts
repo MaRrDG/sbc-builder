@@ -1,6 +1,6 @@
 // Invites, promo and gift codes, points. Every write runs in a transaction: a code row is locked
 // FOR UPDATE while it is used, and a user's points under a per-user advisory lock.
-import { and, desc, eq, gte, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, or, sql } from 'drizzle-orm';
 import { checkRedeem, maskEmail, checkSpend, extendPremium, generateCode, giftWindowStart, INVITE_DAYS, invitePointAllowed, isLifetime, normalizeCode,
   PRICES, rewardDays, sharePersona, type CodeKind, type CodeRow, type RedeemError, type SpendDays } from '../referrals.js';
 import { db } from './index.js';
@@ -12,11 +12,11 @@ const POINTS_LOCK = 4151; // per user: (POINTS_LOCK, hashtext(userId))
 const REDEEM_LOCK = 4152; // per receiver: two parallel gift redemptions cannot both pass the gift limit
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
-/** Every EA persona a user owns now or was ever linked to (`personas` + `persona_links`). */
+/** Every EA persona a user owns now, owned before a takeover (`previous_user_id`) or was ever linked to. */
 async function personasOf(tx: Tx | typeof db, userId: string): Promise<number[]> {
-  const owned = await tx.select({ id: personas.personaId }).from(personas).where(eq(personas.userId, userId));
+  const owned = await tx.select({ id: personas.personaId }).from(personas).where(or(eq(personas.userId, userId), eq(personas.previousUserId, userId)));
   const linked = await tx.select({ id: personaLinks.personaId }).from(personaLinks).where(eq(personaLinks.userId, userId));
-  return [...owned, ...linked].map((r) => r.id);
+  return [...new Set([...owned, ...linked].map((r) => r.id))];
 }
 
 /** Every user that owns, owned or was ever linked to a persona. */
