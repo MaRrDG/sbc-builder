@@ -202,6 +202,10 @@ docker logs fc-solver 2>&1 | grep '\[csp\]' # container = APP_NAME
 
 Order: add any legitimate missing origin to `csp()`, turn `CSP_ENFORCE=1` on dev, use the site (sign-in, checkout, Daily, card art), and only when the dev log stays quiet set it on prod. Rollback: empty `CSP_ENFORCE`, `docker compose up -d`.
 
+## Pruning
+
+The app deletes `data/accounts/<personaId>/` caches of EA accounts nobody owns and nobody used for 90 days, once a day (first run 10 minutes after start; rules in [architecture.md](architecture.md#multi-account-and-hosting)). Watch for `[prune] removed N` in the log; a failure posts a `prune` alert. Nightly backups keep the last 14 days, so a pruned cache can still be restored from there for two weeks.
+
 ## Alerts
 
 Set `ALERT_WEBHOOK_URL` in `.env` to a Discord webhook (channel settings -> Integrations -> Webhooks -> New webhook -> copy URL) and recreate the app (`docker compose up -d`). The server posts 500s and crashes there (rate limited, no request data), and `backup.sh` posts failures. Empty = log only.
