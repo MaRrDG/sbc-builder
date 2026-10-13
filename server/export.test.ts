@@ -16,7 +16,7 @@ test('subscriptionExport keeps status, interval, period, canceledAt and drops id
     currentPeriodEnd: new Date(2000), cancelAt: new Date(3000), createdAt: new Date(1000), eventAt: new Date(1), pastDueSince: null,
   };
   const out = subscriptionExport(row);
-  assert.deepEqual(out, { status: 'active', interval: 'year', periodStart: '1970-01-01T00:00:01.000Z', periodEnd: '1970-01-01T00:00:02.000Z', canceledAt: '1970-01-01T00:00:03.000Z' });
+  assert.deepEqual(out, { status: 'active', interval: 'year', startedAt: '1970-01-01T00:00:01.000Z', periodEnd: '1970-01-01T00:00:02.000Z', canceledAt: '1970-01-01T00:00:03.000Z' });
   assert.ok(!JSON.stringify(out).includes('sub_1') && !JSON.stringify(out).includes('ctm_1') && !JSON.stringify(out).includes('pri_1'));
 });
 

@@ -25,7 +25,7 @@ export interface SubscriptionRow {
 
 /** A Paddle subscription as the user may see it: no subscription / customer / price ids. */
 export function subscriptionExport(r: SubscriptionRow) {
-  return { status: r.status, interval: r.interval, periodStart: iso(r.createdAt), periodEnd: iso(r.currentPeriodEnd), canceledAt: iso(r.cancelAt) };
+  return { status: r.status, interval: r.interval, startedAt: iso(r.createdAt), periodEnd: iso(r.currentPeriodEnd), canceledAt: iso(r.cancelAt) };
 }
 
 const BILLING_IDS = ['customerId', 'subscriptionId', 'transactionId'];

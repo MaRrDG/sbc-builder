@@ -44,12 +44,18 @@ interface Envelope {
   data?: Record<string, unknown> & { id?: string; subscription_id?: string | null; custom_data?: { userId?: string } | null };
 }
 
-/** The FC Solver user a transaction / adjustment belongs to: our customData, else its subscription row. */
-async function ownerOf(data: NonNullable<Envelope['data']>): Promise<string | null> {
+/**
+ * The FC Solver user a transaction / adjustment belongs to: our customData, else its subscription row.
+ * `gone`: customData names a user with no row any more (deleted account): log nothing that leads back to them.
+ */
+async function ownerOf(data: NonNullable<Envelope['data']>): Promise<{ userId: string | null; gone: boolean }> {
   const fromCustom = data.custom_data?.userId;
-  if (typeof fromCustom === 'string' && fromCustom) return fromCustom;
+  if (typeof fromCustom === 'string' && fromCustom) {
+    const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, fromCustom));
+    return u ? { userId: u.id, gone: false } : { userId: null, gone: true };
+  }
   const subId = data.subscription_id;
-  return subId ? ((await subscriptionById(subId))?.userId ?? null) : null;
+  return { userId: subId ? ((await subscriptionById(subId))?.userId ?? null) : null, gone: false };
 }
 
 async function handle(c: BillingConfig, env: Required<Pick<Envelope, 'event_id' | 'event_type' | 'occurred_at'>> & { data: NonNullable<Envelope['data']> }, log: FastifyRequest['log']): Promise<void> {
@@ -63,7 +69,9 @@ async function handle(c: BillingConfig, env: Required<Pick<Envelope, 'event_id' 
       // a subscription we cannot place: no / unknown userId or a price that is not ours. Kept for the admin, never lost silently.
       const reason = r.unknownUser ? 'unknownUser' : ev.data.custom_data?.userId ? 'unknownPrice' : 'noUserId';
       log.warn(`[billing] unmatched ${type} ${ev.data.id}: ${reason}`);
-      logEvent({ type: 'billing', userId: null, data: { kind: 'unmatched', reason, subscriptionId: ev.data.id, customerId: ev.data.customer_id } });
+      // unknownUser is mostly a deleted account's final notices: the subscription number only, no customer id
+      const ids = reason === 'unknownUser' ? { subscriptionId: ev.data.id } : { subscriptionId: ev.data.id, customerId: ev.data.customer_id };
+      logEvent({ type: 'billing', userId: null, data: { kind: 'unmatched', reason, ...ids } });
       return;
     }
     if (r.row && !intervalOf(r.row.priceId, c.prices)) {
@@ -76,9 +84,11 @@ async function handle(c: BillingConfig, env: Required<Pick<Envelope, 'event_id' 
   }
   if (!(await recordEvent(env.event_id, type))) return;
   if (!kind) return;
-  const userId = await ownerOf(env.data);
+  const { userId, gone } = await ownerOf(env.data);
   if (!userId) log.warn(`[billing] ${type} ${env.data.id ?? ''} without a known user`);
-  logEvent({ type: 'billing', userId, data: { ...kind, transactionId: env.data.id ?? null, subscriptionId: env.data.subscription_id ?? null } });
+  const subscriptionId = env.data.subscription_id ?? null;
+  // a deleted account's late transaction: the subscription number only (privacy policy, "what remains")
+  logEvent({ type: 'billing', userId, data: gone ? { ...kind, subscriptionId } : { ...kind, transactionId: env.data.id ?? null, subscriptionId } });
 }
 
 export function registerBillingRoutes(app: FastifyInstance) {
@@ -97,8 +107,9 @@ export function registerBillingRoutes(app: FastifyInstance) {
       planRow(userId),
       isAdmin(userId),
       subscriptionOf(userId),
-      db.select({ email: users.email, customerId: users.paddleCustomerId }).from(users).where(eq(users.id, userId)),
+      db.select({ email: users.email, customerId: users.paddleCustomerId, deleteAt: users.deleteAt }).from(users).where(eq(users.id, userId)),
     ]);
+    if (u?.deleteAt) throw new SessionError('Your account is scheduled for deletion.', 409, 'deletePending');
     const refusal = checkoutRefusal(row ?? { plan: 'free', premiumUntil: null }, admin, subscriptionActive(sub, Date.now()));
     if (refusal) throw new SessionError(refusal === 'alreadyPremium' ? 'You already have Premium.' : 'You already have a subscription.', 409, refusal);
     return { priceId: c.prices[interval], customData: { userId }, email: u?.email || null, customerId: u?.customerId ?? null };
