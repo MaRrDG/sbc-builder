@@ -3,7 +3,7 @@ import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import { db } from './index.js';
 import { dailyPlays, users } from './schema.js';
 import type { Play } from '../daily/streak.js';
-import { isReservedUsername, renameAllowed } from '../daily/username.js';
+import { usernameUpdate } from '../daily/username.js';
 
 export interface DailyProfile { username: string | null; leaderboard: boolean; asked: boolean }
 
@@ -18,18 +18,15 @@ export async function updateProfile(userId: string, p: { username?: string; lead
   Promise<DailyProfile | 'usernameTaken' | 'usernameRequired' | 'usernameReserved' | { cooldownUntil: Date }> {
   const [row] = await db.select({ changedAt: users.usernameChangedAt }).from(users).where(eq(users.id, userId));
   const cur = await profileOf(userId);
-  let rename = false;
-  if (p.username !== undefined) {
-    if (isReservedUsername(p.username)) return 'usernameReserved';
-    const chk = renameAllowed(cur.username, p.username, row?.changedAt ?? null, new Date());
-    if (chk.change && !chk.ok) return { cooldownUntil: chk.until };
-    rename = chk.change;
-  }
-  const username = rename ? p.username : cur.username;
+  const u = p.username === undefined ? ({ kind: 'same' } as const) : usernameUpdate(cur.username, p.username, row?.changedAt ?? null, new Date());
+  if (u.kind === 'reserved') return 'usernameReserved';
+  if (u.kind === 'cooldown') return { cooldownUntil: u.until };
+  const username = u.kind === 'rename' || u.kind === 'recase' ? u.username : cur.username;
   if (p.leaderboard && !username) return 'usernameRequired';
   try {
     await db.update(users).set({
-      ...(rename ? { username: p.username, usernameChangedAt: new Date() } : {}),
+      ...(u.kind === 'rename' ? { username: u.username, usernameChangedAt: new Date() } : {}),
+      ...(u.kind === 'recase' ? { username: u.username } : {}), // a new casing keeps the cooldown clock as it is
       ...(p.leaderboard !== undefined ? { leaderboard: p.leaderboard } : {}),
       leaderboardAskedAt: sql`coalesce(${users.leaderboardAskedAt}, now())`,
     }).where(eq(users.id, userId));

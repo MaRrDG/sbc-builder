@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isReservedUsername, normalizeUsername, renameAllowed, usernameKey } from './username.js';
+import { isReservedUsername, normalizeUsername, renameAllowed, usernameKey, usernameUpdate } from './username.js';
 
 test('valid usernames are trimmed and kept as typed', () => {
   assert.equal(normalizeUsername('  Mario_10 '), 'Mario_10');
@@ -32,4 +32,25 @@ test('rename: first name and same name are free, a change waits 7 days', () => {
   const r = renameAllowed('Mario', 'Luigi', new Date(now.getTime() - 3 * day), now);
   assert.equal(r.change && !r.ok && r.until.toISOString(), '2026-10-17T12:00:00.000Z');
   assert.deepEqual(renameAllowed('Mario', 'Luigi', new Date(now.getTime() - 7 * day), now), { change: true, ok: true });
+});
+
+test('usernameUpdate: case-only change saves the casing, never checks reserved or cooldown', () => {
+  const now = new Date('2026-10-13T12:00:00Z');
+  const recent = new Date(now.getTime() - 3600_000); // changed an hour ago: inside the cooldown
+  assert.deepEqual(usernameUpdate('Mario', 'Mario', recent, now), { kind: 'same' });
+  assert.deepEqual(usernameUpdate('Mario', 'mario', recent, now), { kind: 'recase', username: 'mario' });
+  // a name that is reserved today (set before the rule) keeps working when resent with a toggle
+  assert.deepEqual(usernameUpdate('Admin', 'Admin', recent, now), { kind: 'same' });
+  assert.deepEqual(usernameUpdate('Admin', 'ADMIN', recent, now), { kind: 'recase', username: 'ADMIN' });
+});
+
+test('usernameUpdate: a real change is checked, reserved first, then the cooldown', () => {
+  const now = new Date('2026-10-13T12:00:00Z');
+  const recent = new Date(now.getTime() - 3600_000);
+  assert.deepEqual(usernameUpdate('Mario', 'Staff_1', null, now), { kind: 'reserved' });
+  assert.deepEqual(usernameUpdate('Mario', 'Staff_1', recent, now), { kind: 'reserved' });
+  assert.equal(usernameUpdate('Mario', 'Luigi', recent, now).kind, 'cooldown');
+  assert.deepEqual(usernameUpdate('Mario', 'Luigi', null, now), { kind: 'rename', username: 'Luigi' });
+  assert.deepEqual(usernameUpdate(null, 'Luigi', null, now), { kind: 'rename', username: 'Luigi' });
+  assert.deepEqual(usernameUpdate(null, 'admin', null, now), { kind: 'reserved' });
 });
