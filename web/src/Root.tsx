@@ -8,15 +8,20 @@ import { safeNext } from './next';
 import { useRoute, type Route } from './route';
 import { useI18n } from './i18n';
 import { LangMenu } from './components/LangMenu';
-import { LegalLinks, LegalPage } from './legal/LegalPage';
-import { ChangelogPage } from './changelog/ChangelogPage';
+import { LegalLinks } from './legal/LegalLinks';
+import { BootSkeleton } from './components/BootSkeleton';
 import { SignIn } from './components/SignIn';
 import { track, yn } from './track';
-import { Guide } from './components/Guide';
-import { SetupGuide } from './components/SetupGuide';
 
 // the signed-in app loads after the sign-in screen, which stays small
-const App = lazy(() => import('./App'));
+const loadApp = () => import('./App');
+// the dashboard's code downloads while Clerk loads, not after
+if (window.location.pathname.startsWith('/dashboard')) void loadApp();
+const App = lazy(loadApp);
+const LegalPage = lazy(() => import('./legal/LegalPage').then((m) => ({ default: m.LegalPage })));
+const ChangelogPage = lazy(() => import('./changelog/ChangelogPage').then((m) => ({ default: m.ChangelogPage })));
+const Guide = lazy(() => import('./components/Guide').then((m) => ({ default: m.Guide })));
+const SetupGuide = lazy(() => import('./components/SetupGuide').then((m) => ({ default: m.SetupGuide })));
 const Landing = lazy(() => import('./landing/Landing'));
 const Daily = lazy(() => import('./daily/Daily'));
 
@@ -54,13 +59,23 @@ export default function Root() {
   }, [route.view, isSignedIn, t]);
 
   // legal pages, like the landing page, are for everyone and do not wait for Clerk
-  if (route.view === 'legal') return <LegalPage doc={route.doc} navigate={navigate} />;
-  if (route.view === 'changelog') return <ChangelogPage navigate={navigate} signedIn={!!isSignedIn} />;
+  if (route.view === 'legal')
+    return (
+      <Suspense fallback={<BootSkeleton />}>
+        <LegalPage doc={route.doc} navigate={navigate} />
+      </Suspense>
+    );
+  if (route.view === 'changelog')
+    return (
+      <Suspense fallback={<BootSkeleton />}>
+        <ChangelogPage navigate={navigate} signedIn={!!isSignedIn} />
+      </Suspense>
+    );
 
   // the landing page is for everyone and does not wait for Clerk
   if (route.view === 'landing')
     return (
-      <Suspense fallback={<div className="boot" aria-busy="true" />}>
+      <Suspense fallback={<BootSkeleton />}>
         <Landing signedIn={!!isSignedIn} authReady={isLoaded} navigate={navigate} />
       </Suspense>
     );
@@ -68,12 +83,12 @@ export default function Root() {
   // the Daily game is public; it waits for Clerk only to know whether stats are saved to an account
   if (route.view === 'daily')
     return (
-      <Suspense fallback={<div className="boot" aria-busy="true" />}>
+      <Suspense fallback={<BootSkeleton />}>
         <Daily signedIn={!!isSignedIn} authReady={isLoaded} practice={route.practice} navigate={navigate} />
       </Suspense>
     );
 
-  if (!isLoaded) return <div className="boot" aria-busy="true" />;
+  if (!isLoaded) return <BootSkeleton />;
 
   if (route.view === 'ssoCallback')
     return (
@@ -116,7 +131,7 @@ export default function Root() {
             </button>
           </p>
         )}
-        {body}
+        <Suspense fallback={<BootSkeleton />}>{body}</Suspense>
         <LegalLinks navigate={navigate} />
       </div>
     );
@@ -143,9 +158,9 @@ export default function Root() {
       </div>
     );
 
-  if (route.view === 'signin') return <div className="boot" aria-busy="true" />;
+  if (route.view === 'signin') return <BootSkeleton />;
   return (
-    <Suspense fallback={<div className="boot" aria-busy="true" />}>
+    <Suspense fallback={<BootSkeleton />}>
       <App route={route} navigate={navigate} />
     </Suspense>
   );

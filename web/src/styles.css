@@ -3527,6 +3527,16 @@ button.card:active {
   min-height: 100dvh;
 }
 
+.boot-skeleton { display: flex; flex-direction: column; gap: 16px; padding: 16px; min-height: 100dvh; }
+.sk-top { height: 56px; border-radius: 14px; background: var(--surface-2); }
+.sk-body { display: flex; gap: 16px; flex: 1; }
+.sk-side { width: 240px; border-radius: 14px; background: var(--surface-2); }
+.sk-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; align-content: start; }
+.sk-card { height: 132px; border-radius: 14px; background: var(--surface-2); animation: sk-pulse 1.4s ease-in-out infinite; }
+@keyframes sk-pulse { 50% { opacity: 0.55; } }
+@media (max-width: 860px) { .sk-side { display: none; } }
+@media (prefers-reduced-motion: reduce) { .sk-card { animation: none; } }
+
 .onboarding {
   max-width: 800px;
   margin: 0 auto;

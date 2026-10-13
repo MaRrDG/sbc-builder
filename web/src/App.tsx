@@ -15,7 +15,7 @@ import { useChangelogUnread } from './changelog/seen';
 import { disableTracking, track, yn } from './track';
 import { GalleryList } from './components/gallery/GalleryList';
 import { GallerySet } from './components/gallery/GallerySet';
-import { LegalLinks } from './legal/LegalPage';
+import { LegalLinks } from './legal/LegalLinks';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { repeatLine } from './components/SetBadge';
 import { repeatOf, untilText } from './repeat';

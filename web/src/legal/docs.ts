@@ -2,9 +2,8 @@
 // whole documents instead of t() keys; docs.test.ts keeps the languages in step.
 // Change UPDATED whenever a document's meaning changes.
 import type { Lang } from '../i18n';
-
-export type LegalDoc = 'terms' | 'privacy' | 'cookies' | 'refunds';
-export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'cookies', 'refunds'];
+import { LEGAL_DOCS, type LegalDoc } from './titles';
+export { LEGAL_DOCS, type LegalDoc };
 const PADDLE_TERMS = 'paddle.com/legal/checkout-buyer-terms';
 
 export const OPERATOR = 'Mario Dragut';

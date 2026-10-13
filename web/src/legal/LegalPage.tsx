@@ -1,8 +1,9 @@
 // /terms, /privacy, /cookies, /refunds: public for everyone, signed in or not, and not waiting for Clerk.
-import { useEffect, type MouseEvent } from 'react';
+import { useEffect } from 'react';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { routePath, type Route } from '../route';
+import { linkTo } from './LegalLinks';
 import { LEGAL, LEGAL_DOCS, UPDATED, type LegalDoc } from './docs';
 
 export function LegalPage({ doc, navigate }: { doc: LegalDoc; navigate: (r: Route) => void }) {
@@ -55,29 +56,6 @@ export function LegalPage({ doc, navigate }: { doc: LegalDoc; navigate: (r: Rout
         </a>
       </p>
     </div>
-  );
-}
-
-/** Real links (crawlable, open in a new tab) that stay inside the app on a plain click. */
-const linkTo = (navigate: (r: Route) => void) => (r: Route) => (e: MouseEvent) => {
-  if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
-  e.preventDefault();
-  navigate(r);
-  window.scrollTo(0, 0);
-};
-
-/** Terms · Privacy · Cookies, for footers. */
-export function LegalLinks({ navigate, className = 'text' }: { navigate: (r: Route) => void; className?: string }) {
-  const { t, lang } = useI18n();
-  const go = linkTo(navigate);
-  return (
-    <nav className="legal-links" aria-label={t('legal.nav')}>
-      {LEGAL_DOCS.map((k) => (
-        <a key={k} className={className} href={`/${k}`} onClick={go({ view: 'legal', doc: k })}>
-          {LEGAL[lang][k].title}
-        </a>
-      ))}
-    </nav>
   );
 }
 
