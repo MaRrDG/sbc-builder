@@ -158,7 +158,7 @@ export const en = {
   'activity.state.paused': 'EA asked for a pause, resuming at {time}',
   'activity.state.done': 'Done',
   'activity.state.failed': 'Did not finish',
-  'activity.failedBody': 'It stopped before the end, so nothing was replaced. Keep the FC web app tab open and try again.',
+  'activity.failedBody': 'It stopped before the end, so what FC Solver already had stays as it was. Keep the FC web app tab open and try again.',
   'activity.grace': 'Waiting for the web app to finish loading',
   'activity.idle': 'Nothing running',
   'activity.toast.club_one': 'Club updated: {count} player',
@@ -631,6 +631,8 @@ export const en = {
   'changelog.toApp': 'Back to FC Solver',
   'auth.refused': 'FC Solver could not confirm your sign-in. Try again in a moment, or sign out and sign in again.',
   'auth.retry': 'Try again',
+  'boot.loadFailed': 'This page could not load. FC Solver may have just been updated: reload to get the new version.',
+  'boot.reload': 'Reload',
   // account
   'nav.accounts': 'Linked accounts',
   'nav.discord': 'Join our Discord',

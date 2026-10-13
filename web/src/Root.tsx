@@ -1,6 +1,6 @@
 // Auth gate in front of the app: Clerk loading, the Google redirect, signed-out pages
 // (sign in, how it works, extension setup) and the signed-in app. Owns the one useRoute().
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { HandleSSOCallback, useAuth, useClerk } from '@clerk/react';
 import { WarningCircle } from '@phosphor-icons/react';
 import { configureAuth } from './api';
@@ -10,6 +10,7 @@ import { useI18n } from './i18n';
 import { LangMenu } from './components/LangMenu';
 import { LegalLinks } from './legal/LegalLinks';
 import { BootSkeleton } from './components/BootSkeleton';
+import { LoadBoundary } from './components/LoadBoundary';
 import { cacheClear, cacheKeep } from './cache';
 import { SignIn } from './components/SignIn';
 import { track, yn } from './track';
@@ -25,6 +26,13 @@ const Guide = lazy(() => import('./components/Guide').then((m) => ({ default: m.
 const SetupGuide = lazy(() => import('./components/SetupGuide').then((m) => ({ default: m.SetupGuide })));
 const Landing = lazy(() => import('./landing/Landing'));
 const Daily = lazy(() => import('./daily/Daily'));
+
+/** A lazy screen: the skeleton while its code loads, a reload note if the code cannot load. */
+const Lazy = ({ children }: { children: ReactNode }) => (
+  <LoadBoundary>
+    <Suspense fallback={<BootSkeleton />}>{children}</Suspense>
+  </LoadBoundary>
+);
 
 const here = () => window.location.pathname + window.location.search;
 
@@ -69,31 +77,31 @@ export default function Root() {
   // legal pages, like the landing page, are for everyone and do not wait for Clerk
   if (route.view === 'legal')
     return (
-      <Suspense fallback={<BootSkeleton />}>
+      <Lazy>
         <LegalPage doc={route.doc} navigate={navigate} />
-      </Suspense>
+      </Lazy>
     );
   if (route.view === 'changelog')
     return (
-      <Suspense fallback={<BootSkeleton />}>
+      <Lazy>
         <ChangelogPage navigate={navigate} signedIn={!!isSignedIn} />
-      </Suspense>
+      </Lazy>
     );
 
   // the landing page is for everyone and does not wait for Clerk
   if (route.view === 'landing')
     return (
-      <Suspense fallback={<BootSkeleton />}>
+      <Lazy>
         <Landing signedIn={!!isSignedIn} authReady={isLoaded} navigate={navigate} />
-      </Suspense>
+      </Lazy>
     );
 
   // the Daily game is public; it waits for Clerk only to know whether stats are saved to an account
   if (route.view === 'daily')
     return (
-      <Suspense fallback={<BootSkeleton />}>
+      <Lazy>
         <Daily signedIn={!!isSignedIn} authReady={isLoaded} practice={route.practice} navigate={navigate} />
-      </Suspense>
+      </Lazy>
     );
 
   if (!isLoaded) return <BootSkeleton />;
@@ -139,7 +147,7 @@ export default function Root() {
             </button>
           </p>
         )}
-        <Suspense fallback={<BootSkeleton />}>{body}</Suspense>
+        <Lazy>{body}</Lazy>
         <LegalLinks navigate={navigate} />
       </div>
     );
@@ -168,8 +176,8 @@ export default function Root() {
 
   if (route.view === 'signin') return <BootSkeleton />;
   return (
-    <Suspense fallback={<BootSkeleton />}>
+    <Lazy>
       <App route={route} navigate={navigate} userId={userId!} />
-    </Suspense>
+    </Lazy>
   );
 }

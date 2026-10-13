@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
+import { BootSkeleton } from './components/BootSkeleton';
 import { DiscordIcon } from './components/DiscordIcon';
 import {
   api, ApiError, setPersona,
@@ -243,6 +244,7 @@ export default function App({
     if (activeIdRef.current !== id) return; // the user switched account meanwhile
     applyData(d);
     setFresh(true);
+    freshRef.current = true; // now, not on the next render: loadMe may check it right after this load
     dataRef.current = { id, d: { ...d } };
     cacheSet(cacheKey(userId, id, 'data'), d);
   }, [applyData, userId]);
@@ -265,9 +267,12 @@ export default function App({
 
   // A status (stream or poll) applied only when something changed: no whole-App re-render per tick.
   const latestSyncRef = useRef<SyncStatus | null>(null); // the newest status from the network, before React renders it
+  const applySync = useCallback((sync: SyncStatus | null) => {
+    latestSyncRef.current = sync;
+    setStatus((prev) => (prev && JSON.stringify(prev) === JSON.stringify(sync) ? prev : sync));
+  }, []);
   const applyStatus = useCallback((st: StatusResponse) => {
-    latestSyncRef.current = st.sync;
-    setStatus((prev) => (prev && JSON.stringify(prev) === JSON.stringify(st.sync) ? prev : st.sync));
+    applySync(st.sync);
     if (st.account)
       setLinked((prev) => {
         const cur = prev?.find((a) => a.personaId === st.account!.personaId);
@@ -279,7 +284,7 @@ export default function App({
       cur.d.status = st;
       saveData();
     }
-  }, [saveData]);
+  }, [saveData, applySync]);
 
   const selectAccount = useCallback(
     async (id: number) => {
@@ -342,6 +347,10 @@ export default function App({
     setLinked(personas);
   }, []);
 
+  // A cold open (no cached /api/me) loads the last account's data alongside /api/me; loadMe waits for it
+  // instead of fetching the same data again.
+  const bootLoadRef = useRef<{ id: number; p: Promise<void> } | null>(null);
+
   // Boot (and after the extension links a new EA account): who am I, which personas are mine.
   const loadMe = useCallback(async () => {
     const m = await api.me();
@@ -352,6 +361,9 @@ export default function App({
     void cachePrune(userId, personas.map((a) => a.personaId)); // accounts unlinked since
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
+    const boot = bootLoadRef.current;
+    bootLoadRef.current = null;
+    if (boot && pick && boot.id === pick.personaId && boot.id === activeIdRef.current) await boot.p; // fresh if it worked
     if (!pick) {
       setPersona(null);
       setActiveId(null);
@@ -388,6 +400,10 @@ export default function App({
         setActiveId(last);
         activeIdRef.current = last;
         applyData(data, true);
+      } else if (!me && last && activeIdRef.current === null) {
+        // cold open: the last account's data starts now, not after /api/me. If it is no longer this
+        // user's, loadMe picks another one and this load's 403 is dropped, never shown.
+        bootLoadRef.current = { id: last, p: selectAccount(last).catch(() => {}) };
       }
     })();
     migrateLegacyKeys()
@@ -398,7 +414,7 @@ export default function App({
     return () => {
       cancelled = true;
     };
-  }, [loadMe, applyMe, applyData, userId]);
+  }, [loadMe, applyMe, applyData, selectAccount, userId]);
 
   const onLinked = useCallback(() => {
     justLinked.current = true;
@@ -714,12 +730,12 @@ export default function App({
   useEffect(() => {
     if (!activeId || !live) return;
     const visit = () => {
-      if (!document.hidden) void api.syncVisit(onSbcs).then(setStatus, () => {});
+      if (!document.hidden) void api.syncVisit(onSbcs).then(applySync, () => {});
     };
     visit();
     document.addEventListener('visibilitychange', visit);
     return () => document.removeEventListener('visibilitychange', visit);
-  }, [onSbcs, activeId, live]);
+  }, [onSbcs, activeId, live, applySync]);
 
   // refresh windows of repeatable SBCs roll over while the page is open
   useEffect(() => {
@@ -890,7 +906,7 @@ export default function App({
     await loadMe();
   };
 
-  if (linked === null) return <div className="boot" aria-busy="true" />;
+  if (linked === null) return <BootSkeleton />;
   // asked right after sign-up, on the setup screen, or once in the app for older users
   const survey = <OnboardingModal open={!onboarded && status?.club?.state !== 'running'} onDone={() => setOnboarded(true)} founders={founders} />;
   // the checkout is a page of its own (no sidebar), and Premium needs no EA account: it opens before setup too

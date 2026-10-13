@@ -162,7 +162,7 @@ export const it: Record<Keys, string> = {
   'activity.state.paused': 'EA ha chiesto una pausa, si riprende alle {time}',
   'activity.state.done': 'Fatto',
   'activity.state.failed': 'Non è finita',
-  'activity.failedBody': 'Si è fermata prima della fine, quindi non è stato sostituito nulla. Tieni aperta la scheda della web app FC e riprova.',
+  'activity.failedBody': 'Si è fermata prima della fine, quindi i dati che FC Solver aveva già restano come prima. Tieni aperta la scheda della web app FC e riprova.',
   'activity.grace': 'In attesa che la web app finisca di caricarsi',
   'activity.idle': 'Nessuna attività in corso',
   'activity.toast.club_one': 'Club aggiornato: {count} giocatore',
@@ -635,6 +635,8 @@ export const it: Record<Keys, string> = {
   'changelog.toApp': 'Torna a FC Solver',
   'auth.refused': 'FC Solver non è riuscito a confermare il tuo accesso. Riprova tra poco, oppure esci e accedi di nuovo.',
   'auth.retry': 'Riprova',
+  'boot.loadFailed': 'Non è stato possibile caricare la pagina. Forse FC Solver è appena stato aggiornato: ricarica per avere la nuova versione.',
+  'boot.reload': 'Ricarica',
   // account
   'nav.accounts': 'Account collegati',
   'nav.discord': 'Entra su Discord',

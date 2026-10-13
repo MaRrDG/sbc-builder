@@ -17,6 +17,26 @@ import '@fontsource/barlow-condensed/600.css';
 import '@fontsource/barlow-condensed/700.css';
 import './styles.css';
 
+// a deploy replaced the code chunks an open tab still points at: reload once to get the new ones
+// (at most once per 30 s, so a chunk that really is missing shows the error note instead of looping)
+window.addEventListener('vite:preloadError', (e) => {
+  const KEY = 'fcs-chunk-reload';
+  let last = 0;
+  try {
+    last = Number(sessionStorage.getItem(KEY)) || 0;
+  } catch {
+    return; // no storage: no loop guard, so let the error boundary show its note
+  }
+  if (Date.now() - last < 30_000) return;
+  try {
+    sessionStorage.setItem(KEY, String(Date.now()));
+  } catch {
+    return;
+  }
+  e.preventDefault();
+  location.reload();
+});
+
 applyNoTrack(); // before the deferred analytics script runs: admins are not counted
 startInstallCapture(); // before React: beforeinstallprompt can fire before the first render
 registerServiceWorker();

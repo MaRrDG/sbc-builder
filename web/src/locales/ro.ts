@@ -162,7 +162,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'activity.state.paused': 'EA a cerut o pauză, reia la {time}',
   'activity.state.done': 'Gata',
   'activity.state.failed': 'Nu s-a terminat',
-  'activity.failedBody': 'S-a oprit înainte de final, așa că nu s-a înlocuit nimic. Ține tab-ul FC web app deschis și încearcă din nou.',
+  'activity.failedBody': 'S-a oprit înainte de final, așa că datele pe care FC Solver le avea deja au rămas neschimbate. Ține tab-ul FC web app deschis și încearcă din nou.',
   'activity.grace': 'Așteptăm să se încarce complet web app-ul',
   'activity.idle': 'Nimic nu rulează acum',
   'activity.toast.club_one': 'Club actualizat: {count} jucător',
@@ -635,6 +635,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'changelog.toApp': 'Înapoi la FC Solver',
   'auth.refused': 'FC Solver nu ți-a putut confirma autentificarea. Încearcă din nou peste puțin timp sau ieși din cont și intră din nou.',
   'auth.retry': 'Încearcă din nou',
+  'boot.loadFailed': 'Pagina nu s-a putut încărca. Probabil FC Solver tocmai a primit o actualizare: reîncarcă pagina ca să ai versiunea nouă.',
+  'boot.reload': 'Reîncarcă',
   // cont
   'nav.accounts': 'Conturi legate',
   'nav.discord': 'Intră pe Discord',

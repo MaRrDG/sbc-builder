@@ -10,7 +10,7 @@ import { isActive, mainJob, pct, toastable } from '../activity';
 const R = 8;
 const C = 2 * Math.PI * R;
 
-/** 20px ring: filled up to the percentage when known, a turning arc otherwise (still under reduced motion). */
+/** 20px ring: filled up to the percentage when known, a turning arc otherwise (a still arc under reduced motion). */
 function Ring({ value, waiting }: { value: number | null; waiting: boolean }) {
   const spin = value === null && !waiting;
   const arc = value === null ? C * 0.28 : (C * value) / 100;
@@ -233,7 +233,7 @@ type Toast = { what: 'club' | 'sbc' | 'failed'; at: number };
  * network shows done never toasts on load or on an account switch.
  */
 export function ActivityToast({ jobs, players, account }: { jobs: JobView[] | null; players: number; account: number | null }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const prev = useRef<{ account: number | null; jobs: JobView[] } | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
 
@@ -267,7 +267,7 @@ export function ActivityToast({ jobs, players, account }: { jobs: JobView[] | nu
           {toast.what === 'failed' ? <WarningCircle weight="fill" aria-hidden="true" /> : <CheckCircle weight="fill" aria-hidden="true" />}
           <span>
             {toast.what === 'club'
-              ? t('activity.toast.club', { count: players })
+              ? t('activity.toast.club', { count: players, countText: players.toLocaleString(lang) })
               : toast.what === 'sbc'
                 ? t('activity.toast.sbc')
                 : t('activity.toast.failed')}
