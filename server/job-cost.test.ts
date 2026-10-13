@@ -4,9 +4,9 @@ import { jobCost, pickJob, stampBudget, UNKNOWN_CLUB_COST } from './job-cost.js'
 import { jobView } from './job-view.js';
 import { solveWait } from '../web/src/activity.js';
 
-test('club cost: pages of 91 plus a spare page plus 4 fixed calls', () => {
-  assert.equal(jobCost({ kind: 'club' }, 4950), Math.ceil(4950 / 91) + 1 + 4); // 60
-  assert.equal(jobCost({ kind: 'club' }, 91), 1 + 1 + 4);
+test('club cost: pages of 91 plus a spare page plus 15 fixed calls (3 + 12 saved squads)', () => {
+  assert.equal(jobCost({ kind: 'club' }, 4950), Math.ceil(4950 / 91) + 1 + 15);
+  assert.equal(jobCost({ kind: 'club' }, 91), 1 + 1 + 15);
   assert.equal(jobCost({ kind: 'club' }, 0), UNKNOWN_CLUB_COST);
   assert.equal(jobCost({ kind: 'club' }, null), UNKNOWN_CLUB_COST);
 });
@@ -27,7 +27,7 @@ test('pickJob takes the first queued job that fits and reports the ones that do 
   ];
   const r = pickJob(q, 10, 2000);
   assert.equal(r.job, q[2]);
-  assert.deepEqual(r.blocked.map((b) => [b.job, b.cost]), [[q[1], Math.ceil(2000 / 91) + 5]]);
+  assert.deepEqual(r.blocked.map((b) => [b.job, b.cost]), [[q[1], Math.ceil(2000 / 91) + 16]]);
 });
 
 test('pickJob at the edge: cost equal to what is left fits', () => {
@@ -37,7 +37,7 @@ test('pickJob at the edge: cost equal to what is left fits', () => {
 });
 
 test('club cost never goes past the recipe maximum (5000 items)', () => {
-  const max = Math.ceil(5000 / 91) + 1 + 4;
+  const max = Math.ceil(5000 / 91) + 1 + 15;
   assert.equal(jobCost({ kind: 'club' }, 5000), max);
   assert.equal(jobCost({ kind: 'club' }, 20000), max);
 });
@@ -56,7 +56,7 @@ test('stampBudget with the cap fully used: every queued job shows budget, so Sol
   ];
   const { blocked } = pickJob(q, 0, 2000);
   assert.equal(stampBudget(q, blocked, 0), true);
-  assert.deepEqual(q.map((j) => j.budget), [{ cost: Math.ceil(2000 / 91) + 5, left: 0 }, { cost: 2, left: 0 }]);
+  assert.deepEqual(q.map((j) => j.budget), [{ cost: Math.ceil(2000 / 91) + 16, left: 0 }, { cost: 2, left: 0 }]);
   assert.equal(stampBudget(q, blocked, 0), false); // unchanged: no notify
   const ctx = { tabOpen: true, tabReady: true, pausedUntil: null, clubExpected: null };
   const views = q.map((j) => jobView(j, ctx));

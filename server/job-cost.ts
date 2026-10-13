@@ -4,7 +4,8 @@
 import type { JobKind } from './jobs.js';
 
 const CLUB_PAGE = 91; // extension/hook.js PAGE
-const CLUB_FIXED = 4; // squad list, active squad, chemistry profiles, storage
+const CLUB_SQUADS = 12; // extension/hook.js MAX_SQUADS: the saved squads, active one included
+const CLUB_FIXED = 3 + CLUB_SQUADS; // squad list, squads, chemistry profiles, storage
 const CLUB_MAX_ITEMS = 5000; // the recipe stops paging here
 const CLUB_MAX_COST = Math.ceil(CLUB_MAX_ITEMS / CLUB_PAGE) + 1 + CLUB_FIXED;
 export const UNKNOWN_CLUB_COST = 60;

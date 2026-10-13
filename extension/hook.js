@@ -14,6 +14,7 @@
   const GAP_JITTER_MS = 1500;
   const WEB_APP_QUIET_MS = 2000; // waited for at most 15 s
   const PAGE = 91;
+  const MAX_SQUADS = 12; // server/job-cost.ts CLUB_SQUADS
   const THROTTLE = [429, 458, 495, 512, 521];
 
   const post = (msg) => window.postMessage({ source: SRC, ...msg }, window.location.origin);
@@ -188,7 +189,11 @@
         if (!Array.isArray(page?.itemData) || page.itemData.length < PAGE) break;
       }
       const list = await c('GET', '/squad/list');
-      if (Number.isInteger(list?.activeSquadId)) await c('GET', `/squad/${list.activeSquadId}`);
+      // every saved squad, as the web app's My Squads loads them (FC Solver Premium shows their value);
+      // the active one first, at most MAX_SQUADS in all (server/job-cost.ts counts them)
+      const squads = [list?.squad, list?.squads, list?.squadList].find(Array.isArray) ?? [];
+      const ids = [list?.activeSquadId, ...squads.map((s) => s?.id ?? s?.squadId)].filter((id) => Number.isInteger(id) && id >= 0);
+      for (const id of [...new Set(ids)].slice(0, MAX_SQUADS)) await c('GET', `/squad/${id}`);
       await c('GET', '/chemistry/profiles');
       // SBC storage, the same read the web app makes; the club is already in, so only throttling fails the job
       await c('GET', '/storagepile?skuMode=FUT').catch((e) => {

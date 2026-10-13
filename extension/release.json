@@ -1,4 +1,7 @@
 {
+  "1.0.4": [
+    "The club sync also reads your saved squads, so FC Solver Premium can show what each one is worth"
+  ],
   "1.0.3": [
     "Syncs start as soon as FC Solver asks for them, no more waiting for the next check"
   ],
