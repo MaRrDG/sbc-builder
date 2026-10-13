@@ -132,6 +132,16 @@ export async function dropKeys(prefixIn: string): Promise<void> {
   evict(); // a read that ran while the files were going away
 }
 
+/** Cache keys of the files in one folder of an account (`accounts/<id>/<dir>`), without `.json`; [] when none. */
+export async function cachedKeysIn(dirKey: string): Promise<string[]> {
+  try {
+    const names = await readdir(join(DATA_DIR, dirKey));
+    return names.filter((n) => n.endsWith('.json')).map((n) => `${dirKey}/${n.slice(0, -5)}`);
+  } catch {
+    return [];
+  }
+}
+
 /** Account folder names are persona ids: positive integers without leading zeros. */
 export const isAccountFolder = (name: string) => /^[1-9]\d*$/.test(name);
 

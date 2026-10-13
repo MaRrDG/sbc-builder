@@ -181,12 +181,12 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
   }
   if (method === 'GET' && ev.path === '/squad/list') {
     if (Number.isInteger(res.activeSquadId)) activeSquadIds.set(acc.id, res.activeSquadId as number);
-    await saveSquadList(acc, ev.response); // My Squads; quiet (no UI reload for browsing squads)
+    await softly('save squad list', () => saveSquadList(acc, ev.response)); // My Squads; quiet (no UI reload for browsing squads)
     return null;
   }
   const squad = ev.path.match(/^\/squad\/(active|\d+)$/)?.[1];
   if (method === 'GET' && squad) {
-    await saveSquad(acc, ev.response, squad === 'active' ? null : Number(squad)); // any squad, for My Squads
+    await softly('save squad', () => saveSquad(acc, ev.response, squad === 'active' ? null : Number(squad))); // any squad, for My Squads
     return onSquad(acc, squad === 'active' ? 'active' : Number(squad), res);
   }
   // A challenge's squad as the web app sees it (players already placed, EA's fixed "brick" slots).

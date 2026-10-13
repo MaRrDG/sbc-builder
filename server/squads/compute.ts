@@ -56,7 +56,7 @@ const isCard = (i: Record<string, unknown> | undefined): i is Record<string, unk
 /** The squad's slots: its own load first (or the list's, when newer), else the active-squad ids. */
 function slotsOf(id: number, summary: SquadSummary | undefined, input: SquadsInput): { slots: SquadSlot[]; at: number | null } | null {
   const detail = input.details.get(id);
-  const fromList = summary?.players?.length ? summary.players : null;
+  const fromList = summary?.players && (summary.players.length || !input.details.has(id)) ? summary.players : null;
   if (detail && (!fromList || detail.fetchedAt >= (input.list?.fetchedAt ?? 0))) return { slots: detail.data.players, at: detail.fetchedAt };
   if (fromList) return { slots: fromList, at: input.list?.fetchedAt ?? null };
   if (input.active && input.active.squadId === id && input.active.starters.length) {
@@ -117,7 +117,7 @@ function build(summary: SquadSummary, input: SquadsInput, clubById: Map<number, 
     active: activeId(input) === summary.id,
     rating: rating ?? null,
     value,
-    loaded: slots.length > 0,
+    loaded: got !== null, // players known, even when the squad is empty
     chemistry: chem ? chem.reduce((a, b) => a + b, 0) : null,
     fetchedAt: got?.at ?? null,
     slots: slots.map((s, i) => ({

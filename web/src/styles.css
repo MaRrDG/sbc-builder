@@ -4932,10 +4932,11 @@ a.adm-kpi:hover { background: var(--surface-2); }
 @media (max-width: 560px) {
   .squad-row { grid-template-columns: minmax(0, 1fr) auto; padding: 12px; }
   .squad-row-go { display: none; }
+  .squad-row-value { grid-column: 1 / -1; justify-items: start; text-align: left; }
   .squad-row-value .coin-value { font-size: 18px; }
   .squad-stats { grid-template-columns: 1fr 1fr; }
   .squad-stats .squad-total { grid-column: 1 / -1; }
   .card-avg-label { display: none; }
-  .card-avg { padding: 0 4px; font-size: 10px; }
-  .card-avg .coin-value { font-size: 11px; }
+  .card-avg { max-width: var(--card-w); padding: 0 3px; font-size: 9px; overflow: hidden; }
+  .card-avg .coin-value { gap: 2px; font-size: 10px; }
 }

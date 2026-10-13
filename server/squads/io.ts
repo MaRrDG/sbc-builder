@@ -2,7 +2,7 @@
 import type { Account } from '../accounts.js';
 import type { ClubItem } from '../ea.js';
 import type { Meta } from '../meta.js';
-import { readCache, readShared, writeCache } from '../store.js';
+import { cachedKeysIn, readCache, readShared, writeCache } from '../store.js';
 import { squadRows, squadView, type ActiveIds, type SquadsInput } from './compute.js';
 import { parseSquad, parseSquadList, type SquadDetail, type SquadsCache } from './parse.js';
 
@@ -17,6 +17,11 @@ async function input(acc: Account, only?: number): Promise<SquadsInput & { clubA
   const ids = new Set(only !== undefined ? [only] : (list?.data.list ?? []).map((s) => s.id));
   const activeId = list?.data.activeSquadId ?? active?.data.squadId;
   if (only === undefined && activeId !== undefined && activeId !== null) ids.add(activeId);
+  if (only === undefined && !list) // no list cached: every squad the web app opened is still a squad
+    for (const key of await cachedKeysIn(acc.key('squads'))) {
+      const id = Number(key.split('/').pop());
+      if (Number.isSafeInteger(id) && id > 0) ids.add(id);
+    }
   const details = new Map<number, { data: SquadDetail; fetchedAt: number }>();
   await Promise.all(
     [...ids].map(async (id) => {
