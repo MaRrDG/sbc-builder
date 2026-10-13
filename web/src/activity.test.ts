@@ -36,3 +36,7 @@ test('toastable: only a finish in the last 30 s', () => {
   assert.deepEqual(toastable(before, after, now).map((j) => j.id), ['a']); // b finished long ago (a stale cached status)
   assert.deepEqual(toastable(after, after, now), []); // nothing was active before
 });
+
+test('solveWait: a club job over the EA budget never holds Solve', () => {
+  assert.equal(solveWait([v({ kind: 'club', state: 'budget', budget: { cost: 60, left: 0 } })]), null);
+});

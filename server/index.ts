@@ -13,7 +13,7 @@ import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, readShared, ROOT } from './store.js';
 import { etagOf, notModified } from './etag.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
-import { enqueue, findJob, finishJob, hasPending, markCall, markPoll, markReady, nextJob, restLeft, waitForWork, webAppOpen, webAppReturned } from './jobs.js';
+import { enqueue, findJob, finishJob, hasPending, markBlocked, markCall, markPoll, markReady, nextJob, restLeft, waitForWork, webAppOpen, webAppReturned } from './jobs.js';
 import { dropStream, notify, sseFrame, subscribe, takeStream } from './live.js';
 import { isTabPoll } from './job-rules.js';
 import { loadAccounts, accountByKey, accountById, hello, type Account } from './accounts.js';
@@ -560,13 +560,16 @@ app.get('/api/jobs/next', async (req) => {
   // the extension's own poll after /api/hello (also sent on an FC Solver site visit, with no web
   // app tab open): not a tab, so it takes no job and does not mark the web app as open
   if (!isTabPoll(acc.info.extVersion, ready)) return { job: null, again: 5000 };
+  const clubItems = async () => (await readShared<unknown[]>(acc.key('club')))?.data.length ?? null;
   try {
     await acc.meter.check();
-  } catch {
+  } catch (e) {
     // over budget or paused: the queue waits, but the tab is still there (its jobs stay "paused",
     // not failed as if the tab closed); no job is handed out, nothing reaches EA
     markPoll(acc);
     markReady(acc, ready !== '0');
+    // cap fully used: queued jobs show "over budget" (not "queued", which would hold Solve all day)
+    if (e instanceof SessionError && e.msgCode === 'budget') markBlocked(acc, await clubItems());
     return { job: null, again: 5000 };
   }
   const returned = webAppReturned(acc, visible === undefined ? undefined : visible === '1');
@@ -579,8 +582,8 @@ app.get('/api/jobs/next', async (req) => {
   const gone = () => req.raw.socket?.destroyed ?? false;
   const until = Date.now() + LONG_POLL_MS;
   const budgetNow = async () => {
-    const [m, club] = await Promise.all([acc.meter.summary(), readShared<unknown[]>(acc.key('club'))]);
-    return { left: Math.max(0, m.limit - m.today), clubItems: club?.data.length ?? null };
+    const [m, items] = await Promise.all([acc.meter.summary(), clubItems()]);
+    return { left: Math.max(0, m.limit - m.today), limit: m.limit, clubItems: items };
   };
   let budget = await budgetNow();
   let job = nextJob(acc, canRun, budget);
@@ -590,7 +593,8 @@ app.get('/api/jobs/next', async (req) => {
     markPoll(acc); // still holding: the tab is still there
     try {
       await acc.meter.check();
-    } catch {
+    } catch (e) {
+      if (e instanceof SessionError && e.msgCode === 'budget') markBlocked(acc, await clubItems());
       break;
     }
     if (gone()) break; // the socket may have closed during the meter check
