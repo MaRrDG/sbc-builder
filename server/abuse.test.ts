@@ -4,6 +4,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { overLinkLimit } from './auth-rules.js';
 import { createLimiter } from './limits.js';
+import { hashIp } from './ip-hash.js';
+import { adjustAllowed, revokeDelta, userFlags } from './admin/query.js';
 import { checkRedeem, GIFT_LIMIT, invitePointAllowed, sharePersona, type CodeRow } from './referrals.js';
 
 const code = (p: Partial<CodeRow> = {}): CodeRow => ({
@@ -63,4 +65,15 @@ test('fixed R2: IPv6 addresses of one /64 share a rate-limit bucket', () => {
   assert.equal(hit('2001:db8:1:2::2'), false); // same /64, same quota
   assert.equal(hit('::ffff:203.0.113.7'), true);
   assert.equal(hit('203.0.113.7'), false); // a mapped IPv4 is that IPv4
+});
+
+test('fixed A1: farms are flagged, linked accounts share an IP hash, an admin can zero the points', () => {
+  // points without an EA account, gift collectors and 1-guess winners stand out in admin Users
+  assert.deepEqual(userFlags({ points: 4, accounts: 0, gifts30: 3, oneGuess30: 5 }), ['noEa', 'gifts', 'oneGuess']);
+  // two accounts behind one /24 or /64 group together in the event log, without storing the IP
+  assert.equal(hashIp('198.51.100.10', 'salt'), hashIp('198.51.100.200', 'salt'));
+  assert.equal(hashIp('2001:db8::1', 'salt'), hashIp('2001:db8::ffff', 'salt'));
+  // revoke writes one row back to 0; an adjustment never goes below 0
+  assert.equal(7 + revokeDelta(7), 0);
+  assert.equal(adjustAllowed(2, -3), false);
 });

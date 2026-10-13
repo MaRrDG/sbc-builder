@@ -305,7 +305,7 @@ Dashboard: KPIs, daily series for the last `range` days (default `7`), what need
 
 The only endpoint that returns the answer of a day (unfinished games included). Default `day` = latest; an unknown day falls back to the latest.
 
-`{ days: { day, date }[], day, date, answer: { id, name, fullName, rating, position, club, league, nation, rareflag, cardType } | null, summary: { finished, won, winPct, dist: number[5], signedIn: { finished, won }, anon: { finished, won } }, topGuessed: { id, name, count }[], games: { userId, email, username, guesses: { id, name }[], won, used, finishedAt: number | null }[] }`. `summary` counts finished signed-in games plus the anonymous counters; `topGuessed` is the top 10 players tried (signed-in guesses plus anonymous counters); `games` are the signed-in games, newest finish first, unfinished last.
+`{ days: { day, date }[], day, date, answer: { id, name, fullName, rating, position, club, league, nation, rareflag, cardType } | null, summary: { finished, won, winPct, dist: number[5], signedIn: { finished, won }, anon: { finished, won } }, topGuessed: { id, name, count }[], games: { userId, email, username, guesses: { id, name }[], won, used, finishedAt: number | null }[] }`. `summary` counts finished signed-in games plus the anonymous counters; `topGuessed` is the top 10 players tried (signed-in guesses plus anonymous counters); `games` are the signed-in games, newest finish first, unfinished last. The anonymous counters are unverified (signed-out tokens are stateless and can be replayed, audit I1); the admin view labels them so.
 
 ### `GET /api/admin/daily/leaderboard`
 
@@ -333,13 +333,13 @@ Removes the user's username and leaderboard opt-in. `{ ok: true }`; `404` `unkno
     "id": "user_2Rf…", "email": "you@example.com", "createdAt": 1790000000000, "lastSeenAt": 1790064400000,
     "planSet": "free", "plan": { "tier": "free", "premiumUntil": null, "quota": { "used": 3, "limit": 20, "resetsAt": null } },
     "admin": false, "accounts": 1, "online": 0, "solves7d": 12,
-    "heardFrom": "reddit", "futYears": "4-7"
+    "heardFrom": "reddit", "futYears": "4-7", "flags": ["noEa"]
   }],
   "total": 2, "page": 1, "pageSize": 25
 }
 ```
 
-`accounts`: EA accounts the user owns; `online`: how many of them have a live session; `solves7d`: solves in the last 7 days. `heardFrom` / `futYears`: onboarding answers, `null` when skipped or not asked yet.
+`accounts`: EA accounts the user owns; `online`: how many of them have a live session; `solves7d`: solves in the last 7 days. `heardFrom` / `futYears`: onboarding answers, `null` when skipped or not asked yet. `flags` (abuse signals, display only, `server/admin/query.ts` `userFlags`): `noEa` (point balance > 0 and owns no EA account), `gifts` (≥3 gift codes redeemed in the last 30 days), `oneGuess` (≥3 Daily wins in one guess in the last 30 days).
 
 ### `GET /api/admin/users/:id`
 
@@ -359,7 +359,7 @@ Removes the user's username and leaderboard opt-in. `{ ok: true }`; `404` `unkno
 
 ### `GET /api/admin/users/:id/events?page=`
 
-The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true }, "setName": "Marquee Matchups", "challengeName": "Marquee Matchups" }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`; SBC solves, not `kind: "objectives"`, also carry top-level `setName` / `challengeName` from `sbc_sets` / `challenges` as EA sent them, `null` for an id not in the DB; one lookup per table per page), `sync`, `ea_error`, `ea_day`; the latter three are logged per EA account (`personaId` only, no `userId`), and are matched to a user by the accounts they currently own (`personas` table), not by who owned them at the time. Events older than 180 days are deleted. An unknown user gives an empty list.
+The user's history, newest first: `{ "rows": [{ "id": 42, "at": 1790064400000, "type": "solve", "personaId": 1005016552645, "data": { "setId": 1, "challengeId": 2, "found": true }, "setName": "Marquee Matchups", "challengeName": "Marquee Matchups" }], "total": 1, "page": 1, "pageSize": 25 }`. `type`: `solve` (`data`: `setId`, `challengeId`, `found`; SBC solves, not `kind: "objectives"`, also carry top-level `setName` / `challengeName` from `sbc_sets` / `challenges` as EA sent them, `null` for an id not in the DB; one lookup per table per page), `sync`, `ea_error`, `ea_day`, `boost`, `billing`, `account`, `redeem` (`data`: `kind`, `codeOwner` user id or `null`, `ipHash`), `points` (`data`: `delta`, `reason` = `invite` | `spend` | `gift` | `daily_streak` | `admin`, `ref` (invitee id / days / gift code / Daily day / admin note or `revoke`), admin rows also `by` (admin user id) and, on a revoke, `giftsDisabled`; `ipHash`), `daily_win` (`data`: `guesses`, `ipHash`; signed-in wins only). `ipHash` = first 16 hex of SHA-256(`IP_HASH_SALT` + the request's IPv4 /24 or IPv6 /64), `null` for admin actions; the raw IP is never stored (`server/ip-hash.ts`). `sync`, `ea_error`, `ea_day` are logged per EA account (`personaId` only, no `userId`), and are matched to a user by the accounts they currently own (`personas` table), not by who owned them at the time. Events older than 180 days are deleted. An unknown user gives an empty list.
 
 ### `GET /api/admin/accounts?q=&state=&sort=&dir=&page=`
 
@@ -396,6 +396,14 @@ Creates a promo code. Body: `{ "days": 30 | null, "code"?: "SUMMER26", "maxUses"
 ### `POST /api/admin/plan`
 
 `{ "userId": "user_2Rf…", "tier": "free" | "premium", "premiumUntil": "2026-12-31T23:59:59.000Z" | null }` (`premiumUntil` is an ISO timestamp, ignored — stored as `null` — when `tier` is `"free"`; a date-only string like `"2026-12-31"` parses as UTC midnight, so the admin UI sends the end of that day in the admin's local time instead). Sets the user's plan; the quota columns (`used`, the window) are left as they are. Returns `{ "ok": true }`; `400` on a bad payload (including a non-string, non-null `premiumUntil`), `404` `{ "error": "unknown user", "code": "unknownUser", "params": {} }` for an unknown user.
+
+### `POST /api/admin/users/:id/points`
+
+`{ "delta": 5, "note"?: "…" }`: adds (or with a negative `delta` takes) points: one `point_ledger` row `reason: "admin"`, `ref` = the note. `delta` is a non-zero integer, |delta| ≤ 1000; `note` a string of at most 200 characters (trimmed). Returns `{ "ok": true, "points": <new balance> }`. `400` `code: "invalid"` on a bad payload, `400` `{ "code": "pointsNegative", "params": { "balance": 3 } }` when the balance would go below 0, `404` `unknownUser`. Logged as a `points` event.
+
+### `POST /api/admin/users/:id/revoke`
+
+No body. Zeroes the user's point balance with one `admin` row (`ref: "revoke"`, none when the balance is already 0) and disables the user's unredeemed gift codes. Premium already granted is not touched (use `POST /api/admin/plan`). Returns `{ "ok": true, "delta": -7, "giftsDisabled": 1 }`; `404` `unknownUser`. Logged as a `points` event.
 
 ### `POST /api/admin/quota-reset`
 

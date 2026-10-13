@@ -70,6 +70,7 @@ import type { Condition, EaCategory } from './objectives/types.js';
 import { closeDb, db, initDb } from './db/index.js';
 import { alert } from './alert.js';
 import { logEvent, pruneEvents } from './db/events.js';
+import { ipHash } from './ip-hash.js';
 import { pruneBillingEvents } from './db/billing.js';
 import { isPointsChallenge, pointsTarget } from './points.js';
 import { users } from './db/schema.js';
@@ -317,7 +318,7 @@ app.put<{ Body: Record<string, unknown> }>('/api/me/onboarding', async (req, rep
   // a code typed on the survey: a bad one never blocks the answer
   const raw = req.body?.code;
   if (typeof raw !== 'string' || !raw.trim() || !redeemLimit(req.ip) || !redeemUserLimit(userId)) return { ok: true };
-  const r = await redeem(userId, raw);
+  const r = await redeem(userId, raw, ipHash(req.ip));
   return { ok: true, redeem: r.ok ? { kind: r.kind, days: r.days, pending: r.pending, founder: r.founder } : { error: r.code } };
 });
 
@@ -332,7 +333,7 @@ app.get('/api/referral', async (req) => {
 app.post<{ Body: { code?: unknown } }>('/api/redeem', async (req, reply) => {
   const userId = await siteUser(req);
   if (!redeemLimit(req.ip) || !redeemUserLimit(userId)) throw tooMany();
-  const r = await redeem(userId, typeof req.body?.code === 'string' ? req.body.code : '');
+  const r = await redeem(userId, typeof req.body?.code === 'string' ? req.body.code : '', ipHash(req.ip));
   if (!r.ok) return reply.code(400).send({ error: r.code, code: r.code, params: {} });
   return { kind: r.kind, days: r.days, pending: r.pending, founder: r.founder };
 });
@@ -342,7 +343,7 @@ app.post('/api/points/spend', async (req, reply) => {
   const userId = await siteUser(req);
   const s = parseSpend(req.body);
   if (!s) return reply.code(400).send({ error: 'invalid spend', code: 'invalid', params: {} });
-  const r = await spendPoints(userId, s.days, s.gift);
+  const r = await spendPoints(userId, s.days, s.gift, ipHash(req.ip));
   if (!r.ok) return reply.code(400).send({ error: r.code, code: r.code, params: {} });
   return 'giftCode' in r ? { giftCode: r.giftCode } : { premiumUntil: r.premiumUntil };
 });
@@ -579,7 +580,7 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     // Founding 50: the first links get Premium for life; on 'already' too, so a grant a DB hiccup
     // swallowed is retried (it returns at once for a founder)
     await grantFounderSpot(userId, r.account.id);
-    await grantInviteOnLink(userId, r.account.id); // after the founders grant: a founder stays for life
+    await grantInviteOnLink(userId, r.account.id, ipHash(req.ip)); // after the founders grant: a founder stays for life
     await consumeLinkToken(token!);
     linked = r.account.id;
     // newly linked here: load the club now (the site re-sends tokens every few minutes, so not on 'already')

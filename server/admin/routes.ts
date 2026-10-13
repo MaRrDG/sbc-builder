@@ -16,7 +16,8 @@ import { adminDay, adminLeaderboard } from './daily.js';
 import { clearUsername } from '../db/dailyProfile.js';
 import { invalidateLeaderboard } from '../daily/service.js';
 import { overview } from './overview.js';
-import { clampPage, PAGE_SIZE, parseAccountQuery, parsePage, parseRange, parseUserQuery } from './query.js';
+import { clampPage, PAGE_SIZE, parseAccountQuery, parsePage, parsePointsAdjust, parseRange, parseUserQuery } from './query.js';
+import { adminAdjustPoints, adminRevokePoints } from '../db/referrals.js';
 import { listUsers, userDetail } from './users.js';
 
 type Q = { Querystring: Record<string, string> };
@@ -40,6 +41,22 @@ export function registerAdminRoutes(app: FastifyInstance) {
     const personaIds = await ownedPersonaIds(req.params.id);
     const page = clampPage(parsePage(req.query.page), await userEventCount(req.params.id, personaIds));
     return { ...(await userEvents(req.params.id, personaIds, page, PAGE_SIZE)), page, pageSize: PAGE_SIZE };
+  });
+  /** Add or take points (`point_ledger` reason 'admin'); never below 0. Logged as a `points` event. */
+  app.post<{ Params: { id: string } }>('/api/admin/users/:id/points', async (req, reply) => {
+    const adminId = await requireAdmin(req);
+    const p = parsePointsAdjust(req.body);
+    if (!p) return reply.code(400).send({ error: 'invalid payload', code: 'invalid', params: {} });
+    const r = await adminAdjustPoints(req.params.id, p.delta, p.note, adminId);
+    if (r.ok) return { ok: true, points: r.balance };
+    if (r.code === 'unknownUser') return reply.code(404).send({ error: 'unknown user', code: 'unknownUser', params: {} });
+    return reply.code(400).send({ error: 'balance would go below 0', code: 'pointsNegative', params: { balance: r.balance } });
+  });
+  /** Zero the balance (one 'admin' row) and disable the user's unredeemed gift codes. Logged as a `points` event. */
+  app.post<{ Params: { id: string } }>('/api/admin/users/:id/revoke', async (req, reply) => {
+    const adminId = await requireAdmin(req);
+    const r = await adminRevokePoints(req.params.id, adminId);
+    return r ? { ok: true, ...r } : reply.code(404).send({ error: 'unknown user', code: 'unknownUser', params: {} });
   });
   app.get<Q>('/api/admin/codes', async (req) => {
     await requireAdmin(req);

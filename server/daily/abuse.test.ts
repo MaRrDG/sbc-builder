@@ -87,7 +87,9 @@ test('holds: yesterday\'s state token, a practice state and a forged guess list 
   assert.equal(verifyState(S, `${a}.${macB}`, 'd42'), null);
 });
 
-test('audit I1: a signed-out state token can be replayed to branch the same game', { todo: 'audit: I1' }, () => {
+// I1 is accepted by design: signed-out play earns nothing, so a replayed token can only inflate the anonymous
+// admin counters, which the admin Daily view labels "unverified" (web/src/components/admin/DailyAdmin.tsx).
+test('accepted I1: a signed-out state token can be replayed to branch the same game (stats labelled unverified)', () => {
   const four = signState(S, { k: 'd42', g: [1, 2, 3, 4] });
   // no nonce / no server record: the same 4-miss token is accepted again and again
   assert.ok(verifyState(S, four, 'd42'));

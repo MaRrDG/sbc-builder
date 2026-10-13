@@ -100,7 +100,8 @@ function DayView({ day, onDay, navigate }: { day: number | null; onDay: (d: numb
           <KpiCard label={t('admin.daily.won')} value={s.won} />
           <KpiCard label={t('admin.daily.winPct')} value={`${s.winPct}%`} />
           <KpiCard label={t('admin.daily.signedIn')} value={s.signedIn.finished} sub={`${t('admin.daily.won')} ${s.signedIn.won}`} />
-          <KpiCard label={t('admin.daily.anon')} value={s.anon.finished} sub={`${t('admin.daily.won')} ${s.anon.won}`} />
+          <KpiCard label={t('admin.daily.anonUnverified')} title={t('admin.daily.unverifiedHint')} value={s.anon.finished} sub={`${t('admin.daily.won')} ${s.anon.won}`} />
+          <p className="muted adm-kpi-note"><small>{t('admin.daily.unverifiedNote')}</small></p>
         </div>
       </div>
 

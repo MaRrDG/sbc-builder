@@ -8,6 +8,7 @@ import { join } from 'node:path';
 import { SessionError } from '../ea.js';
 import { DATA_DIR } from '../store.js';
 import { lastSbcDrop } from '../sync.js';
+import { logDailyWin, logPoints } from '../db/events.js';
 import { answerFor, answersSince, firstAnswer, guessDaily, insertAnswer, lowestPersonaOf, playOf, playsOf, recordAnonGuess } from '../db/daily.js';
 import { leaderboardSource, profileOf } from '../db/dailyProfile.js';
 import { dayFor, dropDate, nextDropAfter, staleDay } from './day.js';
@@ -175,7 +176,8 @@ export async function publicLeaderboard(userId: string | null) {
   return { rows: rows.slice(0, 50).map(pub), me: mine ? { ...pub(mine), inTop: mine.rank <= 50 } : null, total: rows.length };
 }
 
-export async function guessToday(userId: string | null, assetId: number, state: unknown, day?: unknown): Promise<GuessResult> {
+/** `ipHash` (server/ip-hash.ts) goes only into the admin event log of a signed-in win. */
+export async function guessToday(userId: string | null, assetId: number, state: unknown, day?: unknown, ipHash: string | null = null): Promise<GuessResult> {
   const t = await todayGame();
   // a page left open across the drop must not have its guess counted toward the new day
   if (staleDay(day, t.day)) throw err('dailyExpired', 409, 'This game has expired.');
@@ -183,6 +185,10 @@ export async function guessToday(userId: string | null, assetId: number, state: 
   if (userId) {
     const r = await guessDaily(userId, t.day, a, assetId, known);
     if ('error' in r) throw guessError(r.error);
+    if (r.progress.won) {
+      logDailyWin(userId, r.progress.guesses.length, ipHash);
+      if (r.points && r.points.added > 0) logPoints(userId, { delta: r.points.added, reason: 'daily_streak', ref: String(t.day) }, ipHash);
+    }
     const view = gameView(r.progress, t.answer, playerById);
     return result(view, {
       ...(r.progress.finished ? { stats: statsOf(await playsOf(userId), t.day) } : {}),

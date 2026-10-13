@@ -143,6 +143,15 @@ export async function anonymizeEvents(userId: string, purgedPersonas: number[]):
       .update(events)
       .set({ data: sql`${events.data} - 'customerId' - 'subscriptionId' - 'transactionId'` })
       .where(and(eq(events.userId, userId), eq(events.type, 'billing')));
+    // abuse-signal rows: the IP hash goes with the user; other users' rows drop this user's id (code owner, invitee, admin)
+    await tx.update(events).set({ data: sql`${events.data} - 'ipHash'` })
+      .where(and(eq(events.userId, userId), inArray(events.type, ['redeem', 'points', 'daily_win'])));
+    await tx.update(events).set({ data: sql`jsonb_set(${events.data}, '{codeOwner}', 'null')` })
+      .where(and(eq(events.type, 'redeem'), sql`${events.data}->>'codeOwner' = ${userId}`));
+    await tx.update(events).set({ data: sql`jsonb_set(${events.data}, '{ref}', '""')` })
+      .where(and(eq(events.type, 'points'), sql`${events.data}->>'ref' = ${userId}`));
+    await tx.update(events).set({ data: sql`${events.data} - 'by'` })
+      .where(and(eq(events.type, 'points'), sql`${events.data}->>'by' = ${userId}`));
     await tx.update(events).set({ userId: null }).where(eq(events.userId, userId));
     if (purgedPersonas.length) await tx.update(events).set({ personaId: null }).where(inArray(events.personaId, purgedPersonas));
   });

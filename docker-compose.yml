@@ -55,6 +55,8 @@ services:
       EA_DAILY_LIMIT: ${EA_DAILY_LIMIT:-}
       CLUB_MANUAL_COOLDOWN_MIN: ${CLUB_MANUAL_COOLDOWN_MIN:-}
       DAILY_SECRET: ${DAILY_SECRET:-}
+      # salt of the IP hashes in the admin event log (empty: derived from EMAIL_SECRET / CLERK_SECRET_KEY)
+      IP_HASH_SALT: ${IP_HASH_SALT:-}
       DAILY_MIN_RATING: ${DAILY_MIN_RATING:-}
       DAILY_RATING_FLOOR: ${DAILY_RATING_FLOOR:-}
       DAILY_MIN_POOL: ${DAILY_MIN_POOL:-}

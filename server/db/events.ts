@@ -3,7 +3,7 @@ import { count, desc, eq, inArray, lt, or, sql, type SQL } from 'drizzle-orm';
 import { db, softly } from './index.js';
 import { challenges, events, personas, sbcSets } from './schema.js';
 
-export type EventType = 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost' | 'billing' | 'account';
+export type EventType = 'solve' | 'sync' | 'ea_error' | 'ea_day' | 'boost' | 'billing' | 'account' | 'redeem' | 'points' | 'daily_win';
 export interface NewEvent {
   type: EventType;
   userId?: string | null;
@@ -22,6 +22,18 @@ export interface EventRow {
 }
 
 export const KEEP_DAYS = 180;
+
+/** Abuse signals (admin only): a code redeemed, a point balance change, a signed-in Daily win. `ipHash` from
+ * server/ip-hash.ts (the request that caused it; null without one), never the raw IP. */
+export function logRedeem(userId: string, d: { kind: string; codeOwner: string | null }, ipHash: string | null): void {
+  logEvent({ type: 'redeem', userId, data: { ...d, ipHash } });
+}
+export function logPoints(userId: string, d: { delta: number; reason: string; ref: string; by?: string; giftsDisabled?: number }, ipHash: string | null): void {
+  logEvent({ type: 'points', userId, data: { ...d, ipHash } });
+}
+export function logDailyWin(userId: string, guesses: number, ipHash: string | null): void {
+  logEvent({ type: 'daily_win', userId, data: { guesses, ipHash } });
+}
 
 export function logEvent(e: NewEvent): void {
   void softly(`log ${e.type}`, () =>

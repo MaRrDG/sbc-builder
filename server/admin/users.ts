@@ -2,7 +2,7 @@
 import { and, asc, count, desc, eq, exists, gt, gte, ilike, inArray, isNotNull, lt, lte, not, or, sql, type SQL } from 'drizzle-orm';
 import { activeSubscribers, subscriptionActiveSql, subscriptionOf } from '../db/billing.js';
 import { db } from '../db/index.js';
-import { events, personas, users } from '../db/schema.js';
+import { dailyPlays, events, personas, pointLedger, redemptions, users } from '../db/schema.js';
 import { latestExtension } from '../extension.js';
 import { subscriptionActive } from '../billing/rules.js';
 import { BOOST_GRACE_MS } from '../plan.js';
@@ -10,7 +10,7 @@ import { planInfo } from '../plans.js';
 import { adminEmails } from './auth.js';
 import { accountRows, owners } from './accounts.js';
 import { referralOf } from './codes.js';
-import { clampPage, fillDays, isOutdated, isProblem, lastDays, likePattern, PAGE_SIZE, type UserQuery } from './query.js';
+import { clampPage, fillDays, isOutdated, isProblem, lastDays, likePattern, PAGE_SIZE, userFlags, type UserQuery } from './query.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 export const TZ = () => process.env.SBC_DROP_TZ ?? 'Europe/Bucharest';
@@ -32,6 +32,24 @@ const ownsAny = (ids?: number[]) =>
   exists(
     db.select({ x: sql`1` }).from(personas).where(and(eq(personas.userId, users.id), ids ? inArray(personas.personaId, ids.length ? ids : [-1]) : undefined)),
   );
+
+/** Per user on one page: point balance, gift redemptions received and 1-guess Daily wins in the last 30 days. */
+async function flagInputs(ids: string[], now: Date) {
+  if (!ids.length) return new Map<string, { points: number; gifts30: number; oneGuess30: number }>();
+  const since = new Date(now.getTime() - 30 * DAY);
+  const [pts, gifts, one] = await Promise.all([
+    db.select({ u: pointLedger.userId, n: sql<number>`coalesce(sum(${pointLedger.delta}), 0)::int` }).from(pointLedger)
+      .where(inArray(pointLedger.userId, ids)).groupBy(pointLedger.userId),
+    db.select({ u: redemptions.userId, n: sql<number>`count(*)::int` }).from(redemptions)
+      .where(and(inArray(redemptions.userId, ids), eq(redemptions.kind, 'gift'), gte(redemptions.at, since))).groupBy(redemptions.userId),
+    db.select({ u: dailyPlays.userId, n: sql<number>`count(*)::int` }).from(dailyPlays)
+      .where(and(inArray(dailyPlays.userId, ids), eq(dailyPlays.won, true), sql`jsonb_array_length(${dailyPlays.guesses}) = 1`, gte(dailyPlays.finishedAt, since)))
+      .groupBy(dailyPlays.userId),
+  ]);
+  const by = (rows: { u: string; n: number }[]) => new Map(rows.map((r) => [r.u, r.n]));
+  const [p, g, o] = [by(pts), by(gifts), by(one)];
+  return new Map(ids.map((id) => [id, { points: p.get(id) ?? 0, gifts30: g.get(id) ?? 0, oneGuess30: o.get(id) ?? 0 }]));
+}
 
 export async function listUsers(q: UserQuery) {
   const now = new Date();
@@ -73,6 +91,7 @@ export async function listUsers(q: UserQuery) {
   const online = new Set(accs.filter((a) => a.online).map((a) => a.personaId));
   const admins = adminEmails();
   const subscribed = await activeSubscribers(rows.map((r) => r.u.id));
+  const flagIn = await flagInputs(rows.map((r) => r.u.id), now);
   return {
     total: n,
     page,
@@ -93,6 +112,7 @@ export async function listUsers(q: UserQuery) {
         solves7d: s7,
         heardFrom: u.heardFrom,
         futYears: u.futYears,
+        flags: userFlags({ ...flagIn.get(u.id)!, accounts: mine.length }),
       };
     }),
   };

@@ -7,6 +7,7 @@ import { SessionError } from '../ea.js';
 import { createLimiter } from '../limits.js';
 import { requestOrigin } from '../extension.js';
 import { publicOrigin } from '../origins.js';
+import { ipHash } from '../ip-hash.js';
 import { dailyInfo, guessPractice, guessToday, invalidateLeaderboard, newPractice, publicLeaderboard } from './service.js';
 import { normalizeUsername } from './username.js';
 import { loadPlayers, namesList } from './store.js';
@@ -40,7 +41,7 @@ export function registerDailyRoutes(app: FastifyInstance) {
 
   app.post<{ Body: { assetId?: unknown; state?: unknown; day?: unknown } }>('/api/daily/guess', async (req) => {
     if (!guessLimit(req.ip)) throw tooMany();
-    return guessToday(await optionalSiteUser(req), assetIdOf(req.body), req.body?.state, req.body?.day);
+    return guessToday(await optionalSiteUser(req), assetIdOf(req.body), req.body?.state, req.body?.day, ipHash(req.ip));
   });
 
   app.post('/api/daily/practice', async (req) => {

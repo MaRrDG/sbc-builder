@@ -30,11 +30,16 @@ export function subscriptionExport(r: SubscriptionRow) {
 
 const BILLING_IDS = ['customerId', 'subscriptionId', 'transactionId'];
 
-/** `billing` events carry Paddle ids in `data`: strip them; other events stay as stored. */
+/** `billing` events carry Paddle ids in `data`, `redeem` / `points` other users' ids (code owner, invitee, admin):
+ * strip them; other events stay as stored. */
 export function sanitizeEvent<T extends { type: string; data: Json }>(e: T): T {
-  if (e.type !== 'billing') return e;
   const data = { ...e.data };
-  for (const k of BILLING_IDS) delete data[k];
+  if (e.type === 'billing') for (const k of BILLING_IDS) delete data[k];
+  else if (e.type === 'redeem') delete data.codeOwner;
+  else if (e.type === 'points') {
+    delete data.by;
+    if (data.reason === 'invite') data.ref = null; // the invitee's user id
+  } else return e;
   return { ...e, data };
 }
 
