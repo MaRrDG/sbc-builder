@@ -5,7 +5,8 @@ import { accountById, forgetAccount } from './accounts.js';
 import { alert } from './alert.js';
 import { anonymizePersonaEvents, ownerOf, pruneSignalsOf, purgeOrphanPersonaRows } from './db/deletion.js';
 import { logEvent } from './db/events.js';
-import { jobList, webAppOpen } from './jobs.js';
+import { forgetJobs, jobList, webAppOpen } from './jobs.js';
+import { forgetSync } from './sync.js';
 import { selectPrunable, type PruneSignals } from './prune-rules.js';
 import { cachedAccountIds, dropKeys, newestAccountWrite } from './store.js';
 
@@ -35,7 +36,11 @@ const defaultDeps: PruneDeps = {
   ownerOf,
   purgeOrphanPersonaRows,
   anonymizePersonaEvents,
-  forgetAccount,
+  forgetAccount: (id: number) => {
+    forgetAccount(id);
+    forgetJobs(id);
+    forgetSync(id);
+  },
   dropKeys,
   logPruned: () => logEvent({ type: 'account', data: { action: 'pruned' } }), // no persona id: that is what goes
   onError: async (e) => {
@@ -78,8 +83,9 @@ export async function pruneAccounts(now = Date.now(), deps: PruneDeps = defaultD
     try {
       // fresh checks right before acting: linked or opened since the signals were read → keep
       if ((await deps.ownerOf(id)) !== null || deps.isLive(id)) continue;
-      if (!(await deps.purgeOrphanPersonaRows(id))) continue;
+      // events first, like the deletion purge: once the persona rows are gone the next run no longer sees this persona
       await deps.anonymizePersonaEvents(id);
+      if (!(await deps.purgeOrphanPersonaRows(id))) continue;
       deps.forgetAccount(id);
       await deps.dropKeys(`accounts/${id}`);
       deps.logPruned();

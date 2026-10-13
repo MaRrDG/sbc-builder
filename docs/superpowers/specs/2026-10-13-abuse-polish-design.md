@@ -45,7 +45,7 @@ Flip every `{ todo: 'audit: …' }` test in `server/abuse.test.ts` and `server/d
 - CSP: read the prod `[csp]` log lines (`docker logs`), add any legitimate missing origin, then an env switch `CSP_ENFORCE=1` sends `Content-Security-Policy` instead of `-Report-Only`. Enabled on dev only; prod stays report-only until checked on dev.
 - Extension minimum version: `extension/release.json` stays the changelog; the server exposes `minExtension` (= `1.0.0`) in `/api/hello`; an older client-mode extension gets the existing update notice as blocking ("update required"). No change to the extension itself.
 - The served extension zip drops `localhost` / `127.0.0.1` entries from `host_permissions` and `externally_connectable`/content-script matches when the public origin is not localhost.
-- Landing pricing reads the price labels from `/api/billing/config` when billing is on (fallback: today's static text).
+- Landing pricing stays static (no Paddle.js on the public page: third-party script on every visit).
 - `server/squad.ts` unit tests for rating, chemistry and `isRequirementMet` on fixed squads (values checked against the web app formulas already ported; tests only, no formula change).
 - Prune: cached EA accounts (`data/accounts/<id>/`) whose persona has no owner and no activity for 90 days are deleted by the daily ticker (DB rows as in the deletion purge, persona-keyed only). Logged.
 - Docs: `docs/api.md`, `docs/architecture.md`, `docs/deploy.md` (CSP switch, `IP_HASH_SALT`), `CLAUDE.md` layout line, audit doc statuses.

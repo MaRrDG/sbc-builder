@@ -52,7 +52,7 @@ function fakes(o: {
 test('prunes an ownerless quiet account: rows, events, memory, folder, log', async () => {
   const f = fakes({ ids: [7] });
   assert.deepEqual(await pruneAccounts(now, f.deps), [7]);
-  assert.deepEqual(f.calls, ['rows:7', 'anon:7', 'forget:7', 'drop:accounts/7', 'log']);
+  assert.deepEqual(f.calls, ['anon:7', 'rows:7', 'forget:7', 'drop:accounts/7', 'log']);
 });
 
 test('keeps owned, trusted, live, recent and unreadable ones', async () => {
@@ -71,7 +71,7 @@ test('keeps owned, trusted, live, recent and unreadable ones', async () => {
 test('linked since the signals were read, or rows guard refuses: nothing touched', async () => {
   const f = fakes({ ids: [1, 2], ownerNow: { 1: 'user_a' }, rowsRefuse: [2] });
   assert.deepEqual(await pruneAccounts(now, f.deps), []);
-  assert.deepEqual(f.calls, ['rows:2']);
+  assert.deepEqual(f.calls, ['anon:2', 'rows:2']);
 });
 
 test('a DB failure while reading signals prunes nothing and alerts', async () => {

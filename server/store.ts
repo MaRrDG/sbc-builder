@@ -132,11 +132,14 @@ export async function dropKeys(prefixIn: string): Promise<void> {
   evict(); // a read that ran while the files were going away
 }
 
+/** Account folder names are persona ids: positive integers without leading zeros. */
+export const isAccountFolder = (name: string) => /^[1-9]\d*$/.test(name);
+
 /** Numeric folder names under data/accounts (one per cached EA account); [] when there is none. */
 export async function cachedAccountIds(): Promise<number[]> {
   try {
     const dirs = await readdir(join(DATA_DIR, 'accounts'), { withFileTypes: true });
-    return dirs.filter((d) => d.isDirectory() && /^\d+$/.test(d.name)).map((d) => Number(d.name)).filter(Number.isSafeInteger);
+    return dirs.filter((d) => d.isDirectory() && isAccountFolder(d.name)).map((d) => Number(d.name)).filter(Number.isSafeInteger);
   } catch {
     return [];
   }

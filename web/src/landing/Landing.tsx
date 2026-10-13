@@ -161,7 +161,6 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
           cta={cta('pricing')}
           founders={founders}
           link={link}
-          billingOn={billingOn}
           // signed out: /signin?next=/dashboard/upgrade, so the checkout opens right after sign-in
           buy={billingOn && authReady ? link(signedIn ? { view: 'upgrade' } : { view: 'signin', next: '/dashboard/upgrade' }, 'lp-btn', t('billing.goPremium'), () => track('cta_click', { where: 'premium' })) : null}
         />

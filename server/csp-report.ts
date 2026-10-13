@@ -24,7 +24,7 @@ export function originOnly(v: unknown): string | null {
     if (u.protocol === 'http:' || u.protocol === 'https:' || u.protocol === 'wss:' || u.protocol === 'ws:') return u.origin;
     return u.protocol.replace(/:$/, ''); // data:, blob:, chrome-extension:
   } catch {
-    return s.slice(0, 40); // 'inline', 'eval', 'self'
+    return s.split(/[?#]/)[0].slice(0, 40); // 'inline', 'eval', 'self'
   }
 }
 

@@ -48,3 +48,9 @@ test('enforce only on CSP_ENFORCE=1', () => {
   assert.equal(cspHeaderName(''), 'Content-Security-Policy-Report-Only');
   assert.equal(cspHeaderName('true'), 'Content-Security-Policy-Report-Only');
 });
+
+test('non-URL blocked value loses query and fragment before the cut', () => {
+  assert.equal(originOnly('not a url?token=secret#frag'), 'not a url');
+  assert.equal(originOnly('inline'), 'inline');
+  assert.equal(originOnly('x'.repeat(60) + '?a=b'), 'x'.repeat(40));
+});
