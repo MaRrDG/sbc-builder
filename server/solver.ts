@@ -1,6 +1,6 @@
 // Builds an SBC problem from club players + requirements and solves it with CP-SAT
 // (solver/cpsat.py). Every result is re-checked with the exact web-app formulas.
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { join } from 'node:path';
 import type { Meta } from './meta.js';
 import { NATION, LEAGUE, CLUB, STAR_RATING_THRESHOLDS, LEGENDS_LEAGUE_ID, type ParamId } from './meta.js';
@@ -233,11 +233,20 @@ export async function runCpSat(problem: unknown): Promise<CpResult> {
   }
 }
 
+// running CP-SAT children, killed on shutdown (a solve cut off there is not a server fault)
+const children = new Set<ChildProcess>();
+let stopping = false;
+export function killAllSolvers(): void {
+  stopping = true;
+  for (const c of children) c.kill('SIGKILL');
+}
+
 function spawnCpSat(problem: unknown): Promise<CpResult> {
   const asked = Number((problem as { timeLimit?: number }).timeLimit);
   const limit = Number.isFinite(asked) && asked > 0 ? asked : 10;
   return new Promise((resolve, reject) => {
     const child = spawn(PYTHON, [SCRIPT], { stdio: ['pipe', 'pipe', 'pipe'] });
+    children.add(child);
     let out = '';
     let err = '';
     let killed = false;
@@ -249,10 +258,13 @@ function spawnCpSat(problem: unknown): Promise<CpResult> {
     child.stderr.on('data', (d) => (err += d));
     child.on('error', (e) => {
       clearTimeout(timer);
+      children.delete(child);
       reject(e);
     });
     child.on('close', (code) => {
       clearTimeout(timer);
+      children.delete(child);
+      if (stopping) return reject(new SessionError('The solver is busy, try again in a few seconds.', 503, 'solverBusy'));
       if (killed) return reject(new SessionError('The solver took too long and was stopped.', 504, 'solverTimeout'));
       if (code !== 0) return reject(new Error(`solver exited ${code}: ${err.slice(-500)}`));
       try {

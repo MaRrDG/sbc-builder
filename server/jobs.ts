@@ -136,6 +136,15 @@ export function wake(acc: Account) {
   for (const f of w) f();
 }
 
+let shutting = false;
+export const isShuttingDown = () => shutting;
+/** Shutdown: answer every held /api/jobs/next now; the tabs poll the next server. */
+export function wakeAll(): void {
+  shutting = true;
+  for (const set of waiters.values()) for (const w of set) w();
+  waiters.clear();
+}
+
 /** Resolves on wake() or after `ms`. */
 export function waitForWork(acc: Account, ms: number): Promise<void> {
   return new Promise((resolve) => {

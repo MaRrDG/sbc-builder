@@ -17,7 +17,7 @@ export async function initDb(): Promise<void> {
   }
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('DATABASE_URL is not set');
-  client = postgres(url, { max: 5, onnotice: () => {} });
+  client = postgres(url, { max: 10, onnotice: () => {} });
   db = drizzle(client, { schema });
   await migrate(db, { migrationsFolder: join(ROOT, 'server/db/migrations') });
 }

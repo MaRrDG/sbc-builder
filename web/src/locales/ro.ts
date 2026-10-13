@@ -570,6 +570,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'err.personaNotYours': 'Contul EA nu e legat de tine.',
   'err.personaTakenOver': 'Contul EA e acum legat de alt utilizator FC Solver.',
   'err.rateLimited': 'Prea multe cereri. Așteaptă un minut și încearcă din nou.',
+  'err.internal': 'Ceva n-a mers pe serverul FC Solver. Încearcă din nou peste câteva momente.',
   'err.usernameInvalid': 'Folosește 3-16 litere, cifre, _ . sau -.',
   'err.usernameTaken': 'Username-ul e deja folosit. Încearcă altul.',
   'err.usernameRequired': 'Alege întâi un username.',

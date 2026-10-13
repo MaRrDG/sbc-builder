@@ -566,6 +566,7 @@ export const en = {
   'err.personaTakenOver': 'This EA account is now linked to another FC Solver user.',
   'err.adminOnly': 'Admins only.',
   'err.rateLimited': 'Too many requests. Wait a minute and try again.',
+  'err.internal': 'Something went wrong on the FC Solver server. Try again in a moment.',
   'err.usernameInvalid': 'Use 3-16 letters, digits, _ . or -.',
   'err.usernameTaken': 'That username is taken. Try another one.',
   'err.usernameRequired': 'Pick a username first.',

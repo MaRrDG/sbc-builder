@@ -41,6 +41,16 @@ export function dropStream(userId: string) {
   else open.delete(userId);
 }
 
+// open streams' end functions, so a shutdown ends them the way the 5 min timer does
+const closers = new Set<() => void>();
+export function trackStream(end: () => void): () => void {
+  closers.add(end);
+  return () => closers.delete(end);
+}
+export function endAllStreams(): void {
+  for (const end of [...closers]) end();
+}
+
 onCacheWrite((key) => {
   const o = keyOwner(key);
   if (o) notify(o.personaId, [o.name]);

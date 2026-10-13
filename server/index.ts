@@ -8,13 +8,13 @@ import { SessionError, THROTTLE_CODES, type ClubItem, type Challenge } from './e
 import { loadMeta, type Meta } from './meta.js';
 import { parseRequirements, serializeRequirement } from './sbc.js';
 import { toPlayer } from './squad.js';
-import type { ActiveSquad } from './solver.js';
+import { killAllSolvers, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, readShared, ROOT } from './store.js';
 import { etagOf, notModified } from './etag.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
-import { enqueue, findJob, finishJob, hasPending, markBlocked, markCall, markPoll, markReady, nextJob, restLeft, waitForWork, webAppOpen, webAppReturned } from './jobs.js';
-import { dropStream, notify, sseFrame, subscribe, takeStream } from './live.js';
+import { enqueue, findJob, finishJob, hasPending, markBlocked, markCall, markPoll, markReady, nextJob, restLeft, waitForWork, wakeAll, isShuttingDown, webAppOpen, webAppReturned } from './jobs.js';
+import { dropStream, endAllStreams, notify, sseFrame, subscribe, takeStream, trackStream } from './live.js';
 import { isTabPoll } from './job-rules.js';
 import { loadAccounts, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { isAdmin } from './admin/auth.js';
@@ -39,7 +39,7 @@ import {
 import { parseOnboarding } from './onboarding.js';
 import { redeem, referralSummary, spendPoints } from './db/referrals.js';
 import { parseSpend } from './referrals.js';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { checkEvoAlerts, emailSecret } from './evo-alerts.js';
 import { asLang, checkUnsub } from './evo-rules.js';
 import { checkReminderUnsub } from './daily/reminder-rules.js';
@@ -64,7 +64,8 @@ import { openGroups, solvable } from './objectives/open.js';
 import { solveObjectives } from './objectives/solve.js';
 import { mergeGroups, nameAwards, SHARED_OBJECTIVES_KEY } from './objectives/shared.js';
 import type { Condition, EaCategory } from './objectives/types.js';
-import { db, initDb } from './db/index.js';
+import { closeDb, db, initDb } from './db/index.js';
+import { alert } from './alert.js';
 import { logEvent, pruneEvents } from './db/events.js';
 import { pruneBillingEvents } from './db/billing.js';
 import { isPointsChallenge, pointsTarget } from './points.js';
@@ -87,7 +88,7 @@ const tooMany = () => new SessionError('Too many requests, slow down a little.',
 // The extension posts from a chrome-extension:// origin (unpacked, so its id differs per install).
 app.addHook('onRequest', async (req, reply) => {
   // /api/bot/* is guarded by its token and every Discord user shares the bot's IP
-  if (req.url.startsWith('/api/') && !req.url.startsWith('/api/bot/') && !apiLimit(req.ip)) throw tooMany();
+  if (req.url.startsWith('/api/') && !req.url.startsWith('/api/bot/') && req.url !== '/api/health' && !apiLimit(req.ip)) throw tooMany();
   const origin = req.headers.origin;
   if (origin && (origin.startsWith('chrome-extension://') || (DEV && origin.startsWith('http://localhost')))) {
     reply.header('Access-Control-Allow-Origin', origin);
@@ -104,7 +105,8 @@ app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
   // unexpected failures stay in the log: their messages can carry SQL, paths or EA answers
   if (status >= 500 && !(err instanceof SessionError)) {
     console.error(`[error] ${req.method} ${req.url.split('?')[0]}:`, err);
-    return reply.code(status).send({ error: 'Something went wrong on the FC Solver server.' });
+    void alert('500', err, `${req.method} ${req.routeOptions.url ?? req.url.split('?')[0]}`);
+    return reply.code(status).send({ error: 'Something went wrong on the FC Solver server.', code: 'internal', params: {} });
   }
   reply.code(status).send({ error: err.message, ...own });
 });
@@ -437,14 +439,19 @@ app.get('/api/stream', async (req, reply) => {
   const beat = setInterval(() => alive() && res.write(': ping\n\n'), 25_000); // Cloudflare drops idle streams after 100 s
   const tick = setInterval(() => schedule([]), 15_000); // jobs time out and cooldowns end without a write
   // the site reconnects with a fresh Clerk token; nothing scheduled may write after the end
-  const end = setTimeout(() => {
+  // also on shutdown (endAllStreams): the site reconnects to the next server
+  const finish = () => {
     clearInterval(beat);
     clearInterval(tick);
+    clearTimeout(end);
     if (timer) clearTimeout(timer);
     timer = null;
     if (alive()) res.end();
-  }, 5 * 60_000);
+  };
+  const end = setTimeout(finish, 5 * 60_000);
+  const untrack = trackStream(finish);
   req.raw.on('close', () => {
+    untrack();
     off();
     clearInterval(beat);
     clearInterval(tick);
@@ -587,7 +594,7 @@ app.get('/api/jobs/next', async (req) => {
   };
   let budget = await budgetNow();
   let job = nextJob(acc, canRun, budget);
-  while (!job && hold && Date.now() < until && !gone()) {
+  while (!job && hold && Date.now() < until && !gone() && !isShuttingDown()) {
     await waitForWork(acc, Math.min(until - Date.now(), restLeft(acc) || LONG_POLL_MS, 10_000));
     if (gone()) break;
     markPoll(acc); // still holding: the tab is still there
@@ -668,6 +675,13 @@ app.get('/api/extension.zip', async (req, reply) => {
 });
 
 // ---- data -------------------------------------------------------------------
+/** Uptime monitor + compose health check: the API answers and Postgres answers within 2 s. */
+app.get('/api/health', async (_req, reply) => {
+  reply.header('Cache-Control', 'no-store');
+  const ok = await Promise.race([db.execute(sql`select 1`).then(() => true, () => false), new Promise<boolean>((r) => setTimeout(() => r(false), 2000).unref())]);
+  return reply.code(ok ? 200 : 503).send({ ok });
+});
+
 app.get('/api/meta', async (req, reply) => {
   const acc = await optionalSiteAccount(req);
   const m = acc ? await metaFor(acc) : await loadMeta();
@@ -882,6 +896,37 @@ setInterval(() => {
 }, 24 * 60 * 60 * 1000).unref();
 await app.listen({ port: PORT, host: process.env.HOST ?? '127.0.0.1' });
 console.log(`FC Solver API on http://localhost:${PORT}`);
+
+process.on('unhandledRejection', (e) => {
+  console.error('[unhandledRejection]', e);
+  void alert('unhandled', e);
+});
+process.on('uncaughtException', (e) => {
+  console.error('[uncaughtException]', e);
+  // Docker restarts the container; the alert gets 2 s at most
+  void Promise.race([alert('uncaught', e), new Promise((r) => setTimeout(r, 2000))]).finally(() => process.exit(1));
+});
+
+let stopping = false;
+async function shutdown(signal: string) {
+  if (stopping) process.exit(0); // a second signal: no more waiting
+  stopping = true;
+  console.log(`[shutdown] ${signal}: closing`);
+  const hard = setTimeout(() => process.exit(0), 20_000).unref(); // in-flight requests get 20 s
+  endAllStreams(); // live streams and held polls reconnect to the next server
+  wakeAll();
+  killAllSolvers();
+  try {
+    await app.close();
+    await closeDb();
+  } catch (e) {
+    console.error(`[shutdown] ${(e as Error).message}`);
+  }
+  clearTimeout(hard);
+  process.exit(0);
+}
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));
 
 void autoSyncAll();
 setInterval(() => void autoSyncAll(), 60 * 1000);

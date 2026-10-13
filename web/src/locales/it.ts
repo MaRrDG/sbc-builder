@@ -570,6 +570,7 @@ export const it: Record<Keys, string> = {
   'err.personaTakenOver': 'Questo account EA ora è collegato a un altro utente di FC Solver.',
   'err.adminOnly': 'Solo per gli admin.',
   'err.rateLimited': 'Troppe richieste. Aspetta un minuto e riprova.',
+  'err.internal': 'Qualcosa è andato storto sul server di FC Solver. Riprova tra poco.',
   'err.usernameInvalid': 'Usa 3-16 lettere, cifre, _ . o -.',
   'err.usernameTaken': 'Username già in uso. Provane un altro.',
   'err.usernameRequired': 'Scegli prima un username.',
