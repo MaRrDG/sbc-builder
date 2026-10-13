@@ -747,6 +747,13 @@ export default function App({
     if (activeId) writeLocal(optionsKey(activeId), o);
   };
 
+  // the global settings changed: saved squads were found with the old ones (e.g. a nation excluded since)
+  const changeGlobalOptions = (o: SolveOptions) => {
+    updateOptions(o);
+    setResults({});
+    if (activeId) writeLocal(resultsKey(activeId), {});
+  };
+
   const updateLocal = (id: number, o: SolveOptions | null) => {
     setLocalOptions((prev) => {
       const next = { ...prev };
@@ -1387,7 +1394,7 @@ export default function App({
                 {!premium && <p className="locked-note">{t('plan.globalLocked')}</p>}
                 <fieldset disabled={!premium} className="plain">
                   <legend className="sr-only">{t('settings.section.solver')}</legend>
-                  <SolverOptions rows options={globalOptions} onChange={updateOptions} clubById={clubById} club={club} meta={meta} />
+                  <SolverOptions rows options={globalOptions} onChange={changeGlobalOptions} clubById={clubById} club={club} meta={meta} />
                 </fieldset>
                 <Row title={t('settings.ownTitle')} hint={localSets.size === 0 ? t('settings.ownNone') : t('settings.ownHint')} stack={localSets.size > 0}>
                   {localSets.size > 0 && (
