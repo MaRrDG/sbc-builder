@@ -189,9 +189,9 @@ function SquadTile({ squad: s, meta, onOpen }: { squad: SquadRow; meta: Meta; on
         {positions.map((p, i) => {
           const c = byIndex.get(i);
           return (
-            // squeezed up a little so the keeper clears the name under the pitch
-            <span key={i} className="mini-slot" style={{ left: `${pos[i].x}%`, top: `${2 + pos[i].y * 0.82}%` }}>
-              {c ? <MiniCard card={c} meta={meta} /> : <span className="mini-card mini-empty" />}
+            // layout() spreads lines over 15-87 %; the square tile pitch uses 8-80 % so the keeper clears the name
+            <span key={i} className="mini-slot" style={{ left: `${pos[i].x}%`, top: `${pos[i].y - 7}%` }}>
+              {c ? <MiniCard card={c} meta={meta} slot={p.name} /> : <span className="mini-card mini-empty" />}
             </span>
           );
         })}
@@ -237,7 +237,7 @@ function SquadTile({ squad: s, meta, onOpen }: { squad: SquadRow; meta: Meta; on
 }
 
 /** A small card for the tile's pitch: EA card art, face, rating and position. */
-function MiniCard({ card, meta }: { card: SquadPreviewSlot; meta: Meta }) {
+function MiniCard({ card, meta, slot }: { card: SquadPreviewSlot; meta: Meta; slot: string }) {
   const face = cardFace(card, meta);
   const [bgOk, setBgOk] = useState(true);
   return (
@@ -247,7 +247,7 @@ function MiniCard({ card, meta }: { card: SquadPreviewSlot; meta: Meta }) {
         <img className="mini-face" src={face.portrait} alt="" loading="lazy" decoding="async" />
       </span>
       <span className="mini-label">
-        <b>{card.rating}</b> {card.position}
+        <b>{card.rating}</b> {slot}
       </span>
     </>
   );
