@@ -4,8 +4,8 @@
 import type { JobKind } from './jobs.js';
 
 const CLUB_PAGE = 91; // extension/hook.js PAGE
-const CLUB_SQUADS = 12; // extension/hook.js MAX_SQUADS: the saved squads, active one included
-const CLUB_FIXED = 3 + CLUB_SQUADS; // squad list, squads, chemistry profiles, storage
+const CLUB_FIXED = 4; // squad list, active squad, chemistry profiles, storage
+export const SQUADS_MAX = 12; // extension/hook.js MAX_SQUADS: the squads job reads the list, then at most this many squads
 const CLUB_MAX_ITEMS = 5000; // the recipe stops paging here
 const CLUB_MAX_COST = Math.ceil(CLUB_MAX_ITEMS / CLUB_PAGE) + 1 + CLUB_FIXED;
 export const UNKNOWN_CLUB_COST = 60;
@@ -19,6 +19,8 @@ export function jobCost(job: { kind: JobKind; setIds?: number[] }, clubItems: nu
       return Math.min(job.setIds?.length ?? 0, MAX_SETS);
     case 'sbc':
       return 2; // the hub, or the old list when the hub is off
+    case 'squads':
+      return 1 + SQUADS_MAX;
     case 'academy':
     case 'challengeSquad':
       return 1;

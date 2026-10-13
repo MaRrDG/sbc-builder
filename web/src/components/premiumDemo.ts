@@ -75,6 +75,7 @@ const sq = (id: number, name: string, formation: string, active: boolean, rating
 export const DEMO_SQUADS: SquadsResponse = {
   fetchedAt: 0,
   pricesAt: Date.now() - 2 * HOUR,
+  calculating: false,
   squads: [
     sq(1, 'Weekend League', 'f4231', true, 88, 2_412_000, 386_500),
     sq(2, 'Rivals', 'f433', false, 86, 1_174_900, 212_300, 1),

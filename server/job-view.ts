@@ -1,5 +1,5 @@
 // Pure: what the site shows for each sync job (activity panel, top bar): its state and progress.
-export type JobKindView = 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
+export type JobKindView = 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy' | 'squads';
 export type JobState = 'waitingTab' | 'waitingLogin' | 'queued' | 'running' | 'paused' | 'budget' | 'done' | 'failed';
 
 export interface JobLike {

@@ -19,6 +19,7 @@ import { dropStream, endAllStreams, notify, sseFrame, subscribe, takeStream, tra
 import { isTabPoll } from './job-rules.js';
 import { loadAccounts, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { isAdmin } from './admin/auth.js';
+import { versionLess } from './admin/query.js';
 import { registerAdminRoutes } from './admin/routes.js';
 import { billingOf, registerBillingRoutes } from './billing/routes.js';
 import { cancelDeletion, requestDeletion, scheduleDeletions } from './deletion.js';
@@ -744,7 +745,21 @@ app.get('/api/gallery', async (req) => {
 app.get('/api/squads', async (req) => {
   const { userId, acc } = await siteContext(req);
   if ((await planFor(userId)).tier !== 'premium') throw new SessionError('My Squads is a Premium feature.', 403, 'premiumOnly');
-  return squadsFor(acc, await metaFor(acc));
+  return { ...(await squadsFor(acc, await metaFor(acc))), calculating: hasPending(acc, 'squads') };
+});
+
+// "Calculate" on My Squads: the user asks the web app tab to read the squad list and every saved squad
+// (read-only, at most 1 + SQUADS_MAX requests); never on a page load. Extension 1.0.5+ has the recipe.
+app.post('/api/squads/calculate', async (req, reply) => {
+  const { userId, acc } = await siteContext(req);
+  if ((await planFor(userId)).tier !== 'premium') throw new SessionError('My Squads is a Premium feature.', 403, 'premiumOnly');
+  if (!acc.clientMode || !webAppOpen(acc))
+    return reply.code(409).send({ error: 'Open the FC27 web app in this browser first.', code: 'webAppClosed', params: {} });
+  if (!acc.info.extVersion || versionLess(acc.info.extVersion, '1.0.5'))
+    return reply.code(409).send({ error: 'Update the extension to read your squads.', code: 'squadsExtOld', params: { version: '1.0.5' } });
+  await acc.meter.check();
+  await enqueue(acc, 'squads');
+  return { calculating: true };
 });
 
 app.get<{ Params: { id: string } }>('/api/squads/:id', async (req, reply) => {

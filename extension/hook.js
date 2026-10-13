@@ -7,14 +7,14 @@
 (() => {
   const SRC = 'sbc-builder-hook';
   const UTAS = /^(https:\/\/utas\.[^/]+\/ut\/game\/fc27)(\/[^?]*)/;
-  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*|scmp\/objective\/categories\/all)$/;
+  const WATCH = /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+(\/user\/\d+)?)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*|scmp\/objective\/categories\/all)$/;
   // Our requests go through one queue, one at a time, with a short random pause between them,
   // and only once the web app itself has been quiet for a moment, so they never pile up on its own.
   const GAP_MIN_MS = 1500;
   const GAP_JITTER_MS = 1500;
   const WEB_APP_QUIET_MS = 2000; // waited for at most 15 s
   const PAGE = 91;
-  const MAX_SQUADS = 12; // server/job-cost.ts CLUB_SQUADS
+  const MAX_SQUADS = 12; // server/job-cost.ts SQUADS_MAX
   const THROTTLE = [429, 458, 495, 512, 521];
 
   const post = (msg) => window.postMessage({ source: SRC, ...msg }, window.location.origin);
@@ -189,16 +189,22 @@
         if (!Array.isArray(page?.itemData) || page.itemData.length < PAGE) break;
       }
       const list = await c('GET', '/squad/list');
-      // every saved squad, as the web app's My Squads loads them (FC Solver Premium shows their value);
-      // the active one first, at most MAX_SQUADS in all (server/job-cost.ts counts them)
-      const squads = [list?.squad, list?.squads, list?.squadList].find(Array.isArray) ?? [];
-      const ids = [list?.activeSquadId, ...squads.map((s) => s?.id ?? s?.squadId)].filter((id) => Number.isInteger(id) && id >= 0);
-      for (const id of [...new Set(ids)].slice(0, MAX_SQUADS)) await c('GET', `/squad/${id}`);
+      if (Number.isInteger(list?.activeSquadId)) await c('GET', `/squad/${list.activeSquadId}`);
       await c('GET', '/chemistry/profiles');
       // SBC storage, the same read the web app makes; the club is already in, so only throttling fails the job
       await c('GET', '/storagepile?skuMode=FUT').catch((e) => {
         if (THROTTLE.includes(e?.status)) throw e;
       });
+    },
+    // My Squads (FC Solver Premium), only when the user asks for it there: the squad list, then every
+    // saved squad the way the web app's My Squads opens one, the active one first, at most MAX_SQUADS
+    // (server/job-cost.ts SQUADS_MAX)
+    async squads(c) {
+      if (!identity) throw new Error('The web app has not said who is signed in yet.');
+      const list = await c('GET', '/squad/list');
+      const squads = [list?.squad, list?.squads, list?.squadList].find(Array.isArray) ?? [];
+      const ids = [list?.activeSquadId, ...squads.map((s) => s?.id ?? s?.squadId)].filter((id) => Number.isInteger(id) && id >= 0);
+      for (const id of [...new Set(ids)].slice(0, MAX_SQUADS)) await c('GET', `/squad/${id}/user/${identity.personaId}`);
     },
     // the list the web app itself loads: /sbs/hub/v2 carries the points ("one-click") SBCs too;
     // never with ?claimCompensationRewards (that claims rewards). Old list if the hub is off.

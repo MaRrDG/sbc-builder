@@ -32,7 +32,7 @@ import { saveSquad, saveSquadList } from './squads/io.js';
 /** Paths the extension may relay; everything else is rejected by the API. */
 export const OBJECTIVES_PATH = '/scmp/objective/categories/all';
 export const WATCHED_PATH =
-  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*|scmp\/objective\/categories\/all)$/;
+  /^\/(purchased\/items|item(\/\d+)?|club|squad\/(list|active|\d+(\/user\/\d+)?)|sbs\/sets|sbs\/hub\/v2|sbs\/setId\/\d+\/challenges|sbs\/challenge\/\d+(\/squad)?|chemistry\/profiles|storagepile|academy(\/[\w-]+)*|scmp\/objective\/categories\/all)$/;
 
 export interface WebAppEvent {
   method: string;
@@ -184,7 +184,7 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
     await softly('save squad list', () => saveSquadList(acc, ev.response)); // My Squads; quiet (no UI reload for browsing squads)
     return null;
   }
-  const squad = ev.path.match(/^\/squad\/(active|\d+)$/)?.[1];
+  const squad = ev.path.match(/^\/squad\/(active|\d+)(?:\/user\/\d+)?$/)?.[1]; // the web app's My Squads adds /user/<personaId>
   if (method === 'GET' && squad) {
     await softly('save squad', () => saveSquad(acc, ev.response, squad === 'active' ? null : Number(squad))); // any squad, for My Squads
     return onSquad(acc, squad === 'active' ? 'active' : Number(squad), res);

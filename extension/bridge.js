@@ -61,8 +61,8 @@ window.addEventListener('pagehide', () => {
 });
 
 // Sync notices inside the web app: FC Solver started / finished a sync from this tab. Only club
-// and SBC list syncs are announced; the follow-up challenge reads stay quiet.
-const STARTED = { club: 'Syncing your club…', sbc: 'Checking your SBCs…' };
+// and SBC list syncs (and the squads read the user asked for) are announced; the follow-up challenge reads stay quiet.
+const STARTED = { club: 'Syncing your club…', sbc: 'Checking your SBCs…', squads: 'Reading your squads for FC Solver…' };
 let noticeKind = null; // the job the notice on screen is about
 
 function syncStarted(kind) {
@@ -77,7 +77,9 @@ function syncFinished({ kind, status, error, players, changedSets, clubQueued })
   noticeKind = null;
   if (status !== 'done') return showSyncNotice(`Sync failed: ${error ?? 'unknown error'}`, 'error', 12000);
   const text =
-    kind === 'club'
+    kind === 'squads'
+      ? 'Squads read · their values are on FC Solver'
+      : kind === 'club'
       ? `Club synced${Number.isInteger(players) ? ` · ${players} players` : ''}`
       : `${changedSets ? `SBCs updated · ${changedSets} set${changedSets === 1 ? '' : 's'} changed` : 'SBCs up to date'}${
           clubQueued ? ' · SBCs done outside the web app, syncing your club too' : ''

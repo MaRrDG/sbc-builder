@@ -4893,6 +4893,10 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .squads-view .page-head h1 { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .squads-when { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 13px; }
 .squads-when svg { flex: none; }
+.squads-calc { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.squads-calc .solve-sm { display: inline-flex; align-items: center; gap: 8px; }
+.squads-calc p { margin: 0; flex: 1 1 260px; font-size: 13px; }
+.squads-calc-error { color: var(--bad); }
 .squads-empty { margin: 0; max-width: 60ch; padding: 16px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); color: var(--ink-2); }
 .squads-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .squad-row {

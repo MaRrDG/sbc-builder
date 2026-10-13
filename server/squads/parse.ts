@@ -16,7 +16,7 @@ export interface SquadSummary {
   formation: string | null;
   /** EA's own rating for the squad, when the list carries one */
   rating: number | null;
-  /** null: the list did not carry the players (open the squad in the web app to load them) */
+  /** null: the list did not carry the players (EA's /squad/list sends `players: []`; the squad itself has them) */
   players: SquadSlot[] | null;
 }
 
@@ -57,6 +57,8 @@ export function parseSlots(players: unknown): SquadSlot[] | null {
   return out.sort((a, b) => a.index - b.index);
 }
 
+const nonEmpty = (slots: SquadSlot[] | null) => (slots?.length ? slots : null);
+
 function parseSummary(s: unknown): SquadSummary | null {
   if (!obj(s)) return null;
   const id = s.id ?? s.squadId;
@@ -67,7 +69,8 @@ function parseSummary(s: unknown): SquadSummary | null {
     name: str(s.squadName) ?? str(s.name) ?? '',
     formation: str(s.formation),
     rating,
-    players: parseSlots(s.players),
+    // EA's list sends every squad with `players: []`: empty means "not in the list", not an empty squad
+    players: nonEmpty(parseSlots(s.players)),
   };
 }
 

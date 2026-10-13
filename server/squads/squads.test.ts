@@ -24,7 +24,7 @@ test('list: `squad` array with names and players inline (itemData)', () => {
   assert.deepEqual(r.list.map((s) => [s.id, s.name, s.formation, s.rating]), [[2, 'Main', 'f433', 86], [3, 'Bench', 'f442', null]]);
   // sorted by index, empty slot (id 0) dropped, an id-only itemData keeps no item
   assert.deepEqual(r.list[0].players, [{ index: 0, itemId: 10 }, { index: 1, itemId: 11, item: { id: 11, rating: 85, marketAverage: 5000 } }]);
-  assert.deepEqual(r.list[1].players, []);
+  assert.equal(r.list[1].players, null); // EA's list always sends `players: []`: not loaded, not an empty squad
   assert.equal((r.raw as { activeSquadId: number }).activeSquadId, 2); // the raw response is kept
 });
 
@@ -85,9 +85,9 @@ test('rows: active first, then by value; detail falls back to the active-squad i
         activeSquadId: 1,
         raw: null,
         list: [
-          { id: 1, name: 'Main', formation: 'f433', rating: null, players: null },
+          { id: 1, name: 'Main', formation: 'f433', rating: null, players: [] }, // an older cache of EA's list
           { id: 2, name: 'Rich', formation: 'f442', rating: null, players: [{ index: 0, itemId: 3 }] },
-          { id: 3, name: 'Unseen', formation: null, rating: 77, players: null },
+          { id: 3, name: 'Unseen', formation: null, rating: 77, players: [] },
         ],
       },
     },

@@ -451,7 +451,7 @@ Static data for rendering: names of nations / leagues / clubs / rarities, format
 
 ### `GET /api/squads` (site, Premium)
 
-My Squads: the saved squads the web app loaded (`/squad/list`, `/squad/{id}`, also read by the club sync), each with its value. Auth like `/api/club`. Free accounts get 403 with `code: "premiumOnly"`. Never calls EA.
+My Squads: the saved squads the web app loaded (`/squad/list`, `/squad/{id}` and the web app's `/squad/{id}/user/{personaId}`), each with its value, plus `calculating` (a `squads` job is queued or running). Auth like `/api/club`. Free accounts get 403 with `code: "premiumOnly"`. Never calls EA.
 
 ```json
 {
@@ -464,7 +464,11 @@ My Squads: the saved squads the web app loaded (`/squad/list`, `/squad/{id}`, al
 }
 ```
 
-`value`: coins, the sum of EA's `marketAverage` per card: from the cached club item first, else from the squad response's own `itemData`; cards with neither are not counted (`unknown`), loan cards count 0 (`loans`). `starters` = slot index < 11, `bench` the rest. `rating` is computed with the game formula (`server/squad.ts`) when the players are known, else EA's own rating from the list (or `null`). `loaded: false`: the list did not carry the players and the squad was never opened in the web app (the site asks the user to open it once). Sorted: active first, then by `value.total`. `fetchedAt`: when the list was loaded; `pricesAt`: when the club (and so its prices) was. Squads come from the cache `squads` (`{ list, activeSquadId, raw }`) and `squads/<id>` (`{ id, name, formation, players: [{ index, itemId, item? }] }`); with no list yet, every squad with a `squads/<id>` file is listed, plus the active one (`squad` cache).
+`value`: coins, the sum of EA's `marketAverage` per card: from the cached club item first, else from the squad response's own `itemData`; cards with neither are not counted (`unknown`), loan cards count 0 (`loans`). `starters` = slot index < 11, `bench` the rest. `rating` is computed with the game formula (`server/squad.ts`) when the players are known, else EA's own rating from the list (or `null`). `loaded: false`: the squad's players were never loaded (EA's `/squad/list` always sends `players: []`, read as "not loaded"); the site offers Calculate. Sorted: active first, then by `value.total`. `fetchedAt`: when the list was loaded; `pricesAt`: when the club (and so its prices) was. Squads come from the cache `squads` (`{ list, activeSquadId, raw }`) and `squads/<id>` (`{ id, name, formation, players: [{ index, itemId, item? }] }`); with no list yet, every squad with a `squads/<id>` file is listed, plus the active one (`squad` cache).
+
+### `POST /api/squads/calculate` (site, Premium)
+
+"Calculate" on My Squads: queues a `squads` job in the web app tab (extension 1.0.5+): `GET /squad/list`, then `GET /squad/{id}/user/{personaId}` for each saved squad, active first, at most 12 (job cost 13). Read-only, only on this click. → `{ calculating: true }`. Errors: 403 `premiumOnly`; 409 `webAppClosed` (no web app tab); 409 `squadsExtOld` with `params.version` (extension older than 1.0.5); the daily EA budget as for syncs.
 
 ### `GET /api/squads/:id` (site, Premium)
 
@@ -696,7 +700,7 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 | `GET /sbs/hub/v2`, `GET /sbs/sets` | replaces the cached SBC list (`hub/v2` is what the web app loads when points SBCs are on) |
 | `GET /sbs/setId/:id/challenges` | replaces that set's cached challenges |
 | `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club. With `jobId` (a club sync job's page): collected per job in any order, nothing upserted, and the club is replaced once page 0 through the short last page are all in |
-| `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (`squad`), and every saved squad for My Squads: the list (`squads`, raw response kept) and each squad loaded (`squads/<id>`) |
+| `GET /squad/list`, `GET /squad/:id`, `GET /squad/:id/user/:personaId`, `GET /squad/active` | the active squad (`squad`), and every saved squad for My Squads: the list (`squads`, raw response kept) and each squad loaded (`squads/<id>`) |
 | `GET /chemistry/profiles` | replaces the promo chemistry profiles |
 | `GET /academy/*` (Evolutions) | timed trainings saved per slot and level; a full unfiltered `/academy/hub/v2` list (first page, short) also replaces the tracked set and stamps `fetchedAt` |
 | `GET /storagepile` | replaces the cached SBC storage (players from `itemData`) |

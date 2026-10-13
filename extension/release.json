@@ -1,4 +1,7 @@
 {
+  "1.0.5": [
+    "My Squads: your saved squads are read only when you press Calculate on FC Solver, no longer in every club sync"
+  ],
   "1.0.4": [
     "The club sync also reads your saved squads, so FC Solver Premium can show what each one is worth"
   ],

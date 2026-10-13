@@ -1,7 +1,7 @@
 // My Squads (Premium): the user's saved FUT squads with the value of each (EA's market average, "AVG"),
 // and one squad on the pitch with the AVG under every card. Read from the cache only.
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowsClockwise, Coins, HourglassMedium, Info, Star } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowRight, ArrowsClockwise, Calculator, Coins, HourglassMedium, Info, Star } from '@phosphor-icons/react';
 import { api, ApiError, type Meta, type Player, type SquadDetailResponse, type SquadRow, type SquadSlotView, type SquadsResponse, type SquadValue } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
 import { errorText } from '../../messages';
@@ -52,8 +52,47 @@ function useLoad<T>(load: (() => Promise<T>) | null, deps: unknown[], onError: (
 
 export function SquadsView({ meta, personaId, squadId, onOpen, onError, reload }: Props) {
   const list = useLoad(squadId === null ? () => api.squads() : null, [personaId, reload, squadId === null], onError);
+  const [asking, setAsking] = useState(false);
+  const [calcError, setCalcError] = useState<unknown>(null);
+  const busy = asking || !!list.data?.calculating;
+  // while the web app tab reads the squads, look again every few seconds until the job is done
+  useEffect(() => {
+    if (!list.data?.calculating || squadId !== null) return;
+    const timer = window.setTimeout(list.retry, 4000);
+    return () => window.clearTimeout(timer);
+  }, [list.data, squadId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const calculate = () => {
+    setAsking(true);
+    setCalcError(null);
+    api.squadsCalculate().then(
+      () => {
+        setAsking(false);
+        list.retry();
+      },
+      (e) => {
+        setAsking(false);
+        setCalcError(e);
+      },
+    );
+  };
   if (squadId !== null) return <SquadScreen key={squadId} meta={meta} id={squadId} reload={reload} onBack={() => onOpen(null)} onError={onError} />;
-  return <SquadList data={list.data} error={list.error} retry={list.retry} onOpen={onOpen} />;
+  return <SquadList data={list.data} error={list.error} retry={list.retry} onOpen={onOpen} calc={{ busy, error: calcError, run: calculate }} />;
+}
+
+/** "Calculate": the web app tab reads the squad list and every saved squad, only when the user asks. */
+function CalcBar({ busy, error, run, missing }: { busy: boolean; error: unknown; run: () => void; missing: boolean }) {
+  const { t } = useI18n();
+  return (
+    <div className="squads-calc">
+      <button type="button" className="solve-sm" disabled={busy} onClick={run}>
+        {busy ? <ArrowsClockwise weight="bold" className="spin" aria-hidden="true" /> : <Calculator weight="bold" aria-hidden="true" />}
+        <span>{busy ? t('squads.calculating') : t('squads.calculate')}</span>
+      </button>
+      <p className="muted" role="status">
+        {error !== null ? <span className="squads-calc-error">{errorText(error, t)}</span> : busy ? t('squads.calculatingHint') : missing ? t('squads.calculateHint') : t('squads.recalculateHint')}
+      </p>
+    </div>
+  );
 }
 
 function Retry({ error, retry }: { error: unknown; retry: () => void }) {
@@ -90,8 +129,9 @@ function ValueNotes({ value }: { value: SquadValue }) {
   );
 }
 
-export function SquadList({ data, error, retry, onOpen, head = true }: {
+export function SquadList({ data, error, retry, onOpen, head = true, calc }: {
   data: SquadsResponse | null; error: unknown; retry: () => void; onOpen: (id: number) => void; head?: boolean;
+  calc?: { busy: boolean; error: unknown; run: () => void };
 }) {
   const { t } = useI18n();
   const ago = useAgo();
@@ -105,6 +145,7 @@ export function SquadList({ data, error, retry, onOpen, head = true }: {
           </div>
         </header>
       )}
+      {calc && data && <CalcBar {...calc} missing={!data.squads.length || data.squads.some((s) => !s.loaded)} />}
       {!data && error !== null ? (
         <Retry error={error} retry={retry} />
       ) : !data ? (

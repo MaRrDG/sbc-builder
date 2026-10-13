@@ -85,6 +85,8 @@ export interface SquadsResponse {
   fetchedAt: number | null;
   /** when the club (and so its prices) was last read */
   pricesAt: number | null;
+  /** a "Calculate" read of the squads is queued or running in the web app tab */
+  calculating: boolean;
 }
 
 export interface SquadSlotView {
@@ -207,7 +209,7 @@ export interface EaRequests {
 export type JobState = 'waitingTab' | 'waitingLogin' | 'queued' | 'running' | 'paused' | 'budget' | 'done' | 'failed';
 export interface JobView {
   id: string;
-  kind: 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
+  kind: 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy' | 'squads';
   state: JobState;
   budget: { cost: number; left: number } | null; // state budget: estimated EA requests the job needs and what is left today
   done: number; // club: players loaded; challenges: sets read; others 0
@@ -568,6 +570,7 @@ export const api = {
   gallery: () => req<GalleryResponse>('/api/gallery'),
   squads: () => req<SquadsResponse>('/api/squads'),
   squad: (id: number) => req<SquadDetailResponse>(`/api/squads/${id}`),
+  squadsCalculate: () => req<{ calculating: boolean }>('/api/squads/calculate', { method: 'POST' }),
   objectives: () => req<ObjectivesResponse>('/api/objectives'),
   solveObjectives: (b: { objectiveIds: number[]; formation: string; options?: { excludeIds?: number[]; maxRating?: number; includeLoans?: boolean } }) =>
     req<ObjectivesSolve>('/api/objectives/solve', { method: 'POST', body: b }),

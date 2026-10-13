@@ -619,7 +619,7 @@ export default function App({
     const clubRunning = clubJobRunning(status);
     seenStatus.current = { id: activeId, running: status.running, editedAt: status.editedAt, clubAt: status.clubAt, sbcAt: status.sbcAt, clubRunning };
     if (!prev || prev.id !== activeId) return;
-    if (prev.running && !status.running) track('sync_done', { kind: prev.running === 'club' ? 'club' : 'sbcs', ok: yn(!status.error) });
+    if (prev.running && !status.running && prev.running !== 'squads') track('sync_done', { kind: prev.running === 'club' ? 'club' : 'sbcs', ok: yn(!status.error) });
     if (!streamUp && ((prev.running && !status.running) || prev.editedAt !== status.editedAt)) reloadAll();
     else if (prev.clubRunning && !clubRunning && clubDirty.current) refetchClub();
   }, [activeId, status, streamUp, reloadAll, refetchClub]);

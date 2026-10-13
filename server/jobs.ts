@@ -15,7 +15,7 @@ import type { ClubPages } from './club-pages.js';
 import { pickJob, stampBudget } from './job-cost.js';
 import { expiredAs, JOB_TIMEOUTS } from './job-rules.js';
 
-export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
+export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy' | 'squads';
 
 export interface Job {
   id: string;
@@ -288,7 +288,7 @@ export function jobStatus(acc: Account): {
   const last = [...q].reverse().find((j) => j.status === 'done' || j.status === 'failed');
   const clubJob = q.find((j) => j.kind === 'club' && (j.status === 'running' || j.status === 'queued'));
   return {
-    running: active ? (active.kind === 'club' ? 'club' : active.kind === 'challengeSquad' ? 'squad' : 'sbc') : null,
+    running: active ? (active.kind === 'club' ? 'club' : active.kind === 'challengeSquad' ? 'squad' : active.kind === 'squads' ? 'squads' : 'sbc') : null,
     error: !active && last?.status === 'failed' ? last.error ?? null : null,
     errorCode: !active && last?.status === 'failed' && last.notStarted ? 'notStarted' : null,
     club: clubJob ? { state: clubJob.status === 'running' ? 'running' : 'queued', loaded: clubJob.clubLoaded ?? 0 } : null,
