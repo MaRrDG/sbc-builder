@@ -1,7 +1,7 @@
 // Pure rules for the activity indicator and panel (sync jobs running in the EA web app tab).
 import type { JobView } from './api';
 
-const ACTIVE = new Set<JobView['state']>(['waitingTab', 'waitingLogin', 'queued', 'running', 'paused']);
+const ACTIVE = new Set<JobView['state']>(['waitingTab', 'waitingLogin', 'queued', 'running', 'paused', 'budget']);
 export const isActive = (j: JobView) => ACTIVE.has(j.state);
 
 export const mainJob = (jobs: JobView[]) => jobs.find(isActive) ?? null;

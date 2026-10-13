@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mainJob, pct, finishedNow, solveWait, toastable } from './activity';
 import type { JobView } from './api';
 
-const v = (o: Partial<JobView>): JobView => ({ id: 'a', kind: 'club', state: 'running', done: 0, total: null, estimated: false, at: 0, error: null, notStarted: false, resumeAt: null, ...o });
+const v = (o: Partial<JobView>): JobView => ({ id: 'a', kind: 'club', state: 'running', done: 0, total: null, estimated: false, at: 0, error: null, notStarted: false, resumeAt: null, budget: null, ...o });
 
 test('mainJob: first active one', () => {
   assert.equal(mainJob([v({ id: 'x', state: 'done' }), v({ id: 'y', state: 'queued' })])?.id, 'y');

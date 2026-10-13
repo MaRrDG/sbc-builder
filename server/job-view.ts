@@ -1,6 +1,6 @@
 // Pure: what the site shows for each sync job (activity panel, top bar): its state and progress.
 export type JobKindView = 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
-export type JobState = 'waitingTab' | 'waitingLogin' | 'queued' | 'running' | 'paused' | 'done' | 'failed';
+export type JobState = 'waitingTab' | 'waitingLogin' | 'queued' | 'running' | 'paused' | 'budget' | 'done' | 'failed';
 
 export interface JobLike {
   id: string;
@@ -14,6 +14,7 @@ export interface JobLike {
   setIds?: number[];
   clubLoaded?: number;
   calls?: number;
+  budget?: { cost: number; left: number };
 }
 
 export interface JobCtx {
@@ -34,6 +35,7 @@ export interface JobView {
   error: string | null;
   notStarted: boolean;
   resumeAt: number | null;
+  budget: { cost: number; left: number } | null;
 }
 
 export function jobView(j: JobLike, ctx: JobCtx): JobView {
@@ -44,6 +46,7 @@ export function jobView(j: JobLike, ctx: JobCtx): JobView {
     : j.status === 'running' ? 'running'
     : !ctx.tabOpen ? 'waitingTab'
     : !ctx.tabReady ? 'waitingLogin'
+    : j.budget ? 'budget'
     : 'queued';
   const total = j.kind === 'challenges' ? j.setIds?.length ?? null : j.kind === 'club' ? ctx.clubExpected : null;
   const done =
@@ -61,6 +64,7 @@ export function jobView(j: JobLike, ctx: JobCtx): JobView {
     error: state === 'failed' ? j.error ?? null : null,
     notStarted: !!j.notStarted,
     resumeAt: state === 'paused' ? ctx.pausedUntil : null,
+    budget: state === 'budget' ? j.budget ?? null : null,
   };
 }
 

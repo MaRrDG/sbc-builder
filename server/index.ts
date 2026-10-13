@@ -578,7 +578,12 @@ app.get('/api/jobs/next', async (req) => {
   const hold = wait === '1' && canRun;
   const gone = () => req.raw.socket?.destroyed ?? false;
   const until = Date.now() + LONG_POLL_MS;
-  let job = nextJob(acc, canRun);
+  const budgetNow = async () => {
+    const [m, club] = await Promise.all([acc.meter.summary(), readShared<unknown[]>(acc.key('club'))]);
+    return { left: Math.max(0, m.limit - m.today), clubItems: club?.data.length ?? null };
+  };
+  let budget = await budgetNow();
+  let job = nextJob(acc, canRun, budget);
   while (!job && hold && Date.now() < until && !gone()) {
     await waitForWork(acc, Math.min(until - Date.now(), restLeft(acc) || LONG_POLL_MS, 10_000));
     if (gone()) break;
@@ -589,7 +594,8 @@ app.get('/api/jobs/next', async (req) => {
       break;
     }
     if (gone()) break; // the socket may have closed during the meter check
-    job = nextJob(acc, canRun);
+    budget = await budgetNow();
+    job = nextJob(acc, canRun, budget);
   }
   return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId }, again: hold ? 1000 : 5000 };
 });

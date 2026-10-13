@@ -161,11 +161,12 @@ export interface EaRequests {
   recent: { at: number; method: string; path: string; status: number | null }[];
 }
 
-export type JobState = 'waitingTab' | 'waitingLogin' | 'queued' | 'running' | 'paused' | 'done' | 'failed';
+export type JobState = 'waitingTab' | 'waitingLogin' | 'queued' | 'running' | 'paused' | 'budget' | 'done' | 'failed';
 export interface JobView {
   id: string;
   kind: 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
   state: JobState;
+  budget: { cost: number; left: number } | null; // state budget: estimated EA requests the job needs and what is left today
   done: number; // club: players loaded; challenges: sets read; others 0
   total: number | null; // club: last club size (estimate); challenges: sets in the job; others null
   estimated: boolean; // total is a guess (club)

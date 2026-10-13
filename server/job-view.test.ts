@@ -43,3 +43,15 @@ test('jobViews: active first (oldest first), then the newest finished per kind, 
   ];
   assert.deepEqual(jobViews(jobs, ctx).map((v) => v.id), ['sbc', 'ch', 'new-club']);
 });
+
+test('a queued job over the budget shows as budget with its cost and what is left', () => {
+  const v = jobView({ ...base, budget: { cost: 58, left: 25 } }, ctx);
+  assert.equal(v.state, 'budget');
+  assert.deepEqual(v.budget, { cost: 58, left: 25 });
+});
+
+test('a closed tab or a pause wins over budget', () => {
+  const j: JobLike = { ...base, budget: { cost: 58, left: 25 } };
+  assert.equal(jobView(j, { ...ctx, tabOpen: false }).state, 'waitingTab');
+  assert.equal(jobView(j, { ...ctx, pausedUntil: Date.now() + 1000 }).state, 'paused');
+});

@@ -12,6 +12,7 @@ import { logEvent } from './db/events.js';
 import { notify } from './live.js';
 import { lastSbcDrop, type SetsData } from './sync.js';
 import type { ClubPages } from './club-pages.js';
+import { pickJob } from './job-cost.js';
 import { expiredAs, JOB_TIMEOUTS } from './job-rules.js';
 
 export type JobKind = 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
@@ -37,6 +38,8 @@ export interface Job {
   /** EA requests the page made for this job (challenges: one per set) */
   calls?: number;
   finishedAt?: number;
+  /** queued but over today's EA budget: its estimated cost and what was left */
+  budget?: { cost: number; left: number };
   /** failed without ever calling EA (web app not logged in, tab closed): costs EA nothing */
   notStarted?: boolean;
 }
@@ -158,19 +161,27 @@ export const markReady = (acc: Account, ready: boolean) => lastReady.set(acc.id,
 export const restLeft = (acc: Account) => Math.max(0, REST_BETWEEN_JOBS - (Date.now() - (lastFinished.get(acc.id) ?? 0)));
 
 /** The extension asks for the next job; also marks the web app tab as open. `canRun` false: the tab is not logged in to EA yet. */
-export function nextJob(acc: Account, canRun = true): Job | null {
+export function nextJob(acc: Account, canRun = true, budget?: { left: number; clubItems: number | null }): Job | null {
   lastPoll.set(acc.id, Date.now());
   lastReady.set(acc.id, canRun);
   const q = queueOf(acc);
   if (!canRun) return null; // queued jobs wait for the login
   if (q.some((j) => j.status === 'running')) return null; // one at a time
   if (Date.now() - (lastFinished.get(acc.id) ?? 0) < REST_BETWEEN_JOBS) return null;
-  const job = q.find((j) => j.status === 'queued') ?? null;
+  const { job, blocked } = budget ? pickJob(q, budget.left, budget.clubItems) : { job: q.find((j) => j.status === 'queued') ?? null, blocked: [] };
+  let changed = false;
+  for (const j of q) {
+    const b = blocked.find((x) => x.job === j);
+    const next = b && budget ? { cost: b.cost, left: budget.left } : undefined;
+    if (j.budget?.cost !== next?.cost || j.budget?.left !== next?.left) changed = true;
+    j.budget = next;
+  }
   if (job) {
     job.status = 'running';
     job.startedAt = Date.now();
-    notify(acc.id);
+    changed = true;
   }
+  if (changed) notify(acc.id);
   return job;
 }
 

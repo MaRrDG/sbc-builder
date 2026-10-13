@@ -48,9 +48,9 @@ export function ActivityButton({ status, live, open, onToggle, buttonRef }: {
   const { kind, progress } = useJobText();
   const job = mainJob(status?.jobs ?? []);
   const waiting = !!job && (job.state === 'waitingTab' || job.state === 'waitingLogin');
-  const paused = job?.state === 'paused';
+  const paused = job?.state === 'paused' || job?.state === 'budget';
   const count = job ? progress(job) : '';
-  const short = waiting ? t('activity.waitShort') : paused ? t('activity.pausedShort') : count;
+  const short = waiting ? t('activity.waitShort') : paused ? (job.state === 'budget' ? t('activity.budgetShort') : t('activity.pausedShort')) : count;
   return (
     <button
       ref={buttonRef}
@@ -93,7 +93,7 @@ function JobRow({ job }: { job: JobView }) {
         ? Queue
         : job.state === 'running'
           ? ArrowsClockwise
-          : job.state === 'paused'
+          : job.state === 'paused' || job.state === 'budget'
             ? PauseCircle
             : job.state === 'done'
               ? CheckCircle
@@ -101,7 +101,9 @@ function JobRow({ job }: { job: JobView }) {
   const state =
     job.state === 'paused'
       ? t('activity.state.paused', { time: job.resumeAt ? timeOf(job.resumeAt, lang) : '…' })
-      : t(`activity.state.${job.state}`);
+      : job.state === 'budget'
+        ? t('activity.state.budget', { cost: job.budget?.cost ?? 0, left: job.budget?.left ?? 0 })
+        : t(`activity.state.${job.state}`);
   const why = job.state === 'failed' ? (job.notStarted ? t('clubSync.notStartedBody') : t('activity.failedBody')) : null;
   const moving = job.state === 'running' || job.state === 'queued';
   const count = progress(job);
