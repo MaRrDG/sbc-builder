@@ -125,6 +125,11 @@ export function listAccounts() {
   return [...accounts.values()];
 }
 
+/** Drop an account from memory (account deletion purges its folder right after). */
+export function forgetAccount(personaId: number): void {
+  accounts.delete(personaId);
+}
+
 export function accountById(id: number): Account | null {
   return accounts.get(id) ?? null;
 }

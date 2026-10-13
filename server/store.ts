@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, writeFile, rename, stat, unlink } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { mkdir, readFile, writeFile, rename, rm, stat, unlink } from 'node:fs/promises';
+import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -44,6 +44,7 @@ const SHARED_MAX = 400;
 // SBC_SHARED_MAX_BYTES is a test override
 const SHARED_MAX_BYTES = Number(process.env.SBC_SHARED_MAX_BYTES) || 150 * 1024 * 1024;
 let sharedBytes = 0;
+let drops = 0; // bumped by dropKeys
 
 function unshare(key: string) {
   const old = shared.get(key);
@@ -67,9 +68,10 @@ export async function readShared<T>(key: string): Promise<Readonly<Cached<T>> | 
     return hit.entry as Cached<T> | null;
   }
   const gen = generation.get(key) ?? 0;
+  const dropped = drops;
   const read = await readEntry<T>(key);
   // misses and read errors are not cached: the next call goes to disk again
-  if (read && (generation.get(key) ?? 0) === gen) share(key, read.entry, read.size);
+  if (read && (generation.get(key) ?? 0) === gen && drops === dropped) share(key, read.entry, read.size);
   return read?.entry ?? null;
 }
 
@@ -111,6 +113,23 @@ async function write<T>(key: string, entry: Cached<T>, json: string): Promise<Ca
     }
   }
   return entry;
+}
+
+/**
+ * Delete every key under `prefix` (a folder such as `accounts/<personaId>`): the files on disk and
+ * their shared entries. Refuses an empty prefix, `..`, or anything that is not strictly inside DATA_DIR.
+ */
+export async function dropKeys(prefix: string): Promise<void> {
+  const path = join(DATA_DIR, prefix);
+  const rel = relative(DATA_DIR, path);
+  if (!prefix || prefix.split(/[\\/]/).includes('..') || !rel || rel.startsWith('..') || rel.split(sep).includes('..')) throw new Error(`dropKeys: refused prefix "${prefix}"`);
+  const evict = () => {
+    for (const key of [...shared.keys()]) if (key === prefix || key.startsWith(`${prefix}/`)) unshare(key);
+    drops++; // a read already in flight must not put the old entry back
+  };
+  evict();
+  await rm(path, { recursive: true, force: true });
+  evict(); // a read that ran while the files were going away
 }
 
 /** When a cache file last changed (ms), 0 when missing; a cheap change check without parsing it. */

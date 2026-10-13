@@ -96,6 +96,8 @@ export const users = pgTable('users', {
   boostSince: timestamp('boost_since', { withTimezone: true }),
   boostEndedAt: timestamp('boost_ended_at', { withTimezone: true }),
   paddleCustomerId: text('paddle_customer_id'), // Paddle customer (server/billing/), set by the first subscription webhook
+  // account deletion asked (server/deletion-rules.ts): purged at this time unless cancelled; null: not asked
+  deleteAt: timestamp('delete_at', { withTimezone: true }),
 }, (t) => [
   uniqueIndex('users_discord_id').on(t.discordId),
   uniqueIndex('users_paddle_customer_id').on(t.paddleCustomerId),

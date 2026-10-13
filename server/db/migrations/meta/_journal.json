@@ -141,6 +141,13 @@
       "when": 1791893331062,
       "tag": "0019_plain_smasher",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1791896944397,
+      "tag": "0020_fancy_jack_murdock",
+      "breakpoints": true
     }
   ]
 }

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 const dir = await mkdtemp(join(tmpdir(), 'fcs-store-'));
 process.env.SBC_DATA_DIR = dir;
 process.env.SBC_SHARED_MAX_BYTES = '600'; // tiny budget for the size test; the other entries are a few bytes
-const { readShared, writeCache, readCache } = await import('./store.js');
+const { readShared, writeCache, readCache, dropKeys } = await import('./store.js');
 
 test('readShared: missing key is null, a later write is visible', async () => {
   assert.equal(await readShared('t/a'), null);
@@ -67,3 +67,17 @@ test('readShared: an entry bigger than the whole budget is not kept', async () =
 });
 
 test.after(() => rm(dir, { recursive: true, force: true }));
+
+test('dropKeys: removes the folder and its shared entries, refuses unsafe prefixes', async () => {
+  await writeCache('t/p/x', { v: 1 });
+  await writeCache('t/px', { v: 2 }); // same start, other key: stays
+  assert.equal((await readShared<{ v: number }>('t/p/x'))?.data.v, 1);
+  await dropKeys('t/p');
+  assert.equal(await readShared('t/p/x'), null);
+  assert.equal(await readCache('t/p/x'), null);
+  await assert.rejects(readdir(join(dir, 't/p')));
+  assert.equal((await readShared<{ v: number }>('t/px'))?.data.v, 2);
+  await dropKeys('t/p'); // again: nothing left, fine
+  await assert.rejects(dropKeys(''));
+  await assert.rejects(dropKeys('t/../..'));
+});
