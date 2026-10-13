@@ -94,6 +94,8 @@ export async function hello(opts: {
 }): Promise<{ account: Account; proved: boolean } | { needSid: true }> {
   const byKey = accountByKey(opts.key);
   if (byKey && opts.personaId === byKey.id) {
+    // a held key is the extension that already proved this persona; the guid resets on every deploy
+    if (opts.contentGuid) content.guid = opts.contentGuid;
     byKey.useClientMode(opts.extVersion);
     await byKey.save();
     return { account: byKey, proved: false };

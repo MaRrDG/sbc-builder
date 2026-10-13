@@ -18,10 +18,10 @@ Three constraints shaped everything else:
  X-UT-SID on every request ──extension──►  POST /api/hello   ──► account + key ──► extension stores key,
                                              (usermassinfo = who is this?)          "Open FC Solver" passes it
                                                      │
-                                             Utas client (1 queue per account,
-                                             ≥1.5 s between calls)
+                                             jobs (server/jobs.ts): the web app tab runs
+                                             each one, 1.5 to 3 s apart
                                                      │
-                     club, squad, sets, challenges, chemistry profiles ─► data/accounts/<personaId>/*.json
+ club, squad, sets, challenges, chemistry ──extension──► /api/webapp-event ─► data/accounts/<personaId>/*.json
                                                      │
  SBC submit / pack / item moves ──extension──► /api/sbc-submitted, /api/webapp-event ─► edit cached club
                                                      │
@@ -74,7 +74,7 @@ Browsers from before sign-in held access keys (`#keys=`, `localStorage`); the si
 
 **Extensions before 0.7** posted the SID to `POST /api/session` and the server synced from EA itself. That mode is gone (2026-10-13): the endpoint answers `410` `extTooOld`, stored SIDs are dropped on load, and the server's only EA call is the one-time proof in `/api/hello`.
 
-Either way the server then:
+After the proof the server:
 
 - creates or updates `data/accounts/<personaId>/account.json`,
 - returns a random **access key** for that account to the extension.
