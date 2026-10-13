@@ -1,11 +1,11 @@
 // My Squads (Premium): the user's saved FUT squads with the value of each (EA's market average, "AVG"),
 // and one squad on the pitch with the AVG under every card. Read from the cache only.
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, ArrowsClockwise, Calculator, Coins, HourglassMedium, Info, Star } from '@phosphor-icons/react';
-import { api, ApiError, type Meta, type Player, type SquadDetailResponse, type SquadRow, type SquadSlotView, type SquadsResponse, type SquadValue } from '../../api';
+import { ArrowLeft, ArrowsClockwise, Calculator, Coins, HourglassMedium, Info, Star } from '@phosphor-icons/react';
+import { api, ApiError, type Meta, type Player, type SquadDetailResponse, type SquadPreviewSlot, type SquadRow, type SquadSlotView, type SquadsResponse, type SquadValue } from '../../api';
 import { useAgo, useI18n } from '../../i18n';
 import { errorText } from '../../messages';
-import { Card, EmptyCard } from '../Card';
+import { Card, cardFace, EmptyCard } from '../Card';
 import { layout } from '../Pitch';
 import { formationLabel } from '../objectives/objectives';
 import { compactCoins, splitSlots } from './squads';
@@ -77,7 +77,7 @@ export function SquadsView({ meta, personaId, squadId, onOpen, onError, reload }
     );
   };
   if (squadId !== null) return <SquadScreen key={squadId} meta={meta} id={squadId} reload={reload} onBack={() => onOpen(null)} onError={onError} />;
-  return <SquadList data={list.data} error={list.error} retry={list.retry} onOpen={onOpen} calc={{ busy, error: calcError, run: calculate }} />;
+  return <SquadList data={list.data} meta={meta} error={list.error} retry={list.retry} onOpen={onOpen} calc={{ busy, error: calcError, run: calculate }} />;
 }
 
 /** "Calculate": the web app tab reads the squad list and every saved squad, only when the user asks. */
@@ -134,8 +134,8 @@ function ValueNotes({ value }: { value: SquadValue }) {
   );
 }
 
-export function SquadList({ data, error, retry, onOpen, head = true, calc }: {
-  data: SquadsResponse | null; error: unknown; retry: () => void; onOpen: (id: number) => void; head?: boolean;
+export function SquadList({ data, meta, error, retry, onOpen, head = true, calc }: {
+  data: SquadsResponse | null; meta: Meta; error: unknown; retry: () => void; onOpen: (id: number) => void; head?: boolean;
   calc?: { busy: boolean; error: unknown; run: () => void };
 }) {
   const { t } = useI18n();
@@ -162,10 +162,10 @@ export function SquadList({ data, error, retry, onOpen, head = true, calc }: {
           <p className="squads-when muted">
             <Info weight="bold" aria-hidden="true" /> {t('squads.pricesAt', { when: ago(data.pricesAt) })}
           </p>
-          <ul className="squads-list">
+          <ul className="squads-grid">
             {data.squads.map((s) => (
               <li key={s.id}>
-                <SquadRowButton squad={s} onOpen={onOpen} />
+                <SquadTile squad={s} meta={meta} onOpen={onOpen} />
               </li>
             ))}
           </ul>
@@ -175,39 +175,81 @@ export function SquadList({ data, error, retry, onOpen, head = true, calc }: {
   );
 }
 
-function SquadRowButton({ squad: s, onOpen }: { squad: SquadRow; onOpen: (id: number) => void }) {
+/** One saved squad as a tile: its starters on a small pitch (real formation), the value under it. */
+function SquadTile({ squad: s, meta, onOpen }: { squad: SquadRow; meta: Meta; onOpen: (id: number) => void }) {
   const { t, lang } = useI18n();
+  // no formation known (an old active-squad cache): the starters still show, on a plain 4-3-3
+  const positions = (s.formation && meta.formations[s.formation]) || (s.preview.length ? meta.formations.f433 : undefined) || [];
+  const { pos } = layout(positions.map((p) => p.uniqueId));
+  const byIndex = new Map(s.preview.map((p) => [p.index, p]));
+  const share = s.value.total ? Math.round((s.value.starters / s.value.total) * 100) : 50;
   return (
-    <button type="button" className="squad-row" onClick={() => onOpen(s.id)}>
-      <span className="squad-row-main">
-        <span className="squad-row-name">
-          <strong>{s.name || t('squads.unnamed')}</strong>
-          {s.active && <span className="squad-active">{t('squads.active')}</span>}
-        </span>
-        <span className="squad-row-meta muted">
-          {s.formation && <span>{formationLabel(s.formation)}</span>}
-          {s.rating !== null && (
-            <span>
-              <Star weight="fill" aria-hidden="true" /> {t('pitch.rating')} {s.rating}
+    <button type="button" className={`squad-tile${s.active ? ' is-active' : ''}${s.loaded ? '' : ' is-unloaded'}`} onClick={() => onOpen(s.id)}>
+      <span className="squad-tile-pitch" aria-hidden="true">
+        {positions.map((p, i) => {
+          const c = byIndex.get(i);
+          return (
+            // squeezed up a little so the keeper clears the name under the pitch
+            <span key={i} className="mini-slot" style={{ left: `${pos[i].x}%`, top: `${2 + pos[i].y * 0.82}%` }}>
+              {c ? <MiniCard card={c} meta={meta} /> : <span className="mini-card mini-empty" />}
             </span>
-          )}
-        </span>
+          );
+        })}
+        <span className="squad-tile-fade" />
       </span>
-      <span className="squad-row-value">
+      <span className="squad-tile-tags">
+        {s.active && <span className="squad-tile-pill is-active">{t('squads.active')}</span>}
+        {s.formation && <span className="squad-tile-pill">{formationLabel(s.formation)}</span>}
+      </span>
+      <span className="squad-tile-info">
+        <span className="squad-tile-head">
+          <strong>{s.name || t('squads.unnamed')}</strong>
+          <span className="squad-tile-stats">
+            {s.rating !== null && (
+              <span>
+                <Star weight="fill" aria-hidden="true" /> {s.rating}
+              </span>
+            )}
+            {s.chemistry !== null && <span>{t('squads.chemShort', { chem: s.chemistry })}</span>}
+          </span>
+        </span>
         {s.loaded ? (
           <>
-            <CoinValue value={s.value.total} />
-            <span className="muted squad-row-split">
-              {t('squads.split', { starters: s.value.starters.toLocaleString(lang), bench: s.value.bench.toLocaleString(lang) })}
+            <span className="squad-tile-value">
+              <CoinValue value={s.value.total} />
+            </span>
+            <span className="squad-tile-split" style={{ ['--share' as string]: `${share}%` }} aria-hidden="true">
+              <span />
+              <span />
+            </span>
+            <span className="squad-tile-legend">
+              <span><i className="is-starters" />{t('squads.starters')} {s.value.starters.toLocaleString(lang)}</span>
+              <span><i className="is-bench" />{t('squads.bench')} {s.value.bench.toLocaleString(lang)}</span>
             </span>
             <ValueNotes value={s.value} />
           </>
         ) : (
-          <span className="muted squad-row-split">{t('squads.notLoaded')}</span>
+          <span className="squad-tile-unloaded">{t('squads.notLoaded')}</span>
         )}
       </span>
-      <ArrowRight className="squad-row-go" weight="bold" aria-hidden="true" />
     </button>
+  );
+}
+
+/** A small card for the tile's pitch: EA card art, face, rating and position. */
+function MiniCard({ card, meta }: { card: SquadPreviewSlot; meta: Meta }) {
+  const face = cardFace(card, meta);
+  const [bgOk, setBgOk] = useState(true);
+  return (
+    <>
+      <span className={`mini-card${bgOk && face.bg ? '' : ' mini-fallback'}`}>
+        {face.bg && bgOk && <img className="mini-bg" src={face.bg} alt="" loading="lazy" decoding="async" onError={() => setBgOk(false)} />}
+        <img className="mini-face" src={face.portrait} alt="" loading="lazy" decoding="async" />
+      </span>
+      <span className="mini-label">
+        <b>{card.rating}</b> {card.position}
+      </span>
+    </>
   );
 }
 

@@ -5,18 +5,29 @@ import { useI18n } from '../i18n';
 
 const hex = (n: number | undefined) => (n === undefined ? undefined : `#${n.toString(16).padStart(6, '0')}`);
 
-export function cardArt(p: Player, meta: Meta) {
+/** Background, face and text colour of a card: all a small card (My Squads preview) needs. */
+export function cardFace(p: Pick<Player, 'rareflag' | 'tier' | 'assetId'>, meta: Meta) {
   const base = `${meta.contentBase}/items/images`;
   const rarity = meta.rarities[p.rareflag] ?? meta.rarities[0];
   const level = rarity?.levels ? p.tier : 0;
   return {
     bg: rarity ? `${base}/backgrounds/itemBGs/${rarity.guid}/cards_bg_e_1_${p.rareflag}_${level}.png` : undefined,
     portrait: `${base}/mobile/portraits/${p.assetId}.png`,
+    // levelled rarities pack 3 colours per tier (bronze, silver, gold); text is the first
+    text: hex(rarity ? rarity.colors[rarity.levels ? (p.tier - 1) * 3 : 0] : undefined) ?? '#2d2410',
+  };
+}
+
+export function cardArt(p: Player, meta: Meta) {
+  const base = `${meta.contentBase}/items/images`;
+  const { bg, portrait, text } = cardFace(p, meta);
+  return {
+    bg,
+    portrait,
     flag: `${base}/mobile/flags/dark/${p.nation}.png`,
     league: `${base}/mobile/leagues/dark/${p.league}.png`,
     club: `${base}/mobile/clubs/dark/${p.club}.png`,
-    // levelled rarities pack 3 colours per tier (bronze, silver, gold); text is the first
-    text: hex(rarity ? rarity.colors[rarity.levels ? (p.tier - 1) * 3 : 0] : undefined) ?? '#2d2410',
+    text,
   };
 }
 

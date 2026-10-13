@@ -1,9 +1,11 @@
 // Example Gallery sets, evolutions and objectives shown blurred behind the Premium offer on a Free account.
 // Uses the landing page's self-hosted demo players and art (no account data, no API).
-import type { Evo, GalleryGrade, GalleryResponse, GallerySetResult, ObjectiveGroupView, SquadsResponse } from '../api';
+import type { Evo, GalleryGrade, GalleryResponse, GallerySetResult, Meta, ObjectiveGroupView, SquadsResponse } from '../api';
 import { DEMO_SQUAD } from '../landing/demo';
 
-export { DEMO_META } from '../landing/demo';
+import { DEMO_META } from '../landing/demo';
+
+export { DEMO_META };
 
 const GRADES: Record<GalleryGrade, number> = { D: 400, C: 800, B: 1300, A: 1900, S: 2600 };
 
@@ -69,9 +71,25 @@ export const DEMO_OBJECTIVES: ObjectiveGroupView[] = [
 ];
 
 /** My Squads behind the Premium offer (squad names are the user's own, so plain examples). */
-const sq = (id: number, name: string, formation: string, active: boolean, rating: number, starters: number, bench: number, unknown = 0): SquadsResponse['squads'][number] => ({
-  id, name, formation, active, rating, loaded: true, value: { starters, bench, total: starters + bench, unknown, loans: 0 },
-});
+const F4231 = [[0, 0], [3, 3], [4, 5], [6, 5], [7, 7], [9, 10], [11, 10], [17, 18], [18, 18], [19, 18], [25, 25]];
+const F433 = [[0, 0], [3, 3], [4, 5], [6, 5], [7, 7], [13, 14], [14, 14], [15, 14], [23, 23], [25, 25], [27, 27]];
+const F442 = [[0, 0], [3, 3], [4, 5], [6, 5], [7, 7], [12, 12], [13, 14], [15, 14], [16, 16], [24, 25], [26, 25]];
+const POS = ['GK', 'SW', 'RWB', 'RB', 'RCB', 'CB', 'LCB', 'LB', 'LWB', 'RDM', 'CDM', 'LDM', 'RM', 'RCM', 'CM', 'LCM', 'LM', 'RAM', 'CAM', 'LAM', 'RF', 'CF', 'LF', 'RW', 'RS', 'ST', 'LS', 'LW'];
+const slots = (f: number[][]) => f.map(([uniqueId, typeId]) => ({ uniqueId, typeId, name: POS[uniqueId] }));
+/** the landing's meta plus the formations the demo squads use */
+export const DEMO_SQUADS_META: Meta = { ...DEMO_META, formations: { f4231: slots(F4231), f433: slots(F433), f442: slots(F442) } };
+// the landing's self-hosted faces, on its one common gold card
+const FACES = [211110, 252154, 277643, 257001, 278046, 158023, 20801];
+const preview = (f: number[][], ratings: number[], shift: number) =>
+  f.map(([, typeId], index) => ({ index, assetId: FACES[(index + shift) % FACES.length], rating: ratings[index] ?? 80, rareflag: 0, tier: 3 as const, position: POS[typeId] }));
+const sq = (id: number, name: string, formation: string, active: boolean, rating: number, starters: number, bench: number, unknown = 0): SquadsResponse['squads'][number] => {
+  const f = formation === 'f433' ? F433 : formation === 'f442' ? F442 : F4231;
+  const ratings = Array.from({ length: 11 }, (_, i) => rating - 2 + ((i * 7 + id) % 5));
+  return {
+    id, name, formation, active, rating, chemistry: 33 - id, loaded: true, preview: preview(f, ratings, id),
+    value: { starters, bench, total: starters + bench, unknown, loans: 0 },
+  };
+};
 export const DEMO_SQUADS: SquadsResponse = {
   fetchedAt: 0,
   pricesAt: Date.now() - 2 * HOUR,
@@ -79,7 +97,7 @@ export const DEMO_SQUADS: SquadsResponse = {
   squads: [
     sq(1, 'Weekend League', 'f4231', true, 88, 2_412_000, 386_500),
     sq(2, 'Rivals', 'f433', false, 86, 1_174_900, 212_300, 1),
-    sq(3, 'Champions', 'f3412', false, 85, 641_200, 98_750),
+    sq(3, 'Champions', 'f4231', false, 85, 641_200, 98_750),
     sq(4, 'Evo lab', 'f442', false, 79, 23_400, 6_100),
   ],
 };

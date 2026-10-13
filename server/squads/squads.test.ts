@@ -98,6 +98,9 @@ test('rows: active first, then by value; detail falls back to the active-squad i
   const rows = squadRows(input, meta);
   assert.deepEqual(rows.map((r) => [r.id, r.active, r.loaded, r.value.total]), [[1, true, true, 21050], [2, false, true, 20000], [3, false, false, 0]]);
   assert.equal(rows[2].rating, 77); // EA's own rating when the players are unknown
+  // the preview carries the starters only (index < 11), with what a small card needs
+  assert.deepEqual(rows[0].preview.map((p) => [p.index, p.rating, p.position]), [[0, 90, 'CM'], [1, 70, 'CM']]);
+  assert.deepEqual(rows[2].preview, []);
   const v = squadView(input, meta, 1);
   assert.ok(v);
   assert.deepEqual(v.slots.map((s) => [s.index, s.itemId, s.player?.rating]), [[0, 1, 90], [1, 2, 70], [11, 3, 80]]);

@@ -76,8 +76,20 @@ export interface SquadRow {
   active: boolean;
   rating: number | null;
   value: SquadValue;
-  /** players known; false: open the squad once in the web app */
+  /** players known; false: not calculated yet */
   loaded: boolean;
+  chemistry: number | null;
+  /** starters for the row's pitch preview */
+  preview: SquadPreviewSlot[];
+}
+
+export interface SquadPreviewSlot {
+  index: number;
+  assetId: number;
+  rating: number;
+  rareflag: number;
+  tier: 1 | 2 | 3;
+  position: string;
 }
 
 export interface SquadsResponse {
@@ -98,8 +110,7 @@ export interface SquadSlotView {
   chem: number | null;
 }
 
-export interface SquadDetailResponse extends SquadRow {
-  chemistry: number | null;
+export interface SquadDetailResponse extends Omit<SquadRow, 'preview'> {
   fetchedAt: number | null;
   pricesAt: number | null;
   slots: SquadSlotView[];

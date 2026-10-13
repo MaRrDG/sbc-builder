@@ -52,7 +52,7 @@ import { useFounders } from './landing/Founders';
 import { useDailyPending } from './daily/usePending';
 import { GalleryInfo } from './components/gallery/GalleryInfo';
 import { PremiumPreview } from './components/PremiumPreview';
-import { DEMO_GALLERY, DEMO_META, DEMO_OBJECTIVES, DEMO_SQUADS } from './components/premiumDemo';
+import { DEMO_GALLERY, DEMO_META, DEMO_OBJECTIVES, DEMO_SQUADS, DEMO_SQUADS_META } from './components/premiumDemo';
 import { SquadList, SquadsView } from './components/squads/SquadsView';
 import { ObjectiveGroups, ObjectivesView, ObjStepper } from './components/objectives/ObjectivesView';
 import { splitGroups } from './components/objectives/objectives';
@@ -1363,7 +1363,7 @@ export default function App({
                   </div>
                 </header>
                 <PremiumPreview title={t('squads.lockedTitle')} body={t('squads.lockedBody')}>
-                  <SquadList data={DEMO_SQUADS} error={null} retry={() => {}} onOpen={() => {}} head={false} />
+                  <SquadList data={DEMO_SQUADS} meta={DEMO_SQUADS_META} error={null} retry={() => {}} onOpen={() => {}} head={false} />
                 </PremiumPreview>
               </section>
             ) : (

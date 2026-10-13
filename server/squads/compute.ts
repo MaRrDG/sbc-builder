@@ -29,8 +29,20 @@ export interface SquadRow {
   active: boolean;
   rating: number | null;
   value: SquadValue;
-  /** players known (loaded from the list or the squad itself); false: open it once in the web app */
+  /** players known (loaded from the list or the squad itself); false: not calculated yet */
   loaded: boolean;
+  chemistry: number | null;
+  /** the starters, just enough to draw a small card on the row's pitch preview */
+  preview: SquadPreviewSlot[];
+}
+
+export interface SquadPreviewSlot {
+  index: number;
+  assetId: number;
+  rating: number;
+  rareflag: number;
+  tier: 1 | 2 | 3;
+  position: string;
 }
 
 export interface SquadSlotView {
@@ -44,8 +56,7 @@ export interface SquadSlotView {
   chem: number | null;
 }
 
-export interface SquadView extends SquadRow {
-  chemistry: number | null;
+export interface SquadView extends Omit<SquadRow, 'preview'> {
   fetchedAt: number | null;
   slots: SquadSlotView[];
 }
@@ -138,8 +149,11 @@ export function squadRows(input: SquadsInput, meta: Meta): SquadRow[] {
   const byId = clubMap(input.club);
   return summaries(input)
     .map((s) => {
-      const { id, name, formation, active, rating, value, loaded } = build(s, input, byId, meta);
-      return { id, name, formation, active, rating, value, loaded };
+      const { id, name, formation, active, rating, value, loaded, chemistry, slots } = build(s, input, byId, meta);
+      const preview = slots.flatMap(({ index, player: p }) =>
+        index < STARTERS && p ? [{ index, assetId: p.assetId, rating: p.rating, rareflag: p.rareflag, tier: p.tier, position: p.preferredPosition }] : [],
+      );
+      return { id, name, formation, active, rating, value, loaded, chemistry, preview };
     })
     .sort((a, b) => Number(b.active) - Number(a.active) || b.value.total - a.value.total || a.id - b.id);
 }
