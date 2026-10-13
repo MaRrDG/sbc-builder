@@ -449,6 +449,27 @@ Static data for rendering: names of nations / leagues / clubs / rarities, format
 
 `storage`: the SBC storage (from `GET /storagepile`, read by the club sync and whenever the web app opens SBC Storage), same player shape plus `inStorage: true`. In the `/api/solve` pool by default.
 
+### `GET /api/squads` (site, Premium)
+
+My Squads: the saved squads the web app loaded (`/squad/list`, `/squad/{id}`, also read by the club sync), each with its value. Auth like `/api/club`. Free accounts get 403 with `code: "premiumOnly"`. Never calls EA.
+
+```json
+{
+  "fetchedAt": 1790064472801,
+  "pricesAt": 1790064470000,
+  "squads": [{
+    "id": 1, "name": "Weekend League", "formation": "f4231", "active": true, "rating": 86, "loaded": true,
+    "value": { "starters": 2412000, "bench": 386500, "total": 2798500, "unknown": 1, "loans": 0 }
+  }]
+}
+```
+
+`value`: coins, the sum of EA's `marketAverage` per card: from the cached club item first, else from the squad response's own `itemData`; cards with neither are not counted (`unknown`), loan cards count 0 (`loans`). `starters` = slot index < 11, `bench` the rest. `rating` is computed with the game formula (`server/squad.ts`) when the players are known, else EA's own rating from the list (or `null`). `loaded: false`: the list did not carry the players and the squad was never opened in the web app (the site asks the user to open it once). Sorted: active first, then by `value.total`. `fetchedAt`: when the list was loaded; `pricesAt`: when the club (and so its prices) was. Squads come from the cache `squads` (`{ list, activeSquadId, raw }`) and `squads/<id>` (`{ id, name, formation, players: [{ index, itemId, item? }] }`); with no list yet, the active squad (`squad` cache) is listed alone.
+
+### `GET /api/squads/:id` (site, Premium)
+
+One squad: the fields of a `/api/squads` row plus `chemistry` (game formula, `null` without a known formation), `fetchedAt` (when its players were loaded), `pricesAt` and `slots: [{ index, itemId, player, value, loan, chem }]` (`player` as in `/api/club`, `null` when the item is neither in the club nor described by EA's response; `value` `null` = no price; `chem` 0-3 for starters, `null` on the bench). Unknown id → 404 `code: "squadNotFound"`; Free → 403 `premiumOnly`.
+
 ### `GET /api/gallery` (site, Premium)
 
 FUT Gallery planner: for every set of the catalogue, the best lineup the account ever held and its score. Auth like `/api/club` (Bearer + `X-Persona`). Free accounts get 403 with `code: "premiumOnly"`. Never calls EA; it reads the item ledger (every club / storage / unassigned item ever seen, sold ones kept) and the cached club lists.
@@ -675,7 +696,7 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 | `GET /sbs/hub/v2`, `GET /sbs/sets` | replaces the cached SBC list (`hub/v2` is what the web app loads when points SBCs are on) |
 | `GET /sbs/setId/:id/challenges` | replaces that set's cached challenges |
 | `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club. With `jobId` (a club sync job's page): collected per job in any order, nothing upserted, and the club is replaced once page 0 through the short last page are all in |
-| `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (other saved squads are ignored) |
+| `GET /squad/list`, `GET /squad/:id`, `GET /squad/active` | the active squad (`squad`), and every saved squad for My Squads: the list (`squads`, raw response kept) and each squad loaded (`squads/<id>`) |
 | `GET /chemistry/profiles` | replaces the promo chemistry profiles |
 | `GET /academy/*` (Evolutions) | timed trainings saved per slot and level; a full unfiltered `/academy/hub/v2` list (first page, short) also replaces the tracked set and stamps `fetchedAt` |
 | `GET /storagepile` | replaces the cached SBC storage (players from `itemData`) |

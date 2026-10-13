@@ -1,6 +1,6 @@
 // Example Gallery sets, evolutions and objectives shown blurred behind the Premium offer on a Free account.
 // Uses the landing page's self-hosted demo players and art (no account data, no API).
-import type { Evo, GalleryGrade, GalleryResponse, GallerySetResult, ObjectiveGroupView } from '../api';
+import type { Evo, GalleryGrade, GalleryResponse, GallerySetResult, ObjectiveGroupView, SquadsResponse } from '../api';
 import { DEMO_SQUAD } from '../landing/demo';
 
 export { DEMO_META } from '../landing/demo';
@@ -67,3 +67,18 @@ export const DEMO_OBJECTIVES: ObjectiveGroupView[] = [
     ],
   },
 ];
+
+/** My Squads behind the Premium offer (squad names are the user's own, so plain examples). */
+const sq = (id: number, name: string, formation: string, active: boolean, rating: number, starters: number, bench: number, unknown = 0): SquadsResponse['squads'][number] => ({
+  id, name, formation, active, rating, loaded: true, value: { starters, bench, total: starters + bench, unknown, loans: 0 },
+});
+export const DEMO_SQUADS: SquadsResponse = {
+  fetchedAt: 0,
+  pricesAt: Date.now() - 2 * HOUR,
+  squads: [
+    sq(1, 'Weekend League', 'f4231', true, 88, 2_412_000, 386_500),
+    sq(2, 'Rivals', 'f433', false, 86, 1_174_900, 212_300, 1),
+    sq(3, 'Champions', 'f3412', false, 85, 641_200, 98_750),
+    sq(4, 'Evo lab', 'f442', false, 79, 23_400, 6_100),
+  ],
+};

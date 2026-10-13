@@ -30,6 +30,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Gift codes: you can redeem up to 2 every 30 days, and a gift from another FC Solver account on your own EA account no longer works. Daily streak points now need an EA account linked to FC Solver (once a day per EA account); without one, your streak still counts',
         'Daily usernames: names that look like staff (admin, support, FC Solver...) are no longer allowed, and you can change your username once every 7 days',
         'Extensions older than 1.0.0 now show an update notice you can\'t hide: download the new version to keep syncing',
+        'My Squads (Premium): every squad you saved in the web app with what it\'s worth at EA\'s market average, for the whole squad, starters and bench, with the AVG price under each card',
       ],
       ro: [
         'Dashboard mai rapid: SBC-urile și clubul apar imediat ce deschizi FC Solver, iar sincronizările își arată progresul în timp real în noul panou de activitate, fără să blocheze pagina',
@@ -40,6 +41,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Coduri cadou: poți folosi cel mult 2 la 30 de zile, iar un cadou de la un cont legat de același cont EA ca al tău nu mai merge. Punctele pentru seriile din Daily cer acum un cont EA legat de FC Solver (o dată pe zi pentru fiecare cont EA); fără el, seria ta contează în continuare',
         'Username-uri în Daily: numele care sună a staff (admin, support, FC Solver...) nu mai sunt permise, iar username-ul se poate schimba o dată la 7 zile',
         'Extensiile mai vechi de 1.0.0 primesc acum un anunț de actualizare care nu se poate ascunde: descarcă noua versiune ca sincronizarea să meargă mai departe',
+        'Echipele mele (Premium): fiecare echipă salvată în web app și cât valorează la media de piață EA, pe toată echipa, pe titulari și pe rezerve, cu prețul AVG sub fiecare card',
       ],
       it: [
         'Dashboard più veloce: SBC e club compaiono subito quando apri FC Solver, e le sincronizzazioni mostrano i progressi in tempo reale nel nuovo pannello attività, senza bloccare la pagina',
@@ -50,6 +52,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Codici regalo: puoi riscattarne al massimo 2 ogni 30 giorni, e un regalo da un account collegato al tuo stesso account EA non funziona più. I punti serie del Daily ora richiedono un account EA collegato a FC Solver (una volta al giorno per ogni account EA); senza, la tua serie conta comunque',
         'Username del Daily: i nomi che sembrano dello staff (admin, support, FC Solver...) non sono più permessi, e puoi cambiare username una volta ogni 7 giorni',
         'Le estensioni precedenti alla 1.0.0 ora mostrano un avviso di aggiornamento che non si può nascondere: scarica la nuova versione per continuare a sincronizzare',
+        'Le mie rose (Premium): ogni rosa salvata nella web app con il suo valore alla media di mercato EA, per la rosa intera, i titolari e la panchina, con il prezzo AVG sotto ogni carta',
       ],
     },
   },
