@@ -151,6 +151,9 @@ export function waitForWork(acc: Account, ms: number): Promise<void> {
 /** The tab polled: it counts as open from now (before a visit queues anything). */
 export const markPoll = (acc: Account) => lastPoll.set(acc.id, Date.now());
 
+/** Whether the tab is logged in to EA, for a poll that takes no job (paused / over budget). */
+export const markReady = (acc: Account, ready: boolean) => lastReady.set(acc.id, ready);
+
 /** How long the breather after the last job still runs (0: none). */
 export const restLeft = (acc: Account) => Math.max(0, REST_BETWEEN_JOBS - (Date.now() - (lastFinished.get(acc.id) ?? 0)));
 

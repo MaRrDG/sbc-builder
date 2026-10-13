@@ -6,6 +6,7 @@ import { join } from 'node:path';
 
 const dir = await mkdtemp(join(tmpdir(), 'fcs-store-'));
 process.env.SBC_DATA_DIR = dir;
+process.env.SBC_SHARED_MAX_BYTES = '600'; // tiny budget for the size test; the other entries are a few bytes
 const { readShared, writeCache, readCache } = await import('./store.js');
 
 test('readShared: missing key is null, a later write is visible', async () => {
@@ -43,6 +44,26 @@ test('readShared: a miss is not cached, a file created on disk is found next tim
   await mkdir(join(dir, 't'), { recursive: true });
   await writeFile(join(dir, 't/e.json'), JSON.stringify({ fetchedAt: 5, data: 'x' }));
   assert.equal((await readShared<string>('t/e'))?.data, 'x');
+});
+
+test('readShared: over the byte budget the least recently used entry is dropped', async () => {
+  const big = 'x'.repeat(250);
+  await writeCache('t/s1', big);
+  await writeCache('t/s2', big);
+  await readShared('t/s1'); // s1 is now the most recently used
+  await writeCache('t/s3', big); // three entries of ~280 bytes > 600: the least recently used (s2) goes
+  await rm(join(dir, 't/s1.json'));
+  await rm(join(dir, 't/s2.json'));
+  await rm(join(dir, 't/s3.json'));
+  assert.equal(await readShared('t/s2'), null); // evicted: answered from disk (gone)
+  assert.equal((await readShared<string>('t/s1'))?.data, big); // recently used: still in memory
+  assert.equal((await readShared<string>('t/s3'))?.data, big); // newest stays in memory
+});
+
+test('readShared: an entry bigger than the whole budget is not kept', async () => {
+  await writeCache('t/huge', 'y'.repeat(1000));
+  await rm(join(dir, 't/huge.json'));
+  assert.equal(await readShared('t/huge'), null);
 });
 
 test.after(() => rm(dir, { recursive: true, force: true }));

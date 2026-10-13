@@ -22,37 +22,55 @@ export function onCacheWrite(fn: WriteListener) {
 
 const file = (key: string) => join(DATA_DIR, `${key}.json`);
 
-export async function readCache<T>(key: string): Promise<Cached<T> | null> {
+async function readEntry<T>(key: string): Promise<{ entry: Cached<T>; size: number } | null> {
   try {
-    return JSON.parse(await readFile(file(key), 'utf8')) as Cached<T>;
+    const text = await readFile(file(key), 'utf8');
+    return { entry: JSON.parse(text) as Cached<T>, size: text.length };
   } catch {
     return null;
   }
 }
 
+export async function readCache<T>(key: string): Promise<Cached<T> | null> {
+  return (await readEntry<T>(key))?.entry ?? null;
+}
+
 // Read-through copy of the last parsed entry per key, for hot read-only paths (status poll, set list,
 // club, solve). Shared between callers: never mutate what readShared returns; use readCache to edit.
-const shared = new Map<string, Cached<unknown> | null>();
+const shared = new Map<string, { entry: Cached<unknown> | null; size: number }>();
 const generation = new Map<string, number>(); // bumped on every write: a slow read never overwrites a newer write
 const SHARED_MAX = 400;
+// bound by size too: a few big clubs must not fill the memory (JSON length, roughly the bytes held);
+// SBC_SHARED_MAX_BYTES is a test override
+const SHARED_MAX_BYTES = Number(process.env.SBC_SHARED_MAX_BYTES) || 150 * 1024 * 1024;
+let sharedBytes = 0;
 
-function share(key: string, entry: Cached<unknown> | null) {
+function unshare(key: string) {
+  const old = shared.get(key);
+  if (!old) return;
+  sharedBytes -= old.size;
   shared.delete(key);
-  shared.set(key, entry);
-  if (shared.size > SHARED_MAX) shared.delete(shared.keys().next().value as string);
+}
+
+function share(key: string, entry: Cached<unknown> | null, size: number) {
+  unshare(key);
+  shared.set(key, { entry, size });
+  sharedBytes += size;
+  // least recently used first (Map order); an entry bigger than the whole budget is not kept either
+  while (shared.size > SHARED_MAX || (sharedBytes > SHARED_MAX_BYTES && shared.size)) unshare(shared.keys().next().value as string);
 }
 
 export async function readShared<T>(key: string): Promise<Readonly<Cached<T>> | null> {
-  if (shared.has(key)) {
-    const hit = shared.get(key) as Cached<T> | null;
-    share(key, hit); // most recently used
-    return hit;
+  const hit = shared.get(key);
+  if (hit) {
+    share(key, hit.entry, hit.size); // most recently used
+    return hit.entry as Cached<T> | null;
   }
   const gen = generation.get(key) ?? 0;
-  const entry = await readCache<T>(key);
+  const read = await readEntry<T>(key);
   // misses and read errors are not cached: the next call goes to disk again
-  if (entry && (generation.get(key) ?? 0) === gen) share(key, entry);
-  return entry;
+  if (read && (generation.get(key) ?? 0) === gen) share(key, read.entry, read.size);
+  return read?.entry ?? null;
 }
 
 const writing = new Map<string, Promise<unknown>>();
@@ -84,7 +102,7 @@ async function write<T>(key: string, entry: Cached<T>, json: string): Promise<Ca
     throw err;
   }
   generation.set(key, (generation.get(key) ?? 0) + 1);
-  share(key, JSON.parse(json) as Cached<T>);
+  share(key, JSON.parse(json) as Cached<T>, json.length);
   for (const fn of listeners) {
     try {
       fn(key, entry.data);

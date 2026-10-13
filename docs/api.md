@@ -125,7 +125,7 @@ Browsers no longer hold access keys; use `GET /api/me`.
 
 ### ETags on `/api/club`, `/api/meta`, `/api/sets`
 
-These answer with an `ETag`, `Cache-Control: private, no-cache` and `Vary: Authorization, X-Persona`; a request with a matching `If-None-Match` gets `304` without a body.
+These answer with an `ETag`, `Cache-Control: private, no-cache` and `Vary: X-Persona` (not `Authorization`: Clerk tokens rotate every minute, and `no-cache` revalidates with the token every time anyway); a request with a matching `If-None-Match` gets `304` without a body.
 
 ### `GET /api/status` (site)
 

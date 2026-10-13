@@ -13,7 +13,7 @@ import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, readShared, ROOT } from './store.js';
 import { etagOf, notModified } from './etag.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
-import { enqueue, findJob, finishJob, hasPending, markCall, markPoll, nextJob, restLeft, waitForWork, webAppOpen, webAppReturned } from './jobs.js';
+import { enqueue, findJob, finishJob, hasPending, markCall, markPoll, markReady, nextJob, restLeft, waitForWork, webAppOpen, webAppReturned } from './jobs.js';
 import { dropStream, notify, sseFrame, subscribe, takeStream } from './live.js';
 import { isTabPoll } from './job-rules.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
@@ -253,7 +253,7 @@ app.get<{ Params: { file: string } }>('/api/evos/card/:file', async (req, reply)
 function sendTagged(req: FastifyRequest, reply: FastifyReply, body: unknown) {
   const json = JSON.stringify(body);
   const tag = etagOf(json);
-  reply.header('ETag', tag).header('Cache-Control', 'private, no-cache').header('Vary', 'Authorization, X-Persona');
+  reply.header('ETag', tag).header('Cache-Control', 'private, no-cache').header('Vary', 'X-Persona');
   if (notModified(req.headers['if-none-match'], tag)) return reply.code(304).send();
   return reply.type('application/json; charset=utf-8').send(json);
 }
@@ -413,6 +413,10 @@ app.get('/api/stream', async (req, reply) => {
     'X-Accel-Buffering': 'no', // nginx: pass every event through at once
     'X-Content-Type-Options': 'nosniff',
   });
+  // a late write (a push resolving after the 5 min end) must never throw: Fastify's own 'error'
+  // listener is gone once the response finished, and an unhandled stream error kills the process
+  res.on('error', () => {});
+  const alive = () => !res.writableEnded && !res.destroyed;
   let last = '';
   let pending = new Set<string>();
   let timer: NodeJS.Timeout | null = null;
@@ -420,8 +424,10 @@ app.get('/api/stream', async (req, reply) => {
     timer = null;
     const keys = [...pending];
     pending = new Set();
+    if (!alive()) return;
     if (keys.length) res.write(sseFrame('changed', { keys }));
     const body = JSON.stringify({ account: acc, sync: await getStatus(acc), extension: await latestExtension() });
+    if (!alive()) return; // the stream ended while the status was read
     if (body !== last) {
       last = body;
       res.write(`event: status\ndata: ${body}\n\n`);
@@ -429,13 +435,21 @@ app.get('/api/stream', async (req, reply) => {
   };
   // a burst of writes (a club page, its unassigned fix-up, the job progress) goes out as one update
   const schedule = (keys: string[]) => {
+    if (!alive()) return; // ended: 'close' unsubscribes a few ticks later
     for (const k of keys) pending.add(k);
     timer ??= setTimeout(() => void push().catch(() => {}), 300);
   };
   const off = subscribe(acc.id, schedule);
-  const beat = setInterval(() => res.write(': ping\n\n'), 25_000); // Cloudflare drops idle streams after 100 s
+  const beat = setInterval(() => alive() && res.write(': ping\n\n'), 25_000); // Cloudflare drops idle streams after 100 s
   const tick = setInterval(() => schedule([]), 15_000); // jobs time out and cooldowns end without a write
-  const end = setTimeout(() => res.end(), 5 * 60_000); // the site reconnects with a fresh Clerk token
+  // the site reconnects with a fresh Clerk token; nothing scheduled may write after the end
+  const end = setTimeout(() => {
+    clearInterval(beat);
+    clearInterval(tick);
+    if (timer) clearTimeout(timer);
+    timer = null;
+    if (alive()) res.end();
+  }, 5 * 60_000);
   req.raw.on('close', () => {
     off();
     clearInterval(beat);
@@ -548,15 +562,19 @@ const LONG_POLL_MS = 20_000; // under nginx's 60 s proxy timeout and the 30 s op
 app.get('/api/jobs/next', async (req) => {
   const acc = account(req);
   if (!acc.clientMode) return { job: null, again: 5000 };
-  try {
-    await acc.meter.check();
-  } catch {
-    return { job: null, again: 5000 }; // over budget or paused: the queue waits
-  }
   const { visible, ready, wait } = req.query as { visible?: string; ready?: string; wait?: string };
   // the extension's own poll after /api/hello (also sent on an FC Solver site visit, with no web
   // app tab open): not a tab, so it takes no job and does not mark the web app as open
   if (!isTabPoll(acc.info.extVersion, ready)) return { job: null, again: 5000 };
+  try {
+    await acc.meter.check();
+  } catch {
+    // over budget or paused: the queue waits, but the tab is still there (its jobs stay "paused",
+    // not failed as if the tab closed); no job is handed out, nothing reaches EA
+    markPoll(acc);
+    markReady(acc, ready !== '0');
+    return { job: null, again: 5000 };
+  }
   const returned = webAppReturned(acc, visible === undefined ? undefined : visible === '1');
   markPoll(acc); // open from now, so the visit below may queue
   // came (back) to the web app: SBCs done elsewhere in the meantime show up, handed out in this same answer
