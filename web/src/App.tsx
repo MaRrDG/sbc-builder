@@ -172,7 +172,6 @@ export default function App({
   const account = linked?.find((a) => a.personaId === activeId) ?? null;
   const challenge = challenges?.find((c) => c.challengeId === challengeId) ?? null;
   const scoreTarget = challenge?.scoreRequirement ?? 0; // points SBC target, 0 for squad SBCs
-  const [readAsked, setReadAsked] = useState<Set<number>>(() => new Set());
   const result = challengeId ? results[challengeId] ?? null : null;
   const clubById = useMemo(() => new Map(club.map((p) => [p.id, p])), [club]);
   const storageIds = useMemo(() => new Set(storage.map((p) => p.id)), [storage]);
@@ -700,21 +699,6 @@ export default function App({
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
-
-  // A started challenge we have no squad for: read it once from the web app tab (one GET),
-  // so players already placed there show up without reopening it in the web app.
-  const readFromWebApp = useCallback(
-    (id: number) => {
-      setReadAsked((prev) => new Set(prev).add(id));
-      api.readChallenge(id).then(setStatus).catch(onApiError);
-    },
-    [onApiError],
-  );
-  useEffect(() => {
-    if (!challenge || challenge.status !== 'IN_PROGRESS' || challenge.layout || readAsked.has(challenge.challengeId)) return;
-    if (!account?.session) return;
-    readFromWebApp(challenge.challengeId);
-  }, [challenge, account?.session, readAsked, readFromWebApp]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -1444,7 +1428,7 @@ export default function App({
                       type="button"
                       className="ghost icon-label"
                       disabled={status?.running === 'squad'}
-                      onClick={() => readFromWebApp(challenge.challengeId)}
+                      onClick={() => api.readChallenge(challenge.challengeId).then(setStatus).catch(onApiError)}
                       title={t('set.squadTitle')}
                     >
                       <ArrowsClockwise weight="bold" className={status?.running === 'squad' ? 'spin' : ''} />{' '}
@@ -1508,6 +1492,19 @@ export default function App({
                         ) : (
                           t('set.bricksOpen')
                         )}
+                      </div>
+                    )}
+                    {!challenge.needsLayout && challenge.status === 'IN_PROGRESS' && !challenge.layout && account?.session && (
+                      <div className="notice-inline" role="status">
+                        {t('set.placedRead')}{' '}
+                        <button
+                          type="button"
+                          className="text"
+                          disabled={status?.running === 'squad'}
+                          onClick={() => api.readChallenge(challenge.challengeId).then(setStatus).catch(onApiError)}
+                        >
+                          {status?.running === 'squad' ? t('set.bricksReading') : t('set.bricksReadButton')}
+                        </button>
                       </div>
                     )}
                     {result?.usedStorage && !result.clubOnly && !solving && (

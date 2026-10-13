@@ -262,6 +262,7 @@ export const en = {
   'set.bricksRead': 'EA locks some slots in this SBC.',
   'set.bricksReadButton': 'Read them from the web app',
   'set.bricksReading': 'Reading it from the web app…',
+  'set.placedRead': 'Started in the web app: players you already placed there show up after one read.',
   'set.bricksOpen': 'EA locks some slots in this SBC. Open it once in the FC27 web app so FC Solver sees which, then solve.',
   'set.keptPlaced': 'Kept {kept} of the {total} players you placed in the web app (marked with a pin). The rest could not meet the requirements, so they were replaced.',
   'set.missingPlaced_one': '{count} player you placed in the web app is no longer in your club, so that slot was filled again.',

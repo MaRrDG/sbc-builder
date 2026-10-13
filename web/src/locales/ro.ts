@@ -270,6 +270,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'set.bricksRead': 'EA blochează câteva sloturi în acest SBC.',
   'set.bricksReadButton': 'Citește-le din web app',
   'set.bricksReading': 'Le citesc din web app…',
+  'set.placedRead': 'Început în web app: jucătorii pe care i-ai pus deja acolo apar după o citire.',
   'set.bricksOpen': 'EA blochează câteva sloturi în acest SBC. Deschide-l o dată în web app-ul FC27 ca FC Solver să vadă care, apoi rezolvă.',
   'set.keptPlaced': 'Am păstrat {kept} din cei {total} jucători puși de tine în web app (marcați cu pioneză). Restul nu permiteau îndeplinirea cerințelor, așa că i-am înlocuit.',
   'set.missingPlaced_one': '{count} jucător pus de tine în web app nu mai e în club, așa că slotul lui a fost completat din nou.',

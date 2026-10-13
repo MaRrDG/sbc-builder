@@ -266,6 +266,7 @@ export const it: Record<Keys, string> = {
   'set.bricksRead': 'EA blocca alcuni slot in questa SBC.',
   'set.bricksReadButton': 'Leggili dalla web app',
   'set.bricksReading': 'Lettura dalla web app…',
+  'set.placedRead': 'Iniziata nella web app: i giocatori che hai già inserito lì compaiono dopo una lettura.',
   'set.bricksOpen': 'EA blocca alcuni slot in questa SBC. Aprila una volta nella web app FC27 così FC Solver vede quali, poi risolvi.',
   'set.keptPlaced': 'Tenuti {kept} dei {total} giocatori che hai messo nella web app (segnati con una puntina). Gli altri non soddisfacevano i requisiti, quindi sono stati sostituiti.',
   'set.missingPlaced_one': '{count} giocatore che hai messo nella web app non è più nel tuo club, quindi quello slot è stato riempito di nuovo.',
