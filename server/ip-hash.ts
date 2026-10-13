@@ -11,7 +11,7 @@ export function ipPrefix(raw: string | null | undefined): string | null {
   const ip = raw.trim().split('%')[0]!;
   const v = isIP(ip);
   if (!v) return null;
-  const key = v === 6 ? limitKey(ip) : ip; // limitKey: IPv6 → "a:b:c:d::/64", ::ffff:x.y.z.w → "x.y.z.w"
+  const key = v === 6 ? limitKey(ip) : ip; // limitKey: IPv6 → "a:b:c:d::/64", IPv4-mapped (any spelling) → "x.y.z.w"
   if (isIP(key) === 4) return `${key.split('.').slice(0, 3).join('.')}.0/24`;
   return key;
 }

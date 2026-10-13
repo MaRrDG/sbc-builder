@@ -30,6 +30,11 @@ test('limitKey: IPv6 counts per /64, IPv4 and other keys stay as they are', () =
   assert.equal(limitKey('fe80::1%eth0'), 'fe80:0:0:0::/64');
   assert.equal(limitKey('64:ff9b::1.2.3.4'), '64:ff9b:0:0::/64');
   assert.equal(limitKey('::ffff:203.0.113.7'), '203.0.113.7');
+  assert.equal(limitKey('::ffff:cb00:7107'), '203.0.113.7');
+  assert.equal(limitKey('::FFFF:CB00:7107'), '203.0.113.7');
+  assert.equal(limitKey('0:0:0:0:0:ffff:203.0.113.7'), '203.0.113.7');
+  assert.equal(limitKey('0000:0000:0000:0000:0000:ffff:cb00:7107'), '203.0.113.7');
+  assert.equal(limitKey('::ffff:0:cb00:7107'), '0:0:0:0::/64'); // IPv4-translated, not mapped
   assert.equal(limitKey('203.0.113.7'), '203.0.113.7');
   assert.equal(limitKey('user_2abcDEF'), 'user_2abcDEF');
 });

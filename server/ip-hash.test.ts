@@ -7,6 +7,9 @@ test('ipPrefix: IPv4 /24, IPv6 /64, IPv4-mapped → IPv4, junk → null', () => 
   assert.equal(ipPrefix('2001:db8:1:2:aaaa::1'), '2001:db8:1:2::/64');
   assert.equal(ipPrefix('2001:0DB8:0001:0002:ffff:ffff:ffff:ffff'), '2001:db8:1:2::/64');
   assert.equal(ipPrefix('::ffff:198.51.100.9'), '198.51.100.0/24');
+  assert.equal(ipPrefix('::ffff:c633:6409'), '198.51.100.0/24');
+  assert.equal(ipPrefix('0:0:0:0:0:ffff:198.51.100.9'), '198.51.100.0/24');
+  assert.equal(hashIp('::ffff:c633:6409', 's1'), hashIp('198.51.100.200', 's1'));
   assert.equal(ipPrefix('fe80::1%eth0'), 'fe80:0:0:0::/64');
   for (const bad of ['', 'nope', '999.1.1.1', null, undefined]) assert.equal(ipPrefix(bad), null);
 });
