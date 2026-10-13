@@ -136,9 +136,11 @@ These answer with an `ETag`, `Cache-Control: private, no-cache` and `Vary: X-Per
   "account": { "personaId": 1005016552645, "session": true, "extVersion": "0.3.0", "...": "..." },
   "sync": { "running": "club", "error": null, "errorCode": null, "clubNextAt": null, "club": { "state": "running", "loaded": 400, "expected": 1830 }, "clubAt": 1790064472801, "sbcAt": 1790062053735, "sbcNextAt": 1790063853735, "editedAt": null, "unassigned": 1,
             "ea": { "today": 12, "limit": 150, "pausedUntil": null, "byPath": { "/club": 3 }, "recent": [{ "at": 1790064472801, "method": "POST", "path": "/club", "status": 200 }] } },
-  "extension": { "version": "0.4.0", "notes": ["Update notices in the web app and on the site"] }
+  "extension": { "version": "1.0.3", "notes": ["..."], "minVersion": "1.0.0" }
 }
 ```
+
+`extension.minVersion` (`MIN_EXTENSION` in `server/extension.ts`) is the oldest extension the site supports: when `account.extVersion` is known and older, the site shows the update notice as "update required" (steps open, no hide button). Older than `version` only: the normal, hideable notice.
 
 `ea` counts today's requests to EA for this account (paths grouped, ids replaced by `:id`); `pausedUntil` is set after EA signalled throttling. `editedAt` changes whenever the cache was edited from web app activity; the site gets it pushed over `/api/stream` and reloads what changed; it polls this endpoint only as a fallback when the stream is unavailable. `unassigned` counts pack players not yet sent to the club. `club`: a club sync `queued` or `running` in the web app tab (else `null`), with the players its pages loaded so far and `expected`, the cached club size as a rough total (`null` before the first sync); the site shows it in a non-blocking activity panel (the fallback poll runs every 5 s, every 1.5 s while a club job runs), and Solve waits while a club job runs. `sbcNextAt`: from then on a visit refreshes the SBC list (`sbcAt` + 30 min, `SBC_VISIT_COOLDOWN_MIN`).
 
@@ -698,9 +700,9 @@ Public, no auth, `Cache-Control: public, max-age=300`, under the global per-IP `
 ### `GET /api/extension/version`
 
 ```json
-{ "version": "0.4.0", "notes": ["Update notices in the web app and on the site"] }
+{ "version": "1.0.3", "notes": ["..."], "minVersion": "1.0.0" }
 ```
 
 ### `GET /api/extension.zip`
 
-The extension as a zip, with this server's origin written into it (default server and host permission). The origin is the request's `Host` (+ `X-Forwarded-Proto`), and only when it is one of ours (`SITE_ORIGINS` / `SITE_URL`); any other host gets our canonical origin, so a spoofed header can never produce a zip that talks to someone else's server. Sent with `Cache-Control: no-store`, and the site links it with a `?t=` query, so a cache (Cloudflare) never hands out a zip from before an update.
+The extension as a zip, with this server's origin written into it (default server and host permission). When that origin is not `localhost` / `127.0.0.1`, the manifest's `localhost` / `127.0.0.1` entries (`host_permissions`, content script and `externally_connectable` matches) are dropped (`publicManifest()` in `server/extension.ts`). The origin is the request's `Host` (+ `X-Forwarded-Proto`), and only when it is one of ours (`SITE_ORIGINS` / `SITE_URL`); any other host gets our canonical origin, so a spoofed header can never produce a zip that talks to someone else's server. Sent with `Cache-Control: no-store`, and the site links it with a `?t=` query, so a cache (Cloudflare) never hands out a zip from before an update.
