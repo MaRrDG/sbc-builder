@@ -1615,6 +1615,48 @@ h3 {
   .plan-sum, .plan-adds { padding-inline: 14px; }
   .sbox > .locked-note { padding-inline: 14px; }
 }
+/* Settings "Your data": the inline delete confirm and the banner while a deletion is scheduled */
+.delete-confirm { display: grid; gap: 10px; padding: 14px 18px 18px; background: oklch(0.7 0.18 25 / 0.05); }
+.delete-confirm p { margin: 0; max-width: 70ch; color: var(--ink-2); font-size: 14px; line-height: 1.5; }
+.delete-confirm label { margin-top: 4px; color: var(--ink); font-weight: 500; }
+.delete-confirm-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.delete-confirm-row input {
+  flex: 1 1 180px;
+  min-width: 0;
+  max-width: 260px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl);
+  background: var(--bg-0);
+}
+.delete-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--bad);
+  border-radius: var(--r-ctl);
+  background: oklch(0.7 0.18 25 / 0.14);
+  color: oklch(0.92 0.05 25);
+  font-weight: 600;
+}
+.delete-go:hover:not(:disabled) { background: oklch(0.7 0.18 25 / 0.26); }
+.delete-go:active:not(:disabled) { transform: translateY(1px); }
+.deletion-notice { display: flex; align-items: flex-start; gap: 8px; }
+.deletion-notice > svg { flex: none; margin-top: 2px; font-size: 15px; }
+.deletion-notice .text { font-weight: 600; }
+@media (max-width: 640px) {
+  .delete-confirm { padding-inline: 14px; }
+  .delete-confirm-row input { flex-basis: 100%; max-width: none; height: 44px; }
+  .delete-confirm-row button { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+  .deletion-notice .text { min-height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .srow-ctl .spin, .delete-go .spin { animation: none; }
+  .delete-go:active:not(:disabled) { transform: none; }
+}
 .settings-card {
   padding: 18px 20px 22px;
   border: 1px solid var(--line);

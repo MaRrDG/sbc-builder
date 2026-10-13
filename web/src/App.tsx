@@ -41,6 +41,7 @@ import { EvosView } from './components/EvosView';
 import { EmailAlertsCard } from './components/EmailAlertsCard';
 import { Row, Section } from './components/SettingsRows';
 import { DailyProfileCard } from './components/DailyProfileCard';
+import { DeletionBanner, YourDataCard } from './components/AccountData';
 import { LinkedAccounts } from './components/LinkedAccounts';
 import { QuotaMeter } from './components/QuotaMeter';
 import { ActivityButton, ActivityPanel, ActivityToast, jobProgress } from './components/Activity';
@@ -109,6 +110,7 @@ export default function App({
   const [linked, setLinked] = useState<Account[] | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [me, setMe] = useState<{ id: string; email: string } | null>(null);
+  const [deleteAt, setDeleteAt] = useState<number | null>(null); // account deletion scheduled for this time
   const [admin, setAdmin] = useState(false);
   const [plan, setPlan] = useState<PlanInfo | null>(null);
   const [prefs, setPrefs] = useState<Prefs | null>(null);
@@ -325,6 +327,7 @@ export default function App({
     const { user, personas, admin, plan: p, prefs: pr, onboarding, takenOver: to, linkBlocked: lb, billing: b } = m;
     setBilling(b);
     setMe(user);
+    setDeleteAt(m.deleteAt ?? null); // a cached answer from before deletion existed has none
     setAdmin(admin);
     if (admin) disableTracking(); // admins are not counted (track.ts)
     if (!cached) {
@@ -891,19 +894,25 @@ export default function App({
   };
 
   if (linked === null) return <BootSkeleton />;
+  // while the account is scheduled for deletion, on top of every screen
+  const deletionBanner = <DeletionBanner deleteAt={deleteAt} onChange={() => void loadMe().catch(onApiError)} />;
   // asked right after sign-up, on the setup screen, or once in the app for older users
   const survey = <OnboardingModal open={!onboarded && status?.club?.state !== 'running'} onDone={() => setOnboarded(true)} founders={founders} />;
   // the checkout is a page of its own (no sidebar), and Premium needs no EA account: it opens before setup too
   const toDashboard = () => navigate({ view: 'sbcs', setId: null, challengeId: null });
   if (view === 'upgrade')
     return (
-      <UpgradePage plan={plan} billing={billing} onActivated={loadMe} onBack={toDashboard}
-        onSettings={() => (linked.length ? go('settings') : toDashboard())} />
+      <>
+        {deletionBanner}
+        <UpgradePage plan={plan} billing={billing} onActivated={loadMe} onBack={toDashboard}
+          onSettings={() => (linked.length ? go('settings') : toDashboard())} />
+      </>
     );
   if (linked.length === 0)
     return (
       <>
         {survey}
+        {deletionBanner}
         <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} />
       </>
     );
@@ -1043,6 +1052,8 @@ export default function App({
           {dailyOpen && !menuOpen && <i className="new-dot hamburger-dot" aria-hidden="true" />}
         </button>
       </header>
+
+      {deletionBanner}
 
       {!account?.session && (
         <div className="notice">
@@ -1406,6 +1417,7 @@ export default function App({
                 </Row>
                 {status?.ea && <EaRequestsCard ea={status.ea} />}
               </Section>
+              <YourDataCard deleteAt={deleteAt} onChange={() => void loadMe().catch(onApiError)} />
             </section>
           )}
 

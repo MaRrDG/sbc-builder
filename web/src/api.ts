@@ -421,6 +421,26 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
   return data as T;
 }
 
+/** Downloads everything FC Solver keeps about the user as the server's JSON file (GET /api/me/export). */
+async function exportData(): Promise<void> {
+  let res = await send('/api/me/export', {}, false);
+  if (res.status === 401 && tokenFn) res = await send('/api/me/export', {}, true);
+  if (!res.ok) {
+    const d = (await res.json().catch(() => ({}))) as { error?: string; code?: string; params?: Record<string, string | number> };
+    if (d.code === 'signIn') signedOut();
+    throw new ApiError(d.error ?? `HTTP ${res.status}`, d.code ?? null, d.params ?? {});
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'fc-solver.json';
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000); // the download has started by then
+}
+
 /** The live stream (/api/stream): a streaming fetch, so the Clerk token and the persona go along. */
 export async function openStream(signal: AbortSignal): Promise<Response> {
   const token = tokenFn ? await tokenFn(false) : null;
@@ -469,7 +489,11 @@ export const api = {
     saveProfile: (p: { username?: string; leaderboard?: boolean; asked?: true }) => req<DailyProfile>('/api/me/daily-profile', { method: 'PUT', body: p }),
   },
   me: () =>
-    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; takenOver: boolean; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null; billing: BillingState | null }>('/api/me'),
+    req<{ user: { id: string; email: string }; personas: Account[]; admin: boolean; plan: PlanInfo; prefs: Prefs; onboarding: { done: boolean }; takenOver: boolean; linkBlocked: { at: number; limit: number; supportEmail: string | null } | null; billing: BillingState | null; deleteAt: number | null }>('/api/me'),
+  /** Schedules the account's deletion 7 days ahead; `confirm` is the word the user typed. */
+  requestDelete: (confirm: string) => req<{ deleteAt: number }>('/api/me/delete', { method: 'POST', body: { confirm } }),
+  cancelDelete: () => req<{ deleteAt: null }>('/api/me/delete/cancel', { method: 'POST' }),
+  exportData,
   onboarding: (a: ({ heardFrom: HeardFrom; futYears: FutYears } | { skip: true }) & { code?: string }) =>
     req<{ ok: true; redeem?: RedeemResult | { error: string } }>('/api/me/onboarding', { method: 'PUT', body: a }),
   prefs: (p: { lang?: string; evoEmails?: boolean; dailyReminder?: boolean }) => req<{ ok: true }>('/api/me/prefs', { method: 'PUT', body: p }),
