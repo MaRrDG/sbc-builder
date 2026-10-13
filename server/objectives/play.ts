@@ -80,7 +80,7 @@ export function buildPlayProblem(
     needsChem: true,
     constraints,
     timeLimit,
-    workers: 8,
+    workers: 4,
   };
 }
 

@@ -460,6 +460,8 @@ Shared catalogue: when a trusted account (`npm run db:trust`) relays its objecti
 
 Partial (`found: false`, `partial: true`): a playable XI that covers at least one picked objective but not all; per-objective coverage is read from `covers` (all rows of an `objectiveId` met). Not found (`found: false`, `partial: false`, every `slots[].player` null): no playable XI, or none of the picked objectives covered.
 
+Every CP-SAT run goes through one server-wide gate (2 at once, 12 waiting): a full queue answers `503 solverBusy`; a run still going `time limit + 15 s` is killed and answers `504 solverTimeout`.
+
 `reasons` (per uncovered objective, with `objectiveId`, when the solver found an XI; without `objectiveId` when it found none):
 - `{ "code": "noSlot", "condition": {...}, "formations": ["f433c", "f4312"] }`: this formation has no slot where the condition can be met (e.g. a CAM in 4-3-3); `formations` names up to two that have one, closest first.
 - `{ "code": "noMatch", "condition": {...}, "hidden": 2 }`: the slots exist, nobody in the playable pool can meet it there; `hidden` (only when > 0): how many more cards the club (no storage) has that the settings keep out (`excludeIds`, `maxRating`, loans off).
@@ -529,6 +531,8 @@ Client mode: queues a `challengeSquad` job that reads a challenge you already st
   }
 }
 ```
+
+One solve per user at a time: a second one while the first runs answers `409 solveRunning`. Every CP-SAT run goes through one server-wide gate (2 at once, 12 waiting): a full queue answers `503 solverBusy`; a run still going `time limit + 15 s` is killed and answers `504 solverTimeout`.
 
 `deep: true` gives the solver 30 s instead of 10 s. The SBC storage is in the pool by default (storage players cost 0.8× an identical club card, so a duplicate in storage goes before its club copy, and the same player never goes twice); `useStorage: false` solves club only. The answer has `usedStorage: true` when at least one player comes from storage (those carry `inStorage: true`) and `clubOnly: true` when storage was left out. Any option left out uses the default above; `keepPlaced` (default `false`) keeps players already placed in the web app where the requirements allow. A brick challenge without a known layout answers `409`. Each slot in the answer carries `brick` (`null` or `{ custom, nation, league, club }`) and `fixed` (kept from the web app); `missingPlaced` lists placed items no longer in the club.
 

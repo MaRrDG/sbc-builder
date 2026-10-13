@@ -12,6 +12,7 @@ import type { Account } from './accounts.js';
 import { planFor, planInfo } from './plans.js';
 import { countSolve } from './db/users.js';
 import { logEvent } from './db/events.js';
+import { userLock } from './solve-gate.js';
 import { isPointsChallenge, pointsTarget, usablePoints } from './points.js';
 
 export const metaFor = (acc: Account) => loadMeta(acc.key('chemProfiles'));
@@ -61,7 +62,18 @@ export const DEFAULT_OPTIONS: SolveOptions = {
   keepPlaced: false,
 };
 
+const solving = userLock(); // one SBC solve per user (site and Discord bot share it)
+
 export async function runSolve(userId: string, acc: Account, body: SolveBody, via: 'site' | 'discord' = 'site') {
+  if (!solving.take(userId)) throw new SessionError('A solve is already running.', 409, 'solveRunning');
+  try {
+    return await solveOnce(userId, acc, body, via);
+  } finally {
+    solving.release(userId);
+  }
+}
+
+async function solveOnce(userId: string, acc: Account, body: SolveBody, via: 'site' | 'discord' = 'site') {
   const plan = await planFor(userId);
   // Free: 20 found squads per 7-day window (server/plan.ts); checked before the solver runs
   if (plan.quota && plan.quota.used >= plan.quota.limit)

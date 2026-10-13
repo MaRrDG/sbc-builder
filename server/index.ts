@@ -705,7 +705,7 @@ app.get('/api/objectives', async (req) => {
   return { ...(await objectiveGroups(acc, meta)), formation: squad?.formation ?? null };
 });
 
-// one objectives solve per user at a time (a CP-SAT run takes up to 10 s on 8 workers)
+// one objectives solve per user at a time (a CP-SAT run takes up to 10 s on 4 workers)
 const objectivesSolving = new Set<string>();
 
 app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excludeIds?: unknown; maxRating?: unknown; includeLoans?: unknown } } }>(

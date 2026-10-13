@@ -11,6 +11,8 @@ import {
 } from './squad.js';
 import type { BrickSlot, ChallengeLayout } from './layout.js';
 import { ROOT } from './store.js';
+import { SessionError } from './ea.js';
+import { createGate, GateFull } from './solve-gate.js';
 import { cardRule, checkPoints, type PointsCheck } from './points.js';
 
 const PYTHON = process.env.SOLVER_PYTHON ?? join(ROOT, 'solver/.venv/bin/python');
@@ -205,7 +207,7 @@ function buildProblem(
     needsChem,
     constraints,
     timeLimit,
-    workers: 8,
+    workers: 4,
   };
 }
 
@@ -218,15 +220,38 @@ export interface CpResult {
   wallTime?: number;
 }
 
-export function runCpSat(problem: unknown): Promise<CpResult> {
+const gate = createGate(2, 12); // 2 runs x 4 workers = the host's 8 cores
+const KILL_GRACE_S = 15;
+
+export async function runCpSat(problem: unknown): Promise<CpResult> {
+  try {
+    return await gate.run(() => spawnCpSat(problem));
+  } catch (e) {
+    if (e instanceof GateFull) throw new SessionError('The solver is busy, try again in a few seconds.', 503, 'solverBusy');
+    throw e;
+  }
+}
+
+function spawnCpSat(problem: unknown): Promise<CpResult> {
+  const limit = Number((problem as { timeLimit?: number }).timeLimit ?? 10);
   return new Promise((resolve, reject) => {
     const child = spawn(PYTHON, [SCRIPT], { stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
     let err = '';
+    let killed = false;
+    const timer = setTimeout(() => {
+      killed = true;
+      child.kill('SIGKILL');
+    }, (limit + KILL_GRACE_S) * 1000);
     child.stdout.on('data', (d) => (out += d));
     child.stderr.on('data', (d) => (err += d));
-    child.on('error', reject);
+    child.on('error', (e) => {
+      clearTimeout(timer);
+      reject(e);
+    });
     child.on('close', (code) => {
+      clearTimeout(timer);
+      if (killed) return reject(new SessionError('The solver took too long and was stopped.', 504, 'solverTimeout'));
       if (code !== 0) return reject(new Error(`solver exited ${code}: ${err.slice(-500)}`));
       try {
         resolve(JSON.parse(out) as CpResult);
@@ -439,7 +464,7 @@ export async function solvePoints(
     target,
     items: pool.map((p) => ({ points: p.points, cost: playerCost(p), group: p.assetId, ...(kept.has(p.id) ? { keep: true } : {}) })),
     timeLimit,
-    workers: 8,
+    workers: 4,
   };
   if (process.env.SOLVER_DUMP) (await import('node:fs')).writeFileSync(process.env.SOLVER_DUMP, JSON.stringify(problem));
   const res = await runCpSat(problem);
