@@ -562,7 +562,7 @@ app.get('/api/jobs/next', async (req) => {
   // came (back) to the web app: SBCs done elsewhere in the meantime show up, handed out in this same answer
   if (returned) await refreshOnVisit(acc);
   const canRun = ready !== '0'; // extension 0.8.8+: a web app tab not logged in to EA gets no job
-  // extension 1.0.3+: hold the request until a job is ready (or 25 s), so a queued sync starts at once
+  // extension 1.0.3+: hold the request until a job is ready (or 20 s), so a queued sync starts at once
   const hold = wait === '1' && canRun;
   const gone = () => req.raw.socket?.destroyed ?? false;
   const until = Date.now() + LONG_POLL_MS;
