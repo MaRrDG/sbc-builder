@@ -81,3 +81,19 @@ test('hand-off: a newcomer cannot overtake a waiter or exceed max', async () => 
   assert.deepEqual(order, ['holder', 'waiter', 'newcomer']);
   assert.deepEqual(g.stats(), { running: 0, queued: 0 });
 });
+
+test('a waiter not woken within maxWaitMs leaves the queue with GateFull; the slot goes to the next live waiter', { timeout: 2000 }, async () => {
+  const g = createGate(1, 5, { maxWaitMs: 30 });
+  const hold = deferred();
+  const a = g.run(() => hold.p.then(() => 'a'));
+  const late = g.run(async () => 'late'); // will time out
+  await new Promise((r) => setTimeout(r, 15));
+  const live = g.run(async () => 'live'); // queued after, still within its own wait
+  assert.deepEqual(g.stats(), { running: 1, queued: 2 });
+  await assert.rejects(late, GateFull);
+  assert.deepEqual(g.stats(), { running: 1, queued: 1 }); // removed itself
+  hold.resolve();
+  assert.equal(await a, 'a');
+  assert.equal(await live, 'live'); // the timed-out waiter never got the slot
+  assert.deepEqual(g.stats(), { running: 0, queued: 0 });
+});

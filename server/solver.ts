@@ -220,7 +220,8 @@ export interface CpResult {
   wallTime?: number;
 }
 
-const gate = createGate(2, 12); // 2 runs x 4 workers = the host's 8 cores
+// 2 runs x 4 workers = the host's 8 cores; a waiter gives up after 20 s (nginx cuts the request at 60 s)
+const gate = createGate(2, 12, { maxWaitMs: 20_000 });
 const KILL_GRACE_S = 15;
 
 export async function runCpSat(problem: unknown): Promise<CpResult> {
@@ -233,7 +234,8 @@ export async function runCpSat(problem: unknown): Promise<CpResult> {
 }
 
 function spawnCpSat(problem: unknown): Promise<CpResult> {
-  const limit = Number((problem as { timeLimit?: number }).timeLimit ?? 10);
+  const asked = Number((problem as { timeLimit?: number }).timeLimit);
+  const limit = Number.isFinite(asked) && asked > 0 ? asked : 10;
   return new Promise((resolve, reject) => {
     const child = spawn(PYTHON, [SCRIPT], { stdio: ['pipe', 'pipe', 'pipe'] });
     let out = '';
