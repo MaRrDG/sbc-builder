@@ -224,18 +224,21 @@ export interface CpResult {
 const gate = createGate(2, 12, { maxWaitMs: 20_000 });
 const KILL_GRACE_S = 15;
 
+// running CP-SAT children, killed on shutdown (a solve cut off there is not a server fault)
+const children = new Set<ChildProcess>();
+let stopping = false;
+const solverBusy = () => new SessionError('The solver is busy, try again in a few seconds.', 503, 'solverBusy');
+
 export async function runCpSat(problem: unknown): Promise<CpResult> {
+  if (stopping) throw solverBusy(); // shutting down: no new solve
   try {
     return await gate.run(() => spawnCpSat(problem));
   } catch (e) {
-    if (e instanceof GateFull) throw new SessionError('The solver is busy, try again in a few seconds.', 503, 'solverBusy');
+    if (e instanceof GateFull) throw solverBusy();
     throw e;
   }
 }
 
-// running CP-SAT children, killed on shutdown (a solve cut off there is not a server fault)
-const children = new Set<ChildProcess>();
-let stopping = false;
 export function killAllSolvers(): void {
   stopping = true;
   for (const c of children) c.kill('SIGKILL');
@@ -244,6 +247,8 @@ export function killAllSolvers(): void {
 function spawnCpSat(problem: unknown): Promise<CpResult> {
   const asked = Number((problem as { timeLimit?: number }).timeLimit);
   const limit = Number.isFinite(asked) && asked > 0 ? asked : 10;
+  // a solve that waited in the gate while shutdown began drains at once instead of starting CP-SAT
+  if (stopping) return Promise.reject(solverBusy());
   return new Promise((resolve, reject) => {
     const child = spawn(PYTHON, [SCRIPT], { stdio: ['pipe', 'pipe', 'pipe'] });
     children.add(child);
@@ -264,7 +269,7 @@ function spawnCpSat(problem: unknown): Promise<CpResult> {
     child.on('close', (code) => {
       clearTimeout(timer);
       children.delete(child);
-      if (stopping) return reject(new SessionError('The solver is busy, try again in a few seconds.', 503, 'solverBusy'));
+      if (stopping) return reject(solverBusy());
       if (killed) return reject(new SessionError('The solver took too long and was stopped.', 504, 'solverTimeout'));
       if (code !== 0) return reject(new Error(`solver exited ${code}: ${err.slice(-500)}`));
       try {

@@ -592,11 +592,13 @@ app.get('/api/jobs/next', async (req) => {
     const [m, items] = await Promise.all([acc.meter.summary(), clubItems()]);
     return { left: Math.max(0, m.limit - m.today), limit: m.limit, clubItems: items };
   };
+  // shutting down: hand out nothing, the next server would not know the job (its EA calls would be wasted)
+  if (isShuttingDown()) return { job: null, again: hold ? 1000 : 5000 };
   let budget = await budgetNow();
   let job = nextJob(acc, canRun, budget);
   while (!job && hold && Date.now() < until && !gone() && !isShuttingDown()) {
     await waitForWork(acc, Math.min(until - Date.now(), restLeft(acc) || LONG_POLL_MS, 10_000));
-    if (gone()) break;
+    if (gone() || isShuttingDown()) break;
     markPoll(acc); // still holding: the tab is still there
     try {
       await acc.meter.check();
