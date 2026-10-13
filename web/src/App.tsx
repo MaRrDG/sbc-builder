@@ -28,7 +28,7 @@ import { Guide } from './components/Guide';
 import { errorText, reasonText } from './messages';
 import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
-import { UpdateBanner, needsUpdate, type ExtensionRelease } from './components/UpdateBanner';
+import { UpdateBanner, needsUpdate, updateRequired, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
 import { InstallBanner, InstallNavItem } from './components/InstallApp';
@@ -1071,11 +1071,14 @@ export default function App({
 
       <RefBanner onboarded={onboarded} founders={founders} onApplied={() => void loadMe()} />
 
-      {latestExt && needsUpdate(account?.extVersion, latestExt) && (updateAsked || dismissedUpdate !== latestExt.version) && (
+      {latestExt &&
+        needsUpdate(account?.extVersion, latestExt) &&
+        (updateAsked || updateRequired(account?.extVersion, latestExt) || dismissedUpdate !== latestExt.version) && (
         <UpdateBanner
           installed={account?.extVersion}
           latest={latestExt}
           expanded={updateAsked}
+          required={updateRequired(account?.extVersion, latestExt)}
           onDismiss={() => {
             setDismissedUpdate(latestExt.version);
             writeLocal('sbc-dismissed-update', latestExt.version);

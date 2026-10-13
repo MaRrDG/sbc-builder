@@ -540,6 +540,8 @@ export const en = {
   'setup.openSolver': 'Open FC Solver',
 
   // update banner
+  'update.required': 'Update required: extension {v}',
+  'update.requiredWhy': 'FC Solver no longer works with extensions older than {min}. Update to keep syncing.',
   'update.title': 'Extension {v} is out',
   'update.youHave': 'You have {v}.',
   'update.older': 'Your copy is older.',

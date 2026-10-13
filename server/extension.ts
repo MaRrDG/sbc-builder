@@ -8,9 +8,13 @@ import { ROOT } from './store.js';
 const DIR = join(ROOT, 'extension');
 const DEFAULT_SERVER = 'http://localhost:5178';
 
+/** Oldest extension the site still supports: an older installed one gets a required (not hideable) update notice. */
+export const MIN_EXTENSION = '1.0.0';
+
 export interface ExtensionRelease {
   version: string;
   notes: string[];
+  minVersion: string;
 }
 
 let release: ExtensionRelease | null = null;
@@ -20,7 +24,7 @@ export async function latestExtension(): Promise<ExtensionRelease> {
   if (release) return release;
   const { version } = JSON.parse(await readFile(join(DIR, 'manifest.json'), 'utf8')) as { version: string };
   const notes = JSON.parse(await readFile(join(DIR, 'release.json'), 'utf8')) as Record<string, string[]>;
-  release = { version, notes: notes[version] ?? [] };
+  release = { version, notes: notes[version] ?? [], minVersion: MIN_EXTENSION };
   return release;
 }
 

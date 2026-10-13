@@ -547,6 +547,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'setup.s6p': 'Apasă pe iconița extensiei, apoi {open}. Clubul și SBC-urile se încarcă în aproximativ un minut.',
   'setup.openSolver': 'Open FC Solver',
 
+  'update.required': 'Actualizare obligatorie: extensia {v}',
+  'update.requiredWhy': 'FC Solver nu mai funcționează cu extensii mai vechi de {min}. Actualizează ca sincronizarea să meargă în continuare.',
   'update.title': 'A apărut extensia {v}',
   'update.youHave': 'Tu ai {v}.',
   'update.older': 'Versiunea ta e mai veche.',

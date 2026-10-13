@@ -3466,6 +3466,15 @@ button.card:active {
   background: oklch(0.84 0.17 163 / 0.1);
 }
 
+.update.required {
+  border-bottom-color: oklch(0.7 0.18 25 / 0.5);
+  background: oklch(0.7 0.18 25 / 0.12);
+}
+
+.update.required .update-icon {
+  color: var(--bad);
+}
+
 .update-row {
   display: flex;
   align-items: center;

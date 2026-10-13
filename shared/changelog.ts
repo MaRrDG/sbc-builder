@@ -29,6 +29,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Daily: if you lose while signed out, the answer is revealed after the next drop (yesterday\'s player is shown on the Daily page). A win in 1 guess still keeps your streak, but pays no points and doesn\'t count on the leaderboard',
         'Gift codes: you can redeem up to 2 every 30 days, and a gift from another FC Solver account on your own EA account no longer works. Daily streak points now need an EA account linked to FC Solver (once a day per EA account); without one, your streak still counts',
         'Daily usernames: names that look like staff (admin, support, FC Solver...) are no longer allowed, and you can change your username once every 7 days',
+        'Extensions older than 1.0.0 now show an update notice you can\'t hide: download the new version to keep syncing',
       ],
       ro: [
         'Dashboard mai rapid: SBC-urile și clubul apar imediat ce deschizi FC Solver, iar sincronizările își arată progresul în timp real în noul panou de activitate, fără să blocheze pagina',
@@ -38,6 +39,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Daily: dacă pierzi jucând fără cont, răspunsul apare după următorul drop (jucătorul de ieri e afișat pe pagina Daily). O victorie din prima încercare îți păstrează seria, dar nu aduce puncte și nu contează în clasament',
         'Coduri cadou: poți folosi cel mult 2 la 30 de zile, iar un cadou de la un cont legat de același cont EA ca al tău nu mai merge. Punctele pentru seriile din Daily cer acum un cont EA legat de FC Solver (o dată pe zi pentru fiecare cont EA); fără el, seria ta contează în continuare',
         'Username-uri în Daily: numele care sună a staff (admin, support, FC Solver...) nu mai sunt permise, iar username-ul se poate schimba o dată la 7 zile',
+        'Extensiile mai vechi de 1.0.0 primesc acum un anunț de actualizare care nu se poate ascunde: descarcă noua versiune ca sincronizarea să meargă mai departe',
       ],
       it: [
         'Dashboard più veloce: SBC e club compaiono subito quando apri FC Solver, e le sincronizzazioni mostrano i progressi in tempo reale nel nuovo pannello attività, senza bloccare la pagina',
@@ -47,6 +49,7 @@ export const CHANGELOG: ChangelogEntry[] = [
         'Daily: se perdi giocando senza accedere, la risposta viene svelata dopo il prossimo drop (il giocatore di ieri è sulla pagina Daily). Una vittoria al primo tentativo mantiene la serie, ma non dà punti e non conta in classifica',
         'Codici regalo: puoi riscattarne al massimo 2 ogni 30 giorni, e un regalo da un account collegato al tuo stesso account EA non funziona più. I punti serie del Daily ora richiedono un account EA collegato a FC Solver (una volta al giorno per ogni account EA); senza, la tua serie conta comunque',
         'Username del Daily: i nomi che sembrano dello staff (admin, support, FC Solver...) non sono più permessi, e puoi cambiare username una volta ogni 7 giorni',
+        'Le estensioni precedenti alla 1.0.0 ora mostrano un avviso di aggiornamento che non si può nascondere: scarica la nuova versione per continuare a sincronizzare',
       ],
     },
   },

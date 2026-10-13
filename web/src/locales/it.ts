@@ -544,6 +544,8 @@ export const it: Record<Keys, string> = {
   'setup.openSolver': 'Apri FC Solver',
 
   // update banner
+  'update.required': 'Aggiornamento obbligatorio: estensione {v}',
+  'update.requiredWhy': 'FC Solver non funziona più con estensioni precedenti alla {min}. Aggiorna per continuare a sincronizzare.',
   'update.title': 'È uscita l’estensione {v}',
   'update.youHave': 'Hai la {v}.',
   'update.older': 'La tua copia è più vecchia.',
