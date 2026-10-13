@@ -14,6 +14,7 @@ import { readCache, readShared, ROOT } from './store.js';
 import { etagOf, notModified } from './etag.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, hasPending, markCall, nextJob, webAppOpen, webAppReturned } from './jobs.js';
+import { dropStream, notify, sseFrame, subscribe, takeStream } from './live.js';
 import { isTabPoll } from './job-rules.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { isAdmin } from './admin/auth.js';
@@ -397,6 +398,52 @@ app.get('/api/status', async (req) => {
 });
 
 /** Latest extension release; the extension polls this to show its own update notice. */
+/** Live dashboard updates (server-sent events): the status on change, which cache keys changed, a heartbeat. */
+app.get('/api/stream', async (req, reply) => {
+  const { userId, acc } = await siteContext(req);
+  if (!takeStream(userId)) throw new SessionError('Too many open FC Solver tabs.', 429, 'tooManyStreams');
+  reply.hijack();
+  const res = reply.raw;
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    'X-Accel-Buffering': 'no', // nginx: pass every event through at once
+    'X-Content-Type-Options': 'nosniff',
+  });
+  let last = '';
+  let pending = new Set<string>();
+  let timer: NodeJS.Timeout | null = null;
+  const push = async () => {
+    timer = null;
+    const keys = [...pending];
+    pending = new Set();
+    if (keys.length) res.write(sseFrame('changed', { keys }));
+    const body = JSON.stringify({ account: acc, sync: await getStatus(acc), extension: await latestExtension() });
+    if (body !== last) {
+      last = body;
+      res.write(`event: status\ndata: ${body}\n\n`);
+    }
+  };
+  // a burst of writes (a club page, its unassigned fix-up, the job progress) goes out as one update
+  const schedule = (keys: string[]) => {
+    for (const k of keys) pending.add(k);
+    timer ??= setTimeout(() => void push().catch(() => {}), 300);
+  };
+  const off = subscribe(acc.id, schedule);
+  const beat = setInterval(() => res.write(': ping\n\n'), 25_000); // Cloudflare drops idle streams after 100 s
+  const tick = setInterval(() => schedule([]), 15_000); // jobs time out and cooldowns end without a write
+  const end = setTimeout(() => res.end(), 5 * 60_000); // the site reconnects with a fresh Clerk token
+  req.raw.on('close', () => {
+    off();
+    clearInterval(beat);
+    clearInterval(tick);
+    clearTimeout(end);
+    if (timer) clearTimeout(timer);
+    dropStream(userId);
+  });
+  void push().catch(() => {});
+});
+
 app.get('/api/extension/version', () => latestExtension());
 
 /** Founding 50 spots, for the landing page (public; cached 30 s). */
@@ -523,7 +570,10 @@ app.post<{ Params: { id: string }; Body: { method: string; path: string; status:
       return reply.code(400).send({ error: 'invalid call' });
     markCall(acc, job);
     await acc.meter.record(method.toUpperCase().slice(0, 8), path.slice(0, 200), Number.isInteger(status) ? status : null);
-    if (THROTTLE_CODES.includes(status ?? 0)) acc.meter.pause();
+    if (THROTTLE_CODES.includes(status ?? 0)) {
+      acc.meter.pause();
+      notify(acc.id);
+    }
     return { ok: true };
   },
 );

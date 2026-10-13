@@ -20,6 +20,7 @@ import { parseLayout } from './layout.js';
 import { softly } from './db/index.js';
 import { reportBricks, saveChallenges, saveSets } from './db/sbcs.js';
 import { findJob } from './jobs.js';
+import { notify } from './live.js';
 import { parseAcademy, isFullList } from './evos.js';
 import { saveTrainings } from './db/evos.js';
 import type { EaCategory } from './objectives/types.js';
@@ -81,6 +82,7 @@ async function onJobClubPage(acc: Account, jobId: string, req: Record<string, un
   if (job?.kind !== 'club' || !job.clubPages || job.clubReplaced || !Number.isInteger(start) || !(count > 0)) return null;
   addClubPage(job.clubPages, start, count, items, raw);
   job.clubLoaded = loadedPlayers(job.clubPages);
+  notify(acc.id);
   const club = assembleClub<ClubItem>(job.clubPages);
   if (!club) return null;
   job.clubReplaced = true;

@@ -6,6 +6,7 @@ import { readCache, readShared, writeCache, type Cached } from './store.js';
 import type { ActiveSquad } from './solver.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
+import { notify } from './live.js';
 import { versionLess } from './admin/query.js';
 import { planFor } from './plans.js';
 import { personaRow } from './db/users.js';
@@ -47,6 +48,7 @@ const edited = new Map<number, number>();
 
 export function markEdited(acc: Account) {
   edited.set(acc.id, Date.now());
+  notify(acc.id, ['edited']);
 }
 
 export async function getStatus(acc: Account): Promise<SyncStatus> {

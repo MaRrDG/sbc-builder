@@ -9,6 +9,7 @@ import type { Challenge, SbcSet } from './ea.js';
 import { sharedChallenges } from './db/sbcs.js';
 import { seedChallenges } from './shared-sbc.js';
 import { logEvent } from './db/events.js';
+import { notify } from './live.js';
 import { lastSbcDrop, type SetsData } from './sync.js';
 import type { ClubPages } from './club-pages.js';
 import { expiredAs, JOB_TIMEOUTS } from './job-rules.js';
@@ -106,6 +107,7 @@ export async function enqueue(acc: Account, kind: JobKind, setIds?: number[], ch
     job.before = Object.fromEntries(sets?.data.categories.flatMap((c) => c.sets).map((s) => [s.setId, progress(s)]) ?? []);
   }
   q.push(job);
+  notify(acc.id);
   return job;
 }
 
@@ -132,6 +134,7 @@ export function nextJob(acc: Account, canRun = true): Job | null {
   if (job) {
     job.status = 'running';
     job.startedAt = Date.now();
+    notify(acc.id);
   }
   return job;
 }
@@ -139,9 +142,11 @@ export function nextJob(acc: Account, canRun = true): Job | null {
 /** The page made a request to EA for this job; a club sync's first one starts the Club button cooldown. */
 export function markCall(acc: Account, job: Job) {
   job.calls = (job.calls ?? 0) + 1;
-  if (job.calledAt) return;
-  job.calledAt = Date.now();
-  if (job.kind === 'club') lastClubCall.set(acc.id, job.calledAt);
+  if (!job.calledAt) {
+    job.calledAt = Date.now();
+    if (job.kind === 'club') lastClubCall.set(acc.id, job.calledAt);
+  }
+  notify(acc.id);
 }
 
 /** When a club sync last actually asked EA for something (null: not since the server started). */
@@ -182,6 +187,7 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
   }
   job.status = ok ? 'done' : 'failed';
   job.finishedAt = Date.now();
+  notify(acc.id);
   lastFinished.set(acc.id, Date.now());
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';
   // e.g. "The web app has not talked to EA yet.": the page never asked EA, so nothing was spent
