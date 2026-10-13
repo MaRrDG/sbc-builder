@@ -99,9 +99,10 @@ export function UserDetail({ route, navigate }: AdminProps) {
     if (e.type === 'redeem') return t('admin.event.redeem', { kind: String(x.kind ?? '') }) + ip;
     if (e.type === 'points') {
       const n = Number(x.delta ?? 0);
-      const base = x.ref === 'revoke' ? t('admin.event.pointsRevoke', { n: -n, count: Number(x.giftsDisabled ?? 0), gifts: Number(x.giftsDisabled ?? 0) })
+      const revoke = x.revoke === true; // set by the revoke action only; an adjust note may say "revoke" too
+      const base = revoke ? t('admin.event.pointsRevoke', { n: -n, count: Number(x.giftsDisabled ?? 0), gifts: Number(x.giftsDisabled ?? 0) })
         : t('admin.event.points', { delta: n > 0 ? `+${n}` : String(n), reason: String(x.reason ?? '') });
-      return base + (x.reason === 'admin' && x.ref && x.ref !== 'revoke' ? ` · “${String(x.ref)}”` : '') + ip;
+      return base + (x.reason === 'admin' && x.ref && !revoke ? ` · “${String(x.ref)}”` : '') + ip;
     }
     if (e.type === 'daily_win') return t('admin.event.dailyWin', { n: Number(x.guesses ?? 0), count: Number(x.guesses ?? 0) }) + ip;
     return t('admin.event.eaDay', { day: String(x.day), n: Number(x.count), count: Number(x.count) });

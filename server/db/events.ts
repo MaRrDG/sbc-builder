@@ -28,7 +28,7 @@ export const KEEP_DAYS = 180;
 export function logRedeem(userId: string, d: { kind: string; codeOwner: string | null }, ipHash: string | null): void {
   logEvent({ type: 'redeem', userId, data: { ...d, ipHash } });
 }
-export function logPoints(userId: string, d: { delta: number; reason: string; ref: string; by?: string; giftsDisabled?: number }, ipHash: string | null): void {
+export function logPoints(userId: string, d: { delta: number; reason: string; ref: string; by?: string; giftsDisabled?: number; revoke?: true }, ipHash: string | null): void {
   logEvent({ type: 'points', userId, data: { ...d, ipHash } });
 }
 export function logDailyWin(userId: string, guesses: number, ipHash: string | null): void {

@@ -181,7 +181,7 @@ export async function adminRevokePoints(userId: string, adminId: string) {
       .returning({ code: codes.code });
     return { delta, giftsDisabled: gifts.length };
   });
-  if (r) logPoints(userId, { delta: r.delta, reason: 'admin', ref: 'revoke', by: adminId, giftsDisabled: r.giftsDisabled }, null);
+  if (r) logPoints(userId, { delta: r.delta, reason: 'admin', ref: 'revoke', revoke: true, by: adminId, giftsDisabled: r.giftsDisabled }, null);
   return r;
 }
 
