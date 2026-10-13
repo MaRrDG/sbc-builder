@@ -58,7 +58,7 @@ import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
 import { cacheClear, cacheGet, cacheKey, cachePrune, cacheSet, type AccountData } from './cache';
 import { unlinkExtension, useExtensionLink } from './link';
-import { refetchPlan } from './sse';
+import { clubJobRunning, gapReload, refetchPlan, singleFlight, type SeenStatus } from './sse';
 import { useLive } from './useLive';
 
 type StatusResponse = Awaited<ReturnType<typeof api.status>>;
@@ -261,7 +261,9 @@ export default function App({
   }, []);
 
   // A status (stream or poll) applied only when something changed: no whole-App re-render per tick.
+  const latestSyncRef = useRef<SyncStatus | null>(null); // the newest status from the network, before React renders it
   const applyStatus = useCallback((st: StatusResponse) => {
+    latestSyncRef.current = st.sync;
     setStatus((prev) => (prev && JSON.stringify(prev) === JSON.stringify(st.sync) ? prev : st.sync));
     if (st.account)
       setLinked((prev) => {
@@ -421,57 +423,124 @@ export default function App({
 
   // Live stream (/api/stream): statuses as they change, and the cache keys that changed, so only
   // that data is reloaded. While it is down the status poll below takes over.
+  const setIdRef = useRef(setId);
+  setIdRef.current = setId;
+  // One request at a time per resource, one more when something changed meanwhile; an answer for
+  // an account (or SBC) the user has left is dropped.
+  const reloads = useMemo(() => {
+    const club = singleFlight(
+      async () => ({ id: activeIdRef.current, c: await api.club() }),
+      ({ id, c }) => {
+        if (activeIdRef.current !== id) return;
+        setClub(c.players);
+        setStorage(c.storage ?? []);
+        setSquad(c.squad);
+        setDataVersion((v) => v + 1); // once per club answer, not per changed event
+        if (dataRef.current?.id === id) dataRef.current.d.club = c;
+        saveData();
+      },
+    );
+    const sets = singleFlight(
+      async () => ({ id: activeIdRef.current, s: await api.sets() }),
+      ({ id, s }) => {
+        if (activeIdRef.current !== id) return;
+        setCategories(s.categories);
+        if (dataRef.current?.id === id) dataRef.current.d.sets = s;
+        saveData();
+      },
+    );
+    const challenges = singleFlight(
+      async () => {
+        const id = activeIdRef.current;
+        const sid = setIdRef.current;
+        return { id, sid, r: sid ? await api.challenges(sid) : null };
+      },
+      ({ id, sid, r }) => {
+        if (r && activeIdRef.current === id && setIdRef.current === sid) setChallenges(r.challenges);
+      },
+    );
+    return { club, sets, challenges };
+  }, [saveData]);
+  // a club sync announces every page it loads: during it the club is reloaded once, when it ends
+  const clubDirty = useRef(false);
+  const refetchClub = useCallback(() => {
+    if (clubJobRunning(latestSyncRef.current)) clubDirty.current = true;
+    else {
+      clubDirty.current = false;
+      reloads.club.trigger();
+    }
+  }, [reloads]);
+  useEffect(() => {
+    reloads.club.reset();
+    reloads.sets.reset();
+    reloads.challenges.reset();
+    clubDirty.current = false;
+    latestSyncRef.current = null;
+  }, [activeId, reloads]);
+
   const onChanged = useCallback(
     (keys: string[]) => {
       const id = activeIdRef.current; // an answer for an account the user has left is dropped
-      const mine = () => activeIdRef.current === id;
-      const p = refetchPlan(keys, setId);
-      if (p.club)
-        void api.club().then((c) => {
-          if (!mine()) return;
-          setClub(c.players);
-          setStorage(c.storage ?? []);
-          setSquad(c.squad);
-          if (dataRef.current?.id === id) dataRef.current.d.club = c;
-          saveData();
-        }, () => {});
-      if (p.sets)
-        void api.sets().then((s) => {
-          if (!mine()) return;
-          setCategories(s.categories);
-          if (dataRef.current?.id === id) dataRef.current.d.sets = s;
-          saveData();
-        }, () => {});
-      if (p.challenges && setId) void api.challenges(setId).then((r) => mine() && setChallenges(r.challenges), () => {});
-      if (p.other || p.club) setDataVersion((v) => v + 1);
-      if (p.other && view === 'gallery' && premium) void api.gallery().then((g) => mine() && setGallery(g), () => {});
+      const p = refetchPlan(keys, setIdRef.current);
+      if (p.club) refetchClub();
+      if (p.sets) reloads.sets.trigger();
+      if (p.challenges) reloads.challenges.trigger();
+      if (p.other) setDataVersion((v) => v + 1);
+      if (p.other && view === 'gallery' && premium) void api.gallery().then((g) => activeIdRef.current === id && setGallery(g), () => {});
     },
-    [setId, view, premium, saveData],
+    [reloads, refetchClub, view, premium],
   );
-  const streamUp = useLive(activeId, { status: applyStatus, changed: onChanged });
 
   // Everything again: a sync finished or the web app edited the cache while no stream told us what.
   const reloadAll = useCallback(() => {
     const id = activeIdRef.current; // an answer for an account the user has left is dropped
-    void loadAccountData().catch(() => {});
-    setDataVersion((v) => v + 1);
-    if (setId) void api.challenges(setId).then((r) => activeIdRef.current === id && setChallenges(r.challenges), () => {});
+    refetchClub();
+    reloads.sets.trigger();
+    reloads.challenges.trigger();
     if (view === 'gallery' && premium) void api.gallery().then((g) => activeIdRef.current === id && setGallery(g), () => {});
-  }, [loadAccountData, setId, view, premium]);
+  }, [reloads, refetchClub, view, premium]);
 
-  // The stream came back after a gap (tab in the background, network error): what changed meanwhile
-  // was never announced, so reload once. A plain reconnect (the server closes every 5 min) keeps it up.
-  const liveWas = useRef<{ id: number | null; up: boolean; gap: boolean }>({ id: null, up: false, gap: false });
+  // The last status seen per account (see the status effect below).
+  const seenStatus = useRef<({ id: number; clubRunning: boolean } & SeenStatus) | null>(null);
+  // The stream went down (tab in the background, network error): its first status once back is
+  // compared with the last one seen, and only what differs is reloaded (nothing if nothing did).
+  // A plain reconnect (the server closes every 5 min) keeps it up and is no gap.
+  const gapPending = useRef(false);
+  const onStreamStatus = useCallback(
+    (st: StatusResponse) => {
+      const prev = seenStatus.current;
+      if (gapPending.current) {
+        gapPending.current = false;
+        if (prev && st.sync && prev.id === activeIdRef.current && freshRef.current) {
+          latestSyncRef.current = st.sync; // so a club reload waits for a club sync still running
+          const g = gapReload(prev, st.sync);
+          if (g.syncEnded) reloadAll();
+          else {
+            if (g.club) refetchClub();
+            if (g.sets) {
+              reloads.sets.trigger();
+              reloads.challenges.trigger();
+            }
+          }
+        }
+      }
+      applyStatus(st);
+    },
+    [applyStatus, reloadAll, refetchClub, reloads],
+  );
+  const streamUp = useLive(activeId, { status: onStreamStatus, changed: onChanged });
+  const liveWas = useRef<{ id: number | null; up: boolean }>({ id: null, up: false });
   useEffect(() => {
     const w = liveWas.current;
     // a new account loads anyway; `streamUp` may still be the old stream's until its cleanup lands
-    if (w.id !== activeId) liveWas.current = { id: activeId, up: false, gap: false };
-    else if (!streamUp && w.up) liveWas.current = { ...w, up: false, gap: true };
-    else if (streamUp && !w.up) {
-      liveWas.current = { ...w, up: true, gap: false };
-      if (w.gap && freshRef.current && loadingRef.current === 0) reloadAll();
-    }
-  }, [streamUp, activeId, reloadAll]);
+    if (w.id !== activeId) {
+      liveWas.current = { id: activeId, up: false };
+      gapPending.current = false;
+    } else if (!streamUp && w.up) {
+      liveWas.current = { ...w, up: false };
+      gapPending.current = true;
+    } else if (streamUp && !w.up) liveWas.current = { ...w, up: true };
+  }, [streamUp, activeId]);
 
   // Poll sync state when the stream is down, so auto-syncs and new sessions show up without a
   // reload; faster while the club sync modal shows its progress.
@@ -502,16 +571,18 @@ export default function App({
 
   // A sync finished, or the web app changed the cache (an SBC opened or submitted there): reload
   // quietly. Watches the status itself, since the visit and read calls also bring a new one. With
-  // the stream up, its `changed` events already reloaded exactly what changed.
-  const seenStatus = useRef<{ id: number; running: string | null; editedAt: number | null } | null>(null);
+  // the stream up, its `changed` events already reloaded exactly what changed; only a club reload
+  // held back during a club sync runs when it ends.
   useEffect(() => {
     if (!activeId || !status || status === cachedStatusRef.current) return; // a cached status is no news
     const prev = seenStatus.current;
-    seenStatus.current = { id: activeId, running: status.running, editedAt: status.editedAt };
+    const clubRunning = clubJobRunning(status);
+    seenStatus.current = { id: activeId, running: status.running, editedAt: status.editedAt, clubAt: status.clubAt, sbcAt: status.sbcAt, clubRunning };
     if (!prev || prev.id !== activeId) return;
     if (prev.running && !status.running) track('sync_done', { kind: prev.running === 'club' ? 'club' : 'sbcs', ok: yn(!status.error) });
     if (!streamUp && ((prev.running && !status.running) || prev.editedAt !== status.editedAt)) reloadAll();
-  }, [activeId, status, streamUp, reloadAll]);
+    else if (prev.clubRunning && !clubRunning && clubDirty.current) refetchClub();
+  }, [activeId, status, streamUp, reloadAll, refetchClub]);
 
   // FUT Gallery (Premium): loaded when its screen opens, per account
   const [galleryError, setGalleryError] = useState<unknown>(null);

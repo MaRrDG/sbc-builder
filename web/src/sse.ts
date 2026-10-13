@@ -36,3 +36,70 @@ export function refetchPlan(keys: string[], openSetId: number | null) {
   }
   return plan;
 }
+
+/**
+ * One request at a time per resource: a trigger while one is in flight marks it dirty, and exactly
+ * one more run follows when it lands, so the last answer applied is always the newest. `reset()`
+ * (account switch) drops the answer in flight.
+ */
+export function singleFlight<T>(run: () => Promise<T>, apply: (v: T) => void) {
+  let inFlight = false;
+  let dirty = false;
+  let seq = 0;
+  const start = () => {
+    inFlight = true;
+    const my = ++seq;
+    void run()
+      .then(
+        (v) => {
+          if (my === seq) apply(v);
+        },
+        () => {},
+      )
+      .finally(() => {
+        if (my !== seq) return; // reset meanwhile: a newer run owns the state
+        inFlight = false;
+        if (dirty) {
+          dirty = false;
+          start();
+        }
+      });
+  };
+  return {
+    trigger() {
+      if (inFlight) dirty = true;
+      else start();
+    },
+    reset() {
+      seq++;
+      inFlight = false;
+      dirty = false;
+    },
+  };
+}
+
+interface StatusLike {
+  running: string | null;
+  jobs?: { kind: string; state: string }[];
+}
+
+/** A club sync is loading pages for this account right now (client job, or legacy server sync). */
+export function clubJobRunning(s: StatusLike | null): boolean {
+  return !!s && (s.running === 'club' || !!s.jobs?.some((j) => j.kind === 'club' && j.state === 'running'));
+}
+
+export interface SeenStatus {
+  running: string | null;
+  editedAt: number | null;
+  clubAt: number | null;
+  sbcAt: number | null;
+}
+
+/** The stream is back after a gap: what its first status says changed while nobody announced it. */
+export function gapReload(prev: SeenStatus, next: SeenStatus) {
+  return {
+    club: prev.clubAt !== next.clubAt,
+    sets: prev.sbcAt !== next.sbcAt || prev.editedAt !== next.editedAt,
+    syncEnded: !!prev.running && !next.running,
+  };
+}

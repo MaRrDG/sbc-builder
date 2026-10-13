@@ -23,13 +23,16 @@ export function useLive(persona: number | null, on: { status: (s: StatusResponse
       try {
         while (!stop) {
           if (document.hidden) return; // back in front starts it again
-          ctl = new AbortController();
+          const c = (ctl = new AbortController());
+          let reader: ReadableStreamDefaultReader<string> | null = null;
+          let openedAt = 0;
           try {
-            const res = await openStream(ctl.signal);
+            const res = await openStream(c.signal);
+            if (stop) return;
             if (!res.ok || !res.body) throw new Error(`stream ${res.status}`);
-            fails = 0;
+            openedAt = Date.now();
             setUp(true);
-            const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+            reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
             let buf = '';
             for (;;) {
               const { value, done } = await reader.read();
@@ -38,16 +41,30 @@ export function useLive(persona: number | null, on: { status: (s: StatusResponse
               buf = r.rest;
               for (const e of r.events) {
                 if (stop) return;
-                if (e.event === 'status') handlers.current.status(JSON.parse(e.data));
-                else if (e.event === 'changed') handlers.current.changed((JSON.parse(e.data) as { keys: string[] }).keys);
+                try {
+                  if (e.event === 'status') handlers.current.status(JSON.parse(e.data));
+                  else if (e.event === 'changed') handlers.current.changed((JSON.parse(e.data) as { keys: string[] }).keys);
+                } catch {
+                  /* one bad frame is skipped, the stream stays */
+                }
               }
             }
           } catch {
-            if (stop) return;
-            setUp(false);
-            if (document.hidden) return; // aborted by going to the background: no backoff wait
-            await new Promise((r) => setTimeout(r, BACKOFF[Math.min(fails++, BACKOFF.length - 1)]));
+            /* network error, refused (429, 5xx) or aborted: see below */
+          } finally {
+            c.abort(); // frees the server's stream slot at once
+            reader?.cancel().catch(() => {});
           }
+          if (stop) return;
+          // a stream that stayed up 10 s was a good one: reconnect at once. One that ended sooner
+          // counts as a failure and waits, so a server that drops it right away is not hammered.
+          if (openedAt && Date.now() - openedAt >= 10_000) {
+            fails = 0;
+            if (!document.hidden) continue;
+          }
+          setUp(false);
+          if (document.hidden) return; // aborted by going to the background: no backoff wait
+          await new Promise((r) => setTimeout(r, BACKOFF[Math.min(fails++, BACKOFF.length - 1)]));
         }
       } finally {
         running = false;
