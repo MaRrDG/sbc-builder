@@ -31,7 +31,7 @@ Non-goals: no faster EA paging (1.5-3 s per page stays, "be gentle with EA"), no
 - Memoize derived results per cache version: `getStatus`, the points targets in `/api/sets`.
 - `/api/me`: independent queries in parallel.
 - ETag (cache version) on `/api/club`, `/api/meta`, `/api/sets` → `304` when unchanged.
-- `personaRow` memoized for a few seconds per token + persona; `last_seen` still at most every 5 min.
+- `personaRow` stays uncached (one indexed lookup; a persona takeover must cut access at once). `last_seen` still at most every 5 min.
 
 ## 3. Live instead of polling
 
