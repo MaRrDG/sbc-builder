@@ -52,10 +52,12 @@ interface Props {
   onPick: (setId: number) => void;
   localSets: Set<number>;
   now: number;
+  /** no answer yet: skeleton cards, not "No SBCs yet" */
+  loading: boolean;
 }
 
 /** Every SBC set, grouped by category like the web app; a click opens the set. */
-export function SetList({ categories, filter, onFilter, onPick, localSets, now }: Props) {
+export function SetList({ categories, filter, onFilter, onPick, localSets, now, loading }: Props) {
   const { t, lang } = useI18n();
   const [page, setPage] = useState(1);
   const [kind, setKind] = useState<Kind>(savedKind);
@@ -127,7 +129,12 @@ export function SetList({ categories, filter, onFilter, onPick, localSets, now }
           {t('sets.onlyOpen')}
         </button>
       </div>
-      {categories.length === 0 && <p className="muted">{t('sets.empty')}</p>}
+      {categories.length === 0 && loading && (
+        <div className="set-grid" aria-busy="true">
+          {Array.from({ length: 8 }, (_, i) => <div key={i} className="sk-card" />)}
+        </div>
+      )}
+      {categories.length === 0 && !loading && <p className="muted">{t('sets.empty')}</p>}
       {categories.length > 0 && matches.length === 0 && <p className="muted">{q ? t('sets.noMatch', { q: filter }) : t('sets.noneOfKind')}</p>}
       {groups.map(({ cat, sets }) => (
           <section key={cat.categoryId} className="set-section">

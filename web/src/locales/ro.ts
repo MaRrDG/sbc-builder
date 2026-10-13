@@ -124,6 +124,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
 
   'top.home': 'FC Solver, pagina principală',
   'top.club': 'Club',
+  'top.updating': 'Se actualizează…',
   'top.clubTitle': 'Sincronizează clubul din web app',
   'top.clubWait': 'Clubul tocmai s-a sincronizat; butonul merge din nou în {n} min.',
   'err.clubCooldown': 'Clubul tocmai s-a sincronizat. Încearcă din nou în {minutes} min.',

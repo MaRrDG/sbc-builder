@@ -10,6 +10,7 @@ import { useI18n } from './i18n';
 import { LangMenu } from './components/LangMenu';
 import { LegalLinks } from './legal/LegalLinks';
 import { BootSkeleton } from './components/BootSkeleton';
+import { cacheClear, cacheKeep } from './cache';
 import { SignIn } from './components/SignIn';
 import { track, yn } from './track';
 
@@ -28,7 +29,7 @@ const Daily = lazy(() => import('./daily/Daily'));
 const here = () => window.location.pathname + window.location.search;
 
 export default function Root() {
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, getToken, userId } = useAuth();
   const [route, navigate] = useRoute();
   const { t, lang, setLang } = useI18n();
   const clerk = useClerk();
@@ -50,6 +51,13 @@ export default function Root() {
     if (!isSignedIn && !publicView) navigate(toSignIn(), true);
     if (isSignedIn && route.view === 'signin') window.location.replace(safeNext(route.next));
   }, [isLoaded, isSignedIn, publicView, route]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // a shared PC: nothing of the last user stays in this browser
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn) void cacheClear();
+    else if (userId) void cacheKeep(userId);
+  }, [isLoaded, isSignedIn, userId]);
 
   // public pages name the tab themselves (the server fills <head> only on a full load, see server/seo.ts);
   // the signed-in app sets its own titles
@@ -161,7 +169,7 @@ export default function Root() {
   if (route.view === 'signin') return <BootSkeleton />;
   return (
     <Suspense fallback={<BootSkeleton />}>
-      <App route={route} navigate={navigate} />
+      <App route={route} navigate={navigate} userId={userId!} />
     </Suspense>
   );
 }

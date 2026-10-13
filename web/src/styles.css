@@ -169,6 +169,14 @@ h3 {
   font-size: 12px;
 }
 
+/* the cached dashboard is on screen, the network answer is on its way */
+.sync .updating {
+  align-self: center;
+  color: var(--ink-3);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
 .ghost.wide {
   width: 100%;
   justify-content: center;

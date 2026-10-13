@@ -119,6 +119,7 @@ export const en = {
   // top bar
   'top.home': 'FC Solver home',
   'top.club': 'Club',
+  'top.updating': 'Updating…',
   'top.clubTitle': 'Sync your club from the web app',
   'top.clubWait': 'Club synced moments ago; the button works again in {n} min.',
   'err.clubCooldown': 'Club synced moments ago. Try again in {minutes} min.',

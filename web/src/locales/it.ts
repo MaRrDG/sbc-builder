@@ -123,6 +123,7 @@ export const it: Record<Keys, string> = {
   // top bar
   'top.home': 'Home di FC Solver',
   'top.club': 'Club',
+  'top.updating': 'Aggiornamento…',
   'top.clubTitle': 'Sincronizza il tuo club dalla web app',
   'top.clubWait': 'Club sincronizzato da poco; il pulsante torna attivo tra {n} min.',
   'err.clubCooldown': 'Club sincronizzato da poco. Riprova tra {minutes} min.',

@@ -56,6 +56,7 @@ import { splitGroups } from './components/objectives/objectives';
 import { compareVersions } from './components/UpdateBanner';
 import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
+import { cacheGet, cacheKey, cacheSet, type AccountData } from './cache';
 import { unlinkExtension, useExtensionLink } from './link';
 
 const ACTIVE = 'sbc-active-persona';
@@ -89,13 +90,16 @@ const localKey = (id: number) => `sbc-local-options-p${id}`;
 const resultsKey = (id: number) => `sbc-results-p${id}`;
 const setExcludesKey = (id: number) => `sbc-set-excludes-p${id}`;
 const KEEP_RESULTS = 20; // solved squads kept per account, newest last
+type MeResponse = Awaited<ReturnType<typeof api.me>>;
 
 export default function App({
   route,
   navigate,
+  userId,
 }: {
   route: Exclude<Route, { view: 'landing' }>;
   navigate: (r: Route, replace?: boolean) => void;
+  userId: string;
 }) {
   const [linked, setLinked] = useState<Account[] | null>(null);
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -114,6 +118,7 @@ export default function App({
   const [reward, setReward] = useState<'founder' | 'invite' | null>(null); // notice after linking an EA account gave Premium
   const prevPlan = useRef<PlanInfo | null>(null);
   const justLinked = useRef(false);
+  const meAnswered = useRef(false); // /api/me answered: the cached copy is stale from now on
   const { signOut } = useClerk();
   const [discordInvite, setDiscordInvite] = useState<string | null>(null);
   useEffect(() => {
@@ -198,8 +203,14 @@ export default function App({
       ? { title: t('set.lockLimit'), text: t('set.lockLimitText', { limit: setRepeat.limit!, until: untilText(t, setRepeat.resetAt!, now) }) }
       : null;
 
-  const loadAccountData = useCallback(async () => {
-    const [m, c, s, st] = await Promise.all([api.meta(), api.club(), api.sets(), api.status()]);
+  const [fresh, setFresh] = useState(false); // false: showing the cached copy, the network answer is on its way
+  const freshRef = useRef(fresh);
+  freshRef.current = fresh;
+  const activeIdRef = useRef<number | null>(null);
+  activeIdRef.current = activeId;
+
+  const applyData = useCallback((d: AccountData) => {
+    const { meta: m, club: c, sets: s, status: st } = d;
     setMeta(m);
     setClub(c.players);
     setStorage(c.storage ?? []);
@@ -210,10 +221,23 @@ export default function App({
     if (st.account) setLinked((prev) => prev?.map((a) => (a.personaId === st.account!.personaId ? st.account! : a)) ?? prev);
   }, []);
 
+  const loadAccountData = useCallback(async () => {
+    const id = activeIdRef.current;
+    const [meta, club, sets, status] = await Promise.all([api.meta(), api.club(), api.sets(), api.status()]);
+    const d = { meta, club, sets, status };
+    if (activeIdRef.current !== id) return; // the user switched account meanwhile
+    applyData(d);
+    setFresh(true);
+    cacheSet(cacheKey(userId, id, 'data'), d);
+  }, [applyData, userId]);
+
   const selectAccount = useCallback(
     async (id: number) => {
+      const prevId = activeIdRef.current;
+      setFresh(false);
       setPersona(id);
       setActiveId(id);
+      activeIdRef.current = id; // before the next render: loadAccountData reads it right away
       writeLocal(ACTIVE, id);
       setOptions({ ...DEFAULT_OPTIONS, ...readLocal(optionsKey(id), {}) });
       setLocalOptions(readLocal<LocalMap>(localKey(id), {}));
@@ -221,43 +245,69 @@ export default function App({
       setChallenges(null);
       // solved squads survive reloads and tab switches; they are only replaced by solving again
       setResults(readLocal<Record<number, SolveResult>>(resultsKey(id), {}));
+      // the last known state of this account at once; never another account's data meanwhile
+      const cached = await cacheGet<AccountData>(cacheKey(userId, id, 'data'));
+      if (cached && activeIdRef.current === id) applyData(cached);
+      else if (!cached && prevId !== id && activeIdRef.current === id) {
+        setCategories([]);
+        setClub([]);
+        setStorage([]);
+        setSquad(null);
+      }
       await loadAccountData();
     },
-    [loadAccountData],
+    [loadAccountData, applyData, userId],
   );
 
-  const activeIdRef = useRef<number | null>(null);
-  activeIdRef.current = activeId;
-
-  // Boot (and after the extension links a new EA account): who am I, which personas are mine.
-  const loadMe = useCallback(async () => {
-    const { user, personas, admin, plan: p, prefs: pr, onboarding, takenOver: to, linkBlocked: lb, billing: b } = await api.me();
+  // /api/me answer (network, or the cached copy on boot). Only a network answer may show the
+  // "linking gave you Premium" notice or the taken-over screen.
+  const applyMe = useCallback((m: MeResponse, cached = false) => {
+    const { user, personas, admin, plan: p, prefs: pr, onboarding, takenOver: to, linkBlocked: lb, billing: b } = m;
     setBilling(b);
     setMe(user);
     setAdmin(admin);
     if (admin) disableTracking(); // admins are not counted (track.ts)
-    const prev = prevPlan.current;
-    if (prev && justLinked.current) {
-      if (!prev.founder && p.founder) setReward('founder');
-      else if (p.premiumUntil !== null && Math.abs(p.premiumUntil - (prev.premiumUntil ?? Date.now()) - 7 * 864e5) < 6 * 36e5) setReward('invite');
+    if (!cached) {
+      const prev = prevPlan.current;
+      if (prev && justLinked.current) {
+        if (!prev.founder && p.founder) setReward('founder');
+        else if (p.premiumUntil !== null && Math.abs(p.premiumUntil - (prev.premiumUntil ?? Date.now()) - 7 * 864e5) < 6 * 36e5) setReward('invite');
+      }
+      justLinked.current = false;
+      prevPlan.current = p;
     }
-    justLinked.current = false;
-    prevPlan.current = p;
     setPlan(p);
     setPrefs(pr);
     setOnboarded(onboarding.done);
     setLinkBlocked(lb);
-    if (to) setTakenOver(true);
+    if (to && !cached) setTakenOver(true);
     setLinked(personas);
+  }, []);
+
+  // Boot (and after the extension links a new EA account): who am I, which personas are mine.
+  const loadMe = useCallback(async () => {
+    const m = await api.me();
+    meAnswered.current = true;
+    cacheSet(cacheKey(userId, null, 'me'), m);
+    applyMe(m);
+    const { personas } = m;
     const last = readLocal<number | null>(ACTIVE, null);
     const pick = personas.find((a) => a.personaId === (activeIdRef.current ?? last)) ?? personas[0];
     if (!pick) {
       setPersona(null);
       setActiveId(null);
+      activeIdRef.current = null;
+      // a cached account may have been drawn on boot: nothing of it stays
+      setCategories([]);
+      setClub([]);
+      setStorage([]);
+      setSquad(null);
+      setStatus(null);
       setMeta(await api.meta());
-    } else if (pick.personaId !== activeIdRef.current) await selectAccount(pick.personaId);
+      setFresh(true);
+    } else if (pick.personaId !== activeIdRef.current || !freshRef.current) await selectAccount(pick.personaId);
     return personas;
-  }, [selectAccount]);
+  }, [selectAccount, applyMe, userId]);
 
   useEffect(() => {
     void billingConfig().then((c) => setBillingOn(!!c));
@@ -265,6 +315,22 @@ export default function App({
 
   useEffect(() => {
     let cancelled = false; // StrictMode runs this twice; only the live run may select
+    const last = readLocal<number | null>(ACTIVE, null);
+    void (async () => {
+      // the last known state first, then the network for real
+      const [me, data] = await Promise.all([
+        cacheGet<MeResponse>(cacheKey(userId, null, 'me')),
+        last ? cacheGet<AccountData>(cacheKey(userId, last, 'data')) : undefined,
+      ]);
+      if (cancelled || meAnswered.current) return; // the network already answered
+      if (me) applyMe(me, true);
+      if (me && data && last && activeIdRef.current === null && me.personas.some((p) => p.personaId === last)) {
+        setPersona(last);
+        setActiveId(last);
+        activeIdRef.current = last;
+        applyData(data);
+      }
+    })();
     migrateLegacyKeys()
       .then(async () => {
         if (!cancelled) await loadMe();
@@ -273,7 +339,7 @@ export default function App({
     return () => {
       cancelled = true;
     };
-  }, [loadMe]);
+  }, [loadMe, applyMe, applyData, userId]);
 
   const onLinked = useCallback(() => {
     justLinked.current = true;
@@ -323,7 +389,7 @@ export default function App({
   // quietly. Watches the status itself, since the visit and read calls also bring a new one.
   const seenStatus = useRef<{ id: number; running: string | null; editedAt: number | null } | null>(null);
   useEffect(() => {
-    if (!activeId || !status) return;
+    if (!activeId || !status || !fresh) return; // a cached status is no news
     const prev = seenStatus.current;
     seenStatus.current = { id: activeId, running: status.running, editedAt: status.editedAt };
     if (!prev || prev.id !== activeId) return;
@@ -337,7 +403,7 @@ export default function App({
         void api.gallery().then((g) => activeIdRef.current === id && setGallery(g), () => {});
       }
     }
-  }, [activeId, status, setId, loadAccountData, view, premium]);
+  }, [activeId, status, fresh, setId, loadAccountData, view, premium]);
 
   // FUT Gallery (Premium): loaded when its screen opens, per account
   const [galleryError, setGalleryError] = useState<unknown>(null);
@@ -700,6 +766,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
                     : t('top.sbcReady')}
               </small>
             </span>
+            {account && !fresh && <small className="updating" aria-live="polite">{t('top.updating')}</small>}
           </div>
 
           <button
@@ -1010,6 +1077,7 @@ clubWait > 0 ? t('top.clubWait', { n: clubWait }) : t('top.clubTitle')
               onPick={pickSet}
               localSets={localSets}
               now={now}
+              loading={!fresh}
             />
           )}
 
