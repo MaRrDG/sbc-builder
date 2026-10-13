@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { applyGuess, gameView, type Progress } from './game.js';
 import { rankLeaderboard } from './leaderboard.js';
-import { pointsFor, streakOf, type Play } from './streak.js';
+import { pointsFor, pointsForWin, streakOf, type Play } from './streak.js';
 import { openPractice, sealPractice, signState, verifyState } from './tokens.js';
 import { normalizeUsername } from './username.js';
 import type { PlayerRow } from './types.js';
@@ -33,22 +33,30 @@ function anonLoss(day: number): Progress {
   return p!;
 }
 
-test('audit D1: a signed-out loss reveals today\'s answer, and a fresh state restarts the day', { todo: 'audit: D1' }, () => {
-  const view = gameView(anonLoss(42), ANSWER, lookup);
-  assert.equal(view.answer?.id, ANSWER.assetId); // the answer the signed-in game is about to ask for
-  // state = null is a brand new game for the same day: unlimited restarts, nothing ties them together
-  assert.ok(!('error' in applyGuess([], 1, ANSWER.assetId, known)));
-  // ...so a signed-in account then wins in one guess
-  assert.deepEqual(applyGuess([], ANSWER.assetId, ANSWER.assetId, known), { guesses: [100], won: true, finished: true });
+test('fixed D1: a signed-out loss no longer reveals today\'s answer (null until the next drop)', () => {
+  const view = gameView(anonLoss(42), ANSWER, lookup, { hideAnswer: true });
+  assert.equal(view.answer, null);
+  assert.equal(JSON.stringify(view).includes(ANSWER.fullName), false);
+  assert.equal(view.rows.length, 5); // the tiles stay
+  // a signed-in finished game still shows it
+  assert.equal(gameView(anonLoss(42), ANSWER, lookup).answer?.id, ANSWER.assetId);
 });
 
-test('audit D1: one-guess wins every day top the leaderboard over honest players with the same wins', { todo: 'audit: D1' }, () => {
+test('fixed D1: a 1-guess win pays no streak points, even on a milestone day', () => {
+  assert.equal(pointsForWin(7, 1), 0);
+  assert.equal(pointsForWin(30, 1), 0);
+  assert.equal(pointsForWin(7, 2), 1);
+});
+
+test('fixed D1: one-guess wins every day no longer top the leaderboard over honest players', () => {
   const days = Array.from({ length: 30 }, (_, i) => i + 1);
   const cheat: Play[] = days.map((day) => ({ day, won: true, guesses: 1 }));
   const honest: Play[] = days.map((day) => ({ day, won: true, guesses: 3 }));
   const r = rankLeaderboard([{ userId: 'h', username: 'honest', plays: honest }, { userId: 'c', username: 'cheat', plays: cheat }], 30);
-  assert.equal(r[0].userId, 'c');
-  assert.equal(r[0].avgGuesses, 1);
+  assert.equal(r[0].userId, 'h');
+  assert.equal(r[1].wins, 0);
+  assert.equal(r[1].avgGuesses, null);
+  assert.equal(r[1].oneGuessWins, 30);
 });
 
 test('audit P1: a 30-day win streak yields 4 points (2 x 7-day Premium), per Clerk account', () => {

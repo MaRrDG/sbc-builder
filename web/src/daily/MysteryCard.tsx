@@ -38,7 +38,8 @@ function SilhouetteCard({ s, meta }: { s: DailySilhouette; meta: Meta | null }) 
 interface Props {
   meta: Meta | null;
   silhouette?: DailySilhouette;
-  answer?: DailyAnswer;
+  /** null: the game is over but the answer stays hidden until the next drop (signed out) */
+  answer?: DailyAnswer | null;
   won: boolean;
   /** the game just ended in this visit: play the reveal (otherwise show the end state at once) */
   reveal: boolean;
@@ -74,7 +75,7 @@ export function MysteryCard({ meta, silhouette, answer, won, reveal }: Props) {
       <div className="dg-mystery-card" role="img" aria-label={label}>
         {body}
       </div>
-      {!answer && !silhouette && <figcaption className="dg-mystery-hint">{t('daily.mysteryHint')}</figcaption>}
+      {answer === undefined && !silhouette && <figcaption className="dg-mystery-hint">{t('daily.mysteryHint')}</figcaption>}
     </figure>
   );
 }

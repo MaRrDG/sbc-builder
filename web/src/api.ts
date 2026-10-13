@@ -462,12 +462,12 @@ export interface DailyAnswer extends DailyPlayer { fullName: string; rareflag: n
 export interface DailySilhouette { rating: number; position: string; rareflag: number; cardType: DailyCardType }
 export interface DailyRow { player: DailyPlayer; tiles: DailyTiles }
 export interface DailyStats { played: number; won: number; current: number; best: number; dist: number[]; next: { target: number; points: number } }
-export interface DailyGame { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; stats: DailyStats }
+export interface DailyGame { rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null; stats: DailyStats }
 export interface DailyProfile { username: string | null; leaderboard: boolean; asked: boolean }
-export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; players: number; me?: DailyProfile; game?: DailyGame }
+export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; players: number; previous?: { day: number; answer: DailyAnswer } | null; me?: DailyProfile; game?: DailyGame }
 export interface DailyLbRow { rank: number; username: string; wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number }
 export interface DailyLeaderboard { rows: DailyLbRow[]; me: (DailyLbRow & { inTop: boolean }) | null; total: number }
-export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
+export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
 export interface DailyName { i: number; n: string; f: string; c: number }
 
 export interface DiscordInfo { discord: { username: string } | null; invite: string | null }
@@ -563,7 +563,7 @@ export interface AdminDailyDay {
 }
 export interface AdminDailyLbRow {
   rank: number; userId: string; username: string | null; email: string; hidden: boolean;
-  wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number; reachedDay: number;
+  wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number; reachedDay: number; oneGuessWins: number;
 }
 
 export interface AdminAccount {

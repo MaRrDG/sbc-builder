@@ -102,6 +102,7 @@ export function Leaderboard({ signedIn, me, signIn, onJoin }: Props) {
           )}
         </table>
       )}
+      {data && data.rows.length > 0 && <p className="dg-lb-note">{t('daily.lb.rule')}</p>}
       {!signedIn ? (
         <p className="dg-lb-foot">
           {t('daily.lb.signIn')} {signIn}

@@ -9,6 +9,11 @@ export function pointsFor(streak: number): number {
   return m === 0 ? 2 : m === 7 || m === 14 ? 1 : 0;
 }
 
+/** Points for today's win: a win in 1 guess keeps the streak but pays nothing (it may come from a known answer). */
+export function pointsForWin(streak: number, guesses: number): number {
+  return guesses >= 2 ? pointsFor(streak) : 0;
+}
+
 export function nextMilestone(streak: number): { target: number; points: number } {
   let s = Math.max(0, streak) + 1;
   while (pointsFor(s) === 0) s++;

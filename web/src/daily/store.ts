@@ -2,7 +2,7 @@
 import type { DailyAnswer, DailyRow, DailySilhouette } from '../api';
 import type { LocalPlay } from './stats';
 
-export interface SavedGame { day: number; state: string; rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer }
+export interface SavedGame { day: number; state: string; rows: DailyRow[]; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null }
 
 const GAME = 'sbc-daily-game';
 const PLAYS = 'sbc-daily-plays';

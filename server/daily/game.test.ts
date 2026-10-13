@@ -49,6 +49,18 @@ test('the finished view reveals the answer and drops the silhouette', () => {
   assert.equal(v.rows[0].tiles.club.state, 'miss');
 });
 
+test('a hidden-answer finished view (signed out) carries answer null, the tiles and no silhouette', () => {
+  const v = gameView(progressOf([1, 2, 3, 4, 5], 100), ANSWER, (id) => rows.get(id), { hideAnswer: true });
+  assert.equal(v.answer, null);
+  assert.equal(v.silhouette, undefined);
+  assert.equal(v.rows.length, 5);
+  assert.equal(JSON.stringify(v).includes('Player 100'), false);
+  // hideAnswer changes nothing before the end
+  const open = gameView(progressOf([1, 2, 3], 100), ANSWER, (id) => rows.get(id), { hideAnswer: true });
+  assert.equal(open.answer, undefined);
+  assert.equal(open.silhouette?.rating, ANSWER.rating);
+});
+
 test('rows carry the guess gender and its tile', () => {
   const w = new Map<number, PlayerRow>(rows).set(7, row(7, { gender: 1 }));
   const v = gameView(progressOf([1, 7], 100), ANSWER, (id) => w.get(id));

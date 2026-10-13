@@ -11,7 +11,7 @@ import { lastSbcDrop } from '../sync.js';
 import { answerFor, answersSince, firstAnswer, guessDaily, insertAnswer, playOf, playsOf, recordAnonGuess } from '../db/daily.js';
 import { leaderboardSource, profileOf } from '../db/dailyProfile.js';
 import { dayFor, dropDate, nextDropAfter, staleDay } from './day.js';
-import { applyGuess, gameView, progressOf, type GameView, type GuessRow, type Silhouette, type Answer } from './game.js';
+import { applyGuess, gameView, progressOf, toPublic, type GameView, type GuessRow, type Silhouette, type Answer } from './game.js';
 import { RECENT_DAYS, pickPool, poolOf } from './pool.js';
 import { rankLeaderboard, type LbRow } from './leaderboard.js';
 import { loadPlayers, namesList, playerById, playerRows } from './store.js';
@@ -121,17 +121,35 @@ export function scheduleDaily() {
   arm();
 }
 
-export interface GuessResult { row: GuessRow; finished: boolean; won: boolean; silhouette?: Silhouette; answer?: Answer; state?: string; stats?: Stats; points?: { added: number; streak: number } }
+export interface GuessResult { row: GuessRow; finished: boolean; won: boolean; silhouette?: Silhouette; answer?: Answer | null; state?: string; stats?: Stats; points?: { added: number; streak: number } }
 
 const result = (view: GameView, extra: Partial<GuessResult> = {}): GuessResult => ({
   row: view.rows[view.rows.length - 1], finished: view.finished, won: view.won,
-  ...(view.silhouette ? { silhouette: view.silhouette } : {}), ...(view.answer ? { answer: view.answer } : {}), ...extra,
+  ...(view.silhouette ? { silhouette: view.silhouette } : {}), ...(view.answer !== undefined ? { answer: view.answer } : {}), ...extra,
 });
+
+const answerOf = (r: PlayerRow): Answer => ({ ...toPublic(r), fullName: r.fullName, rareflag: r.rareflag });
+let prevCache: { day: number; p: Promise<{ day: number; answer: Answer } | null> } | null = null;
+
+/** Yesterday's answer, for everyone: signed-out games hide today's answer until the drop reveals it here. */
+function previousAnswer(day: number): Promise<{ day: number; answer: Answer } | null> {
+  if (prevCache?.day === day) return prevCache.p;
+  const p = answerFor(day - 1).then((r) => {
+    const a = r && playerById(r.assetId);
+    return a ? { day: day - 1, answer: answerOf(a) } : null;
+  });
+  prevCache = { day, p };
+  p.catch(() => { if (prevCache?.p === p) prevCache = null; });
+  return p;
+}
 
 export async function dailyInfo(userId: string | null) {
   const t = await todayGame();
   await loadPlayers();
-  const base = { day: t.day, date: t.date, nextAt: t.nextAt, maxGuesses: 5 as const, signedIn: !!userId, players: namesList().players.length };
+  const base = {
+    day: t.day, date: t.date, nextAt: t.nextAt, maxGuesses: 5 as const, signedIn: !!userId, players: namesList().players.length,
+    previous: await previousAnswer(t.day).catch(() => null),
+  };
   if (!userId) return base;
   const guesses = await playOf(userId, t.day);
   const view = gameView(progressOf(guesses, t.answer.assetId), t.answer, playerById);
@@ -178,7 +196,8 @@ export async function guessToday(userId: string | null, assetId: number, state: 
   // a counter failure never fails the guess
   await recordAnonGuess(t.day, assetId, p.finished ? { won: p.won, guesses: p.guesses.length } : null)
     .catch((e) => console.warn('[daily] anon count failed:', (e as Error).message));
-  return result(gameView(p, t.answer, playerById), { state: signState(await dailySecret(), { k, g: p.guesses }) });
+  // signed out: the answer stays hidden until the next drop (see game.ts); Practice below still shows it
+  return result(gameView(p, t.answer, playerById, { hideAnswer: true }), { state: signState(await dailySecret(), { k, g: p.guesses }) });
 }
 
 export async function newPractice(now = Date.now()): Promise<{ token: string }> {

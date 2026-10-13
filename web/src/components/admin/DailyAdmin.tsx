@@ -185,6 +185,7 @@ function LeaderboardView({ navigate }: { navigate: AdminProps['navigate'] }) {
     { key: 'winPct', label: t('admin.daily.winPct'), num: true, render: (r) => `${r.winPct}%` },
     { key: 'avg', label: t('daily.lb.avg'), num: true, render: (r) => (r.avgGuesses === null ? '—' : r.avgGuesses.toFixed(1)) },
     { key: 'streak', label: t('daily.lb.streak'), num: true, render: (r) => r.streak },
+    { key: 'oneGuess', label: t('admin.daily.oneGuessWins'), num: true, render: (r) => r.oneGuessWins },
     { key: 'hidden', label: t('admin.daily.hidden'), render: (r) => (r.hidden ? <span className="adm-badge">{t('admin.daily.hidden')}</span> : null) },
     {
       key: 'actions', label: t('admin.daily.clear'), render: (r) =>

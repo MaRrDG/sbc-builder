@@ -1,6 +1,7 @@
 // One game (daily or practice): which guesses are allowed and what the browser may see. Before the
 // game ends the view never carries the answer's id, name or portrait, only tiles and, after 3 misses,
-// the silhouette (rating, position, rarity, card type).
+// the silhouette (rating, position, rarity, card type). A signed-out finished game carries `answer: null`
+// (hidden until the next drop), so a throwaway signed-out loss is no oracle for the signed-in game.
 import { compareTiles } from './compare.js';
 import type { CardType, Gender, PlayerRow, Tiles } from './types.js';
 
@@ -13,7 +14,7 @@ export interface PublicPlayer { id: number; name: string; nation: number; league
 export interface Answer extends PublicPlayer { fullName: string; rareflag: number }
 export interface Silhouette { rating: number; position: string; rareflag: number; cardType: CardType }
 export interface GuessRow { player: PublicPlayer; tiles: Tiles }
-export interface GameView { rows: GuessRow[]; finished: boolean; won: boolean; silhouette?: Silhouette; answer?: Answer }
+export interface GameView { rows: GuessRow[]; finished: boolean; won: boolean; silhouette?: Silhouette; answer?: Answer | null }
 
 export function progressOf(guesses: number[], answer: number): Progress {
   const won = guesses.includes(answer);
@@ -33,13 +34,13 @@ export const toPublic = (r: PlayerRow): PublicPlayer => ({
 
 export const guessRow = (g: PlayerRow, a: PlayerRow): GuessRow => ({ player: toPublic(g), tiles: compareTiles(g, a) });
 
-export function gameView(p: Progress, answer: PlayerRow, lookup: (id: number) => PlayerRow | undefined): GameView {
+export function gameView(p: Progress, answer: PlayerRow, lookup: (id: number) => PlayerRow | undefined, opts: { hideAnswer?: boolean } = {}): GameView {
   const rows = p.guesses.flatMap((id) => {
     const g = lookup(id);
     return g ? [guessRow(g, answer)] : [];
   });
   const view: GameView = { rows, finished: p.finished, won: p.won };
-  if (p.finished) view.answer = { ...toPublic(answer), fullName: answer.fullName, rareflag: answer.rareflag };
+  if (p.finished) view.answer = opts.hideAnswer ? null : { ...toPublic(answer), fullName: answer.fullName, rareflag: answer.rareflag };
   else if (p.guesses.length >= SILHOUETTE_AFTER)
     view.silhouette = { rating: answer.rating, position: answer.position, rareflag: answer.rareflag, cardType: answer.cardType };
   return view;
