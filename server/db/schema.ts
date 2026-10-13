@@ -21,17 +21,21 @@ export const sbcSets = pgTable('sbc_sets', {
 });
 
 /** Every challenge ever seen: latest definition as EA sent it. */
-export const challenges = pgTable('challenges', {
-  challengeId: integer('challenge_id').primaryKey(),
-  setId: integer('set_id').notNull().references(() => sbcSets.setId),
-  name: text('name').notNull().default(''),
-  type: text('type'),
-  formation: text('formation'),
-  elgOperation: text('elg_operation'),
-  elgReq: jsonb('elg_req').notNull(),
-  raw: jsonb('raw').notNull(),
-  ...seen(),
-});
+export const challenges = pgTable(
+  'challenges',
+  {
+    challengeId: integer('challenge_id').primaryKey(),
+    setId: integer('set_id').notNull().references(() => sbcSets.setId),
+    name: text('name').notNull().default(''),
+    type: text('type'),
+    formation: text('formation'),
+    elgOperation: text('elg_operation'),
+    elgReq: jsonb('elg_req').notNull(),
+    raw: jsonb('raw').notNull(),
+    ...seen(),
+  },
+  (t) => [index('challenges_set').on(t.setId)],
+);
 
 /** One row per account and distinct layout it reported for a brick challenge. */
 export const brickReports = pgTable(
@@ -222,7 +226,7 @@ export const events = pgTable(
     personaId: bigint('persona_id', { mode: 'number' }),
     data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
   },
-  (t) => [index('events_type_at').on(t.type, t.at), index('events_user_at').on(t.userId, t.at)],
+  (t) => [index('events_type_at').on(t.type, t.at), index('events_user_at').on(t.userId, t.at), index('events_persona_at').on(t.personaId, t.at)],
 );
 
 /** Timed evolution training per EA persona (server/evos.ts); one email per level (server/evo-alerts.ts). */

@@ -134,6 +134,13 @@
       "when": 1791802252384,
       "tag": "0018_remarkable_silver_fox",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1791893331062,
+      "tag": "0019_plain_smasher",
+      "breakpoints": true
     }
   ]
 }
