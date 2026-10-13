@@ -19,23 +19,25 @@ window.addEventListener('message', (event) => {
 // While this tab is open, ask for sync jobs. Polling is also how FC Solver knows the web app is
 // open ("Live"); a hidden tab asks less often. Whether the tab is in front goes along, so coming
 // back to the web app (after playing on a console or the companion app) refreshes the SBCs.
-function askForJob() {
-  chrome.runtime.sendMessage({ type: 'poll', visible: !document.hidden, ready }, (res) => {
-    if (chrome.runtime.lastError || !res) return;
-    if (res.needIdentity) window.postMessage({ source: 'fcs-bridge', kind: 'identify' }, window.location.origin);
-    else if (res.job) {
-      window.postMessage({ source: 'fcs-bridge', kind: 'job', job: res.job }, window.location.origin);
-      syncStarted(res.job.kind);
+function askForJob(done) {
+  chrome.runtime.sendMessage({ type: 'poll', visible: !document.hidden, ready, wait: !document.hidden && ready }, (res) => {
+    const r = chrome.runtime.lastError ? null : res;
+    done?.(r);
+    if (!r) return;
+    if (r.needIdentity) window.postMessage({ source: 'fcs-bridge', kind: 'identify' }, window.location.origin);
+    else if (r.job) {
+      window.postMessage({ source: 'fcs-bridge', kind: 'job', job: r.job }, window.location.origin);
+      syncStarted(r.job.kind);
     }
   });
 }
+// the next poll goes out once the answer is in: a held poll (1.0.3+) answers as soon as a job is ready
 function poll() {
   try {
-    askForJob();
+    askForJob((res) => setTimeout(poll, document.hidden ? 15000 : res?.again ?? 5000));
   } catch {
-    return; // the extension was reloaded or removed: this old copy stops until the page reloads
+    /* the extension was reloaded or removed: this old copy stops until the page reloads */
   }
-  setTimeout(poll, document.hidden ? 15000 : 5000);
 }
 setTimeout(poll, 3000);
 

@@ -204,10 +204,11 @@ async function api(path, init = {}) {
 }
 
 /** A web app tab asked for work and FC Solver answered: we are connected. */
-async function pollJobs(tabId, visible, ready) {
+async function pollJobs(tabId, visible, ready, wait) {
   const q = new URLSearchParams();
   if (typeof visible === 'boolean') q.set('visible', visible ? '1' : '0');
   if (typeof ready === 'boolean') q.set('ready', ready ? '1' : '0'); // not logged in to EA: no job handed out
+  if (wait) q.set('wait', '1'); // 1.0.3+: the server holds the poll until a job is ready
   const res = await api(`/api/jobs/next${q.size ? `?${q}` : ''}`).catch(() => null);
   if (res) {
     await chrome.storage.session.set({ lastPollOkAt: Date.now() });
@@ -336,7 +337,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       // paused from the popup: poll as a tab that cannot take jobs yet (same as "not logged in to EA"),
       // so the tab still counts as open and anything queued meanwhile runs once syncing is resumed
       const { syncPaused } = await chrome.storage.local.get('syncPaused');
-      sendResponse(await pollJobs(_sender.tab?.id, msg.visible, syncPaused ? false : msg.ready));
+      sendResponse(await pollJobs(_sender.tab?.id, msg.visible, syncPaused ? false : msg.ready, msg.wait === true && !syncPaused));
     })();
     return true; // async response
   }

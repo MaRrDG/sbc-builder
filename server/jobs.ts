@@ -108,6 +108,7 @@ export async function enqueue(acc: Account, kind: JobKind, setIds?: number[], ch
   }
   q.push(job);
   notify(acc.id);
+  wake(acc);
   return job;
 }
 
@@ -121,6 +122,37 @@ export function webAppReturned(acc: Account, visible: boolean | undefined): bool
   if (visible !== undefined) lastVisible.set(acc.id, visible);
   return !wasOpen || (visible === true && wasVisible === false);
 }
+
+const waiters = new Map<number, Set<() => void>>();
+
+/** A job may be ready: answer the extension's held /api/jobs/next now. */
+export function wake(acc: Account) {
+  const w = waiters.get(acc.id);
+  if (!w) return;
+  waiters.delete(acc.id);
+  for (const f of w) f();
+}
+
+/** Resolves on wake() or after `ms`. */
+export function waitForWork(acc: Account, ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    let set = waiters.get(acc.id);
+    if (!set) waiters.set(acc.id, (set = new Set()));
+    const done = () => {
+      clearTimeout(t);
+      set!.delete(done);
+      resolve();
+    };
+    const t = setTimeout(done, Math.max(0, ms));
+    set.add(done);
+  });
+}
+
+/** The tab polled: it counts as open from now (before a visit queues anything). */
+export const markPoll = (acc: Account) => lastPoll.set(acc.id, Date.now());
+
+/** How long the breather after the last job still runs (0: none). */
+export const restLeft = (acc: Account) => Math.max(0, REST_BETWEEN_JOBS - (Date.now() - (lastFinished.get(acc.id) ?? 0)));
 
 /** The extension asks for the next job; also marks the web app tab as open. `canRun` false: the tab is not logged in to EA yet. */
 export function nextJob(acc: Account, canRun = true): Job | null {
@@ -189,6 +221,7 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
   job.finishedAt = Date.now();
   notify(acc.id);
   lastFinished.set(acc.id, Date.now());
+  setTimeout(() => wake(acc), REST_BETWEEN_JOBS + 50); // the next queued job may go out once the breather is over
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';
   // e.g. "The web app has not talked to EA yet.": the page never asked EA, so nothing was spent
   if (!ok && !job.calledAt) job.notStarted = true;

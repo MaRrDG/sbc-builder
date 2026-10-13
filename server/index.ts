@@ -13,7 +13,7 @@ import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, readShared, ROOT } from './store.js';
 import { etagOf, notModified } from './etag.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
-import { enqueue, findJob, finishJob, hasPending, markCall, nextJob, webAppOpen, webAppReturned } from './jobs.js';
+import { enqueue, findJob, finishJob, hasPending, markCall, markPoll, nextJob, restLeft, waitForWork, webAppOpen, webAppReturned } from './jobs.js';
 import { dropStream, notify, sseFrame, subscribe, takeStream } from './live.js';
 import { isTabPoll } from './job-rules.js';
 import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
@@ -542,25 +542,42 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
   return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked, linkRejected: !!token && !userId, clubQueued };
 });
 
+const LONG_POLL_MS = 25_000; // under nginx's 60 s proxy timeout and the extension's 30 s live window
+
 /** Next sync job for the web app tab (null when idle). Polling also marks the tab as open. */
 app.get('/api/jobs/next', async (req) => {
   const acc = account(req);
-  if (!acc.clientMode) return { job: null };
+  if (!acc.clientMode) return { job: null, again: 5000 };
   try {
     await acc.meter.check();
   } catch {
-    return { job: null }; // over budget or paused: the queue waits
+    return { job: null, again: 5000 }; // over budget or paused: the queue waits
   }
-  // came (back) to the web app: SBCs done elsewhere in the meantime show up; handed out next poll
-  const { visible, ready } = req.query as { visible?: string; ready?: string };
+  const { visible, ready, wait } = req.query as { visible?: string; ready?: string; wait?: string };
   // the extension's own poll after /api/hello (also sent on an FC Solver site visit, with no web
   // app tab open): not a tab, so it takes no job and does not mark the web app as open
-  if (!isTabPoll(acc.info.extVersion, ready)) return { job: null };
+  if (!isTabPoll(acc.info.extVersion, ready)) return { job: null, again: 5000 };
   const returned = webAppReturned(acc, visible === undefined ? undefined : visible === '1');
-  // extension 0.8.8+: a web app tab not logged in to EA yet keeps the tab "open" but gets no job
-  const job = nextJob(acc, ready !== '0');
+  markPoll(acc); // open from now, so the visit below may queue
+  // came (back) to the web app: SBCs done elsewhere in the meantime show up, handed out in this same answer
   if (returned) await refreshOnVisit(acc);
-  return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId } };
+  const canRun = ready !== '0'; // extension 0.8.8+: a web app tab not logged in to EA gets no job
+  // extension 1.0.3+: hold the request until a job is ready (or 25 s), so a queued sync starts at once
+  const hold = wait === '1' && canRun;
+  const gone = () => req.raw.socket?.destroyed ?? false;
+  const until = Date.now() + LONG_POLL_MS;
+  let job = nextJob(acc, canRun);
+  while (!job && hold && Date.now() < until && !gone()) {
+    await waitForWork(acc, Math.min(until - Date.now(), restLeft(acc) || LONG_POLL_MS));
+    if (gone()) break;
+    try {
+      await acc.meter.check();
+    } catch {
+      break;
+    }
+    job = nextJob(acc, canRun);
+  }
+  return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId }, again: hold ? 1000 : 5000 };
 });
 
 /** One EA request the tab made for a job, for the daily count. Throttling codes pause the account. */
