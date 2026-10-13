@@ -80,7 +80,7 @@ services:
       start_interval: 5s
 
   bot:
-    # same image as app; only started with: docker compose --profile discord up -d
+    # same image as app; runs only where .env has COMPOSE_PROFILES=discord (prod only; dev shares the token, never)
     image: ${APP_NAME:-sbc-builder}:latest
     pull_policy: never
     container_name: ${APP_NAME:-sbc-builder}-bot

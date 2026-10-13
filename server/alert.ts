@@ -46,6 +46,14 @@ export function alertText({ env, kind, route, err, maxLen = 1800 }: { env: strin
   return build().slice(0, maxLen + 100);
 }
 
+/** Pure: kind + route + top stack line; a non-Error value adds its redacted message (40 chars) so different rejections stay apart. */
+export function alertFingerprint(kind: AlertKind, e: unknown, route?: string) {
+  const err = e instanceof Error ? e : new Error(String(e));
+  const first = (err.stack ?? '').split('\n').find((l) => /^\s+at /.test(l))?.trim() ?? '';
+  const extra = e instanceof Error ? '' : `|${safeMessage(err.message).slice(0, 40)}`;
+  return `${kind}|${route?.split('?')[0] ?? ''}|${first}${extra}`;
+}
+
 const gate = createAlertGate();
 const env = () => {
   try {
@@ -59,8 +67,7 @@ const env = () => {
 export async function alert(kind: AlertKind, e: unknown, route?: string): Promise<void> {
   try {
     const err = e instanceof Error ? e : new Error(String(e));
-    const first = (err.stack ?? '').split('\n').find((l) => /^\s+at /.test(l))?.trim() ?? '';
-    const { send, skipped } = gate.take(`${kind}|${route?.split('?')[0] ?? ''}|${first}`);
+    const { send, skipped } = gate.take(alertFingerprint(kind, e, route));
     const url = process.env.ALERT_WEBHOOK_URL;
     if (!send || !url) return;
     const content = alertText({ env: env(), kind, route, err }) + (skipped ? `\n(+${skipped} more since the last one)` : '');

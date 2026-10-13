@@ -17,7 +17,7 @@ Browser ──HTTPS──► Cloudflare (SSL: Full (strict)) ──HTTPS :443─
 | containers | `fc-solver`, `fc-solver-db`, `fc-solver-bot` | `sbc-builder`, `sbc-builder-db` |
 | nginx | `deploy/fc-solver.app.nginx.conf` | `deploy/sbc-builder.nginx.conf` |
 | Clerk | own production instance (fc-solver.app) | production instance (sbc-builder.mario-theodor.ro) |
-| Discord bot | yes (`--profile discord`) | no (one bot token, one server) |
+| Discord bot | prod only (`COMPOSE_PROFILES=discord` in `.env`) | no (one bot token, one server) |
 
 Each has its own database, `data/` and `.env`; nothing is shared. Work lands on `dev`; a release is `git checkout main && git merge --ff-only dev && git push`, then the prod deploy below in `/var/www/fc-solver`. Admins: `ADMIN_EMAILS` (comma list; default the owner's address). Certificates: Cloudflare Origin Certificates in `/etc/ssl/cloudflare/` (`snippets/ssl-mario-theodor.ro.conf`, `snippets/ssl-fc-solver.app.conf`, host-only).
 
@@ -58,7 +58,7 @@ Paddle billing ([billing.md](billing.md)): `PADDLE_ENV` (`sandbox` on dev, `prod
 /var/www/fc-solver/deploy/release.sh /var/www/fc-solver       # prod (main); dev: /var/www/sbc-builder (dev)
 ```
 
-The script tags the running image as `<app>:prev` (only while it is healthy, so a second release after a failed one keeps the last good image), runs `git pull --ff-only`, rebuilds (`docker compose up -d --build`; the bot starts only where that install's `.env` has `COMPOSE_PROFILES=discord`: prod yes, dev never) and waits up to 3 minutes for the app container to be healthy. Undo with `deploy/rollback.sh <app dir>`: it puts `:prev` back as `:latest` and restarts without building. The code in the folder stays at the new commit and the database keeps any new migration, so migrations must be additive (add columns / tables / indexes; never drop or rename in the same release that stops using them), or the old image cannot run on the migrated database.
+The script tags the image the healthy container runs as `<app>:prev` (only while it is healthy, so a second release after a failed one keeps the last good image), runs `git pull --ff-only`, rebuilds (`docker compose up -d --build`; the bot starts only where that install's `.env` has `COMPOSE_PROFILES=discord`: prod yes, dev never) and waits up to 3 minutes for the app container to be healthy; after a healthy release it runs `docker image prune -f` (dangling images only; `:prev` and `:latest` stay tagged). Undo with `deploy/rollback.sh <app dir>`: it puts `:prev` back as `:latest` and restarts without building. The code in the folder stays at the new commit and the database keeps any new migration, so migrations must be additive (add columns / tables / indexes; never drop or rename in the same release that stops using them), or the old image cannot run on the migrated database.
 
 The changelog ships with the code: an entry added to `shared/changelog.ts` shows on `/changelog` after the deploy, and the bot posts it in `📝・changelog` within 10 minutes (English only; it looks for its own post first, so restarts never post twice; on an empty channel it posts only the newest entry). The first release with the changelog needs the Discord setup step again (step 4 under [Discord](#discord)) to create the channel.
 
@@ -118,19 +118,19 @@ Sign-in runs on Clerk. Locally a development instance (keys `sk_test_` / `pk_tes
 
 ## Discord
 
-The bot (`discord/`) runs from the same image as its own compose service `bot` (profile `discord`, no ports, no `data/` mount, no database).
+Prod only, never on dev (dev shares the token). The bot (`discord/`) runs from the same image as its own compose service `bot` (profile `discord`, no ports, no `data/` mount, no database).
 
 1. Discord Developer Portal → New Application ("FC Solver"). **Bot**: reset and copy the token (`DISCORD_TOKEN`). **General Information**: Application ID (`DISCORD_APP_ID`).
 2. OAuth2 → URL Generator: scopes `bot`, `applications.commands`; permissions Manage Server, Manage Roles, Manage Channels, Manage Expressions, Manage Messages, View Channels, Send Messages, Embed Links, Attach Files, Add Reactions, Read Message History. The privileged intent **Server Members** is on in the Developer Portal (Bot → Privileged Gateway Intents) and used (Phase 6, boosts). Open the URL and add the bot to the (empty) server.
 3. Discord → Settings → Advanced → Developer Mode; right-click the server → Copy Server ID (`DISCORD_GUILD_ID`).
-4. Put the three values in `.env` plus `SITE_URL` (required by the bot: its links point there; the bot exits without it) and `BOT_API_TOKEN=$(openssl rand -hex 32)` (required, at least 32 characters, the bot exits without it; shared by the app and the bot; the app answers `404` on `/api/bot/*` without it) and `DISCORD_INVITE_URL` (Server Settings → Invites → a never-expiring link). The nginx vhost answers `404` on `/api/bot/` from outside (`location ^~ /api/bot/` in `deploy/sbc-builder.nginx.conf`): copy it again, `nginx -t && systemctl reload nginx`. Then build the layout (re-runnable, never deletes anything):
+4. Put the three values in `.env` plus `SITE_URL` (required by the bot: its links point there; the bot exits without it) and `BOT_API_TOKEN=$(openssl rand -hex 32)` (required, at least 32 characters, the bot exits without it; shared by the app and the bot; the app answers `404` on `/api/bot/*` without it) and `DISCORD_INVITE_URL` (Server Settings → Invites → a never-expiring link). The nginx vhost answers `404` on `/api/bot/` from outside (`location ^~ /api/bot/` in `deploy/sbc-builder.nginx.conf`): copy it again, `nginx -t && systemctl reload nginx`. Then build the layout (prod only; re-runnable, never deletes anything):
 
    ```bash
    docker compose --profile discord run --rm --no-deps bot node --import tsx discord/setup.ts
    ```
 
-5. Server Settings → Roles: drag the bot's role to the top, run step 4 again (sets the role order).
-6. `docker compose --profile discord up -d --build` starts the bot; `docker compose logs -f bot`.
+5. (prod only) Server Settings → Roles: drag the bot's role to the top, run step 4 again (sets the role order).
+6. (prod only) with `COMPOSE_PROFILES=discord` in `.env`, `docker compose up -d --build` (or the release script) starts the bot; `docker compose logs -f bot`.
 
 Setup also applies the design: server icon (first run, or `-- --icon`), Community (rules / public updates / system channels, Only @mentions, verification Low, content filter All members), `📢・announcements` as an Announcement channel, the Welcome Screen and the custom emojis `fcs_check`, `fcs_fc`, `fcs_lime`. Each design step logs and continues if Discord refuses it (the bot needs Manage Server and Manage Expressions). The bot avatar is set only with `npm run discord:setup -- --avatar` (Discord rate-limits avatar changes). By hand, when the server qualifies: server banner (boost level 2) and invite splash (level 1) from `discord/assets/banner.png`; role icons appear on the next setup run after level 2. Welcome Screen lists only `🌐・language` (Discord accepts only channels `@everyone` can read; new joiners see nothing else). Discord Onboarding is not used: it needs 7 default channels visible to everyone. The flow is language buttons, then ✅ on the rules of the picked language (`📜・rules` English, `📜・regulament` Romanian; see `docs/architecture.md`); the privileged **Server Members** (GuildMembers) intent must be enabled in the Developer Portal (Bot → Privileged Gateway Intents; it is enabled for our app) or the bot will not start. Setup migrates an existing server in place (new `🌐・language`, `Pending EN` / `Pending RO`, categories reordered English first, messages edited, nothing deleted; the `📜・regulament` channel and its message are created, the existing rules message becomes English-only; INFO messages are edited to English only and the bot's own old language picker in `🎭・roles` is deleted). Brand change: `npm run discord:assets`, then setup with `--icon --avatar` (existing emojis keep their old image; delete them in Server Settings → Emoji first).
 

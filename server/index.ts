@@ -595,6 +595,7 @@ app.get('/api/jobs/next', async (req) => {
   // shutting down: hand out nothing, the next server would not know the job (its EA calls would be wasted)
   if (isShuttingDown()) return { job: null, again: hold ? 1000 : 5000 };
   let budget = await budgetNow();
+  if (isShuttingDown()) return { job: null, again: hold ? 1000 : 5000 };
   let job = nextJob(acc, canRun, budget);
   while (!job && hold && Date.now() < until && !gone() && !isShuttingDown()) {
     await waitForWork(acc, Math.min(until - Date.now(), restLeft(acc) || LONG_POLL_MS, 10_000));
@@ -608,6 +609,7 @@ app.get('/api/jobs/next', async (req) => {
     }
     if (gone()) break; // the socket may have closed during the meter check
     budget = await budgetNow();
+    if (isShuttingDown()) return { job: null, again: hold ? 1000 : 5000 };
     job = nextJob(acc, canRun, budget);
   }
   return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId }, again: hold ? 1000 : 5000 };

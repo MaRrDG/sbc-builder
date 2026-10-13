@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { alertText, createAlertGate } from './alert.js';
+import { alertFingerprint, alertText, createAlertGate } from './alert.js';
 
 test('same fingerprint at most once per window, then reports how many were skipped', () => {
   let t = 0;
@@ -70,4 +70,11 @@ test('alertText: emails, ids and token-like runs in a one-line message are redac
 test('alertText: stack lines without "at" are not included', () => {
   const s = alertText({ env: 'dev', kind: '500', err: { name: 'Error', message: 'm', stack: 'Error: m\nsecret continuation line\n    at f (/app/x.ts:1:1)' } });
   assert.doesNotMatch(s, /secret/);
+});
+
+test('different non-Error rejections get different fingerprints, Errors from one place stay merged', () => {
+  assert.notEqual(alertFingerprint('unhandled', 'boom one'), alertFingerprint('unhandled', 'boom two'));
+  assert.equal(alertFingerprint('unhandled', 'same'), alertFingerprint('unhandled', 'same'));
+  const mk = () => new Error('x');
+  assert.equal(alertFingerprint('500', mk(), 'GET /a'), alertFingerprint('500', mk(), 'GET /a'));
 });
