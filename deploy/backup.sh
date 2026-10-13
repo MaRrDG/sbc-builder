@@ -30,5 +30,5 @@ tar --zstd --warning=no-file-changed --warning=no-file-removed --ignore-failed-r
 [ "$rc" -le 1 ] || fail "tar exit $rc"
 chmod 600 "$TMP"/*
 rm -rf "${ROOT:?}/$DAY" && mv "$TMP" "$ROOT/$DAY"
-find "$ROOT" -mindepth 1 -maxdepth 1 -type d -name '20*' -mtime +14 -exec rm -rf {} +
+find "$ROOT" -mindepth 1 -maxdepth 1 -type d -name '20*' -mtime +13 -exec rm -rf {} +
 echo "[backup] $APP $DAY ok: $(du -sh "$ROOT/$DAY" | cut -f1)"
