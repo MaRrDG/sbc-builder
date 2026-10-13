@@ -397,7 +397,7 @@ Creates a promo code. Body: `{ "days": 30 | null, "code"?: "SUMMER26", "maxUses"
 ] }
 ```
 
-`queued`: the web app tab is open, the sync queued. `deferred`: offline; the next web app visit runs it (kept in memory, lost on a server restart). `skipped`: `code` is an `err.*` message code (`clubCooldown`, `budget`, `paused`, `syncRunning`).
+`queued`: the web app tab is open, the sync queued. `deferred`: offline; the next web app visit runs it (kept in memory, lost on a server restart). `skipped`: `code` is an `err.*` message code (`clubCooldown`, `budget`, `paused`).
 
 ---
 
@@ -488,9 +488,9 @@ Refresh windows tick from `releaseTime` (the daily drop). A `REFRESH` set whose 
 
 A set whose challenge is a points challenge (EA `scoreRequirement` above 0) also carries `pointsTarget`: the points still missing (`scoreRequirement - submittedScore`, never below 0), read from the cached challenges. No EA call.
 
-### `GET /api/sets/:id/challenges?refresh=1` (site)
+### `GET /api/sets/:id/challenges` (site)
 
-Challenges of one set, each with its parsed requirements. Always from cache (empty list if the set was never loaded); only `refresh=1` asks EA.
+Challenges of one set, each with its parsed requirements. Always from cache (empty list if the set was never loaded); never asks EA.
 
 ```json
 { "challenges": [{ "challengeId": 35, "name": "Celtic v Rangers", "formation": "f442", "status": "IN_PROGRESS", "elgOperation": "AND",

@@ -27,7 +27,7 @@ Non-goals: stopping a running job half way from the extension (needs a new exten
 
 - Pure `jobCost(job, ctx)` in `server/job-cost.ts`: club = `ceil(lastClubItems / 91) + 1 + 4` (no known club → 60); challenges = number of set ids (max 40); sbc = 2; academy = 1; challengeSquad = 1. Pure `fits(cost, used, limit)`.
 - `nextJob` hands out a queued job only when `fits`. A job that does not fit stays queued with a reason; the activity panel shows "Not enough EA requests left today (club ~58, 25 left), resumes after midnight" (job view state `budget`, i18n en/ro/it). Works with every extension version: the decision is on the server.
-- Backstop: when `record()` takes the count past the limit, log `ea_error` `{ code: 'overBudget', kind, cost, actual }` once per day so the estimate can be tuned; `check()` already refuses further jobs.
+- Backstop: when `record()` takes the count past the limit, log `ea_error` `{ code: 'overBudget', kind, count }` once per day (`count`: today's requests at that moment) so the estimate can be tuned; `check()` already refuses further jobs.
 - `pausedUntil` is stored in the meter cache file (`MeterData.pausedUntil`) and read back on load; `pause()` persists it.
 - Unit tests: `jobCost` per kind incl. unknown club, `fits` at the edges, meter pause survives a new `RequestMeter` on the same key.
 
