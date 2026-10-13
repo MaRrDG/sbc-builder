@@ -58,7 +58,7 @@ Paddle billing ([billing.md](billing.md)): `PADDLE_ENV` (`sandbox` on dev, `prod
 /var/www/fc-solver/deploy/release.sh /var/www/fc-solver       # prod (main); dev: /var/www/sbc-builder (dev)
 ```
 
-The script tags the running image as `<app>:prev`, runs `git pull --ff-only`, rebuilds (`--profile discord` when `DISCORD_TOKEN` is set in `.env`) and waits up to 3 minutes for the app container to be healthy. Undo with `deploy/rollback.sh <app dir>`: it puts `:prev` back as `:latest` and restarts without building. The code in the folder stays at the new commit and the database keeps any new migration, so migrations must be additive (add columns / tables / indexes; never drop or rename in the same release that stops using them), or the old image cannot run on the migrated database.
+The script tags the running image as `<app>:prev` (only while it is healthy, so a second release after a failed one keeps the last good image), runs `git pull --ff-only`, rebuilds (`docker compose up -d --build`; the bot starts only where that install's `.env` has `COMPOSE_PROFILES=discord`: prod yes, dev never) and waits up to 3 minutes for the app container to be healthy. Undo with `deploy/rollback.sh <app dir>`: it puts `:prev` back as `:latest` and restarts without building. The code in the folder stays at the new commit and the database keeps any new migration, so migrations must be additive (add columns / tables / indexes; never drop or rename in the same release that stops using them), or the old image cannot run on the migrated database.
 
 The changelog ships with the code: an entry added to `shared/changelog.ts` shows on `/changelog` after the deploy, and the bot posts it in `📝・changelog` within 10 minutes (English only; it looks for its own post first, so restarts never post twice; on an empty channel it posts only the newest entry). The first release with the changelog needs the Discord setup step again (step 4 under [Discord](#discord)) to create the channel.
 
@@ -102,7 +102,7 @@ The first deploy with the history tables starts counting from the cache once:
 docker compose exec app npm run history:baseline   # safe to re-run
 ```
 
-Prod is the same with `git clone -b main … /var/www/fc-solver`, `APP_NAME=fc-solver` + `APP_PORT=5179` + `SITE_URL=https://fc-solver.app` in its `.env`, the prod Clerk keys, `docker compose --profile discord up -d --build` (no `db:import`: prod starts empty) and `deploy/fc-solver.app.nginx.conf` → `sites-available/fc-solver.app.conf`.
+Prod is the same with `git clone -b main … /var/www/fc-solver`, `APP_NAME=fc-solver` + `APP_PORT=5179` + `SITE_URL=https://fc-solver.app` in its `.env`, the prod Clerk keys, `COMPOSE_PROFILES=discord` in `.env` and `deploy/release.sh /var/www/fc-solver` (no `db:import`: prod starts empty) and `deploy/fc-solver.app.nginx.conf` → `sites-available/fc-solver.app.conf`.
 
 Each server folder is a git checkout (prod `main`, dev `dev`, owned by root); `data/` is git-ignored and survives pulls and rebuilds.
 
@@ -169,15 +169,6 @@ Moving to a new domain:
 4. Extension: zips carry the origin they were downloaded from, so users download the extension again from the new domain once (same folder, keys stay).
 5. Old domain: 301-redirect its pages to the new one in nginx (keeps links and ranking), but **not `/api/`**: installed extensions still call the old origin (it is baked into their zip and host permissions, and a 301 turns their POSTs into GETs). Keep `/api/` proxied on the old name until every account runs an extension downloaded from the new domain.
 6. Google Search Console: add the domain property (DNS TXT in Cloudflare), submit `https://<new domain>/sitemap.xml`, request indexing of `/`.
-
-## Backup
-
-`data/` holds the per-account JSON; Postgres (shared SBC history, brick layouts, trusted accounts) is best dumped rather than copied live:
-
-```bash
-docker compose exec db pg_dump -U fcsolver fcsolver | gzip > fcsolver-$(date +%F).sql.gz
-gunzip -c fcsolver-2026-09-23.sql.gz | docker compose exec -T db psql -U fcsolver fcsolver   # restore
-```
 
 ## Backups
 

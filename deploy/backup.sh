@@ -4,8 +4,10 @@
 # data/ holds extension keys: everything is root-only (dirs 700, files 600).
 set -euo pipefail
 DIR=${1:?usage: backup.sh <app dir>}
-APP=$(grep -E '^APP_NAME=' "$DIR/.env" | cut -d= -f2- || true); APP=${APP:-sbc-builder}
-HOOK=$(grep -E '^ALERT_WEBHOOK_URL=' "$DIR/.env" | cut -d= -f2- || true)
+[ -f "$DIR/.env" ] || { echo "[backup] $DIR/.env not found" >&2; exit 1; }
+envval() { grep -E "^$1=" "$DIR/.env" | head -n1 | cut -d= -f2- | sed -E "s/^(['\"])(.*)\1[[:space:]]*$/\2/" || true; }
+APP=$(envval APP_NAME); APP=${APP:-sbc-builder}
+HOOK=$(envval ALERT_WEBHOOK_URL)
 ROOT=${BACKUP_ROOT:-/root/backups}/$APP
 DAY=$(date +%F)
 TMP=$ROOT/.tmp-$DAY
@@ -22,7 +24,10 @@ mkdir -p "$ROOT"
 rm -rf "$TMP" && mkdir -p "$TMP"
 docker exec "$APP-db" pg_dump -U fcsolver -Fc fcsolver > "$TMP/db.dump"
 [ -s "$TMP/db.dump" ] || fail "empty database dump"
-tar --zstd -C "$DIR" --exclude=./data/postgres -cf "$TMP/data.tar.zst" ./data
+# the app rewrites files while we read (tmp + rename): tar status 1 = "changed/removed", archive is still good
+rc=0
+tar --zstd --warning=no-file-changed --warning=no-file-removed --ignore-failed-read -C "$DIR" --exclude=./data/postgres -cf "$TMP/data.tar.zst" ./data || rc=$?
+[ "$rc" -le 1 ] || fail "tar exit $rc"
 chmod 600 "$TMP"/*
 rm -rf "${ROOT:?}/$DAY" && mv "$TMP" "$ROOT/$DAY"
 find "$ROOT" -mindepth 1 -maxdepth 1 -type d -name '20*' -mtime +14 -exec rm -rf {} +
