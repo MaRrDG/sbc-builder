@@ -420,6 +420,16 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
   return data as T;
 }
 
+/** The live stream (/api/stream): a streaming fetch, so the Clerk token and the persona go along. */
+export async function openStream(signal: AbortSignal): Promise<Response> {
+  const token = tokenFn ? await tokenFn(false) : null;
+  return fetch('/api/stream', {
+    headers: { Accept: 'text/event-stream', ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(persona ? { 'X-Persona': String(persona) } : {}) },
+    signal,
+    cache: 'no-store',
+  });
+}
+
 export type DailyTileState = 'hit' | 'near' | 'miss';
 export interface DailyTile { state: DailyTileState; dir?: 'up' | 'down' }
 export interface DailyTiles { nation: DailyTile; league: DailyTile; club: DailyTile; position: DailyTile; rating: DailyTile; cardType: DailyTile; gender: DailyTile }

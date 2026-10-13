@@ -58,6 +58,10 @@ import { useClerk } from '@clerk/react';
 import { migrateLegacyKeys } from './legacy';
 import { cacheClear, cacheGet, cacheKey, cachePrune, cacheSet, type AccountData } from './cache';
 import { unlinkExtension, useExtensionLink } from './link';
+import { refetchPlan } from './sse';
+import { useLive } from './useLive';
+
+type StatusResponse = Awaited<ReturnType<typeof api.status>>;
 
 const ACTIVE = 'sbc-active-persona';
 const GALLERY_INFO_SEEN = 'sbc-gallery-info-seen';
@@ -211,6 +215,7 @@ export default function App({
 
   const cachedStatusRef = useRef<SyncStatus | null>(null); // the status drawn from the cache: no news, see the status effect
   const loadingRef = useRef(0); // account data loads in flight
+  const dataRef = useRef<{ id: number | null; d: AccountData } | null>(null); // the latest account data pieces from the network
 
   const applyData = useCallback((d: AccountData, cached = false) => {
     const { meta: m, club: c, sets: s, status: st } = d;
@@ -235,8 +240,41 @@ export default function App({
     if (activeIdRef.current !== id) return; // the user switched account meanwhile
     applyData(d);
     setFresh(true);
+    dataRef.current = { id, d: { ...d } };
     cacheSet(cacheKey(userId, id, 'data'), d);
   }, [applyData, userId]);
+
+  // The IndexedDB copy after a targeted reload (live stream): written 2 s after the last change,
+  // only once the network answered (fresh).
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveData = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
+      const cur = dataRef.current;
+      if (!freshRef.current || !cur || cur.id !== activeIdRef.current) return;
+      cacheSet(cacheKey(userId, cur.id, 'data'), cur.d);
+    }, 2000);
+  }, [userId]);
+  useEffect(() => () => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+  }, []);
+
+  // A status (stream or poll) applied only when something changed: no whole-App re-render per tick.
+  const applyStatus = useCallback((st: StatusResponse) => {
+    setStatus((prev) => (prev && JSON.stringify(prev) === JSON.stringify(st.sync) ? prev : st.sync));
+    if (st.account)
+      setLinked((prev) => {
+        const cur = prev?.find((a) => a.personaId === st.account!.personaId);
+        return !prev || (cur && JSON.stringify(cur) === JSON.stringify(st.account)) ? prev : prev.map((a) => (a.personaId === st.account!.personaId ? st.account! : a));
+      });
+    setLatestExt((prev) => (JSON.stringify(prev) === JSON.stringify(st.extension) ? prev : st.extension));
+    const cur = dataRef.current;
+    if (cur && cur.id === activeIdRef.current && JSON.stringify(cur.d.status) !== JSON.stringify(st)) {
+      cur.d.status = st;
+      saveData();
+    }
+  }, [saveData]);
 
   const selectAccount = useCallback(
     async (id: number) => {
@@ -381,17 +419,69 @@ export default function App({
     [loadMe, t],
   );
 
-  // Poll sync state so auto-syncs and new sessions show up without a reload; faster while the
-  // club sync modal shows its progress.
+  // Live stream (/api/stream): statuses as they change, and the cache keys that changed, so only
+  // that data is reloaded. While it is down the status poll below takes over.
+  const onChanged = useCallback(
+    (keys: string[]) => {
+      const id = activeIdRef.current; // an answer for an account the user has left is dropped
+      const mine = () => activeIdRef.current === id;
+      const p = refetchPlan(keys, setId);
+      if (p.club)
+        void api.club().then((c) => {
+          if (!mine()) return;
+          setClub(c.players);
+          setStorage(c.storage ?? []);
+          setSquad(c.squad);
+          if (dataRef.current?.id === id) dataRef.current.d.club = c;
+          saveData();
+        }, () => {});
+      if (p.sets)
+        void api.sets().then((s) => {
+          if (!mine()) return;
+          setCategories(s.categories);
+          if (dataRef.current?.id === id) dataRef.current.d.sets = s;
+          saveData();
+        }, () => {});
+      if (p.challenges && setId) void api.challenges(setId).then((r) => mine() && setChallenges(r.challenges), () => {});
+      if (p.other || p.club) setDataVersion((v) => v + 1);
+      if (p.other && view === 'gallery' && premium) void api.gallery().then((g) => mine() && setGallery(g), () => {});
+    },
+    [setId, view, premium, saveData],
+  );
+  const streamUp = useLive(activeId, { status: applyStatus, changed: onChanged });
+
+  // Everything again: a sync finished or the web app edited the cache while no stream told us what.
+  const reloadAll = useCallback(() => {
+    const id = activeIdRef.current; // an answer for an account the user has left is dropped
+    void loadAccountData().catch(() => {});
+    setDataVersion((v) => v + 1);
+    if (setId) void api.challenges(setId).then((r) => activeIdRef.current === id && setChallenges(r.challenges), () => {});
+    if (view === 'gallery' && premium) void api.gallery().then((g) => activeIdRef.current === id && setGallery(g), () => {});
+  }, [loadAccountData, setId, view, premium]);
+
+  // The stream came back after a gap (tab in the background, network error): what changed meanwhile
+  // was never announced, so reload once. A plain reconnect (the server closes every 5 min) keeps it up.
+  const liveWas = useRef<{ id: number | null; up: boolean; gap: boolean }>({ id: null, up: false, gap: false });
+  useEffect(() => {
+    const w = liveWas.current;
+    // a new account loads anyway; `streamUp` may still be the old stream's until its cleanup lands
+    if (w.id !== activeId) liveWas.current = { id: activeId, up: false, gap: false };
+    else if (!streamUp && w.up) liveWas.current = { ...w, up: false, gap: true };
+    else if (streamUp && !w.up) {
+      liveWas.current = { ...w, up: true, gap: false };
+      if (w.gap && freshRef.current && loadingRef.current === 0) reloadAll();
+    }
+  }, [streamUp, activeId, reloadAll]);
+
+  // Poll sync state when the stream is down, so auto-syncs and new sessions show up without a
+  // reload; faster while the club sync modal shows its progress.
   const clubSyncing = clubSyncRunning(status, !!account?.session);
   useEffect(() => {
-    if (!activeId) return;
+    if (!activeId || streamUp) return;
     const t = setInterval(async () => {
       if (document.hidden) return; // background tabs don't poll; the next visible tick catches up
       try {
-        const st = await api.status();
-        setLinked((prev) => prev?.map((a) => (a.personaId === activeId && st.account ? st.account : a)) ?? prev);
-        setStatus(st.sync);
+        applyStatus(await api.status());
       } catch (e) {
         // the account moved to another user or was disconnected elsewhere: show it now, not on the next click
         if (e instanceof ApiError && (e.code === 'personaNotYours' || e.code === 'personaTakenOver')) onApiError(e);
@@ -399,34 +489,29 @@ export default function App({
       }
     }, clubSyncing ? 1500 : 5000);
     return () => clearInterval(t);
-  }, [activeId, onApiError, clubSyncing]);
+  }, [activeId, streamUp, applyStatus, onApiError, clubSyncing]);
+
+  // The account data load failed (still the cached copy): try again every 5 s until it lands.
+  useEffect(() => {
+    if (!activeId || fresh) return;
+    const t = setInterval(() => {
+      if (loadingRef.current === 0 && !document.hidden) void loadAccountData().catch(() => {});
+    }, 5000);
+    return () => clearInterval(t);
+  }, [activeId, fresh, loadAccountData]);
 
   // A sync finished, or the web app changed the cache (an SBC opened or submitted there): reload
-  // quietly. Watches the status itself, since the visit and read calls also bring a new one.
+  // quietly. Watches the status itself, since the visit and read calls also bring a new one. With
+  // the stream up, its `changed` events already reloaded exactly what changed.
   const seenStatus = useRef<{ id: number; running: string | null; editedAt: number | null } | null>(null);
-  const retriedFor = useRef<SyncStatus | null>(null);
   useEffect(() => {
     if (!activeId || !status || status === cachedStatusRef.current) return; // a cached status is no news
-    // the account data load failed (still the cached copy): every new status retries it once
-    const retry = !fresh && loadingRef.current === 0 && retriedFor.current !== status;
-    if (retry) {
-      retriedFor.current = status;
-      void loadAccountData().catch(() => {});
-    }
     const prev = seenStatus.current;
     seenStatus.current = { id: activeId, running: status.running, editedAt: status.editedAt };
     if (!prev || prev.id !== activeId) return;
     if (prev.running && !status.running) track('sync_done', { kind: prev.running === 'club' ? 'club' : 'sbcs', ok: yn(!status.error) });
-    if ((prev.running && !status.running) || prev.editedAt !== status.editedAt) {
-      if (!retry) void loadAccountData().catch(() => {});
-      setDataVersion((v) => v + 1);
-      if (setId) void api.challenges(setId).then((r) => setChallenges(r.challenges), () => {});
-      if (view === 'gallery' && premium) {
-        const id = activeId; // an answer for an account the user has left is dropped
-        void api.gallery().then((g) => activeIdRef.current === id && setGallery(g), () => {});
-      }
-    }
-  }, [activeId, status, fresh, setId, loadAccountData, view, premium]);
+    if (!streamUp && ((prev.running && !status.running) || prev.editedAt !== status.editedAt)) reloadAll();
+  }, [activeId, status, streamUp, reloadAll]);
 
   // FUT Gallery (Premium): loaded when its screen opens, per account
   const [galleryError, setGalleryError] = useState<unknown>(null);
