@@ -26,7 +26,7 @@ export interface SyncStatus {
   errorCode: 'notStarted' | null; // the last sync failed before the web app tab asked EA anything
   clubAt: number | null;
   sbcAt: number | null;
-  sbcNextAt: number | null; // earliest a visit refreshes the SBC list again (null: legacy account)
+  sbcNextAt: number | null; // earliest a visit refreshes the SBC list again (null: no extension in client mode, so no sync)
   editedAt: number | null; // last local edit (e.g. an SBC submitted in the web app)
   unassigned: number; // players from opened packs not sent to the club yet
   /** a club sync waiting for / running in the web app tab: players loaded so far, and the cached club size as a rough total */

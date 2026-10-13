@@ -184,7 +184,7 @@ export interface SyncStatus {
   errorCode: 'notStarted' | null; // the last sync failed before the web app tab asked EA anything
   clubAt: number | null;
   sbcAt: number | null;
-  sbcNextAt: number | null; // a visit refreshes the SBC list from then on (null: legacy account)
+  sbcNextAt: number | null; // a visit refreshes the SBC list from then on (null: no extension in client mode, so no sync)
   editedAt: number | null;
   unassigned: number;
   /** a club sync waiting for / running in the web app tab; expected = cached club size, a rough total */
@@ -494,8 +494,7 @@ export const api = {
     ),
   evos: () => req<{ fetchedAt: number | null; evos: Evo[] }>('/api/evos'),
   sets: () => req<{ fetchedAt: number | null; categories: { categoryId: number; name: string; sets: SbcSet[] }[] }>('/api/sets'),
-  challenges: (setId: number, refresh = false) =>
-    req<{ fetchedAt: number | null; challenges: Challenge[] }>(`/api/sets/${setId}/challenges${refresh ? '?refresh=1' : ''}`),
+  challenges: (setId: number) => req<{ fetchedAt: number | null; challenges: Challenge[] }>(`/api/sets/${setId}/challenges`),
   readChallenge: (challengeId: number) => req<SyncStatus>(`/api/challenges/${challengeId}/read`, { method: 'POST' }),
   solve: (setId: number, challengeId: number, options: SolveOptions, deep = false, useStorage = true) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep, useStorage } }),
