@@ -1,6 +1,6 @@
 // Account deletion: scheduling and the purge primitives (server/deletion-rules.ts decides which EA
 // accounts go). Every purge function is idempotent: running it again deletes nothing and succeeds.
-import { and, asc, eq, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, lte, max, sql } from 'drizzle-orm';
 import { db } from './index.js';
 import {
   brickReports,
@@ -154,5 +154,42 @@ export async function anonymizeEvents(userId: string, purgedPersonas: number[]):
       .where(and(eq(events.type, 'points'), sql`${events.data}->>'by' = ${userId}`));
     await tx.update(events).set({ userId: null }).where(eq(events.userId, userId));
     if (purgedPersonas.length) await tx.update(events).set({ personaId: null }).where(inArray(events.personaId, purgedPersonas));
+  });
+}
+
+/** Prune signals from the DB for these EA accounts (server/prune-rules.ts): owners, trusted, newest event and link. */
+export async function pruneSignalsOf(ids: number[]): Promise<{
+  owned: Set<number>;
+  trusted: Set<number>;
+  lastEvent: Map<number, number>;
+  lastLink: Map<number, number>;
+}> {
+  if (!ids.length) return { owned: new Set(), trusted: new Set(), lastEvent: new Map(), lastLink: new Map() };
+  const [own, trust, ev, ln] = await Promise.all([
+    db.select({ id: personas.personaId }).from(personas).where(inArray(personas.personaId, ids)),
+    db.select({ id: trustedAccounts.personaId }).from(trustedAccounts).where(inArray(trustedAccounts.personaId, ids)),
+    db.select({ id: events.personaId, at: max(events.at) }).from(events).where(inArray(events.personaId, ids)).groupBy(events.personaId),
+    db.select({ id: personaLinks.personaId, at: max(personaLinks.linkedAt) }).from(personaLinks).where(inArray(personaLinks.personaId, ids)).groupBy(personaLinks.personaId),
+  ]);
+  const times = (rows: { id: number | null; at: Date | null }[]) =>
+    new Map(rows.filter((r) => r.id !== null && r.at).map((r) => [r.id as number, (r.at as Date).getTime()]));
+  return { owned: new Set(own.map((r) => r.id)), trusted: new Set(trust.map((r) => r.id)), lastEvent: times(ev), lastLink: times(ln) };
+}
+
+/**
+ * Rows of an EA account nobody owns (the 90-day prune). Same tables as purgePersonaRows minus what must outlive it:
+ * persona_links (the 3-accounts-ever limit), point_ledger (one invite point per persona, ever), founder_spots.
+ * Refuses (false) when a personas row appeared meanwhile, or when the account is trusted.
+ */
+export async function purgeOrphanPersonaRows(personaId: number): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const [owner] = await tx.select({ id: personas.personaId }).from(personas).where(eq(personas.personaId, personaId)).for('update');
+    const [trusted] = await tx.select({ id: trustedAccounts.personaId }).from(trustedAccounts).where(eq(trustedAccounts.personaId, personaId));
+    if (owner || trusted) return false;
+    await tx.delete(completionMarks).where(eq(completionMarks.personaId, personaId));
+    await tx.delete(completions).where(eq(completions.personaId, personaId));
+    await tx.delete(evoTrainings).where(eq(evoTrainings.personaId, personaId));
+    await tx.delete(brickReports).where(eq(brickReports.personaId, personaId));
+    return true;
   });
 }

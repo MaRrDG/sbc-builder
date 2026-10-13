@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, writeFile, rename, rm, stat, unlink } from 'node:fs/promises';
+import { mkdir, readdir, readFile, writeFile, rename, rm, stat, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -130,6 +130,35 @@ export async function dropKeys(prefixIn: string): Promise<void> {
   evict();
   await rm(path, { recursive: true, force: true });
   evict(); // a read that ran while the files were going away
+}
+
+/** Numeric folder names under data/accounts (one per cached EA account); [] when there is none. */
+export async function cachedAccountIds(): Promise<number[]> {
+  try {
+    const dirs = await readdir(join(DATA_DIR, 'accounts'), { withFileTypes: true });
+    return dirs.filter((d) => d.isDirectory() && /^\d+$/.test(d.name)).map((d) => Number(d.name)).filter(Number.isSafeInteger);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Newest file change (ms) under data/accounts/<id>/ (the account's cache: every write bumps it).
+ * null when the folder can't be read or holds no file: the caller treats that as unknown.
+ */
+export async function newestAccountWrite(personaId: number): Promise<number | null> {
+  if (!Number.isSafeInteger(personaId) || personaId <= 0) return null;
+  try {
+    const dir = join(DATA_DIR, 'accounts', String(personaId));
+    let newest = 0;
+    for (const e of await readdir(dir, { recursive: true, withFileTypes: true })) {
+      if (!e.isFile()) continue;
+      newest = Math.max(newest, (await stat(join(e.parentPath, e.name))).mtimeMs);
+    }
+    return newest > 0 ? newest : null;
+  } catch {
+    return null;
+  }
 }
 
 /** When a cache file last changed (ms), 0 when missing; a cheap change check without parsing it. */

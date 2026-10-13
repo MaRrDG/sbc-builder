@@ -1,6 +1,6 @@
 // Owner alerts on a private Discord channel (ALERT_WEBHOOK_URL; unset = log only): 500s, crashes,
-// failed backups, failed account deletions. Never request data: route, error type, message and the top of the stack only.
-export type AlertKind = '500' | 'uncaught' | 'unhandled' | 'backup' | 'deletion';
+// failed backups, failed account deletions and prunes. Never request data: route, error type, message and the top of the stack only.
+export type AlertKind = '500' | 'uncaught' | 'unhandled' | 'backup' | 'deletion' | 'prune';
 
 const WINDOW_MS = 10 * 60 * 1000;
 const HOUR_CAP = 20;
