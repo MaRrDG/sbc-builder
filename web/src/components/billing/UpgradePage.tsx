@@ -19,9 +19,11 @@ const POLL_MS = 2000;
 const POLL_MAX_MS = 30_000;
 const BENEFITS = ['f1', 'f2', 'f7', 'f5', 'f4', 'f6'];
 
-export function UpgradePage({ plan, billing, onActivated, onSettings, onBack }: {
+export function UpgradePage({ plan, billing, deletePending, onActivated, onSettings, onBack }: {
   plan: PlanInfo | null;
   billing: BillingState | null;
+  /** the account is scheduled for deletion: nothing to buy (the server refuses it too: deletePending) */
+  deletePending: boolean;
   onActivated: () => Promise<unknown>;
   onSettings: () => void;
   onBack: () => void;
@@ -81,7 +83,7 @@ export function UpgradePage({ plan, billing, onActivated, onSettings, onBack }: 
     [t, waitForPremium],
   );
 
-  const canBuy = phase === 'pick' && !lifetime && !subscribed;
+  const canBuy = phase === 'pick' && !lifetime && !subscribed && !deletePending;
 
   // open (or reopen on a plan switch) the inline checkout
   useEffect(() => {
@@ -169,6 +171,7 @@ export function UpgradePage({ plan, billing, onActivated, onSettings, onBack }: 
   if (phase === 'off') return notice(t('billing.offTitle'), t('billing.offBody'));
   if (lifetime) return notice(t('billing.haveTitle'), t('billing.lifetimeBody'), toSettings);
   if (subscribed) return notice(t('billing.haveTitle'), t('billing.subscribedBody'), toSettings);
+  if (deletePending) return notice(t('billing.deletePendingTitle'), t('err.deletePending'), toSettings);
 
   return (
     <div className="checkout">

@@ -3585,6 +3585,8 @@ button.card:active {
   font-weight: 700;
 }
 
+.onboarding-data { margin-top: 48px; }
+
 
 /* ---------- responsive ---------- */
 @media (max-width: 1180px) {

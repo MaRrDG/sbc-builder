@@ -3,10 +3,13 @@
 import { useId, useState } from 'react';
 import { ArrowsClockwise, DownloadSimple, Trash, WarningCircle } from '@phosphor-icons/react';
 import { api } from '../api';
-import { isConfirmWord } from '../account/confirmWord';
+import { isConfirmWord } from '../../../shared/confirm-word';
 import { useI18n, type Lang } from '../i18n';
 import { errorText } from '../messages';
 import { Row, Section } from './SettingsRows';
+
+/** The date has come: the hourly purge may already be running, so it can no longer be cancelled. */
+const started = (deleteAt: number) => deleteAt <= Date.now();
 
 const dateText = (ms: number, lang: Lang) => new Date(ms).toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
 
@@ -34,6 +37,13 @@ export function DeletionBanner({ deleteAt, onChange }: { deleteAt: number | null
   const { t, lang } = useI18n();
   const { busy, error, cancel } = useCancelDelete(onChange);
   if (deleteAt === null) return null;
+  if (started(deleteAt))
+    return (
+      <div className="notice deletion-notice" role="status">
+        <WarningCircle weight="fill" aria-hidden="true" />
+        <span>{t('deletion.inProgress')}</span>
+      </div>
+    );
   return (
     <div className="notice deletion-notice" role="status">
       <WarningCircle weight="fill" aria-hidden="true" />
@@ -57,6 +67,12 @@ export function YourDataCard({ deleteAt, onChange }: { deleteAt: number | null; 
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const undo = useCancelDelete(onChange);
+  /** Closing the confirm block forgets what was typed and any error. */
+  const close = () => {
+    setOpen(false);
+    setWord('');
+    setError(null);
+  };
 
   const download = async () => {
     setExporting(true);
@@ -76,11 +92,11 @@ export function YourDataCard({ deleteAt, onChange }: { deleteAt: number | null; 
     setError(null);
     try {
       await api.requestDelete(word.trim());
-      setOpen(false);
-      setWord('');
+      close();
       onChange();
     } catch (e) {
       setError(errorText(e, t));
+      onChange(); // a failed Paddle stop may still leave the deletion scheduled: show its banner
     } finally {
       setDeleting(false);
     }
@@ -95,7 +111,9 @@ export function YourDataCard({ deleteAt, onChange }: { deleteAt: number | null; 
           {exporting ? t('settings.exporting') : t('settings.exportButton')}
         </button>
       </Row>
-      {deleteAt !== null ? (
+      {deleteAt !== null && started(deleteAt) ? (
+        <Row title={t('settings.delete')} hint={t('deletion.inProgress')} />
+      ) : deleteAt !== null ? (
         <Row title={t('settings.delete')} hint={t('deletion.banner', { date: dateText(deleteAt, lang) })}>
           <button type="button" className="ghost bordered" disabled={undo.busy} onClick={() => void undo.cancel()}>
             {t('deletion.cancel')}
@@ -109,8 +127,11 @@ export function YourDataCard({ deleteAt, onChange }: { deleteAt: number | null; 
             aria-expanded={open}
             aria-controls={`${id}-confirm`}
             onClick={() => {
-              setOpen((v) => !v);
-              setError(null);
+              if (open) close();
+              else {
+                setOpen(true);
+                setError(null);
+              }
             }}
           >
             <Trash weight="bold" aria-hidden="true" /> {t('settings.delete')}
@@ -148,7 +169,7 @@ export function YourDataCard({ deleteAt, onChange }: { deleteAt: number | null; 
             <button type="submit" className="delete-go" disabled={!isConfirmWord(word) || deleting} aria-busy={deleting}>
               {deleting && <ArrowsClockwise weight="bold" className="spin" aria-hidden="true" />} {t('settings.deleteButton')}
             </button>
-            <button type="button" className="ghost bordered" onClick={() => setOpen(false)}>
+            <button type="button" className="ghost bordered" onClick={close}>
               {t('account.cancel')}
             </button>
           </div>

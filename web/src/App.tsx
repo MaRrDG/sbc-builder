@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
 import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
 import { BootSkeleton } from './components/BootSkeleton';
 import { DiscordIcon } from './components/DiscordIcon';
@@ -904,7 +904,7 @@ export default function App({
     return (
       <>
         {deletionBanner}
-        <UpgradePage plan={plan} billing={billing} onActivated={loadMe} onBack={toDashboard}
+        <UpgradePage plan={plan} billing={billing} deletePending={deleteAt !== null} onActivated={loadMe} onBack={toDashboard}
           onSettings={() => (linked.length ? go('settings') : toDashboard())} />
       </>
     );
@@ -913,7 +913,8 @@ export default function App({
       <>
         {survey}
         {deletionBanner}
-        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} />
+        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver}
+          yourData={<YourDataCard deleteAt={deleteAt} onChange={() => void loadMe().catch(onApiError)} />} />
       </>
     );
 
@@ -932,7 +933,8 @@ export default function App({
   const outOfSolves = !!effectiveQuota && effectiveQuota.used >= effectiveQuota.limit;
   // "Go Premium" buttons: only while billing is on and there is something to buy (not admins, lifetime or subscribed)
   const lifetime = plan?.source === 'admin' || (plan?.source === 'paid' && plan.premiumUntil === null);
-  const upgrade = billingOn && plan && !lifetime && !billing?.subscribed ? () => go('upgrade') : null;
+  // nothing to buy while the account is scheduled for deletion (the checkout refuses: deletePending)
+  const upgrade = billingOn && plan && !lifetime && !billing?.subscribed && deleteAt === null ? () => go('upgrade') : null;
   const noteQuota = (r: SolveResult) => {
     if (r.quota === undefined) return;
     // the server said unlimited but our local plan still says Free: the admin changed it while the page was open
@@ -1748,8 +1750,10 @@ export default function App({
   );
 }
 
-function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
+function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, yourData }: {
   error: string | null; lang: Lang; setLang: (l: Lang) => void; email: string; onSignOut: () => void; takenOver: boolean;
+  /** Settings "Your data": without an EA account Settings can't be reached, so export / delete live here too */
+  yourData: ReactNode;
 }) {
   const { t } = useI18n();
   return (
@@ -1784,6 +1788,7 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver }: {
         </>
       )}
       {error && <p className="banner">{error}</p>}
+      <div className="onboarding-data">{yourData}</div>
     </div>
   );
 }
