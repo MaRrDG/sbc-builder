@@ -55,6 +55,7 @@ import { isKnownPath } from '../shared/paths.js';
 import { analyticsFor, analyticsOrigins, analyticsWarnings, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
+import { buildExport } from './export.js';
 import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
 import { installDailyIngest } from './daily/store.js';
@@ -85,6 +86,7 @@ const apiLimit = createLimiter({ windowMs: 60_000, max: 600 });
 const proofLimit = createLimiter({ windowMs: 60_000, max: 5 }); // new EA sessions to prove (each one calls EA)
 const redeemLimit = createLimiter({ windowMs: 60_000, max: 10 }); // codes cannot be guessed by trying
 const reportLimit = createLimiter({ windowMs: 60_000, max: 20 });
+const exportLimit = createLimiter({ windowMs: 60_000, max: 1 }); // a data export reads a lot: once a minute per user
 const tooMany = () => new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
 
 // The extension posts from a chrome-extension:// origin (unpacked, so its id differs per install).
@@ -279,6 +281,18 @@ app.get('/api/me', async (req) => {
     takenOver: personas.length === 0 && (await takenOverFrom(userId)),
     // a link refused for the persona limit (cleared by any successful link): who to write to
     linkBlocked: row?.linkBlockedAt ? { at: row.linkBlockedAt.getTime(), limit: PERSONA_USER_LIMIT, supportEmail: process.env.SUPPORT_EMAIL || null } : null };
+});
+
+/** Everything FC Solver keeps about me, as a JSON download (GDPR art. 15/20); never secrets. */
+app.get('/api/me/export', async (req, reply) => {
+  const userId = await siteUser(req);
+  if (!exportLimit(userId)) throw tooMany();
+  const body = await buildExport(userId);
+  return reply
+    .header('Content-Type', 'application/json; charset=utf-8')
+    .header('Content-Disposition', `attachment; filename="fc-solver-${new Date().toISOString().slice(0, 10)}.json"`)
+    .header('Cache-Control', 'no-store')
+    .send(JSON.stringify(body, null, 2));
 });
 
 /** Schedule the account's deletion in 7 days (stops the Paddle renewal); `confirm` is the typed confirm word. */
