@@ -14,6 +14,7 @@ export function createAlertGate({ windowMs = WINDOW_MS, hourCap = HOUR_CAP, now 
       const t = now();
       sent = sent.filter((x) => t - x < 3_600_000);
       const prev = last.get(fingerprint);
+      for (const [k, v] of last) if (k !== fingerprint && t - v.at >= windowMs) last.delete(k);
       if (prev && t - prev.at < windowMs) {
         prev.skipped++;
         return { send: false, skipped: 0 };
@@ -26,11 +27,23 @@ export function createAlertGate({ windowMs = WINDOW_MS, hourCap = HOUR_CAP, now 
   };
 }
 
-export function alertText({ env, kind, route, err }: { env: string; kind: AlertKind; route?: string; err: { name?: string; message?: string; stack?: string } }) {
+/** Pure: first line of the message only, no params, emails / ids / token-like runs redacted, max 200 chars. */
+function safeMessage(raw: string) {
+  let m = (raw.split('\n')[0] ?? '').replace(/params:.*$/i, '').replace(/\s+/g, ' ').trim();
+  m = m
+    .replace(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g, '[email]')
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '[id]')
+    .replace(/[A-Za-z0-9_\-.=+/]{24,}/g, '[token]');
+  return m.slice(0, 200);
+}
+
+export function alertText({ env, kind, route, err, maxLen = 1800 }: { env: string; kind: AlertKind; route?: string; err: { name?: string; message?: string; stack?: string }; maxLen?: number }) {
   const where = route ? ` · ${route.split('?')[0]}` : '';
-  const msg = `${err.name ?? 'Error'}: ${(err.message ?? '').slice(0, 200)}`;
-  const stack = (err.stack ?? '').split('\n').slice(1, 6).join('\n');
-  return `**[${env}] ${kind}**${where}\n${msg}${stack ? `\n\`\`\`\n${stack}\n\`\`\`` : ''}`;
+  const head = `**[${env}] ${kind}**${where}\n${err.name ?? 'Error'}: ${safeMessage(err.message ?? '')}`;
+  const lines = (err.stack ?? '').split('\n').filter((l) => /^\s+at /.test(l)).slice(0, 5);
+  const build = () => (lines.length ? `${head}\n\`\`\`\n${lines.join('\n')}\n\`\`\`` : head);
+  while (lines.length && build().length > maxLen) lines.pop();
+  return build().slice(0, maxLen + 100);
 }
 
 const gate = createAlertGate();
@@ -42,16 +55,21 @@ const env = () => {
   }
 };
 
+/** `route` must be "METHOD /route/pattern" (Fastify routeOptions.url), never a raw request URL. Never throws. */
 export async function alert(kind: AlertKind, e: unknown, route?: string): Promise<void> {
-  const err = e instanceof Error ? e : new Error(String(e));
-  const first = (err.stack ?? '').split('\n')[1]?.trim() ?? '';
-  const { send, skipped } = gate.take(`${kind}|${route?.split('?')[0] ?? ''}|${first}`);
-  const url = process.env.ALERT_WEBHOOK_URL;
-  if (!send || !url) return;
-  const content = alertText({ env: env(), kind, route, err }) + (skipped ? `\n(+${skipped} more since the last one)` : '');
   try {
-    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: content.slice(0, 1900) }), signal: AbortSignal.timeout(5000) });
+    const err = e instanceof Error ? e : new Error(String(e));
+    const first = (err.stack ?? '').split('\n').find((l) => /^\s+at /.test(l))?.trim() ?? '';
+    const { send, skipped } = gate.take(`${kind}|${route?.split('?')[0] ?? ''}|${first}`);
+    const url = process.env.ALERT_WEBHOOK_URL;
+    if (!send || !url) return;
+    const content = alertText({ env: env(), kind, route, err }) + (skipped ? `\n(+${skipped} more since the last one)` : '');
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: content.slice(0, 1990), allowed_mentions: { parse: [] } }), signal: AbortSignal.timeout(5000) });
   } catch (x) {
-    console.error(`[alert] webhook failed: ${(x as Error).message}`);
+    try {
+      console.error(`[alert] failed: ${(x as Error).message}`);
+    } catch {
+      /* never throw */
+    }
   }
 }

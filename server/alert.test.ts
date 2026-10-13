@@ -50,3 +50,24 @@ test('alert: a failed webhook send is swallowed', async () => {
     else process.env.ALERT_WEBHOOK_URL = prev;
   }
 });
+
+test('alertText: multi-line (Drizzle-like) message keeps only the first line, no params, no email', () => {
+  const message = 'Failed query: select * from users where email = $1\nparams: bob@example.com,123';
+  const s = alertText({ env: 'dev', kind: '500', err: { name: 'Error', message, stack: `Error: ${message}\n    at f (/app/x.ts:1:1)` } });
+  assert.doesNotMatch(s, /bob@example\.com/);
+  assert.doesNotMatch(s, /params/);
+  assert.match(s, /at f/);
+});
+
+test('alertText: emails, ids and token-like runs in a one-line message are redacted', () => {
+  const s = alertText({ env: 'dev', kind: '500', err: { name: 'Error', message: 'no user bob@example.com 123e4567-e89b-12d3-a456-426614174000 eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc' } });
+  assert.doesNotMatch(s, /bob@example/);
+  assert.match(s, /\[email\]/);
+  assert.match(s, /\[id\]/);
+  assert.match(s, /\[token\]/);
+});
+
+test('alertText: stack lines without "at" are not included', () => {
+  const s = alertText({ env: 'dev', kind: '500', err: { name: 'Error', message: 'm', stack: 'Error: m\nsecret continuation line\n    at f (/app/x.ts:1:1)' } });
+  assert.doesNotMatch(s, /secret/);
+});
