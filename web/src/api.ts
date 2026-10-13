@@ -60,6 +60,49 @@ export interface GallerySetResult {
   lineup: (Player & { inClub: boolean; firstOwner: boolean; score: number })[];
 }
 
+/** My Squads: a saved squad's value (EA's marketAverage, coins); loans count 0, unknown = cards without a price. */
+export interface SquadValue {
+  starters: number;
+  bench: number;
+  total: number;
+  unknown: number;
+  loans: number;
+}
+
+export interface SquadRow {
+  id: number;
+  name: string;
+  formation: string | null;
+  active: boolean;
+  rating: number | null;
+  value: SquadValue;
+  /** players known; false: open the squad once in the web app */
+  loaded: boolean;
+}
+
+export interface SquadsResponse {
+  squads: SquadRow[];
+  fetchedAt: number | null;
+  /** when the club (and so its prices) was last read */
+  pricesAt: number | null;
+}
+
+export interface SquadSlotView {
+  index: number;
+  itemId: number;
+  player: Player | null;
+  value: number | null;
+  loan: boolean;
+  chem: number | null;
+}
+
+export interface SquadDetailResponse extends SquadRow {
+  chemistry: number | null;
+  fetchedAt: number | null;
+  pricesAt: number | null;
+  slots: SquadSlotView[];
+}
+
 export interface GalleryResponse {
   fetchedAt: number;
   ledgerSize: number;
@@ -523,6 +566,8 @@ export const api = {
   solve: (setId: number, challengeId: number, options: SolveOptions, deep = false, useStorage = true) =>
     req<SolveResult>('/api/solve', { method: 'POST', body: { setId, challengeId, options, deep, useStorage } }),
   gallery: () => req<GalleryResponse>('/api/gallery'),
+  squads: () => req<SquadsResponse>('/api/squads'),
+  squad: (id: number) => req<SquadDetailResponse>(`/api/squads/${id}`),
   objectives: () => req<ObjectivesResponse>('/api/objectives'),
   solveObjectives: (b: { objectiveIds: number[]; formation: string; options?: { excludeIds?: number[]; maxRating?: number; includeLoans?: boolean } }) =>
     req<ObjectivesSolve>('/api/objectives/solve', { method: 'POST', body: b }),

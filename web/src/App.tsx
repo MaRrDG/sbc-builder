@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Target, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Strategy, Target, UsersThree, X } from '@phosphor-icons/react';
 import { BootSkeleton } from './components/BootSkeleton';
 import { DiscordIcon } from './components/DiscordIcon';
 import {
@@ -52,7 +52,8 @@ import { useFounders } from './landing/Founders';
 import { useDailyPending } from './daily/usePending';
 import { GalleryInfo } from './components/gallery/GalleryInfo';
 import { PremiumPreview } from './components/PremiumPreview';
-import { DEMO_GALLERY, DEMO_META, DEMO_OBJECTIVES } from './components/premiumDemo';
+import { DEMO_GALLERY, DEMO_META, DEMO_OBJECTIVES, DEMO_SQUADS } from './components/premiumDemo';
+import { SquadList, SquadsView } from './components/squads/SquadsView';
 import { ObjectiveGroups, ObjectivesView, ObjStepper } from './components/objectives/ObjectivesView';
 import { splitGroups } from './components/objectives/objectives';
 import { compareVersions } from './components/UpdateBanner';
@@ -698,7 +699,7 @@ export default function App({
   // the tab title follows the screen
   useEffect(() => {
     const name =
-      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'accounts' ? 'Linked accounts' : view === 'invite' ? 'Invite friends' : view === 'upgrade' ? 'Premium' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery' : view === 'objectives' ? 'Objectives'
+      view === 'club' ? 'Club' : view === 'evolutions' ? 'Evolutions' : view === 'settings' ? 'Settings' : view === 'accounts' ? 'Linked accounts' : view === 'invite' ? 'Invite friends' : view === 'upgrade' ? 'Premium' : view === 'setup' ? 'Setup' : view === 'admin' ? 'Admin' : view === 'gallery' ? 'Gallery' : view === 'squads' ? 'My Squads' : view === 'objectives' ? 'Objectives'
       : setId ? categories.flatMap((c) => c.sets).find((s) => s.setId === setId)?.name : null;
     document.title = name ? `${name} · FC Solver` : 'FC Solver';
   }, [view, setId, categories]);
@@ -866,6 +867,8 @@ export default function App({
           ? adminRoute('overview')
           : v === 'gallery'
             ? { view: 'gallery', setId: null }
+            : v === 'squads'
+              ? { view: 'squads', squadId: null }
             : v === 'objectives'
               ? { view: 'objectives', step: 'pick' }
               : { view: v }
@@ -873,6 +876,14 @@ export default function App({
     setError(null);
   };
 
+  // My Squads: the plan changed under us → the locked note (no banner); persona errors → App
+  const squadsError = useCallback(
+    (e: unknown) => {
+      if (e instanceof ApiError && e.code === 'premiumOnly') void api.me().then((m) => setPlan(m.plan), () => {});
+      else onApiErrorRef.current(e);
+    },
+    [],
+  );
   const objStep = useCallback((step: ObjStep, replace?: boolean) => navigate({ view: 'objectives', step }, replace), [navigate]);
 
   // admin sidebar sub-items: real links (ctrl/cmd-click opens a new tab), otherwise navigate in place
@@ -1157,6 +1168,11 @@ export default function App({
             <span>{t('nav.gallery')}</span>
             {planTag}
           </button>
+          <button type="button" className="nav-item" aria-current={view === 'squads' && !showGuide ? 'page' : undefined} onClick={() => go('squads')}>
+            <Strategy weight="bold" aria-hidden="true" />
+            <span>{t('nav.squads')}</span>
+            {planTag}
+          </button>
           <button type="button" className="nav-item" aria-current={view === 'objectives' && !showGuide ? 'page' : undefined} onClick={() => go('objectives')}>
             <Target weight="bold" aria-hidden="true" />
             <span>{t('nav.objectives')}</span>
@@ -1333,6 +1349,34 @@ export default function App({
               <GallerySet set={gallerySet} meta={meta} onBack={() => navigate({ view: 'gallery', setId: null })} />
             ) : (
               <GalleryList data={gallery} meta={meta} onOpen={(id) => navigate({ view: 'gallery', setId: id })} onInfo={() => setGalleryInfo(true)} />
+            )
+          )}
+
+          {!showGuide && view === 'squads' && meta && (
+            !premium ? (
+              <section className="squads-view">
+                <header className="page-head">
+                  <div>
+                    <h1>{t('squads.title')}</h1>
+                    <p className="muted">{t('squads.lede')}</p>
+                  </div>
+                </header>
+                <PremiumPreview title={t('squads.lockedTitle')} body={t('squads.lockedBody')}>
+                  <SquadList data={DEMO_SQUADS} error={null} retry={() => {}} onOpen={() => {}} head={false} />
+                </PremiumPreview>
+              </section>
+            ) : (
+              activeId && (
+                <SquadsView
+                  key={activeId}
+                  meta={meta}
+                  personaId={activeId}
+                  squadId={route.view === 'squads' ? route.squadId : null}
+                  onOpen={(id) => navigate({ view: 'squads', squadId: id })}
+                  onError={squadsError}
+                  reload={dataVersion}
+                />
+              )
             )
           )}
 

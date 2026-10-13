@@ -4,7 +4,7 @@
 /** First path segments outside the app. */
 const PUBLIC = new Set(['signin', 'setup', 'guide', 'daily', 'terms', 'privacy', 'cookies', 'refunds', 'changelog']);
 /** App screens, under /dashboard (old links without /dashboard still work). */
-const APP = new Set(['sbc', 'club', 'evolutions', 'settings', 'accounts', 'invite', 'upgrade', 'objectives', 'gallery', 'admin']);
+const APP = new Set(['sbc', 'club', 'evolutions', 'settings', 'accounts', 'invite', 'upgrade', 'objectives', 'gallery', 'squads', 'admin']);
 
 /** True when the path is a page of the site; only the first one or two segments are checked. */
 export function isKnownPath(path: string): boolean {

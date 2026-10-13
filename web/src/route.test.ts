@@ -50,6 +50,14 @@ test('extension links on / open the app, not the landing page', () => {
   assert.deepEqual(parseRoute('/', '?foo=1'), { view: 'landing' });
 });
 
+test('squads routes', () => {
+  assert.deepEqual(parseRoute('/dashboard/squads'), { view: 'squads', squadId: null });
+  assert.deepEqual(parseRoute('/dashboard/squads/3'), { view: 'squads', squadId: 3 });
+  assert.deepEqual(parseRoute('/dashboard/squads/x'), { view: 'squads', squadId: null });
+  assert.equal(routePath({ view: 'squads', squadId: null }), '/dashboard/squads');
+  assert.equal(routePath({ view: 'squads', squadId: 0 }), '/dashboard/squads/0');
+});
+
 test('gallery routes', () => {
   assert.deepEqual(parseRoute('/dashboard/gallery'), { view: 'gallery', setId: null });
   assert.deepEqual(parseRoute('/dashboard/gallery/premier-league-arsenal'), { view: 'gallery', setId: 'premier-league-arsenal' });

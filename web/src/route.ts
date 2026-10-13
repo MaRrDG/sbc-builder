@@ -5,6 +5,7 @@
 //   /dashboard/sbc/16/39  a challenge       /dashboard/club        club
 //   /dashboard/evolutions evolutions
 //   /dashboard/gallery    gallery list      /dashboard/gallery/<set>  a gallery set
+//   /dashboard/squads     my squads (list)  /dashboard/squads/<id>   one saved squad with its value
 //   /dashboard/objectives[/formation|/squad]  objectives squad wizard: pick → formation → squad
 //   /dashboard/upgrade    buy Premium (Paddle checkout)
 //   /dashboard/invite     invite friends     /dashboard/settings   settings          /dashboard/accounts   linked accounts          /dashboard/admin[/users[/:id]|/accounts|/codes|/daily][?filters]   admin panel (admins only)
@@ -36,6 +37,7 @@ export type Route =
   | { view: 'guide' }
   | { view: 'daily'; practice: boolean }
   | { view: 'gallery'; setId: string | null }
+  | { view: 'squads'; squadId: number | null }
   | { view: 'objectives'; step: ObjStep }
   | { view: 'admin'; page: AdminPage; userId: string | null; query: string }
   | { view: 'legal'; doc: LegalDoc }
@@ -86,6 +88,7 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (x === 'invite') return { view: 'invite' };
   if (x === 'upgrade') return { view: 'upgrade' };
   if (x === 'objectives') return { view: 'objectives', step: y === 'formation' || y === 'squad' ? y : 'pick' };
+  if (x === 'squads') return { view: 'squads', squadId: y && /^\d{1,9}$/.test(y) ? Number(y) : null };
   if (x === 'gallery') return { view: 'gallery', setId: y && /^[a-z0-9-]+$/.test(y) ? y : null };
   if (x === 'admin') {
     const query = search.replace(/^\?/, '');
@@ -135,6 +138,8 @@ export function routePath(r: Route): string {
       return `/dashboard/${r.view}`;
     case 'objectives':
       return r.step === 'pick' ? '/dashboard/objectives' : `/dashboard/objectives/${r.step}`;
+    case 'squads':
+      return r.squadId === null ? '/dashboard/squads' : `/dashboard/squads/${r.squadId}`;
     case 'gallery':
       return r.setId ? `/dashboard/gallery/${r.setId}` : '/dashboard/gallery';
     case 'admin': {
