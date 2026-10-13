@@ -105,6 +105,16 @@ export const users = pgTable('users', {
   uniqueIndex('users_username_lower').on(sql`lower(${t.username})`),
 ]); // one spot per EA account, even without the lock
 
+/**
+ * Founding 50 spots of deleted users (server/db/deletion.ts): a spot is never freed and an EA account
+ * that earned one never earns another. Counted together with users.founder_at (server/db/users.ts).
+ */
+export const founderSpots = pgTable('founder_spots', {
+  id: serial('id').primaryKey(),
+  personaId: bigint('persona_id', { mode: 'number' }).unique(), // null: a founder without a recorded persona
+  founderAt: timestamp('founder_at', { withTimezone: true }).notNull(),
+});
+
 /** Invite (one per user), promo (admin) and gift (bought with points) codes; server/referrals.ts. */
 export const codes = pgTable(
   'codes',

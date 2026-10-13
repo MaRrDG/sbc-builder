@@ -6,7 +6,7 @@ import type { OnboardingAnswer } from '../onboarding.js';
 import type { PlanRow, Tier } from '../plan.js';
 import { earnsSpot } from '../founders.js';
 import { db } from './index.js';
-import { linkTokens, personaLinks, personas, users } from './schema.js';
+import { founderSpots, linkTokens, personaLinks, personas, users } from './schema.js';
 
 const LINK_TTL_MS = 10 * 60 * 1000;
 
@@ -131,9 +131,12 @@ export async function resetQuota(userId: string): Promise<boolean> {
 // any fixed number: serialises spot claims so two links at once never make it 51
 const FOUNDERS_LOCK = 4150;
 
+// founders still here + spots kept from deleted founders, in one statement (one snapshot)
+const takenSql = sql<number>`((select count(*) from ${users} where ${users.founderAt} is not null) + (select count(*) from ${founderSpots}))::int`;
+
 export async function foundersTaken(): Promise<number> {
-  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(users).where(isNotNull(users.founderAt));
-  return row?.n ?? 0;
+  const [row] = await db.execute<{ n: number }>(sql`select ${takenSql} as n`);
+  return Number(row?.n ?? 0);
 }
 
 /**
@@ -146,9 +149,11 @@ export async function claimFounderSpot(userId: string, personaId: number, admin:
     await tx.execute(sql`select pg_advisory_xact_lock(${FOUNDERS_LOCK})`);
     const [user] = await tx.select({ founderAt: users.founderAt }).from(users).where(eq(users.id, userId));
     if (!user) return false;
-    const [{ n }] = await tx.select({ n: sql<number>`count(*)::int` }).from(users).where(isNotNull(users.founderAt));
+    const [row] = await tx.execute<{ n: number }>(sql`select ${takenSql} as n`);
+    const n = Number(row?.n ?? 0);
     const [used] = await tx.select({ id: users.id }).from(users).where(eq(users.founderPersona, personaId));
-    if (!earnsSpot({ admin, alreadyFounder: !!user.founderAt, taken: n, limit, personaUsed: !!used })) return false;
+    const [kept] = await tx.select({ id: founderSpots.id }).from(founderSpots).where(eq(founderSpots.personaId, personaId));
+    if (!earnsSpot({ admin, alreadyFounder: !!user.founderAt, taken: n, limit, personaUsed: !!used || !!kept })) return false;
     await tx.update(users).set({ founderAt: sql`now()`, founderPersona: personaId, plan: 'premium', premiumUntil: null }).where(eq(users.id, userId));
     return true;
   });

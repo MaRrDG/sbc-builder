@@ -68,16 +68,17 @@ test('readShared: an entry bigger than the whole budget is not kept', async () =
 
 test.after(() => rm(dir, { recursive: true, force: true }));
 
-test('dropKeys: removes the folder and its shared entries, refuses unsafe prefixes', async () => {
-  await writeCache('t/p/x', { v: 1 });
-  await writeCache('t/px', { v: 2 }); // same start, other key: stays
-  assert.equal((await readShared<{ v: number }>('t/p/x'))?.data.v, 1);
-  await dropKeys('t/p');
-  assert.equal(await readShared('t/p/x'), null);
-  assert.equal(await readCache('t/p/x'), null);
-  await assert.rejects(readdir(join(dir, 't/p')));
-  assert.equal((await readShared<{ v: number }>('t/px'))?.data.v, 2);
-  await dropKeys('t/p'); // again: nothing left, fine
-  await assert.rejects(dropKeys(''));
-  await assert.rejects(dropKeys('t/../..'));
+test('dropKeys: removes one account folder and its shared entries, refuses anything else', async () => {
+  await writeCache('accounts/7/x', { v: 1 });
+  await writeCache('accounts/77/x', { v: 2 }); // same start, other account: stays
+  assert.equal((await readShared<{ v: number }>('accounts/7/x'))?.data.v, 1);
+  await dropKeys('accounts/7/'); // a trailing slash is fine
+  assert.equal(await readShared('accounts/7/x'), null);
+  assert.equal(await readCache('accounts/7/x'), null);
+  await assert.rejects(readdir(join(dir, 'accounts/7')));
+  assert.equal((await readShared<{ v: number }>('accounts/77/x'))?.data.v, 2);
+  await dropKeys('accounts/7'); // again: nothing left, fine
+  for (const bad of ['', '/', 'accounts', 'accounts/', 'accounts/7/x', 'accounts/../t', 't/p', '.', 'accounts/7a', '/accounts/7'])
+    await assert.rejects(dropKeys(bad), bad);
+  assert.equal((await readShared<{ v: number }>('accounts/77/x'))?.data.v, 2);
 });

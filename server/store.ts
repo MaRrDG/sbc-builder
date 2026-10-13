@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile, rename, rm, stat, unlink } from 'node:fs/promises';
-import { dirname, join, relative, sep } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -116,13 +116,13 @@ async function write<T>(key: string, entry: Cached<T>, json: string): Promise<Ca
 }
 
 /**
- * Delete every key under `prefix` (a folder such as `accounts/<personaId>`): the files on disk and
- * their shared entries. Refuses an empty prefix, `..`, or anything that is not strictly inside DATA_DIR.
+ * Delete one EA account's folder `accounts/<personaId>`: the files on disk and their shared entries.
+ * Anything else (another folder, `..`, an empty prefix) throws: this is the only recursive delete in data/.
  */
-export async function dropKeys(prefix: string): Promise<void> {
+export async function dropKeys(prefixIn: string): Promise<void> {
+  const prefix = prefixIn.replace(/[\\/]+$/, '');
+  if (!/^accounts\/\d+$/.test(prefix)) throw new Error(`dropKeys: refused prefix "${prefixIn}"`);
   const path = join(DATA_DIR, prefix);
-  const rel = relative(DATA_DIR, path);
-  if (!prefix || prefix.split(/[\\/]/).includes('..') || !rel || rel.startsWith('..') || rel.split(sep).includes('..')) throw new Error(`dropKeys: refused prefix "${prefix}"`);
   const evict = () => {
     for (const key of [...shared.keys()]) if (key === prefix || key.startsWith(`${prefix}/`)) unshare(key);
     drops++; // a read already in flight must not put the old entry back

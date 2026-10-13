@@ -1,6 +1,6 @@
 // Account deletion: scheduling and the purge primitives (server/deletion-rules.ts decides which EA
 // accounts go). Every purge function is idempotent: running it again deletes nothing and succeeds.
-import { and, asc, eq, inArray, isNotNull, lte } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, lte, sql } from 'drizzle-orm';
 import { db } from './index.js';
 import {
   brickReports,
@@ -11,6 +11,7 @@ import {
   dailyReminders,
   events,
   evoTrainings,
+  founderSpots,
   linkTokens,
   personaLinks,
   personas,
@@ -60,7 +61,7 @@ export async function personasForPurge(
   return { personas: rows, links: lRows };
 }
 
-/** Every DB row keyed by this EA account (the cache folder goes separately, store.dropKeys). */
+/** Every DB row keyed by this EA account (the cache folder goes separately, store.dropKeys(`accounts/<id>`)). */
 export async function purgePersonaRows(personaId: number): Promise<void> {
   await db.transaction(async (tx) => {
     await tx.delete(completionMarks).where(eq(completionMarks.personaId, personaId));
@@ -97,6 +98,9 @@ export async function purgeUserRows(userId: string): Promise<void> {
     await tx.update(users).set({ invitedBy: null }).where(eq(users.invitedBy, userId));
     await tx.update(pointLedger).set({ ref: '' }).where(eq(pointLedger.ref, userId));
     await tx.update(personas).set({ previousUserId: null }).where(eq(personas.previousUserId, userId));
+    // the Founding 50 spot is not freed: keep it (and its EA account's lock) without the user
+    const [me] = await tx.select({ at: users.founderAt, persona: users.founderPersona }).from(users).where(eq(users.id, userId));
+    if (me?.at) await tx.insert(founderSpots).values({ personaId: me.persona, founderAt: me.at }).onConflictDoNothing();
     await tx.delete(users).where(eq(users.id, userId));
   });
 }
@@ -104,6 +108,11 @@ export async function purgeUserRows(userId: string): Promise<void> {
 /** Admin history stays for the counts, without who: the user id, and the purged EA accounts' ids. */
 export async function anonymizeEvents(userId: string, purgedPersonas: number[]): Promise<void> {
   await db.transaction(async (tx) => {
+    // billing rows carry Paddle ids that lead back to the person
+    await tx
+      .update(events)
+      .set({ data: sql`${events.data} - 'customerId' - 'subscriptionId' - 'transactionId'` })
+      .where(and(eq(events.userId, userId), eq(events.type, 'billing')));
     await tx.update(events).set({ userId: null }).where(eq(events.userId, userId));
     if (purgedPersonas.length) await tx.update(events).set({ personaId: null }).where(inArray(events.personaId, purgedPersonas));
   });
