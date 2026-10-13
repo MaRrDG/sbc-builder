@@ -8,9 +8,12 @@ import { clerkApi } from './auth.js';
 import { billingConfig, cancelSubscription, getSubscription, PaddleError, removeScheduledChange, type BillingConfig } from './billing/paddle.js';
 import { subscriptionsOf } from './db/billing.js';
 import {
+  addDeleteSubs,
   anonymizeEvents,
+  anonymizePersonaEvents,
   clearDeletion,
   deleteAtOf,
+  deleteSubsOf,
   dueDeletions,
   personasForPurge,
   purgePersonaRows,
@@ -32,34 +35,50 @@ import { dropKeys } from './store.js';
 const RENEWING = new Set(['active', 'trialing', 'past_due']);
 const is4xx = (e: unknown) => e instanceof PaddleError && e.status >= 400 && e.status < 500;
 
-/** Cancel at period end; a refusal because it is already cancelled / scheduled to cancel counts as done. */
-async function stopRenewal(c: BillingConfig, id: string): Promise<void> {
+/**
+ * Cancel at period end. 'scheduled': this call stopped the renewal (Cancel deletion may restart it);
+ * 'already': Paddle had it cancelled / scheduled to cancel (not ours to undo); 'now': a past_due subscription
+ * Paddle would not cancel at period end, cancelled immediately instead (no refund either way, nothing to undo).
+ */
+async function stopRenewal(c: BillingConfig, id: string, status: string): Promise<'scheduled' | 'already' | 'now'> {
   try {
     await cancelSubscription(c, id, 'next_billing_period');
+    return 'scheduled';
   } catch (e) {
     if (!is4xx(e)) throw e;
     const s = await getSubscription(c, id);
-    if (s.status !== 'canceled' && s.scheduled_change?.action !== 'cancel') throw e;
+    if (s.status === 'canceled' || s.scheduled_change?.action === 'cancel') return 'already';
+    if (status !== 'past_due' && s.status !== 'past_due') throw e;
+    await cancelSubscription(c, id, 'immediately');
+    return 'now';
   }
 }
 
 /** POST /api/me/delete. Idempotent: a second request keeps the first date (and sends no second email). */
 export async function requestDeletion(userId: string, confirm: unknown): Promise<{ deleteAt: number }> {
   if (!isConfirmWord(confirm)) throw new SessionError('Type the confirm word to delete your account.', 400, 'deleteConfirm');
-  const had = await deleteAtOf(userId);
-  const at = had ?? deleteDate(Date.now());
-  if (!had) await scheduleDeletion(userId, at);
+  const fresh = await scheduleDeletion(userId, deleteDate(Date.now())); // only when no date yet: one request wins
+  const at = await deleteAtOf(userId);
+  if (!at) throw new SessionError('Sign in first.', 401, 'signIn'); // the user row is gone
   const c = billingConfig();
   if (c) {
+    const mine: string[] = [];
     try {
-      for (const s of await subscriptionsOf(userId)) if (RENEWING.has(s.status) && !s.cancelAt) await stopRenewal(c, s.id);
+      for (const s of await subscriptionsOf(userId)) {
+        if (RENEWING.has(s.status) && !s.cancelAt && (await stopRenewal(c, s.id, s.status)) === 'scheduled') mine.push(s.id);
+      }
+      await addDeleteSubs(userId, mine);
     } catch (e) {
       console.warn(`[deletion] renewal stop failed: ${(e as Error).message}`);
-      if (!had) await clearDeletion(userId); // nothing scheduled while the renewal still runs: the user retries
+      if (fresh) {
+        // nothing stays scheduled while a renewal still runs: undo this call's cancels, the user retries
+        for (const id of mine) await removeScheduledChange(c, id).catch((x) => console.warn(`[deletion] undo failed: ${(x as Error).message}`));
+        await clearDeletion(userId);
+      } else await addDeleteSubs(userId, mine).catch(() => {});
       throw new SessionError('Could not stop the subscription renewal. Try again in a minute.', 502, 'deletePaddle');
     }
   }
-  if (!had) {
+  if (fresh) {
     logEvent({ type: 'account', userId, data: { action: 'deleteRequested' } });
     await mailRequested(userId, at).catch((e) => console.warn(`[deletion] email failed: ${(e as Error).message}`));
   }
@@ -70,18 +89,19 @@ async function mailRequested(userId: string, at: Date): Promise<void> {
   const [[row], prefs] = await Promise.all([db.select({ email: users.email }).from(users).where(eq(users.id, userId)), prefsOf(userId)]);
   if (!row?.email) return;
   const mail = deletionMail(prefs.lang, at, { siteUrl: `${siteUrl()}/dashboard`, logoUrl: `${siteUrl()}/icon-192.png` });
-  await sendMails([{ to: row.email, ...mail }], `account-delete/${userId}/${at.getTime()}`);
+  const r = await sendMails([{ to: row.email, ...mail }], `account-delete/${userId}/${at.getTime()}`);
+  if (r.kind !== 'ok') console.warn(`[deletion] confirmation email not sent: ${r.kind}`);
 }
 
-/** POST /api/me/delete/cancel: the account stays and scheduled cancels renew again. Nothing scheduled: nothing to do. */
+/** POST /api/me/delete/cancel: the account stays; only renewals the request itself stopped restart. Nothing scheduled: nothing to do. */
 export async function cancelDeletion(userId: string): Promise<{ deleteAt: null }> {
   if (!(await deleteAtOf(userId))) return { deleteAt: null };
   const c = billingConfig();
+  const subs = await deleteSubsOf(userId);
   if (c) {
-    for (const s of await subscriptionsOf(userId)) {
-      if (!s.cancelAt || s.status === 'canceled') continue;
+    for (const id of subs) {
       try {
-        await removeScheduledChange(c, s.id);
+        await removeScheduledChange(c, id);
       } catch (e) {
         if (is4xx(e)) {
           console.warn(`[deletion] nothing to undo on a subscription: ${(e as Error).message}`);
@@ -92,7 +112,7 @@ export async function cancelDeletion(userId: string): Promise<{ deleteAt: null }
         throw new SessionError('Could not restart the subscription renewal. Try again in a minute.', 502, 'deleteCancelPaddle');
       }
     }
-  }
+  } else if (subs.length) console.warn(`[deletion] billing is off: ${subs.length} renewal(s) not restarted at Paddle`);
   await clearDeletion(userId);
   logEvent({ type: 'account', userId, data: { action: 'deleteCancelled' } });
   return { deleteAt: null };
@@ -105,6 +125,7 @@ export interface PurgeDeps {
   personasForPurge: typeof personasForPurge;
   forgetAccount(personaId: number): void;
   dropKeys(prefix: string): Promise<void>;
+  anonymizePersonaEvents(personaId: number): Promise<void>;
   purgePersonaRows(personaId: number): Promise<void>;
   unlinkUser(personaId: number, userId: string): Promise<void>;
   anonymizeEvents(userId: string, purgedPersonas: number[]): Promise<void>;
@@ -131,6 +152,7 @@ const defaultDeps: PurgeDeps = {
   personasForPurge,
   forgetAccount,
   dropKeys,
+  anonymizePersonaEvents,
   purgePersonaRows,
   unlinkUser,
   anonymizeEvents,
@@ -156,6 +178,7 @@ export async function purgeUser(userId: string, deps: PurgeDeps = defaultDeps): 
   for (const id of plan.purge) {
     deps.forgetAccount(id); // first: an in-flight cache write must not find the account any more
     await deps.dropKeys(`accounts/${id}`);
+    await deps.anonymizePersonaEvents(id); // before the rows: once they are gone the next run no longer sees this persona
     await deps.purgePersonaRows(id);
   }
   for (const id of plan.unlinkOnly) await deps.unlinkUser(id, userId);
@@ -172,6 +195,8 @@ export async function runDueDeletions(now = new Date()): Promise<void> {
   try {
     for (const userId of await dueDeletions(now)) {
       try {
+        const at = await deleteAtOf(userId); // cancelled since the list was read: keep the account
+        if (!at || at > now) continue;
         await purgeUser(userId);
         logEvent({ type: 'account', data: { action: 'deleted' } });
         console.log('[deletion] purged one account');

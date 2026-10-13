@@ -4,7 +4,7 @@ import { purgeUser, type PurgeDeps } from './deletion.js';
 import { deletionMail } from './deletion-mail.js';
 
 /** Fakes that record every call in order; `opts` shapes the persona rows and failures. */
-function fakes(opts: { owners?: { personaId: number; ownerId: string | null }[]; links?: { personaId: number; userId: string }[]; subs?: string[]; clerk?: () => Promise<void> } = {}) {
+function fakes(opts: { owners?: { personaId: number; ownerId: string | null }[]; links?: { personaId: number; userId: string }[]; subs?: string[]; clerk?: () => Promise<void>; unlink?: () => Promise<void> } = {}) {
   const calls: string[] = [];
   const deps: PurgeDeps = {
     subsToCancel: async () => opts.subs ?? [],
@@ -16,8 +16,12 @@ function fakes(opts: { owners?: { personaId: number; ownerId: string | null }[];
     personasForPurge: async () => ({ personas: opts.owners ?? [], links: opts.links ?? [] }),
     forgetAccount: (id) => void calls.push(`forget:${id}`),
     dropKeys: async (p) => void calls.push(`drop:${p}`),
+    anonymizePersonaEvents: async (id) => void calls.push(`anonP:${id}`),
     purgePersonaRows: async (id) => void calls.push(`rows:${id}`),
-    unlinkUser: async (id, u) => void calls.push(`unlink:${id}:${u}`),
+    unlinkUser: async (id, u) => {
+      calls.push(`unlink:${id}:${u}`);
+      if (opts.unlink) await opts.unlink();
+    },
     anonymizeEvents: async (u, ids) => void calls.push(`anon:${u}:${ids.join(',')}`),
     purgeUserRows: async (u) => void calls.push(`user:${u}`),
   };
@@ -38,7 +42,7 @@ test('purgeUser: Paddle, Clerk, personas, events, then the user row last', async
     ],
   });
   await purgeUser('u1', deps);
-  assert.deepEqual(calls, ['paddle:sub_1', 'clerk:u1', 'forget:1', 'drop:accounts/1', 'rows:1', 'unlink:2:u1', 'anon:u1:1', 'user:u1']);
+  assert.deepEqual(calls, ['paddle:sub_1', 'clerk:u1', 'forget:1', 'drop:accounts/1', 'anonP:1', 'rows:1', 'unlink:2:u1', 'anon:u1:1', 'user:u1']);
 });
 
 test('purgeUser: no subscriptions to cancel → no Paddle call', async () => {
@@ -67,7 +71,7 @@ test('purgeUser: a Clerk failure stops before the personas; the next run complet
   fail = false;
   calls.length = 0;
   await purgeUser('u1', deps);
-  assert.deepEqual(calls, ['clerk:u1', 'forget:1', 'drop:accounts/1', 'rows:1', 'anon:u1:1', 'user:u1']);
+  assert.deepEqual(calls, ['clerk:u1', 'forget:1', 'drop:accounts/1', 'anonP:1', 'rows:1', 'anon:u1:1', 'user:u1']);
 });
 
 test('purgeUser: Clerk 404 (already deleted) counts as done', async () => {
@@ -78,6 +82,32 @@ test('purgeUser: Clerk 404 (already deleted) counts as done', async () => {
   });
   await purgeUser('u1', deps);
   assert.deepEqual(calls, ['clerk:u1', 'anon:u1:', 'user:u1']);
+});
+
+test('purgeUser: a crash after a persona\'s rows went keeps its events anonymous (done before the rows)', async () => {
+  let crash = true;
+  const owners = [
+    { personaId: 1, ownerId: 'u1' as string | null },
+    { personaId: 2, ownerId: 'u2' as string | null },
+  ];
+  const { calls, deps } = fakes({
+    owners,
+    links: [{ personaId: 2, userId: 'u1' }],
+    unlink: async () => {
+      if (crash) throw new Error('db down');
+    },
+  });
+  const rows = deps.purgePersonaRows;
+  deps.purgePersonaRows = async (id) => {
+    await rows(id);
+    owners.splice(owners.findIndex((o) => o.personaId === id), 1); // committed: the next run no longer sees it
+  };
+  await assert.rejects(purgeUser('u1', deps), /db down/);
+  assert.ok(calls.indexOf('anonP:1') >= 0 && calls.indexOf('anonP:1') < calls.indexOf('rows:1'));
+  crash = false;
+  calls.length = 0;
+  await purgeUser('u1', deps);
+  assert.deepEqual(calls, ['clerk:u1', 'unlink:2:u1', 'anon:u1:', 'user:u1']);
 });
 
 test('deletionMail: the date and the way back in every language', () => {

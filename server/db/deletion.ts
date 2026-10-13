@@ -1,6 +1,6 @@
 // Account deletion: scheduling and the purge primitives (server/deletion-rules.ts decides which EA
 // accounts go). Every purge function is idempotent: running it again deletes nothing and succeeds.
-import { and, asc, eq, inArray, isNotNull, lte, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { db } from './index.js';
 import {
   brickReports,
@@ -22,17 +22,33 @@ import {
   users,
 } from './schema.js';
 
-export async function scheduleDeletion(userId: string, at: Date): Promise<void> {
-  await db.update(users).set({ deleteAt: at }).where(eq(users.id, userId));
+/** Set the date unless one is already set. True when this call set it (only that request mails the user). */
+export async function scheduleDeletion(userId: string, at: Date): Promise<boolean> {
+  const rows = await db.update(users).set({ deleteAt: at }).where(and(eq(users.id, userId), isNull(users.deleteAt))).returning({ id: users.id });
+  return rows.length > 0;
 }
 
 export async function clearDeletion(userId: string): Promise<void> {
-  await db.update(users).set({ deleteAt: null }).where(eq(users.id, userId));
+  await db.update(users).set({ deleteAt: null, deleteSubs: [] }).where(eq(users.id, userId));
 }
 
 export async function deleteAtOf(userId: string): Promise<Date | null> {
   const [row] = await db.select({ at: users.deleteAt }).from(users).where(eq(users.id, userId));
   return row?.at ?? null;
+}
+
+/** Remember subscriptions whose renewal the deletion request stopped (Cancel deletion restarts exactly these). */
+export async function addDeleteSubs(userId: string, ids: string[]): Promise<void> {
+  if (!ids.length) return;
+  await db
+    .update(users)
+    .set({ deleteSubs: sql`(select coalesce(jsonb_agg(distinct x), '[]'::jsonb) from jsonb_array_elements_text(${users.deleteSubs} || ${JSON.stringify(ids)}::jsonb) x)` })
+    .where(eq(users.id, userId));
+}
+
+export async function deleteSubsOf(userId: string): Promise<string[]> {
+  const [row] = await db.select({ subs: users.deleteSubs }).from(users).where(eq(users.id, userId));
+  return row?.subs ?? [];
 }
 
 /** Users whose deletion date has come, oldest first. */
@@ -59,6 +75,11 @@ export async function personasForPurge(
   // linked once but no personas row any more: unowned
   const rows = [...pRows, ...ids.filter((id) => !known.has(id)).map((personaId) => ({ personaId, ownerId: null }))];
   return { personas: rows, links: lRows };
+}
+
+/** Admin history keeps this EA account's events without its id. Runs before its rows go, so a crash between can't skip it. */
+export async function anonymizePersonaEvents(personaId: number): Promise<void> {
+  await db.update(events).set({ personaId: null }).where(eq(events.personaId, personaId));
 }
 
 /** Every DB row keyed by this EA account (the cache folder goes separately, store.dropKeys(`accounts/<id>`)). */

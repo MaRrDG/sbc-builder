@@ -98,6 +98,8 @@ export const users = pgTable('users', {
   paddleCustomerId: text('paddle_customer_id'), // Paddle customer (server/billing/), set by the first subscription webhook
   // account deletion asked (server/deletion-rules.ts): purged at this time unless cancelled; null: not asked
   deleteAt: timestamp('delete_at', { withTimezone: true }),
+  // Paddle subscription ids whose renewal the deletion request itself stopped: the only ones Cancel deletion restarts
+  deleteSubs: jsonb('delete_subs').$type<string[]>().notNull().default([]),
 }, (t) => [
   uniqueIndex('users_discord_id').on(t.discordId),
   uniqueIndex('users_paddle_customer_id').on(t.paddleCustomerId),

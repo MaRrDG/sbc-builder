@@ -69,8 +69,8 @@ Paddle handles them (Paddle dashboard → Transactions → refund, or the user a
 
 The only Paddle writes the server makes (`server/deletion.ts` → `server/billing/paddle.ts`), never touching `subscriptions` locally: the webhook that follows updates the row as for any portal action.
 
-- `POST /api/me/delete` → `POST /subscriptions/{id}/cancel` `{ "effective_from": "next_billing_period" }` for each renewing subscription without a scheduled cancel (no refund; a 4xx when Paddle already has it cancelled / scheduled counts as done).
-- `POST /api/me/delete/cancel` → `PATCH /subscriptions/{id}` `{ "scheduled_change": null }` for each subscription with `cancelAt` (a 4xx = nothing to undo). Note: this also undoes a cancel the user had scheduled in the portal before asking for deletion (we keep no record of who scheduled it).
+- `POST /api/me/delete` → `POST /subscriptions/{id}/cancel` `{ "effective_from": "next_billing_period" }` for each renewing subscription (`active` / `trialing` / `past_due`) without a scheduled cancel (no refund). The ids this call itself scheduled are kept in `users.delete_subs` (never exported). A 4xx when Paddle already has it cancelled / scheduled counts as done and is not recorded (not ours to undo); a 4xx for a `past_due` subscription falls back to `"immediately"` (nothing to undo either). If a fresh request fails half-way, its own cancels are removed again and no date is kept.
+- `POST /api/me/delete/cancel` → `PATCH /subscriptions/{id}` `{ "scheduled_change": null }` for exactly the ids in `users.delete_subs`, whatever our local `cancelAt` says (a 4xx = nothing to undo). A cancel the user scheduled in the portal is never undone.
 - Deletion day (hourly job) → `POST /subscriptions/{id}/cancel` `{ "effective_from": "immediately" }` for every subscription not `canceled`, then the user's rows go. The late `subscription.canceled` webhook finds no user and is ignored (`unknownUser`). Paddle keeps its own customer and invoice records (Merchant of Record).
 
 Billing off (no `PADDLE_*`): these steps are skipped.
