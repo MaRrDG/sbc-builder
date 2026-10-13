@@ -81,7 +81,7 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
 // club load or the last club sync that actually called EA (a sync that never reached EA, e.g. the
 // web app was not logged in, blocks nothing). EA's daily request budget still caps everything. The SBC list is never synced
 // on demand: only by the schedule, after the daily drop, and on visits.
-export const CLUB_MANUAL_COOLDOWN_MS = Number(process.env.CLUB_MANUAL_COOLDOWN_MIN ?? 15) * 60 * 1000;
+export const CLUB_MANUAL_COOLDOWN_MS = Number(process.env.CLUB_MANUAL_COOLDOWN_MIN || 15) * 60 * 1000;
 async function clubButtonAt(acc: Account): Promise<number | null> {
   const loaded = (await readShared(acc.key('club')))?.fetchedAt ?? null;
   const called = clubCalledAt(acc);

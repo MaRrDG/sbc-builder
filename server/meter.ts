@@ -4,7 +4,7 @@ import { readCache, writeCache } from './store.js';
 import { SessionError } from './ea.js';
 import { logEvent } from './db/events.js';
 
-export const DAILY_LIMIT = Number(process.env.EA_DAILY_LIMIT ?? 150);
+export const DAILY_LIMIT = Number(process.env.EA_DAILY_LIMIT || 150);
 const TZ = process.env.SBC_DROP_TZ ?? 'Europe/Bucharest';
 const RECENT = 30;
 

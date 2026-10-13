@@ -55,11 +55,10 @@ Paddle billing ([billing.md](billing.md)): `PADDLE_ENV` (`sandbox` on dev, `prod
 ## Releasing
 
 ```bash
-cd /var/www/fc-solver          # prod (main); dev: /var/www/sbc-builder (dev)
-git pull
-docker compose --profile discord up -d --build   # dev: docker compose up -d --build (no bot)
-docker compose logs -f --tail=50
+/var/www/fc-solver/deploy/release.sh /var/www/fc-solver       # prod (main); dev: /var/www/sbc-builder (dev)
 ```
+
+The script tags the running image as `<app>:prev`, runs `git pull --ff-only`, rebuilds (`--profile discord` when `DISCORD_TOKEN` is set in `.env`) and waits up to 3 minutes for the app container to be healthy. Undo with `deploy/rollback.sh <app dir>`: it puts `:prev` back as `:latest` and restarts without building. The code in the folder stays at the new commit and the database keeps any new migration, so migrations must be additive (add columns / tables / indexes; never drop or rename in the same release that stops using them), or the old image cannot run on the migrated database.
 
 The changelog ships with the code: an entry added to `shared/changelog.ts` shows on `/changelog` after the deploy, and the bot posts it in `📝・changelog` within 10 minutes (English only; it looks for its own post first, so restarts never post twice; on an empty channel it posts only the newest entry). The first release with the changelog needs the Discord setup step again (step 4 under [Discord](#discord)) to create the channel.
 
@@ -179,3 +178,36 @@ Moving to a new domain:
 docker compose exec db pg_dump -U fcsolver fcsolver | gzip > fcsolver-$(date +%F).sql.gz
 gunzip -c fcsolver-2026-09-23.sql.gz | docker compose exec -T db psql -U fcsolver fcsolver   # restore
 ```
+
+## Backups
+
+`deploy/backup.sh <app dir>` writes a Postgres dump (`db.dump`, custom format) and `data.tar.zst` (`data/` without the raw `data/postgres` files) to `/root/backups/<APP_NAME>/<YYYY-MM-DD>/`. Everything is root-only (dirs 700, files 600) because `data/` holds extension keys and sessions. Backups older than 14 days are deleted. A failure is printed and posted to `ALERT_WEBHOOK_URL` (if set).
+
+Install the schedule once on the host (copy it, cron.d wants root-owned files):
+
+```bash
+cp /var/www/fc-solver/deploy/fc-solver-backup.cron /etc/cron.d/fc-solver-backup
+```
+
+Prod runs at 04:30, dev at 04:40, log in `/var/log/fc-solver-backup.log`. Copy `/root/backups` off the host now and then.
+
+Restore (stop the app first, so nothing writes while the database is replaced):
+
+```bash
+cd /var/www/fc-solver && docker compose stop app
+docker exec -i fc-solver-db pg_restore -U fcsolver -d fcsolver --clean --if-exists < /root/backups/fc-solver/<day>/db.dump
+tar --zstd -xf /root/backups/fc-solver/<day>/data.tar.zst -C /var/www/fc-solver
+docker compose start app
+```
+
+## Alerts
+
+Set `ALERT_WEBHOOK_URL` in `.env` to a Discord webhook (channel settings -> Integrations -> Webhooks -> New webhook -> copy URL) and recreate the app (`docker compose up -d`). The server posts 500s and crashes there (rate limited, no request data), and `backup.sh` posts failures. Empty = log only.
+
+## Uptime
+
+Add an HTTP monitor (UptimeRobot or Better Stack) on `https://fc-solver.app/api/health`, every 5 minutes, expecting status 200 (or the keyword `ok`). The endpoint answers 503 when the database is unreachable or shutdown has started. Also monitor the dev host if you care about it.
+
+## Real client IP
+
+Behind Cloudflare the TCP peer is always Cloudflare, so nginx must take the visitor IP from `CF-Connecting-IP`. `deploy/cloudflare-realip.conf` (the `set_real_ip_from` ranges from https://www.cloudflare.com/ips/ plus `real_ip_header CF-Connecting-IP`) is installed at `/etc/nginx/conf.d/cloudflare-realip.conf`. ufw allows 80/443 only from the same ranges, so nobody can forge the header by hitting the origin directly. Fastify's `trustProxy` then reads the right client IP from `X-Forwarded-For`, which the per-IP limits (`server/limits.ts`) rely on. If Cloudflare changes its ranges, regenerate both the file and the ufw rules, then `nginx -t && systemctl reload nginx`.

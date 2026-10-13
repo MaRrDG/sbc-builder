@@ -1,0 +1,3 @@
+# /etc/cron.d/fc-solver-backup (copy by hand, see docs/deploy.md)
+30 4 * * * root /var/www/fc-solver/deploy/backup.sh /var/www/fc-solver >> /var/log/fc-solver-backup.log 2>&1
+40 4 * * * root /var/www/sbc-builder/deploy/backup.sh /var/www/sbc-builder >> /var/log/fc-solver-backup.log 2>&1

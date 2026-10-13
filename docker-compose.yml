@@ -1,4 +1,10 @@
 # One file for every environment: APP_NAME / APP_PORT in .env tell them apart (dev: sbc-builder on 5178, prod: fc-solver on 5179).
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   app:
     image: ${APP_NAME:-sbc-builder}:latest
@@ -8,6 +14,9 @@ services:
         VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:?set VITE_CLERK_PUBLISHABLE_KEY in .env}
     container_name: ${APP_NAME:-sbc-builder}
     restart: unless-stopped
+    stop_grace_period: 30s
+    mem_limit: 2g
+    logging: *logging
     # only nginx on the host talks to it
     ports:
       - "127.0.0.1:${APP_PORT:-5178}:5178"
@@ -39,11 +48,31 @@ services:
       PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
       PADDLE_PRICE_MONTH: ${PADDLE_PRICE_MONTH:-}
       PADDLE_PRICE_YEAR: ${PADDLE_PRICE_YEAR:-}
+      # tuning and owner settings; empty = the server default (readers treat '' as unset)
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      FREE_WEEKLY_SOLVES: ${FREE_WEEKLY_SOLVES:-}
+      EA_DAILY_LIMIT: ${EA_DAILY_LIMIT:-}
+      CLUB_MANUAL_COOLDOWN_MIN: ${CLUB_MANUAL_COOLDOWN_MIN:-}
+      DAILY_SECRET: ${DAILY_SECRET:-}
+      DAILY_MIN_RATING: ${DAILY_MIN_RATING:-}
+      DAILY_RATING_FLOOR: ${DAILY_RATING_FLOOR:-}
+      DAILY_MIN_POOL: ${DAILY_MIN_POOL:-}
+      DAILY_HARD_MIN_POOL: ${DAILY_HARD_MIN_POOL:-}
+      DAILY_WOMEN_SHARE: ${DAILY_WOMEN_SHARE:-}
+      DAILY_WOMEN_MIN_RATING: ${DAILY_WOMEN_MIN_RATING:-}
+      DAILY_WOMEN_RATING_FLOOR: ${DAILY_WOMEN_RATING_FLOOR:-}
+      DAILY_WOMEN_MIN_POOL: ${DAILY_WOMEN_MIN_POOL:-}
+      DAILY_WOMEN_HARD_MIN: ${DAILY_WOMEN_HARD_MIN:-}
+      DAILY_ICON_SHARE: ${DAILY_ICON_SHARE:-}
+      DAILY_ICON_MIN_RATING: ${DAILY_ICON_MIN_RATING:-}
+      DAILY_ICON_HARD_MIN: ${DAILY_ICON_HARD_MIN:-}
+      ALERT_WEBHOOK_URL: ${ALERT_WEBHOOK_URL:-}
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5178/api/meta').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5178/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 60s
       timeout: 10s
       retries: 3
@@ -55,6 +84,8 @@ services:
     container_name: ${APP_NAME:-sbc-builder}-bot
     profiles: [discord]
     restart: unless-stopped
+    mem_limit: 256m
+    logging: *logging
     command: ["node", "--import", "tsx", "discord/index.ts"]
     environment:
       DISCORD_TOKEN: ${DISCORD_TOKEN:-}
@@ -71,6 +102,8 @@ services:
     image: postgres:18-alpine
     container_name: ${APP_NAME:-sbc-builder}-db
     restart: unless-stopped
+    mem_limit: 512m
+    logging: *logging
     # no ports: only the app reaches it, over the compose network
     environment:
       POSTGRES_USER: fcsolver
