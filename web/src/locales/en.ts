@@ -544,6 +544,7 @@ export const en = {
   'err.eaThrottled': 'EA is rate limiting requests (HTTP {status}). Try again later.',
   'err.sessionExpired': 'EA session expired. Reopen the web app to refresh it.',
   'err.noSession': 'No EA session for this account. Open the FC web app with the extension.',
+  'err.extTooOld': 'This FC Solver extension is too old. Download the new one from Setup and unzip it over the old folder.',
   'err.needsLayout': 'This SBC has locked slots. Open it once in the FC27 web app so FC Solver sees which, then solve again.',
   'err.challengeNotFound': 'Challenge not found. Open it in the web app first.',
   'err.clubEmpty': 'Your club is empty. Open your club in the web app or sync it.',

@@ -548,6 +548,7 @@ export const it: Record<Keys, string> = {
   'err.eaThrottled': 'EA sta limitando le richieste (HTTP {status}). Riprova più tardi.',
   'err.sessionExpired': 'Sessione EA scaduta. Riapri la web app per rinnovarla.',
   'err.noSession': 'Nessuna sessione EA per questo account. Apri la web app FC con l’estensione.',
+  'err.extTooOld': "L'estensione FC Solver è troppo vecchia. Scarica quella nuova da Setup ed estraila sopra la vecchia cartella.",
   'err.needsLayout': 'Questa SBC ha slot bloccati. Aprila una volta nella web app FC27 così FC Solver vede quali, poi risolvi di nuovo.',
   'err.challengeNotFound': 'Sfida non trovata. Aprila prima nella web app.',
   'err.clubEmpty': 'Il tuo club è vuoto. Apri il tuo club nella web app o sincronizzalo.',

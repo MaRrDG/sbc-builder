@@ -8,15 +8,15 @@ All bodies are JSON. Errors look like `{ "error": "message" }` with a meaningful
 
 | Header | Used by | Meaning |
 |---|---|---|
-| none | `/api/session`, `/api/hello`, `/api/meta`, `/api/extension/version`, `/api/extension.zip` | public or self-authenticating |
+| none | `/api/session` (410), `/api/hello`, `/api/meta`, `/api/extension/version`, `/api/extension.zip` | public or self-authenticating |
 | `Authorization: Bearer <Clerk session token>` + `X-Persona: <personaId>` | **(site)** endpoints | the signed-in FC Solver user and which of their EA accounts the call is about (`/api/me*`, `/api/link-token`, `DELETE /api/personas/:id` need only the token) |
-| `X-Account-Key: <key>` | **(extension)** endpoints | secret key of one EA account, handed out by `/api/hello` / `/api/session`; it stays inside the extension and never reaches the site |
+| `X-Account-Key: <key>` | **(extension)** endpoints | secret key of one EA account, handed out by `/api/hello`; it stays inside the extension and never reaches the site |
 
 Site auth errors carry a `code`: `signIn` (401, missing or invalid Clerk token), `noPersona` (400, no `X-Persona`), `personaNotYours` (403), `personaTakenOver` (403, the persona was yours and another user has since proved it with EA).
 
 The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extension; the API never returns it.
 
-**Limits and errors.** Per client IP: 600 `/api` requests a minute, and 5 new EA sessions a minute to prove (`/api/hello` with a `sid` but no known key, `/api/session`; each one calls EA; plus 30 a minute for the whole server). Over it: `429` with code `rateLimited`. Unexpected server errors (`5xx` that are not ours) answer a generic message; the details only go to the server log.
+**Limits and errors.** Per client IP: 600 `/api` requests a minute, and 5 new EA sessions a minute to prove (`/api/hello` with a `sid` but no known key; each one calls EA; plus 30 a minute for the whole server). Over it: `429` with code `rateLimited`. Unexpected server errors (`5xx` that are not ours) answer a generic message; the details only go to the server log.
 
 **Headers.** Every answer carries `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy`, and `Strict-Transport-Security` behind HTTPS. HTML pages carry a `Content-Security-Policy-Report-Only` (see `csp()` in `server/index.ts`); browsers post violations to `POST /api/csp-report` (logged as `[csp]`, 20 a minute per IP), so the policy can be enforced once the log stays quiet. CORS answers `chrome-extension://` origins (and `http://localhost` outside production).
 
@@ -53,23 +53,9 @@ One EA request made for a job: `{ "method": "POST", "path": "/club", "status": 2
 
 `{ "ok": true, "pagesTagged": true }` or `{ "ok": false, "error": "EA asked to slow down (495)." }`. A finished `sbc` job queues a `challenges` job for sets that are new or changed. `pagesTagged` (extension 0.8.3+) says the job's `/club` pages came with its `jobId`: a `club` job then only counts as done once those pages replaced the whole club (waits up to 10 s for the last page), otherwise it fails with an error and the cached club is left as it was. Returns `{ "ok": true, "kind": "club", "status": "done" | "failed", "error": null, "players": 311, "changedSets": 0, "clubQueued": false }` (`players`: club size after a club job; `changedSets`: sets an `sbc` job found changed; `clubQueued`: a club sync was queued because SBCs were done outside the web app). Extension 0.8.5+ shows it as a notice in the web app.
 
-### `POST /api/session` (extension)
+### `POST /api/session` (removed)
 
-Legacy (extension up to 0.6). Called whenever the web app uses a new session id.
-
-```json
-{ "sid": "b52b9d04-…", "contentGuid": "27A3C9F1-…", "extVersion": "0.4.0" }
-```
-
-- `sid`: required, the web app's `X-UT-SID`.
-- `contentGuid`: optional, the CDN folder of the current game build (card art, names).
-- `extVersion`: optional, version of the extension making the call.
-
-If the SID is new the server calls EA `/usermassinfo` once to identify the persona, stores the session and starts an automatic sync if data is stale.
-
-```json
-{ "ok": true, "account": { "personaId": 1005016552645, "personaName": "MaR804", "clubName": "Biliboaca", "session": true, "extVersion": "0.4.0", "sidUpdatedAt": 1790064170490 }, "accessKey": "97uq…" }
-```
+Extensions before 0.7 posted their SID here and the server synced from EA itself. That mode is gone (2026-10-13): every call answers `410 { code: 'extTooOld' }`. The extension update is the only fix.
 
 ## Users (site)
 
@@ -138,7 +124,7 @@ These answer with an `ETag`, `Cache-Control: private, no-cache` and `Vary: X-Per
 }
 ```
 
-`ea` counts today's requests to EA for this account (paths grouped, ids replaced by `:id`); `pausedUntil` is set after EA signalled throttling. `editedAt` changes whenever the cache was edited from web app activity; the site gets it pushed over `/api/stream` and reloads what changed; it polls this endpoint only as a fallback when the stream is unavailable. `unassigned` counts pack players not yet sent to the club. `club`: a club sync `queued` or `running` in the web app tab (else `null`), with the players its pages loaded so far and `expected`, the cached club size as a rough total (`null` before the first sync); the site shows it in a non-blocking activity panel (the fallback poll runs every 5 s, every 1.5 s while a club job runs), and Solve waits while a club job runs. `sbcNextAt`: from then on a visit refreshes the SBC list (`sbcAt` + 30 min, `SBC_VISIT_COOLDOWN_MIN`); `null` for legacy accounts.
+`ea` counts today's requests to EA for this account (paths grouped, ids replaced by `:id`); `pausedUntil` is set after EA signalled throttling. `editedAt` changes whenever the cache was edited from web app activity; the site gets it pushed over `/api/stream` and reloads what changed; it polls this endpoint only as a fallback when the stream is unavailable. `unassigned` counts pack players not yet sent to the club. `club`: a club sync `queued` or `running` in the web app tab (else `null`), with the players its pages loaded so far and `expected`, the cached club size as a rough total (`null` before the first sync); the site shows it in a non-blocking activity panel (the fallback poll runs every 5 s, every 1.5 s while a club job runs), and Solve waits while a club job runs. `sbcNextAt`: from then on a visit refreshes the SBC list (`sbcAt` + 30 min, `SBC_VISIT_COOLDOWN_MIN`).
 
 `sync.jobs` lists the jobs of the current and last syncs as `JobView`: `{ id, kind, state, done, total, estimated, at, error, notStarted, resumeAt }`. `state` is `waitingTab` (no web app tab open), `waitingLogin` (tab has no EA session), `queued`, `running`, `paused` (EA throttling, `resumeAt` says when it goes on), `done` or `failed`. `done` / `total` is the progress (`total` is `null` when unknown, `estimated` when it is a guess such as the cached club size); `at` is the last state change; `notStarted` is a handed-out job that never made an EA request. `sync.graceUntil`: while a fresh web app session loads, the first syncs wait until then (else `null`).
 
@@ -148,7 +134,7 @@ Live updates for the open dashboard as server-sent events (`Content-Type: text/e
 
 ### `POST /api/sync` (site)
 
-Manual sync, club only: `what: "club"` (players, active squad, chemistry profiles), no daily cap, but not within `CLUB_MANUAL_COOLDOWN_MIN` (15) minutes of the last club load or club sync (`429` `clubCooldown` with `{ minutes }`; `sync.clubNextAt` says when it works again, `null` = now). `"sbc"` is refused with `403`: the SBC list refreshes on the schedule after the daily drop and on visits (`POST /api/sync/visit`). Returns the new `sync` status. Client mode: queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused. Legacy: syncs from the server, `409`/`401` without a live EA session.
+Manual sync, club only: `what: "club"` (players, active squad, chemistry profiles), no daily cap, but not within `CLUB_MANUAL_COOLDOWN_MIN` (15) minutes of the last club load or club sync (`429` `clubCooldown` with `{ minutes }`; `sync.clubNextAt` says when it works again, `null` = now). `"sbc"` is refused with `403`: the SBC list refreshes on the schedule after the daily drop and on visits (`POST /api/sync/visit`). Returns the new `sync` status. Queues jobs for the web app tab (`sync.running` stays set until they finish) and fails with `409` when no web app tab is open, `429` when over budget or paused.
 
 ### `POST /api/sync/visit` (site)
 
@@ -411,7 +397,7 @@ Creates a promo code. Body: `{ "days": 30 | null, "code"?: "SUMMER26", "maxUses"
 ] }
 ```
 
-`queued`: the web app tab is open (or a legacy SID is live), the sync started. `deferred`: offline; the next web app visit runs it (kept in memory, lost on a server restart). `skipped`: `code` is an `err.*` message code (`clubCooldown`, `budget`, `paused`, `syncRunning`).
+`queued`: the web app tab is open, the sync queued. `deferred`: offline; the next web app visit runs it (kept in memory, lost on a server restart). `skipped`: `code` is an `err.*` message code (`clubCooldown`, `budget`, `paused`, `syncRunning`).
 
 ---
 

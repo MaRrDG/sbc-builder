@@ -21,12 +21,10 @@ export interface AccountInfo {
 }
 
 export class Account {
-  utas: Utas | null = null;
   readonly meter: RequestMeter;
 
   constructor(public info: AccountInfo) {
     this.meter = new RequestMeter(`accounts/${info.personaId}/ea-requests`, info.personaId);
-    if (info.sid) this.attach(info.sid);
   }
 
   get id() {
@@ -41,27 +39,17 @@ export class Account {
     return this.info.mode === 'client';
   }
 
-  /** Live: the server can sync now (legacy: holds a SID; client mode: a web app tab is polling). */
+  /** Live: the server can sync now (a web app tab is polling). */
   get hasSession() {
-    return this.clientMode ? webAppOpen(this) : !!this.utas;
+    return this.clientMode && webAppOpen(this);
   }
 
   /** From now on this account syncs through the web app tab; drop any stored SID. */
   useClientMode(extVersion?: string) {
     this.info.mode = 'client';
     this.info.sid = null;
-    this.utas = null;
     this.info.sidUpdatedAt = Date.now(); // start of this web app session (sync grace period)
     if (extVersion) this.info.extVersion = extVersion;
-  }
-
-  attach(sid: string) {
-    this.utas = new Utas(sid, this.meter);
-    this.utas.onExpired = () => {
-      this.utas = null;
-      this.info.sid = null;
-      void this.save();
-    };
   }
 
   save() {
@@ -88,49 +76,10 @@ export async function loadAccounts() {
   for (const d of dirs) {
     const c = await readCache<AccountInfo>(`accounts/${d}/account`);
     if (!c) continue;
-    const acc = new Account({ ...c.data, accessKey: c.data.accessKey || newKey() });
-    if (!c.data.accessKey) await acc.save();
+    const acc = new Account({ ...c.data, sid: null, accessKey: c.data.accessKey || newKey() });
+    if (!c.data.accessKey || c.data.sid) await acc.save(); // legacy SIDs are never kept
     accounts.set(acc.id, acc);
   }
-}
-
-/** A fresh X-UT-SID arrived (from the extension or pasted): find out whose it is. */
-export async function registerSession(
-  sid: string, contentGuid?: string, extVersion?: string,
-): Promise<{ account: Account; isNew: boolean }> {
-  if (contentGuid) content.guid = contentGuid;
-  const known = [...accounts.values()].find((a) => a.info.sid === sid && a.hasSession);
-  if (known) {
-    if (extVersion && known.info.extVersion !== extVersion) {
-      known.info.extVersion = extVersion;
-      await known.save();
-    }
-    return { account: known, isNew: false };
-  }
-  const { userInfo } = await new Utas(sid).userInfo();
-  let account = accounts.get(userInfo.personaId);
-  if (account?.clientMode) {
-    // an old extension in another browser: prove the session, but never keep the SID again
-    account.info.extVersion = extVersion ?? account.info.extVersion;
-    await account.meter.record('GET', '/usermassinfo', 200);
-    await account.save();
-    return { account, isNew: false };
-  }
-  const isNew = !account || account.info.sid !== sid;
-  if (!account) {
-    account = new Account({ ...userInfo, sid: null, sidUpdatedAt: 0, accessKey: newKey() });
-    accounts.set(account.id, account);
-  }
-  account.info.personaName = userInfo.personaName;
-  account.info.clubName = userInfo.clubName;
-  account.info.sid = sid;
-  account.info.sidUpdatedAt = Date.now();
-  account.info.extVersion = extVersion ?? null;
-  account.attach(sid);
-  // the "who is this?" call above ran before we knew the account; count it now
-  await account.meter.record('GET', '/usermassinfo', 200);
-  await account.save();
-  return { account, isNew };
 }
 
 let verifyWindow = { start: 0, count: 0 };
@@ -143,7 +92,6 @@ let verifyWindow = { start: 0, count: 0 };
 export async function hello(opts: {
   key?: string | null; personaId?: number; sid?: string; contentGuid?: string; extVersion?: string;
 }): Promise<{ account: Account; proved: boolean } | { needSid: true }> {
-  if (opts.contentGuid) content.guid = opts.contentGuid;
   const byKey = accountByKey(opts.key);
   if (byKey && opts.personaId === byKey.id) {
     byKey.useClientMode(opts.extVersion);
@@ -157,6 +105,7 @@ export async function hello(opts: {
   const { userInfo } = await new Utas(opts.sid).userInfo();
   if (opts.personaId && opts.personaId !== userInfo.personaId)
     throw Object.assign(new Error('Session does not belong to that account.'), { statusCode: 403 });
+  if (opts.contentGuid) content.guid = opts.contentGuid; // only from a session EA just accepted
   let account = accounts.get(userInfo.personaId);
   if (!account) {
     account = new Account({ ...userInfo, sid: null, sidUpdatedAt: 0, accessKey: newKey() });

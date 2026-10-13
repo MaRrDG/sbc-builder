@@ -15,7 +15,7 @@ Three constraints shaped everything else:
 ```
  FC27 web app (browser)                       FC Solver server                     Browser UI
  ──────────────────────                       ──────────────────                     ──────────
- X-UT-SID on every request ──extension──►  POST /api/session  ──► account + key ──► extension stores key,
+ X-UT-SID on every request ──extension──►  POST /api/hello   ──► account + key ──► extension stores key,
                                              (usermassinfo = who is this?)          "Open FC Solver" passes it
                                                      │
                                              Utas client (1 queue per account,
@@ -61,7 +61,7 @@ Browsers from before sign-in held access keys (`#keys=`, `localStorage`); the si
 
 ## Admin history
 
-`events` (Postgres, `server/db/events.ts`) is an append-only log the admin panel reads from: `solve` (`/api/solve`, `server/index.ts`), `sync` (`server/sync.ts` legacy mode, `server/jobs.ts` client mode), `ea_error` (a throttle pause, `server/meter.ts`) and `ea_day` (the day's running EA request count, also `meter.ts`, one row per account and day — a restart writes another row for the same day, so readers collapse it with `max(count)` rather than summing). `logEvent()` is fire-and-forget (`softly`, `server/db/index.ts`): a DB failure is logged and never breaks the solve, sync or EA request it rides on. Rows older than 180 days (`KEEP_DAYS`) are deleted by `pruneEvents()`, run on a daily timer in `server/index.ts`. `server/admin/` reads this table plus `users`/`personas`/the file cache (never EA) to build the admin API: `query.ts` (pure filters, paging, day-key helpers), `users.ts`, `accounts.ts`, `overview.ts` (KPIs, activity charts, attention list), `routes.ts` (wiring), `auth.ts` (admin-only gate).
+`events` (Postgres, `server/db/events.ts`) is an append-only log the admin panel reads from: `solve` (`/api/solve`, `server/index.ts`), `sync` (`server/jobs.ts`), `ea_error` (a throttle pause, `server/meter.ts`) and `ea_day` (the day's running EA request count, also `meter.ts`, one row per account and day — a restart writes another row for the same day, so readers collapse it with `max(count)` rather than summing). `logEvent()` is fire-and-forget (`softly`, `server/db/index.ts`): a DB failure is logged and never breaks the solve, sync or EA request it rides on. Rows older than 180 days (`KEEP_DAYS`) are deleted by `pruneEvents()`, run on a daily timer in `server/index.ts`. `server/admin/` reads this table plus `users`/`personas`/the file cache (never EA) to build the admin API: `query.ts` (pure filters, paging, day-key helpers), `users.ts`, `accounts.ts`, `overview.ts` (KPIs, activity charts, attention list), `routes.ts` (wiring), `auth.ts` (admin-only gate).
 
 ## Getting the session
 
@@ -72,7 +72,7 @@ Browsers from before sign-in held access keys (`#keys=`, `localStorage`); the si
 - Syncs become **jobs** (`server/jobs.ts`). Pressing Club / SBCs, or the schedule, queues one; the extension polls `/api/jobs/next` every few seconds while a web app tab is open (that polling is also what "Live" means); the page runs a fixed, read-only recipe for the job kind (`club`: club pages, active squad, chemistry profiles; `sbc`: set list; `challenges`: given set ids; `challengeSquad`: `GET` the squad of a challenge already started, never the `POST` that starts one; `academy`: one `GET /academy/hub/v2` for the timed Evolutions, daily, Premium owners only), one request at a time, 1.5 to 3 s apart and never overlapping the web app's own requests, with 5 s of rest between jobs, and the responses flow back through `/api/webapp-event` like any web app load. After an SBC list job the server queues challenges for the sets that changed. The server only ever names a recipe, never a URL, so it cannot make the page do anything else.
 - Every request is reported to `/api/jobs/:id/call` for the daily count; throttling codes pause the account for 15 minutes. The extension keeps its own daily limit too.
 
-**Older extensions (legacy mode)** still post the SID to `POST /api/session`; the server asks EA `GET /usermassinfo` once, keeps the SID and syncs from the server. This stays until every account runs 0.7, then goes away. A client-mode account never goes back to storing a SID.
+**Extensions before 0.7** posted the SID to `POST /api/session` and the server synced from EA itself. That mode is gone (2026-10-13): the endpoint answers `410` `extTooOld`, stored SIDs are dropped on load, and the server's only EA call is the one-time proof in `/api/hello`.
 
 Either way the server then:
 

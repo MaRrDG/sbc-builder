@@ -549,6 +549,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'err.eaThrottled': 'EA limitează cererile (HTTP {status}). Încearcă mai târziu.',
   'err.sessionExpired': 'Sesiunea EA a expirat. Redeschide web app-ul ca s-o reîmprospătezi.',
   'err.noSession': 'Nicio sesiune EA pentru acest cont. Deschide web app-ul FC cu extensia instalată.',
+  'err.extTooOld': 'Extensia FC Solver e prea veche. Descarc-o pe cea nouă din Setup și dezarhiveaz-o peste folderul vechi.',
   'err.needsLayout': 'Acest SBC are sloturi blocate. Deschide-l o dată în web app-ul FC27 ca FC Solver să vadă care, apoi rezolvă din nou.',
   'err.challengeNotFound': 'Challenge-ul nu a fost găsit. Deschide-l întâi în web app.',
   'err.clubEmpty': 'Clubul tău e gol. Deschide clubul în web app sau sincronizează-l.',

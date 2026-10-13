@@ -16,7 +16,7 @@ import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges
 import { enqueue, findJob, finishJob, hasPending, markCall, markPoll, markReady, nextJob, restLeft, waitForWork, webAppOpen, webAppReturned } from './jobs.js';
 import { dropStream, notify, sseFrame, subscribe, takeStream } from './live.js';
 import { isTabPoll } from './job-rules.js';
-import { loadAccounts, registerSession, accountByKey, accountById, hello, type Account } from './accounts.js';
+import { loadAccounts, accountByKey, accountById, hello, type Account } from './accounts.js';
 import { isAdmin } from './admin/auth.js';
 import { registerAdminRoutes } from './admin/routes.js';
 import { billingOf, registerBillingRoutes } from './billing/routes.js';
@@ -179,16 +179,9 @@ function account(req: FastifyRequest): Account {
 
 
 // ---- accounts / session ----------------------------------------------------
-app.post<{ Body: { sid: string; contentGuid?: string; extVersion?: string } }>('/api/session', async (req, reply) => {
-  const { sid, contentGuid, extVersion } = req.body ?? ({} as never);
-  if (!sid || !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
-  if (!proofLimit(req.ip)) throw tooMany();
-  const guid = contentGuid && /^[0-9A-F-]{36}$/i.test(contentGuid) ? contentGuid : undefined;
-  const version = extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined;
-  // no sync here: the minute ticker runs it once the session is a few seconds old (see autoSync)
-  const { account: acc } = await registerSession(sid, guid, version);
-  // The key goes back only to the extension that proved it holds a live session.
-  return { ok: true, account: acc, accessKey: acc.info.accessKey };
+// extensions before 0.7 synced from the server with the user's SID; that mode is gone (2026-10-13)
+app.post('/api/session', async () => {
+  throw new SessionError('This extension version is too old. Download the new one from FC Solver.', 410, 'extTooOld');
 });
 
 // ---- users (site, Clerk session) --------------------------------------------------
@@ -773,10 +766,10 @@ app.get('/api/sets', async (req, reply) => {
   return sendTagged(req, reply, { fetchedAt: sets?.fetchedAt ?? null, categories });
 });
 
-app.get<{ Params: { id: string }; Querystring: { refresh?: string } }>('/api/sets/:id/challenges', async (req) => {
+app.get<{ Params: { id: string } }>('/api/sets/:id/challenges', async (req) => {
   const acc = await siteAccount(req);
   const meta = await metaFor(acc);
-  const ch = await getChallenges(acc, Number(req.params.id), req.query.refresh === '1');
+  const ch = await getChallenges(acc, Number(req.params.id));
   return {
     fetchedAt: ch?.fetchedAt ?? null,
     challenges: await Promise.all(

@@ -180,53 +180,6 @@ export class Utas {
   userInfo(): Promise<{ userInfo: { personaId: number; personaName: string; clubName: string } }> {
     return this.call('/usermassinfo');
   }
-
-  async clubPlayerCount(): Promise<number> {
-    const r = await this.call<{ stat: { type: string; typeValue: number }[] }>('/club/stats/club');
-    return r.stat.find((s) => s.type === 'players')?.typeValue ?? 0;
-  }
-
-  async clubPlayers(): Promise<ClubItem[]> {
-    const total = await this.clubPlayerCount();
-    const pageSize = 91;
-    const items: ClubItem[] = [];
-    for (let start = 0; start < total; start += pageSize) {
-      const page = await this.call<{ itemData: ClubItem[] }>('/club', {
-        method: 'POST',
-        body: { count: pageSize, searchAltPositions: true, sort: 'desc', sortBy: 'ovr', start, type: 'player' },
-      });
-      items.push(...page.itemData);
-      if (page.itemData.length < pageSize) break;
-    }
-    return items;
-  }
-
-  /** Item ids in the active squad: first 11 are the starting XI, the rest subs/reserves. */
-  async activeSquad(): Promise<{ squadId: number; starters: number[]; bench: number[] }> {
-    const list = await this.call<{ activeSquadId: number }>('/squad/list');
-    const squad = await this.call<{ players: { index: number; itemData: { id: number } }[] }>(`/squad/${list.activeSquadId}`);
-    const ids = squad.players
-      .filter((p) => p.itemData?.id)
-      .sort((a, b) => a.index - b.index)
-      .map((p) => ({ index: p.index, id: p.itemData.id }));
-    return {
-      squadId: list.activeSquadId,
-      starters: ids.filter((p) => p.index < 11).map((p) => p.id),
-      bench: ids.filter((p) => p.index >= 11).map((p) => p.id),
-    };
-  }
-
-  sets(): Promise<{ categories: { categoryId: number; name: string; sets: SbcSet[] }[] }> {
-    return this.call('/sbs/sets');
-  }
-
-  challenges(setId: number): Promise<{ challenges: Challenge[] }> {
-    return this.call(`/sbs/setId/${setId}/challenges`);
-  }
-
-  chemistryProfiles(): Promise<ChemProfilesResponse> {
-    return this.call('/chemistry/profiles');
-  }
 }
 
 export interface ChemProfilesResponse {

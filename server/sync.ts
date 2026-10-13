@@ -1,10 +1,10 @@
 // Keeps a local copy of each account's club + SBC data. EA is only hit once a day after the
 // 20:01 drop (automatic) or when the user presses Sync (manual).
-import type { ClubItem, Challenge, SbcSet, ChemProfilesResponse } from './ea.js';
+import type { ClubItem, Challenge, SbcSet } from './ea.js';
 import { SessionError } from './ea.js';
 import { readCache, readShared, writeCache, type Cached } from './store.js';
 import type { ActiveSquad } from './solver.js';
-import { loadMeta, invalidateMeta } from './meta.js';
+import { loadMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
 import { notify } from './live.js';
 import { versionLess } from './admin/query.js';
@@ -12,10 +12,7 @@ import { planFor } from './plans.js';
 import { personaRow } from './db/users.js';
 import { clubCalledAt, enqueue, hasPending, jobList, jobStatus, tabReady, webAppOpen } from './jobs.js';
 import { jobViews, type JobView } from './job-view.js';
-import { softly } from './db/index.js';
-import { logEvent } from './db/events.js';
 import { clubDueOnVisit, clubManualAt } from './visit-rules.js';
-import { saveChallenges, saveSets } from './db/sbcs.js';
 
 export interface SetsData {
   categories: { categoryId: number; name: string; sets: SbcSet[] }[];
@@ -40,10 +37,8 @@ export interface SyncStatus {
 
 const SESSION_GRACE_MS = 20 * 1000;
 
-const running = new Map<number, string>();
 /** An admin asked for a sync while the account was offline: run it on its next web app visit. */
 const forced = new Map<number, { club: boolean; sbc: boolean }>();
-const errors = new Map<number, string | null>();
 const edited = new Map<number, number>();
 
 export function markEdited(acc: Account) {
@@ -53,7 +48,7 @@ export function markEdited(acc: Account) {
 
 export async function getStatus(acc: Account): Promise<SyncStatus> {
   const jobs = acc.clientMode ? jobStatus(acc) : null;
-  const clubJob = jobs ? jobs.club : running.get(acc.id) === 'club' ? { state: 'running' as const, loaded: 0 } : null;
+  const clubJob = jobs ? jobs.club : null;
   const [club, unassigned, sets] = await Promise.all([
     readShared<unknown[]>(acc.key('club')),
     readShared<unknown[]>(acc.key('unassigned')),
@@ -70,9 +65,9 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
     jobs: jobViewsNow,
     graceUntil: acc.clientMode && graceEnd > Date.now() ? graceEnd : null,
     clubNextAt: await clubButtonAt(acc),
-    running: jobs ? jobs.running : running.get(acc.id) ?? null,
-    error: jobs ? jobs.error : errors.get(acc.id) ?? null,
-    errorCode: jobs ? jobs.errorCode : null,
+    running: jobs?.running ?? null,
+    error: jobs?.error ?? null,
+    errorCode: jobs?.errorCode ?? null,
     editedAt: edited.get(acc.id) ?? null,
     unassigned: unassigned?.data.length ?? 0,
     clubAt: club?.fetchedAt ?? null,
@@ -81,48 +76,22 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
   };
 }
 
-function utasOf(acc: Account) {
-  if (!acc.utas) throw new SessionError('No EA session for this account. Open the FC web app with the extension.', 401, 'noSession');
-  return acc.utas;
-}
-
-async function run<T>(acc: Account, label: string, fn: () => Promise<T>): Promise<T> {
-  const busy = running.get(acc.id);
-  if (busy) throw new SessionError(`Sync already running (${busy})`, 409, 'syncRunning');
-  running.set(acc.id, label);
-  errors.set(acc.id, null);
-  try {
-    const r = await fn();
-    logEvent({ type: 'sync', personaId: acc.id, data: { what: label, ok: true, mode: 'legacy' } });
-    return r;
-  } catch (e) {
-    errors.set(acc.id, (e as Error).message);
-    logEvent({ type: 'sync', personaId: acc.id, data: { what: label, ok: false, mode: 'legacy', error: (e as Error).message.slice(0, 200) } });
-    throw e;
-  } finally {
-    running.delete(acc.id);
-  }
-}
-
 // Club syncs have no daily cap: the schedule runs once after the drop, visits only when the club is
 // older than CLUB_VISIT_STALE_H, and the Club button waits CLUB_MANUAL_COOLDOWN_MIN after the last
 // club load or the last club sync that actually called EA (a sync that never reached EA, e.g. the
 // web app was not logged in, blocks nothing). EA's daily request budget still caps everything. The SBC list is never synced
 // on demand: only by the schedule, after the daily drop, and on visits.
 export const CLUB_MANUAL_COOLDOWN_MS = Number(process.env.CLUB_MANUAL_COOLDOWN_MIN ?? 15) * 60 * 1000;
-// legacy accounts sync from the server: their club syncs call EA right away
-const legacyClubAt = new Map<number, number>();
-
 async function clubButtonAt(acc: Account): Promise<number | null> {
   const loaded = (await readShared(acc.key('club')))?.fetchedAt ?? null;
-  const called = acc.clientMode ? clubCalledAt(acc) : legacyClubAt.get(acc.id) ?? null;
+  const called = clubCalledAt(acc);
   const last = loaded === null ? called : called === null ? loaded : Math.max(loaded, called);
   return clubManualAt(last, Date.now(), CLUB_MANUAL_COOLDOWN_MS);
 }
 
 /**
- * Manual (club only) or scheduled sync. Client-mode accounts only queue a job for their web app
- * tab (the data arrives through the extension); legacy accounts still fetch from the server.
+ * Manual (club only) or scheduled sync: queues a job for the account's web app tab (the data
+ * arrives through the extension). The server never calls EA itself.
  */
 export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all', scheduled = false) {
   if (!scheduled && what !== 'club')
@@ -136,83 +105,17 @@ export async function requestSync(acc: Account, what: 'club' | 'sbc' | 'all', sc
     throw new SessionError(`Club synced moments ago. Try again in ${minutes} min.`, 429, 'clubCooldown', { minutes });
   }
   const doClub = club && clubAt === null;
-  if (acc.clientMode) {
-    if (!webAppOpen(acc)) throw new SessionError('Open the FC27 web app in this browser to sync. FC Solver asks EA only from there.', 409, 'webAppClosed');
-    await acc.meter.check(); // over today's budget or paused: refuse before the tab starts
-    if (doClub && !hasPending(acc, 'club')) {
-      await enqueue(acc, 'club');
-    }
-    if (sbc) await enqueue(acc, 'sbc');
-    return;
+  if (!acc.clientMode || !webAppOpen(acc)) throw new SessionError('Open the FC27 web app in this browser to sync. FC Solver asks EA only from there.', 409, 'webAppClosed');
+  await acc.meter.check(); // over today's budget or paused: refuse before the tab starts
+  if (doClub && !hasPending(acc, 'club')) {
+    await enqueue(acc, 'club');
   }
-  if (doClub) {
-    legacyClubAt.set(acc.id, Date.now());
-    await syncClub(acc);
-  }
-  if (sbc) await syncSbcs(acc);
+  if (sbc) await enqueue(acc, 'sbc');
 }
 
-export function syncClub(acc: Account): Promise<Cached<ClubItem[]>> {
-  return run(acc, 'club', async () => {
-    const utas = utasOf(acc);
-    const items = await utas.clubPlayers();
-    // anything the fresh club already contains is no longer waiting in Unassigned
-    const pending = await readCache<ClubItem[]>(acc.key('unassigned'));
-    if (pending) {
-      const inClub = new Set(items.map((i) => i.id));
-      await writeCache(acc.key('unassigned'), pending.data.filter((p) => !inClub.has(p.id)));
-    }
-    const squad = await utas.activeSquad().catch(() => null);
-    if (squad) await writeCache(acc.key('squad'), squad);
-    const prof = await utas.chemistryProfiles().catch(() => null);
-    if (prof) {
-      await writeCache<ChemProfilesResponse>(acc.key('chemProfiles'), prof);
-      invalidateMeta(acc.key('chemProfiles'));
-    }
-    return writeCache(acc.key('club'), items);
-  });
-}
-
-/** Refresh the SBC list; only re-fetch challenges for sets that are new or changed. */
-export function syncSbcs(acc: Account): Promise<Cached<SetsData>> {
-  return run(acc, 'sbc', async () => {
-    const utas = utasOf(acc);
-    const prev = await readCache<SetsData>(acc.key('sets'));
-    const next = await utas.sets();
-    const prevSets = new Map(prev?.data.categories.flatMap((c) => c.sets).map((s) => [s.setId, s]) ?? []);
-    for (const set of next.categories.flatMap((c) => c.sets)) {
-      const old = prevSets.get(set.setId);
-      const changed =
-        !old ||
-        old.challengesCompletedCount !== set.challengesCompletedCount ||
-        old.timesCompleted !== set.timesCompleted ||
-        old.timesCompletedInInterval !== set.timesCompletedInInterval ||
-        old.challengesCount !== set.challengesCount;
-      const cached = await readCache(acc.key(`challenges/${set.setId}`));
-      if (cached && !changed) continue;
-      // finished one-off sets are only loaded if the user opens them
-      if (!cached && set.challengesCompletedCount >= set.challengesCount && !set.repeatable) continue;
-      const ch = await utas.challenges(set.setId);
-      await writeCache(acc.key(`challenges/${set.setId}`), ch.challenges);
-      await softly('save challenges', () => saveChallenges(set.setId, ch.challenges));
-    }
-    await softly('save sets', () => saveSets(next.categories.flatMap((c) => c.sets)));
-    return writeCache(acc.key('sets'), next);
-  });
-}
-
-/**
- * Challenges of a set, from cache only. Opening an SBC or solving never reaches EA; the cache is
- * filled by syncs and by the extension when the user opens the set in the web app.
- * `refresh` is an explicit user request and the only way this asks EA.
- */
-export async function getChallenges(acc: Account, setId: number, refresh = false): Promise<Cached<Challenge[]> | null> {
-  const key = acc.key(`challenges/${setId}`);
-  const cached = await readCache<Challenge[]>(key);
-  if (!refresh || !acc.utas) return cached;
-  const ch = await acc.utas.challenges(setId);
-  await softly('save challenges', () => saveChallenges(setId, ch.challenges));
-  return writeCache(key, ch.challenges);
+/** Challenges of a set, from cache only: filled by syncs and by the extension when the set is opened in the web app. */
+export async function getChallenges(acc: Account, setId: number): Promise<Cached<Challenge[]> | null> {
+  return readCache<Challenge[]>(acc.key(`challenges/${setId}`));
 }
 
 /** Start (unix s) of the current refresh window of a REFRESH set; windows tick from its release. */
@@ -367,7 +270,7 @@ async function academyDue(acc: Account): Promise<boolean> {
 }
 
 export async function autoSync(acc: Account): Promise<void> {
-  if (!acc.hasSession || running.has(acc.id)) return;
+  if (!acc.clientMode || !acc.hasSession) return;
   if (Date.now() - acc.info.sidUpdatedAt < SESSION_GRACE_MS) return;
   const f = forced.get(acc.id);
   forced.delete(acc.id);
@@ -382,20 +285,16 @@ export async function autoSync(acc: Account): Promise<void> {
       clubDue ||= f.club;
       sbcDue ||= f.sbc;
     }
-    if (acc.clientMode) {
-      if (jobStatus(acc).running) {
-        if (f) forced.set(acc.id, f); // try again on the next tick
-        return;
-      }
-      if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
-      // timed evolutions: one read a day, only where someone gets the email (Premium)
-      if (!jobStatus(acc).running && !hasPending(acc, 'academy') && (await academyDue(acc))) {
-        await writeCache(acc.key('academyAsked'), { at: Date.now() });
-        await enqueue(acc, 'academy');
-      }
+    if (jobStatus(acc).running) {
+      if (f) forced.set(acc.id, f); // try again on the next tick
       return;
     }
     if (clubDue || sbcDue) await requestSync(acc, clubDue && sbcDue ? 'all' : clubDue ? 'club' : 'sbc', true);
+    // timed evolutions: one read a day, only where someone gets the email (Premium)
+    if (!jobStatus(acc).running && !hasPending(acc, 'academy') && (await academyDue(acc))) {
+      await writeCache(acc.key('academyAsked'), { at: Date.now() });
+      await enqueue(acc, 'academy');
+    }
   } catch (e) {
     if (f) forced.set(acc.id, f); // e.g. over today's EA budget: keep it for later
     console.warn(`auto sync failed for ${acc.info.personaName}:`, (e as Error).message);
@@ -445,7 +344,6 @@ export async function adminSync(acc: Account, what: 'club' | 'sbc' | 'all'): Pro
     forced.set(acc.id, { club: club || !!prev?.club, sbc: wantSbc || !!prev?.sbc });
     return { personaId, outcome: 'deferred' };
   }
-  if (running.has(acc.id)) return { personaId, outcome: 'skipped', code: 'syncRunning' };
   try {
     await acc.meter.check();
   } catch (e) {
@@ -453,9 +351,7 @@ export async function adminSync(acc: Account, what: 'club' | 'sbc' | 'all'): Pro
     return { personaId, outcome: 'skipped', code: err.msgCode ?? 'budget', params: err.params };
   }
   const kind = club && wantSbc ? 'all' : club ? 'club' : 'sbc';
-  if (acc.clientMode) await requestSync(acc, kind, true);
-  // legacy accounts fetch from the server right here, which takes a while: don't hold the request
-  else void requestSync(acc, kind, true).catch((e) => console.warn(`admin sync failed for ${acc.info.personaName}:`, (e as Error).message));
+  await requestSync(acc, kind, true);
   return { personaId, outcome: 'queued', clubSkipped: wantClub && !club };
 }
 
