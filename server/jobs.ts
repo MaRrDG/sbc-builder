@@ -33,6 +33,9 @@ export interface Job {
   clubLoaded?: number;
   /** first request the page made to EA for this job (reported through /api/jobs/:id/call) */
   calledAt?: number;
+  /** EA requests the page made for this job (challenges: one per set) */
+  calls?: number;
+  finishedAt?: number;
   /** failed without ever calling EA (web app not logged in, tab closed): costs EA nothing */
   notStarted?: boolean;
 }
@@ -40,6 +43,7 @@ export interface Job {
 const queues = new Map<number, Job[]>();
 const lastPoll = new Map<number, number>();
 const lastVisible = new Map<number, boolean>();
+const lastReady = new Map<number, boolean>();
 const lastFinished = new Map<number, number>();
 const lastClubCall = new Map<number, number>();
 const NOT_STARTED = 'The web app tab did not start the sync. Log in to EA in the web app and it runs again.';
@@ -59,6 +63,7 @@ function queueOf(acc: Account) {
     const gone = expiredAs(j, now, webAppOpen(acc));
     if (!gone) continue;
     j.status = 'failed';
+    j.finishedAt = now;
     j.error = gone === 'notStarted' ? NOT_STARTED : 'The web app tab stopped before the sync finished.';
     if (gone === 'notStarted') j.notStarted = true;
   }
@@ -73,6 +78,12 @@ export const hasPending = (acc: Account, kind: JobKind) =>
 
 /** A web app tab with the extension asked for work in the last few seconds. */
 export const webAppOpen = (acc: Account) => Date.now() - (lastPoll.get(acc.id) ?? 0) < OPEN_WINDOW;
+
+/** The tab's last poll said it is logged in to EA and can run jobs. */
+export const tabReady = (acc: Account) => lastReady.get(acc.id) ?? true;
+
+/** Snapshot of the queue (active and recently finished jobs). */
+export const jobList = (acc: Account): Job[] => [...queueOf(acc)];
 
 export async function enqueue(acc: Account, kind: JobKind, setIds?: number[], challengeId?: number): Promise<Job | null> {
   const q = queueOf(acc);
@@ -112,6 +123,7 @@ export function webAppReturned(acc: Account, visible: boolean | undefined): bool
 /** The extension asks for the next job; also marks the web app tab as open. `canRun` false: the tab is not logged in to EA yet. */
 export function nextJob(acc: Account, canRun = true): Job | null {
   lastPoll.set(acc.id, Date.now());
+  lastReady.set(acc.id, canRun);
   const q = queueOf(acc);
   if (!canRun) return null; // queued jobs wait for the login
   if (q.some((j) => j.status === 'running')) return null; // one at a time
@@ -126,6 +138,7 @@ export function nextJob(acc: Account, canRun = true): Job | null {
 
 /** The page made a request to EA for this job; a club sync's first one starts the Club button cooldown. */
 export function markCall(acc: Account, job: Job) {
+  job.calls = (job.calls ?? 0) + 1;
   if (job.calledAt) return;
   job.calledAt = Date.now();
   if (job.kind === 'club') lastClubCall.set(acc.id, job.calledAt);
@@ -168,6 +181,7 @@ export async function finishJob(acc: Account, job: Job, ok: boolean, error?: str
     }
   }
   job.status = ok ? 'done' : 'failed';
+  job.finishedAt = Date.now();
   lastFinished.set(acc.id, Date.now());
   job.error = ok ? undefined : error ?? 'Sync failed in the web app tab.';
   // e.g. "The web app has not talked to EA yet.": the page never asked EA, so nothing was spent

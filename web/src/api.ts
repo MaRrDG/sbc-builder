@@ -161,6 +161,20 @@ export interface EaRequests {
   recent: { at: number; method: string; path: string; status: number | null }[];
 }
 
+export type JobState = 'waitingTab' | 'waitingLogin' | 'queued' | 'running' | 'paused' | 'done' | 'failed';
+export interface JobView {
+  id: string;
+  kind: 'club' | 'sbc' | 'challenges' | 'challengeSquad' | 'academy';
+  state: JobState;
+  done: number; // club: players loaded; challenges: sets read; others 0
+  total: number | null; // club: last club size (estimate); challenges: sets in the job; others null
+  estimated: boolean; // total is a guess (club)
+  at: number; // finished, else started, else queued (ms)
+  error: string | null;
+  notStarted: boolean;
+  resumeAt: number | null; // paused: when EA's pause ends
+}
+
 export interface SyncStatus {
   ea: EaRequests;
   clubNextAt: number | null; // when the Club button works again (null: now)
@@ -174,6 +188,8 @@ export interface SyncStatus {
   unassigned: number;
   /** a club sync waiting for / running in the web app tab; expected = cached club size, a rough total */
   club: { state: 'queued' | 'running'; loaded: number; expected: number | null } | null;
+  jobs: JobView[];
+  graceUntil: number | null; // a fresh web app session: the first syncs wait for it to finish loading
 }
 
 export interface Meta {

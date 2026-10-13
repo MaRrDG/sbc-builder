@@ -9,7 +9,8 @@ import { listAccounts, type Account } from './accounts.js';
 import { versionLess } from './admin/query.js';
 import { planFor } from './plans.js';
 import { personaRow } from './db/users.js';
-import { clubCalledAt, enqueue, hasPending, jobStatus, webAppOpen } from './jobs.js';
+import { clubCalledAt, enqueue, hasPending, jobList, jobStatus, tabReady, webAppOpen } from './jobs.js';
+import { jobViews, type JobView } from './job-view.js';
 import { softly } from './db/index.js';
 import { logEvent } from './db/events.js';
 import { clubDueOnVisit, clubManualAt } from './visit-rules.js';
@@ -32,7 +33,11 @@ export interface SyncStatus {
   unassigned: number; // players from opened packs not sent to the club yet
   /** a club sync waiting for / running in the web app tab: players loaded so far, and the cached club size as a rough total */
   club: { state: 'queued' | 'running'; loaded: number; expected: number | null } | null;
+  jobs: JobView[];
+  graceUntil: number | null; // a fresh web app session: the first syncs wait for it to finish loading
 }
+
+const SESSION_GRACE_MS = 20 * 1000;
 
 const running = new Map<number, string>();
 /** An admin asked for a sync while the account was offline: run it on its next web app visit. */
@@ -52,9 +57,16 @@ export async function getStatus(acc: Account): Promise<SyncStatus> {
     readShared<unknown[]>(acc.key('unassigned')),
     readShared(acc.key('sets')),
   ]);
+  const ea = await acc.meter.summary();
+  const graceEnd = acc.info.sidUpdatedAt + SESSION_GRACE_MS;
+  const jobViewsNow = acc.clientMode
+    ? jobViews(jobList(acc), { tabOpen: webAppOpen(acc), tabReady: tabReady(acc), pausedUntil: ea.pausedUntil, clubExpected: club?.data.length || null })
+    : [];
   return {
     club: clubJob && { ...clubJob, expected: club?.data.length || null },
-    ea: await acc.meter.summary(),
+    ea,
+    jobs: jobViewsNow,
+    graceUntil: acc.clientMode && graceEnd > Date.now() ? graceEnd : null,
     clubNextAt: await clubButtonAt(acc),
     running: jobs ? jobs.running : running.get(acc.id) ?? null,
     error: jobs ? jobs.error : errors.get(acc.id) ?? null,
@@ -335,7 +347,6 @@ export async function refreshOnVisit(acc: Account, { sbcs = true }: { sbcs?: boo
  */
 // A fresh session means the web app just opened: let its own start-up burst finish first
 // (the extension queue also waits for the web app to go quiet before each request).
-const SESSION_GRACE_MS = 20 * 1000;
 
 async function academyDue(acc: Account): Promise<boolean> {
   // one read per daily drop, whatever the outcome: either a full list came back ('academy') or we asked ('academyAsked')
