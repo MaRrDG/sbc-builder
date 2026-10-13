@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mainJob, pct, finishedNow, solveWait } from './activity';
+import { mainJob, pct, finishedNow, solveWait, toastable } from './activity';
 import type { JobView } from './api';
 
 const v = (o: Partial<JobView>): JobView => ({ id: 'a', kind: 'club', state: 'running', done: 0, total: null, estimated: false, at: 0, error: null, notStarted: false, resumeAt: null, ...o });
@@ -27,4 +27,12 @@ test('solveWait: a club job queued or running', () => {
   assert.equal(solveWait([v({ kind: 'sbc' })]), null);
   assert.equal(solveWait([v({ kind: 'club', state: 'queued' })])?.kind, 'club');
   assert.equal(solveWait([v({ kind: 'club', state: 'waitingTab' })]), null); // not open: solve the cached club
+});
+
+test('toastable: only a finish in the last 30 s', () => {
+  const now = 1_000_000;
+  const before = [v({ id: 'a', state: 'running' }), v({ id: 'b', state: 'running' })];
+  const after = [v({ id: 'a', state: 'done', at: now - 5_000 }), v({ id: 'b', state: 'failed', at: now - 120_000 })];
+  assert.deepEqual(toastable(before, after, now).map((j) => j.id), ['a']); // b finished long ago (a stale cached status)
+  assert.deepEqual(toastable(after, after, now), []); // nothing was active before
 });

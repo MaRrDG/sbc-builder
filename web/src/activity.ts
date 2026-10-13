@@ -19,3 +19,8 @@ export function finishedNow(prev: JobView[], next: JobView[]): JobView[] {
 
 /** Solve waits for a club sync that is queued or running in an open tab, never for one that waits for the tab. */
 export const solveWait = (jobs: JobView[]) => jobs.find((j) => j.kind === 'club' && (j.state === 'queued' || j.state === 'running')) ?? null;
+
+/** Jobs worth a toast: they finished between two network statuses, in the last 30 s (never an old finish seen late). */
+export const TOAST_FRESH_MS = 30_000;
+export const toastable = (prev: JobView[], next: JobView[], now: number) =>
+  finishedNow(prev, next).filter((j) => now - j.at <= TOAST_FRESH_MS);

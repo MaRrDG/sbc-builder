@@ -42,7 +42,7 @@ import { Row, Section } from './components/SettingsRows';
 import { DailyProfileCard } from './components/DailyProfileCard';
 import { LinkedAccounts } from './components/LinkedAccounts';
 import { QuotaMeter } from './components/QuotaMeter';
-import { ActivityButton, ActivityPanel, ActivityToast } from './components/Activity';
+import { ActivityButton, ActivityPanel, ActivityToast, jobProgress } from './components/Activity';
 import { solveWait } from './activity';
 import { OnboardingModal } from './components/OnboardingModal';
 import { RefBanner } from './components/RefBanner';
@@ -564,7 +564,8 @@ export default function App({
   const wait = solveWait(status?.jobs ?? []);
   const clubSyncing = !!wait && wait.state === 'running';
   // Solve waits for a club sync that is loading players, so it never solves a half-read club
-  const syncWait = wait ? t('activity.solveWait', { done: wait.done, total: wait.total ?? '?' }) : null;
+  const waitCount = wait ? jobProgress(t, wait) : '';
+  const syncWait = !wait ? null : waitCount ? t('activity.solveWait', { progress: waitCount }) : t('activity.solveWaitBare');
   useEffect(() => {
     if (!activeId || streamUp) return;
     const t = setInterval(async () => {
@@ -976,7 +977,7 @@ export default function App({
     <UpgradeContext.Provider value={upgrade}>
     <div className="app">
       {survey}
-      <ActivityToast jobs={status?.jobs ?? []} players={club.length} />
+      <ActivityToast jobs={status && status !== cachedStatusRef.current ? status.jobs : null} players={club.length} account={activeId} />
       <GalleryInfo open={galleryInfo} onClose={closeGalleryInfo} />
       <header className="topbar">
         <a className="brand" href="/dashboard" aria-label={t('top.home')}>
@@ -1584,7 +1585,7 @@ export default function App({
                         <button type="button" className="ghost" onClick={() => setMarked(new Set())}>
                           {t('mark.clear')}
                         </button>
-                        <button type="button" className="solve-sm" onClick={excludeMarked}>
+                        <button type="button" className="solve-sm" disabled={!!syncWait} title={syncWait ?? undefined} onClick={excludeMarked}>
                           <Prohibit weight="bold" aria-hidden="true" /> {outOfSolves ? t('mark.applyNoSolve') : t('mark.apply')}
                         </button>
                       </div>

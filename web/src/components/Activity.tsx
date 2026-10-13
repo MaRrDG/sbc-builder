@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { ArrowsClockwise, CheckCircle, HourglassMedium, PauseCircle, Queue, WarningCircle, X } from '@phosphor-icons/react';
 import type { JobView, SyncStatus } from '../api';
 import { useAgo, useI18n } from '../i18n';
-import { finishedNow, isActive, mainJob, pct } from '../activity';
+import { isActive, mainJob, pct, toastable } from '../activity';
 
 const R = 8;
 const C = 2 * Math.PI * R;
@@ -22,18 +22,19 @@ function Ring({ value, waiting }: { value: number | null; waiting: boolean }) {
   );
 }
 
+type T = (key: string, params?: Record<string, string | number>) => string;
+
+/** "120/~1200" (estimated total), "3/12" (exact), the count alone when only that is known, else "". */
+export function jobProgress(t: T, j: JobView): string {
+  if (j.total)
+    return j.estimated ? t('activity.progressEst', { done: j.done, total: j.total }) : t('activity.progress', { done: j.done, total: j.total });
+  return j.done ? String(j.done) : '';
+}
+
 function useJobText() {
   const { t } = useI18n();
   const kind = (j: JobView) => t(`activity.kind.${j.kind}`);
-  /** "120/~1200" when there is a total, the count alone when only that is known */
-  const progress = (j: JobView) =>
-    j.total
-      ? j.estimated
-        ? t('activity.progressEst', { done: j.done, total: j.total })
-        : t('activity.progress', { done: j.done, total: j.total })
-      : j.done
-        ? String(j.done)
-        : '';
+  const progress = (j: JobView) => jobProgress(t, j);
   return { kind, progress };
 }
 
@@ -226,17 +227,22 @@ export function ActivityPanel({ status, now, busy, live, clubWait, onClose, onSy
 
 type Toast = { what: 'club' | 'sbc' | 'failed'; at: number };
 
-/** A short note when a sync finishes; the panel keeps the details. */
-export function ActivityToast({ jobs, players }: { jobs: JobView[]; players: number }) {
+/**
+ * A short note when a sync finishes; the panel keeps the details. `jobs` is null while the status on
+ * screen came from the cache: only network statuses are compared, so a cached "running" that the
+ * network shows done never toasts on load or on an account switch.
+ */
+export function ActivityToast({ jobs, players, account }: { jobs: JobView[] | null; players: number; account: number | null }) {
   const { t } = useI18n();
-  const prev = useRef<JobView[] | null>(null);
+  const prev = useRef<{ account: number | null; jobs: JobView[] } | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
 
   useEffect(() => {
-    const before = prev.current;
-    prev.current = jobs;
-    if (!before) return; // the first status: nothing finished "just now"
-    const fin = finishedNow(before, jobs);
+    if (!jobs) return;
+    const before = prev.current?.account === account ? prev.current.jobs : null;
+    prev.current = { account, jobs };
+    if (!before) return; // the first network status of this account: nothing finished "just now"
+    const fin = toastable(before, jobs, Date.now());
     const what = fin.some((j) => j.state === 'failed')
       ? 'failed'
       : fin.some((j) => j.kind === 'club')
@@ -245,7 +251,7 @@ export function ActivityToast({ jobs, players }: { jobs: JobView[]; players: num
           ? 'sbc'
           : null;
     if (what) setToast({ what, at: Date.now() });
-  }, [jobs]);
+  }, [jobs, account]);
 
   useEffect(() => {
     if (!toast) return;
