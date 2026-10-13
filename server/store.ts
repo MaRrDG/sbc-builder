@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, writeFile, rename, stat } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, rename, stat, unlink } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -50,7 +50,8 @@ export async function readShared<T>(key: string): Promise<Readonly<Cached<T>> | 
   }
   const gen = generation.get(key) ?? 0;
   const entry = await readCache<T>(key);
-  if ((generation.get(key) ?? 0) === gen) share(key, entry);
+  // misses and read errors are not cached: the next call goes to disk again
+  if (entry && (generation.get(key) ?? 0) === gen) share(key, entry);
   return entry;
 }
 
@@ -59,7 +60,10 @@ const writing = new Map<string, Promise<unknown>>();
 /** `fetchedAt` defaults to now; pass the old one for local edits that are not a fresh fetch. */
 export function writeCache<T>(key: string, data: T, fetchedAt = Date.now()): Promise<Cached<T>> {
   // one write per key at a time, in call order
-  const run = (writing.get(key) ?? Promise.resolve()).catch(() => {}).then(() => write(key, data, fetchedAt));
+  // serialize now: later mutations of `data` by the caller must reach neither the disk nor the shared entry
+  const entry: Cached<T> = { fetchedAt, data };
+  const json = JSON.stringify(entry);
+  const run = (writing.get(key) ?? Promise.resolve()).catch(() => {}).then(() => write(key, entry, json));
   writing.set(key, run);
   void run.finally(() => {
     if (writing.get(key) === run) writing.delete(key);
@@ -67,19 +71,23 @@ export function writeCache<T>(key: string, data: T, fetchedAt = Date.now()): Pro
   return run;
 }
 
-async function write<T>(key: string, data: T, fetchedAt: number): Promise<Cached<T>> {
-  const entry: Cached<T> = { fetchedAt, data };
+async function write<T>(key: string, entry: Cached<T>, json: string): Promise<Cached<T>> {
   const path = file(key);
   await mkdir(dirname(path), { recursive: true });
   // write-then-rename so a crash never leaves a half-written cache file; a unique tmp name per write
   const tmp = `${path}.${process.pid}.${randomBytes(4).toString('hex')}.tmp`;
-  await writeFile(tmp, JSON.stringify(entry));
-  await rename(tmp, path);
+  try {
+    await writeFile(tmp, json);
+    await rename(tmp, path);
+  } catch (err) {
+    await unlink(tmp).catch(() => {});
+    throw err;
+  }
   generation.set(key, (generation.get(key) ?? 0) + 1);
-  share(key, entry);
+  share(key, JSON.parse(json) as Cached<T>);
   for (const fn of listeners) {
     try {
-      fn(key, data);
+      fn(key, entry.data);
     } catch (err) {
       console.warn(`[store] cache write listener failed for ${key}:`, err);
     }
