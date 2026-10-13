@@ -191,6 +191,17 @@ tar --zstd -xf /root/backups/fc-solver/<day>/data.tar.zst -C /var/www/fc-solver
 docker compose start app
 ```
 
+## Content Security Policy
+
+HTML pages carry the policy from `csp()` in `server/index.ts`. By default it is `Content-Security-Policy-Report-Only`; `CSP_ENFORCE=1` in `.env` (forwarded by compose, then `docker compose up -d`) sends the enforced `Content-Security-Policy` instead. Both report violations to `/api/csp-report`, logged as one short line each:
+
+```bash
+docker logs fc-solver 2>&1 | grep '\[csp\]' # container = APP_NAME
+# [csp] {"page":"/dashboard","directive":"connect-src","blocked":"https://x.example","source":"https://fc-solver.app","line":12}
+```
+
+Order: add any legitimate missing origin to `csp()`, turn `CSP_ENFORCE=1` on dev, use the site (sign-in, checkout, Daily, card art), and only when the dev log stays quiet set it on prod. Rollback: empty `CSP_ENFORCE`, `docker compose up -d`.
+
 ## Alerts
 
 Set `ALERT_WEBHOOK_URL` in `.env` to a Discord webhook (channel settings -> Integrations -> Webhooks -> New webhook -> copy URL) and recreate the app (`docker compose up -d`). The server posts 500s and crashes there (rate limited, no request data), and `backup.sh` posts failures. Empty = log only.

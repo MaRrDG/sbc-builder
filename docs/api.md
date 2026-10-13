@@ -22,7 +22,7 @@ The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extens
 
 **Shutdown.** On `SIGTERM` the server ends open `/api/stream` streams and answers held `/api/jobs/next` polls at once (clients reconnect to the next server), stops running solves (`503 solverBusy`), lets other in-flight requests finish for up to 20 s, then closes the DB.
 
-**Headers.** Every answer carries `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy`, and `Strict-Transport-Security` behind HTTPS. HTML pages carry a `Content-Security-Policy-Report-Only` (see `csp()` in `server/index.ts`); browsers post violations to `POST /api/csp-report` (logged as `[csp]`, 20 a minute per IP), so the policy can be enforced once the log stays quiet. CORS answers `chrome-extension://` origins (and `http://localhost` outside production).
+**Headers.** Every answer carries `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `X-Frame-Options: DENY`, `Permissions-Policy`, and `Strict-Transport-Security` behind HTTPS. HTML pages carry a `Content-Security-Policy-Report-Only` (see `csp()` in `server/index.ts`), or the enforced `Content-Security-Policy` when `CSP_ENFORCE=1`; both report to `POST /api/csp-report` (20 a minute per IP), logged as one compact `[csp]` line per violation: `{page, directive, blocked, source, line}` with the page path and only the origins of the blocked URL and the source file, never the policy or full URLs (`server/csp-report.ts`). CORS answers `chrome-extension://` origins (and `http://localhost` outside production).
 
 ---
 

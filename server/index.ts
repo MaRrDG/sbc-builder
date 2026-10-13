@@ -12,6 +12,7 @@ import { killAllSolvers, type ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
 import { readCache, readShared, ROOT } from './store.js';
 import { etagOf, notModified } from './etag.js';
+import { compactCspReport, cspHeaderName } from './csp-report.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, hasPending, markBlocked, markCall, markPoll, markReady, nextJob, restLeft, waitForWork, wakeAll, isShuttingDown, webAppOpen, webAppReturned } from './jobs.js';
 import { dropStream, endAllStreams, notify, sseFrame, subscribe, takeStream, trackStream } from './live.js';
@@ -117,8 +118,8 @@ app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
   reply.code(status).send({ error: err.message, ...own });
 });
 
-// Security headers on every answer. The CSP is report-only for now: violations are logged
-// (/api/csp-report) until it is known not to break Clerk, the EA card art or the fonts.
+// Security headers on every answer. The CSP is report-only unless CSP_ENFORCE=1: violations are
+// logged (/api/csp-report) until it is known not to break Clerk, the EA card art or the fonts.
 function csp(): string {
   // Clerk's Frontend API lives on clerk.<our domain> in production, *.clerk.accounts.dev in development
   const clerk = siteOrigins()
@@ -152,7 +153,7 @@ app.addHook('onSend', async (req, reply) => {
   reply.header('X-Frame-Options', 'DENY');
   reply.header('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self "https://buy.paddle.com" "https://sandbox-buy.paddle.com")');
   if (req.headers['x-forwarded-proto'] === 'https') reply.header('Strict-Transport-Security', 'max-age=15552000');
-  if (String(reply.getHeader('content-type') ?? '').startsWith('text/html')) reply.header('Content-Security-Policy-Report-Only', csp());
+  if (String(reply.getHeader('content-type') ?? '').startsWith('text/html')) reply.header(cspHeaderName(process.env.CSP_ENFORCE), csp());
 });
 
 // Browsers post CSP violations here (report-only phase); kept short and rate limited in the log.
@@ -165,8 +166,7 @@ app.addContentTypeParser(['application/csp-report', 'application/reports+json'],
 });
 app.post('/api/csp-report', async (req, reply) => {
   if (reportLimit(req.ip)) {
-    const r = (req.body as { 'csp-report'?: Record<string, unknown> } | null)?.['csp-report'] ?? req.body;
-    console.warn('[csp]', JSON.stringify(r).slice(0, 500));
+    for (const line of compactCspReport(req.body)) console.warn('[csp]', JSON.stringify(line));
   }
   return reply.code(204).send();
 });
