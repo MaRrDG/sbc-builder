@@ -542,7 +542,7 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
   return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked, linkRejected: !!token && !userId, clubQueued };
 });
 
-const LONG_POLL_MS = 25_000; // under nginx's 60 s proxy timeout and the extension's 30 s live window
+const LONG_POLL_MS = 20_000; // under nginx's 60 s proxy timeout and the 30 s open / live windows
 
 /** Next sync job for the web app tab (null when idle). Polling also marks the tab as open. */
 app.get('/api/jobs/next', async (req) => {
@@ -568,13 +568,15 @@ app.get('/api/jobs/next', async (req) => {
   const until = Date.now() + LONG_POLL_MS;
   let job = nextJob(acc, canRun);
   while (!job && hold && Date.now() < until && !gone()) {
-    await waitForWork(acc, Math.min(until - Date.now(), restLeft(acc) || LONG_POLL_MS));
+    await waitForWork(acc, Math.min(until - Date.now(), restLeft(acc) || LONG_POLL_MS, 10_000));
     if (gone()) break;
+    markPoll(acc); // still holding: the tab is still there
     try {
       await acc.meter.check();
     } catch {
       break;
     }
+    if (gone()) break; // the socket may have closed during the meter check
     job = nextJob(acc, canRun);
   }
   return { job: job && { id: job.id, kind: job.kind, setIds: job.setIds, challengeId: job.challengeId }, again: hold ? 1000 : 5000 };
