@@ -10,7 +10,8 @@ import { parseRequirements, serializeRequirement } from './sbc.js';
 import { toPlayer } from './squad.js';
 import type { ActiveSquad } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
-import { readCache, ROOT } from './store.js';
+import { readCache, readShared, ROOT } from './store.js';
+import { etagOf, notModified } from './etag.js';
 import { applySubmittedSbc, autoSyncAll, autoSyncSoon, syncOnLink, getChallenges, getStatus, markEdited, refreshOnVisit, requestSync, type SetsData } from './sync.js';
 import { enqueue, findJob, finishJob, hasPending, markCall, nextJob, webAppOpen, webAppReturned } from './jobs.js';
 import { isTabPoll } from './job-rules.js';
@@ -247,16 +248,32 @@ app.get<{ Params: { file: string } }>('/api/evos/card/:file', async (req, reply)
   return reply.type('image/png').header('Cache-Control', 'public, max-age=2592000, immutable').header('X-Robots-Tag', 'noindex').send(png);
 });
 
+/** JSON with an ETag; an unchanged answer is a 304 with no body (the browser keeps its copy). */
+function sendTagged(req: FastifyRequest, reply: FastifyReply, body: unknown) {
+  const json = JSON.stringify(body);
+  const tag = etagOf(json);
+  reply.header('ETag', tag).header('Cache-Control', 'private, no-cache').header('Vary', 'Authorization, X-Persona');
+  if (notModified(req.headers['if-none-match'], tag)) return reply.code(304).send();
+  return reply.type('application/json; charset=utf-8').send(json);
+}
+
 /** Who is signed in and which EA personas they own. */
 app.get('/api/me', async (req) => {
   const userId = await siteUser(req);
-  const [row] = await db.select({ email: users.email, onboardedAt: users.onboardedAt, linkBlockedAt: users.linkBlockedAt }).from(users).where(eq(users.id, userId));
-  const personas = (await personasOf(userId)).flatMap((id) => {
+  const [[row], ids, admin, plan, prefs, billing] = await Promise.all([
+    db.select({ email: users.email, onboardedAt: users.onboardedAt, linkBlockedAt: users.linkBlockedAt }).from(users).where(eq(users.id, userId)),
+    personasOf(userId),
+    isAdmin(userId),
+    planFor(userId),
+    prefsOf(userId),
+    billingOf(userId),
+  ]);
+  const personas = ids.flatMap((id) => {
     const a = accountById(id);
     return a ? [a.toJSON()] : [];
   });
-  return { user: { id: userId, email: row?.email ?? '' }, personas, admin: await isAdmin(userId), plan: await planFor(userId), prefs: await prefsOf(userId), onboarding: { done: !!row?.onboardedAt },
-    billing: await billingOf(userId), // Paddle subscription, null without one or while billing is off
+  return { user: { id: userId, email: row?.email ?? '' }, personas, admin, plan, prefs, onboarding: { done: !!row?.onboardedAt },
+    billing, // Paddle subscription, null without one or while billing is off
     // an EA account of mine that another user has since proved with EA: why the setup screen is back
     takenOver: personas.length === 0 && (await takenOverFrom(userId)),
     // a link refused for the persona limit (cleared by any successful link): who to write to
@@ -556,18 +573,18 @@ app.get('/api/extension.zip', async (req, reply) => {
 });
 
 // ---- data -------------------------------------------------------------------
-app.get('/api/meta', async (req) => {
+app.get('/api/meta', async (req, reply) => {
   const acc = await optionalSiteAccount(req);
   const m = acc ? await metaFor(acc) : await loadMeta();
-  return {
+  return sendTagged(req, reply, {
     names: { nation: m.names.nation, league: m.names.league, club: m.names.club, rarity: m.names.rarity },
     formations: m.formations,
     rarities: m.rarities,
     contentBase: m.contentBase,
-  };
+  });
 });
 
-app.get('/api/club', async (req) => clubPlayers(await siteAccount(req)));
+app.get('/api/club', async (req, reply) => sendTagged(req, reply, await clubPlayers(await siteAccount(req))));
 
 // FUT Gallery planner (Premium): best lineup per set from every item seen in the club
 app.get('/api/gallery', async (req) => {
@@ -646,22 +663,22 @@ app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excl
   },
 );
 
-app.get('/api/sets', async (req) => {
+app.get('/api/sets', async (req, reply) => {
   const acc = await siteAccount(req);
-  const sets = await readCache<SetsData>(acc.key('sets'));
+  const sets = await readShared<SetsData>(acc.key('sets'));
   // a points challenge shows its target on the set tile (from the cached challenges, no EA call)
   const categories = await Promise.all(
     (sets?.data.categories ?? []).map(async (cat) => ({
       ...cat,
       sets: await Promise.all(
         cat.sets.map(async (s) => {
-          const ch = (await readCache<Challenge[]>(acc.key(`challenges/${s.setId}`)))?.data.find(isPointsChallenge);
+          const ch = (await readShared<Challenge[]>(acc.key(`challenges/${s.setId}`)))?.data.find(isPointsChallenge);
           return ch ? { ...s, pointsTarget: pointsTarget(ch) } : s;
         }),
       ),
     })),
   );
-  return { fetchedAt: sets?.fetchedAt ?? null, categories };
+  return sendTagged(req, reply, { fetchedAt: sets?.fetchedAt ?? null, categories });
 });
 
 app.get<{ Params: { id: string }; Querystring: { refresh?: string } }>('/api/sets/:id/challenges', async (req) => {

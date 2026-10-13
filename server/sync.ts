@@ -2,7 +2,7 @@
 // 20:01 drop (automatic) or when the user presses Sync (manual).
 import type { ClubItem, Challenge, SbcSet, ChemProfilesResponse } from './ea.js';
 import { SessionError } from './ea.js';
-import { readCache, writeCache, type Cached } from './store.js';
+import { readCache, readShared, writeCache, type Cached } from './store.js';
 import type { ActiveSquad } from './solver.js';
 import { loadMeta, invalidateMeta } from './meta.js';
 import { listAccounts, type Account } from './accounts.js';
@@ -47,18 +47,22 @@ export function markEdited(acc: Account) {
 export async function getStatus(acc: Account): Promise<SyncStatus> {
   const jobs = acc.clientMode ? jobStatus(acc) : null;
   const clubJob = jobs ? jobs.club : running.get(acc.id) === 'club' ? { state: 'running' as const, loaded: 0 } : null;
-  const cachedClub = clubJob ? await readCache<unknown[]>(acc.key('club')) : null;
+  const [club, unassigned, sets] = await Promise.all([
+    readShared<unknown[]>(acc.key('club')),
+    readShared<unknown[]>(acc.key('unassigned')),
+    readShared(acc.key('sets')),
+  ]);
   return {
-    club: clubJob && { ...clubJob, expected: cachedClub?.data.length || null },
+    club: clubJob && { ...clubJob, expected: club?.data.length || null },
     ea: await acc.meter.summary(),
     clubNextAt: await clubButtonAt(acc),
     running: jobs ? jobs.running : running.get(acc.id) ?? null,
     error: jobs ? jobs.error : errors.get(acc.id) ?? null,
     errorCode: jobs ? jobs.errorCode : null,
     editedAt: edited.get(acc.id) ?? null,
-    unassigned: (await readCache<unknown[]>(acc.key('unassigned')))?.data.length ?? 0,
-    clubAt: (await readCache(acc.key('club')))?.fetchedAt ?? null,
-    sbcAt: (await readCache(acc.key('sets')))?.fetchedAt ?? null,
+    unassigned: unassigned?.data.length ?? 0,
+    clubAt: club?.fetchedAt ?? null,
+    sbcAt: sets?.fetchedAt ?? null,
     sbcNextAt: acc.clientMode ? await sbcNextAt(acc) : null,
   };
 }
@@ -96,7 +100,7 @@ export const CLUB_MANUAL_COOLDOWN_MS = Number(process.env.CLUB_MANUAL_COOLDOWN_M
 const legacyClubAt = new Map<number, number>();
 
 async function clubButtonAt(acc: Account): Promise<number | null> {
-  const loaded = (await readCache(acc.key('club')))?.fetchedAt ?? null;
+  const loaded = (await readShared(acc.key('club')))?.fetchedAt ?? null;
   const called = acc.clientMode ? clubCalledAt(acc) : legacyClubAt.get(acc.id) ?? null;
   const last = loaded === null ? called : called === null ? loaded : Math.max(loaded, called);
   return clubManualAt(last, Date.now(), CLUB_MANUAL_COOLDOWN_MS);

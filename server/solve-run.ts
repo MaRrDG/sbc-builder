@@ -6,7 +6,7 @@ import { parseRequirements } from './sbc.js';
 import { evaluate, toPlayer } from './squad.js';
 import { NO_FILTERS, diagnose, pointsPool, pointsProblem, solve, solvePoints, type ActiveSquad, type SolveOptions } from './solver.js';
 import { challengeLayout, isBrickChallenge } from './layout.js';
-import { readCache } from './store.js';
+import { readCache, readShared, type Cached } from './store.js';
 import { getChallenges } from './sync.js';
 import type { Account } from './accounts.js';
 import { planFor, planInfo } from './plans.js';
@@ -18,17 +18,33 @@ export const metaFor = (acc: Account) => loadMeta(acc.key('chemProfiles'));
 
 export interface SolveBody { setId: number; challengeId: number; options?: Partial<SolveOptions>; deep?: boolean; useStorage?: boolean }
 
+type Player = ReturnType<typeof toPlayer>;
+type Meta = Awaited<ReturnType<typeof metaFor>>;
+
+// the toPlayer map is memoized per shared entry + meta; the arrays are fresh per call so callers may still sort / filter them
+const mapped = new WeakMap<object, { meta: object; players: Player[] }>();
+function playersOf(entry: Readonly<Cached<ClubItem[]>> | null, meta: Meta, storage = false): Player[] {
+  if (!entry) return [];
+  const hit = mapped.get(entry);
+  if (hit && hit.meta === meta) return [...hit.players];
+  const players = entry.data.map((i) => (storage ? { ...toPlayer(i, meta), inStorage: true } : toPlayer(i, meta)));
+  mapped.set(entry, { meta, players });
+  return [...players];
+}
+
 export async function clubPlayers(acc: Account) {
   const meta = await metaFor(acc);
-  const club = await readCache<ClubItem[]>(acc.key('club'));
-  const storage = await readCache<ClubItem[]>(acc.key('storage'));
-  const squad = (await readCache<ActiveSquad>(acc.key('squad')))?.data ?? null;
+  const [club, storage, squad] = await Promise.all([
+    readShared<ClubItem[]>(acc.key('club')),
+    readShared<ClubItem[]>(acc.key('storage')),
+    readShared<ActiveSquad>(acc.key('squad')),
+  ]);
   return {
     fetchedAt: club?.fetchedAt ?? null,
-    players: (club?.data ?? []).map((i) => toPlayer(i, meta)),
-    storage: (storage?.data ?? []).map((i) => ({ ...toPlayer(i, meta), inStorage: true })),
+    players: playersOf(club, meta),
+    storage: playersOf(storage, meta, true),
     storageAt: storage?.fetchedAt ?? null,
-    squad,
+    squad: squad?.data ?? null,
   };
 }
 
