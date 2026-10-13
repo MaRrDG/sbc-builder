@@ -599,6 +599,8 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'err.usernameInvalid': 'Folosește 3-16 litere, cifre, _ . sau -.',
   'err.usernameTaken': 'Username-ul e deja folosit. Încearcă altul.',
   'err.usernameRequired': 'Alege întâi un username.',
+  'err.usernameReserved': 'Username-ul ăsta nu e disponibil. Alege altul.',
+  'err.usernameCooldown': 'Îți poți schimba username-ul din nou în data de {date}.',
   'err.quotaExhausted': 'Ai folosit toate cele {limit} de rezolvări din săptămâna asta.',
   'err.billingOff': 'Plățile nu sunt încă disponibile.',
   'err.alreadyPremium': 'Ai deja Premium fără dată de expirare.',

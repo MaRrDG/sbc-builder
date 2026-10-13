@@ -169,6 +169,13 @@
       "when": 1791910892125,
       "tag": "0023_shocking_nico_minoru",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791911592744,
+      "tag": "0024_dusty_pete_wisdom",
+      "breakpoints": true
     }
   ]
 }

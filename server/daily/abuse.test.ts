@@ -6,7 +6,7 @@ import { applyGuess, gameView, type Progress } from './game.js';
 import { rankLeaderboard } from './leaderboard.js';
 import { pointsFor, pointsForWin, streakOf, type Play } from './streak.js';
 import { openPractice, sealPractice, signState, verifyState } from './tokens.js';
-import { normalizeUsername } from './username.js';
+import { isReservedUsername } from './username.js';
 import type { PlayerRow } from './types.js';
 
 const S = 'audit-secret-0123456789abcdef0123';
@@ -105,6 +105,6 @@ test('holds: a practice token expires and never carries the answer in clear', ()
   assert.equal(verifyState(S, signState(S, { k: 'px', g: [] }), 'd42'), null);
 });
 
-test('audit L1: staff-looking usernames are accepted', { todo: 'audit: L1' }, () => {
-  for (const n of ['admin', 'FCSolver', 'support', 'Moderator', 'fc.solver']) assert.equal(normalizeUsername(n), n);
+test('audit L1: staff-looking usernames are reserved', () => {
+  for (const n of ['admin', 'FCSolver', 'support', 'Moderator', 'fc.solver']) assert.ok(isReservedUsername(n), n);
 });

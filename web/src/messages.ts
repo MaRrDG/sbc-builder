@@ -5,7 +5,15 @@ import { ApiError, type Reason } from './api';
 type T = (key: string, params?: Record<string, string | number>) => string;
 
 export function errorText(e: unknown, t: T): string {
-  if (e instanceof ApiError && e.code) return t(`err.${e.code}`, e.params);
+  if (e instanceof ApiError && e.code) {
+    // a date from the server (YYYY-MM-DD) reads in the site language
+    if (e.code === 'usernameCooldown' && typeof e.params?.date === 'string') {
+      const d = new Date(`${e.params.date}T00:00:00Z`);
+      if (!Number.isNaN(d.getTime()))
+        return t('err.usernameCooldown', { ...e.params, date: d.toLocaleDateString(document.documentElement.lang || 'en', { dateStyle: 'long', timeZone: 'UTC' }) });
+    }
+    return t(`err.${e.code}`, e.params);
+  }
   if (e instanceof TypeError) return t('err.network'); // fetch itself failed
   return (e as Error)?.message ?? String(e);
 }

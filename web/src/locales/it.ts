@@ -599,6 +599,8 @@ export const it: Record<Keys, string> = {
   'err.usernameInvalid': 'Usa 3-16 lettere, cifre, _ . o -.',
   'err.usernameTaken': 'Username già in uso. Provane un altro.',
   'err.usernameRequired': 'Scegli prima un username.',
+  'err.usernameReserved': 'Questo username non è disponibile. Scegline un altro.',
+  'err.usernameCooldown': 'Potrai cambiare di nuovo username il {date}.',
   'err.quotaExhausted': 'Hai usato tutte le {limit} risoluzioni di questa settimana.',
   'err.billingOff': 'I pagamenti non sono ancora disponibili.',
   'err.alreadyPremium': 'Hai già Premium senza scadenza.',

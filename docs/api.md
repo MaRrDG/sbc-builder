@@ -251,7 +251,7 @@ Public, optional auth, `Cache-Control: no-store`. Only users who opted in with a
 
 ### `PUT /api/me/daily-profile`
 
-Signed in. Body `{ username?: string, leaderboard?: boolean, asked?: true }` -> `DailyProfile`. Any call also marks the leaderboard prompt as answered (`asked`). `username` is 3-16 letters, digits, `_`, `.` or `-`, unique ignoring case. Errors: `usernameInvalid` 400, `usernameTaken` 409, `usernameRequired` 400 (opting in without a username), `rateLimited` 429 (20 per minute per IP).
+Signed in. Body `{ username?: string, leaderboard?: boolean, asked?: true }` -> `DailyProfile`. Any call also marks the leaderboard prompt as answered (`asked`). `username` is 3-16 letters, digits, `_`, `.` or `-`, unique ignoring case. Errors: `usernameInvalid` 400, `usernameReserved` 400 (contains `admin`, `support`, `fcsolver`, `moderator`, `staff` or `official` once `. _ -` are removed), `usernameTaken` 409, `usernameCooldown` 429 (a different name within 7 days of the last change; params `{ date }` = YYYY-MM-DD it becomes possible; the first name and the same name ignoring case are free), `usernameRequired` 400 (opting in without a username), `rateLimited` 429 (20 per minute per IP).
 
 ## Admin (site)
 

@@ -595,6 +595,8 @@ export const en = {
   'err.usernameInvalid': 'Use 3-16 letters, digits, _ . or -.',
   'err.usernameTaken': 'That username is taken. Try another one.',
   'err.usernameRequired': 'Pick a username first.',
+  'err.usernameReserved': "That username isn't available. Pick another one.",
+  'err.usernameCooldown': 'You can change your username again on {date}.',
   'err.quotaExhausted': 'You used all {limit} solves for this week.',
   'err.billingOff': 'Payments are not available yet.',
   'err.alreadyPremium': 'You already have Premium without an end date.',

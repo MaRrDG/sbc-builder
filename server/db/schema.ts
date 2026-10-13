@@ -87,6 +87,7 @@ export const users = pgTable('users', {
   linkBlockedAt: timestamp('link_blocked_at', { withTimezone: true }),
   // FC Solver Daily leaderboard: public name (unique ignoring case), opt-in, and when we asked (asked once)
   username: text('username'),
+  usernameChangedAt: timestamp('username_changed_at', { withTimezone: true }), // last set/change (7-day rename cooldown)
   leaderboard: boolean('leaderboard').notNull().default(false),
   leaderboardAskedAt: timestamp('leaderboard_asked_at', { withTimezone: true }),
   // Discord (Clerk's Discord connection): the id the bot sees and its name
