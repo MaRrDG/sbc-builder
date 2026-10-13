@@ -28,10 +28,13 @@ const Landing = lazy(() => import('./landing/Landing'));
 const Daily = lazy(() => import('./daily/Daily'));
 const NotFound = lazy(() => import('./notfound/NotFound'));
 
-/** A lazy screen: the skeleton while its code loads, a reload note if the code cannot load. */
-const Lazy = ({ children }: { children: ReactNode }) => (
+/** A blank page in the site's background: what public pages show while their code or Clerk loads. */
+const Blank = () => <div className="boot" aria-busy="true" />;
+
+/** A lazy screen: the dashboard skeleton (`app`) or a blank page while its code loads, a reload note if the code cannot load. */
+const Lazy = ({ children, app = false }: { children: ReactNode; app?: boolean }) => (
   <LoadBoundary>
-    <Suspense fallback={<BootSkeleton />}>{children}</Suspense>
+    <Suspense fallback={app ? <BootSkeleton /> : <Blank />}>{children}</Suspense>
   </LoadBoundary>
 );
 
@@ -113,7 +116,8 @@ export default function Root() {
       </Lazy>
     );
 
-  if (!isLoaded) return <BootSkeleton />;
+  // only the dashboard gets its own shape; public pages stay blank instead of flashing a dashboard
+  if (!isLoaded) return publicView ? <Blank /> : <BootSkeleton />;
 
   if (route.view === 'ssoCallback')
     return (
@@ -183,9 +187,9 @@ export default function Root() {
       </div>
     );
 
-  if (route.view === 'signin') return <BootSkeleton />;
+  if (route.view === 'signin') return <Blank />;
   return (
-    <Lazy>
+    <Lazy app>
       <App route={route} navigate={navigate} userId={userId!} />
     </Lazy>
   );
