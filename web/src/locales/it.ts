@@ -1026,7 +1026,7 @@ export const it: Record<Keys, string> = {
   'landing.founders.planNote_other': '{count} posti a vita rimasti su {limit}.',
   'landing.faq.title': 'Domande',
   'landing.faq.ban.q': 'Il mio account EA può essere bannato per questo?',
-  'landing.faq.ban.a': 'EA agisce contro acquisti, vendite e consegne automatiche. FC Solver non fa nulla di tutto ciò: legge solo ciò che carica la scheda della tua web app, con un limite giornaliero di richieste.',
+  'landing.faq.ban.a': "FC Solver legge solo ciò che carica la scheda della tua web app, con un limite giornaliero di richieste, e non compra, non vende e non consegna mai nulla. Il rischio è basso, ma non zero: le regole di EA sugli strumenti di terze parti valgono comunque, e la scelta di usarlo spetta a te.",
   'landing.faq.data.q': 'Cosa salvate?',
   'landing.faq.data.a': 'Il tuo club, la tua lista SBC e le rose che risolvi, in cache così EA viene interpellata il meno possibile. Mai la tua password EA.',
   'landing.faq.ext.q': 'Perché mi serve un’estensione?',

@@ -10,6 +10,7 @@ import { formatEur, proPrice, yearlySaving } from '../../landing/pricing-rules';
 import { FRAME_TARGET, billingConfig, loadPaddle, onPaddleEvent, pricePreview, type PaddleEvent } from '../../billing/paddle';
 import { track, trackPayment } from '../../track';
 import { LangMenu } from '../LangMenu';
+import { LEGAL_TITLES } from '../../legal/titles';
 
 type Interval = 'month' | 'year';
 type Phase = 'loading' | 'off' | 'pick' | 'activating' | 'slow' | 'done';
@@ -203,6 +204,8 @@ export function UpgradePage({ plan, billing, onActivated, onSettings, onBack }: 
             <p><ShieldCheck weight="bold" aria-hidden="true" /> {t('billing.guarantee')}</p>
             <p>
               {t('billing.mor')} <a href="/refunds" target="_blank" rel="noopener">{t('billing.refunds')}<span className="sr-only"> {t('nav.newTab')}</span></a>
+              {' · '}<a href="/terms" target="_blank" rel="noopener">{LEGAL_TITLES[lang].terms}<span className="sr-only"> {t('nav.newTab')}</span></a>
+              {' · '}<a href="/privacy" target="_blank" rel="noopener">{LEGAL_TITLES[lang].privacy}<span className="sr-only"> {t('nav.newTab')}</span></a>
             </p>
           </div>
         </div>

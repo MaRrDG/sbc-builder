@@ -1043,7 +1043,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.founders.planNote_other': 'Mai sunt {count} de locuri din {limit} pe viață.',
   'landing.faq.title': 'Întrebări frecvente',
   'landing.faq.ban.q': 'Îmi poate lua EA ban din cauza asta?',
-  'landing.faq.ban.a': 'EA sancționează cumpărarea, vânzarea și trimiterea automată. FC Solver nu face nimic din toate astea: citește doar ce încarcă propriul tău tab de web app, cu o limită zilnică de cereri.',
+  'landing.faq.ban.a': 'FC Solver citește doar ce încarcă propriul tău tab de web app, cu o limită zilnică de cereri, și nu cumpără, nu vinde și nu trimite nimic. Riscul e mic, dar nu zero: regulile EA despre instrumentele terțe rămân valabile, iar decizia de a-l folosi îți aparține.',
   'landing.faq.data.q': 'Ce date păstrați?',
   'landing.faq.data.a': 'Clubul tău, lista de SBC-uri și squad-urile rezolvate, în cache, ca EA să fie întrebat cât mai rar. Niciodată parola EA.',
   'landing.faq.ext.q': 'De ce am nevoie de o extensie?',

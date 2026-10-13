@@ -1022,7 +1022,7 @@ export const en = {
   'landing.founders.planNote_other': '{count} of {limit} lifetime spots left.',
   'landing.faq.title': 'Questions',
   'landing.faq.ban.q': 'Can my EA account get banned for this?',
-  'landing.faq.ban.a': 'EA acts against automated buying, selling and submitting. FC Solver does none of it: it only reads what your own web app tab loads, with a daily cap on requests.',
+  'landing.faq.ban.a': "FC Solver only reads what your own web app tab loads, with a daily cap on requests, and never buys, sells or submits anything. That keeps the risk low, but not zero: EA's rules on third-party tools still apply, and whether to use it is your call.",
   'landing.faq.data.q': 'What do you store?',
   'landing.faq.data.a': 'Your club, your SBC list and the squads you solve, cached so EA is asked as little as possible. Never your EA password.',
   'landing.faq.ext.q': 'Why do I need an extension?',
