@@ -54,6 +54,7 @@ export function Leaderboard({ signedIn, me, signIn, onJoin }: Props) {
         <td className="dg-lb-opt">{num.format(r.played)}</td>
         <td>{pct.format(r.winPct / 100)}</td>
         <td className="dg-lb-opt">{r.avgGuesses === null ? '–' : avg.format(r.avgGuesses)}</td>
+        <td className="dg-lb-opt">{num.format(r.oneGuessWins)}</td>
         <td>
           <span className="dg-lb-streak">
             <Fire weight="fill" aria-hidden="true" />
@@ -86,6 +87,7 @@ export function Leaderboard({ signedIn, me, signIn, onJoin }: Props) {
               <th scope="col" className="dg-lb-opt">{t('daily.stats.played')}</th>
               <th scope="col">{t('daily.lb.winPct')}</th>
               <th scope="col" className="dg-lb-opt">{t('daily.lb.avg')}</th>
+              <th scope="col" className="dg-lb-opt">{t('daily.lb.firstGuess')}</th>
               <th scope="col">{t('daily.lb.streak')}</th>
             </tr>
           </thead>
@@ -93,7 +95,7 @@ export function Leaderboard({ signedIn, me, signIn, onJoin }: Props) {
           {data.me && !data.me.inTop && (
             <tbody className="dg-lb-you">
               <tr>
-                <th scope="rowgroup" colSpan={7}>
+                <th scope="rowgroup" colSpan={8}>
                   {t('daily.lb.you')}
                 </th>
               </tr>

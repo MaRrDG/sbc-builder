@@ -171,7 +171,7 @@ export async function publicLeaderboard(userId: string | null) {
     rows = rankLeaderboard((await leaderboardSource(false)).map((s) => ({ userId: s.userId, username: s.username!, plays: s.plays })), day);
     if (gen === lbGen) lbCache = { at: Date.now(), rows };
   }
-  const pub = (r: LbRow) => ({ rank: r.rank, username: r.username, wins: r.wins, played: r.played, winPct: r.winPct, avgGuesses: r.avgGuesses, streak: r.streak });
+  const pub = (r: LbRow) => ({ rank: r.rank, username: r.username, wins: r.wins, played: r.played, winPct: r.winPct, avgGuesses: r.avgGuesses, streak: r.streak, oneGuessWins: r.oneGuessWins });
   const mine = userId ? rows.find((r) => r.userId === userId) : undefined;
   return { rows: rows.slice(0, 50).map(pub), me: mine ? { ...pub(mine), inTop: mine.rank <= 50 } : null, total: rows.length };
 }
