@@ -109,7 +109,7 @@ export const it: Record<Keys, string> = {
   'daily.lb.signIn': 'Accedi, vinci le partite giornaliere ed entra in classifica.',
   'daily.lb.empty': 'Ancora nessuno in classifica. Vinci una partita giornaliera ed entra.',
   'daily.lb.loading': 'Caricamento…',
-  'daily.lb.rule': 'Le vittorie al primo tentativo non contano in classifica.',
+  'daily.lb.rule': 'Le vittorie al primo tentativo non contano in classifica, nemmeno come partite giocate.',
   'daily.prompt.title': 'Vuoi comparire in classifica?',
   'daily.prompt.text': 'Il tuo username, le vittorie, le partite e la serie saranno pubblici. Puoi cambiarlo quando vuoi nelle Impostazioni.',
   'daily.prompt.username': 'Username',

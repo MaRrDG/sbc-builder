@@ -311,7 +311,7 @@ The only endpoint that returns the answer of a day (unfinished games included). 
 
 ### `GET /api/admin/daily/leaderboard`
 
-`{ rows: (LbRow & { email, hidden, username: string | null })[] }` (`LbRow` = `PublicLbRow` + `userId`, `reachedDay`, `oneGuessWins`: wins in 1 guess, left out of the ranking): everyone with a finished game, ranked (users without a username are ranked under their email). `hidden` = not opted in or no username.
+`{ rows: (LbRow & { email, hidden, username: string | null })[] }` (`LbRow` = `PublicLbRow` + `userId`, `reachedDay`, `oneGuessWins`: wins in 1 guess, left out of the ranking, including `played` and `winPct`): everyone with a finished game, ranked (users without a username are ranked under their email). `hidden` = not opted in or no username.
 
 ### `POST /api/admin/daily/users/:id/clear-username`
 

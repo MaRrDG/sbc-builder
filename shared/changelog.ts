@@ -18,6 +18,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-14',
+    date: '2026-10-14',
+    items: {
+      en: ['Daily leaderboard: a win in 1 guess no longer counts as a game played, so it doesn\'t lower your win % any more'],
+      ro: ['Clasamentul Daily: o victorie din prima încercare nu mai intră la jocuri jucate, deci nu-ți mai scade procentul de victorii'],
+      it: ['Classifica Daily: una vittoria al primo tentativo non conta più come partita giocata, quindi non abbassa più la tua percentuale di vittorie'],
+    },
+  },
+  {
     id: '2026-10-13',
     date: '2026-10-13',
     items: {

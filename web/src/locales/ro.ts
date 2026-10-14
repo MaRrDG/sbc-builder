@@ -102,7 +102,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'daily.lb.signIn': 'Autentifică-te, câștigă jocuri zilnice și intră în clasament.',
   'daily.lb.empty': 'Nimeni în clasament încă. Câștigă un joc zilnic și intră.',
   'daily.lb.loading': 'Se încarcă…',
-  'daily.lb.rule': 'Victoriile din prima încercare nu contează în clasament.',
+  'daily.lb.rule': 'Victoriile din prima încercare nu contează în clasament, nici măcar la jocuri jucate.',
   'daily.prompt.title': 'Vrei să apari în clasament?',
   'daily.prompt.text': 'Username-ul, victoriile, jocurile și seria ta vor fi publice. Poți schimba oricând din Setări.',
   'daily.prompt.username': 'Username',
