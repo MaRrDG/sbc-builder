@@ -57,6 +57,7 @@ A custom server address set in the popup does not auto-link: content script matc
 - The worker asks `GET /api/extension/version` at most every 30 min (and on browser start / install). If the server has a newer version it sets a **NEW** badge and remembers the release.
 - On the web app page, `bridge.js` asks the worker and shows a small notice (shadow DOM, so no style clashes) with **How to update** (opens FC Solver with the steps expanded) and **Later** (hidden until the next version).
 - The site shows its own banner when the version the extension last reported is older, or missing (0.2 and 0.3 did not report one).
+- A copy installed from the Chrome Web Store (its manifest has `update_url`, added by Chrome; a zip loaded unpacked has none) never asks the server and never shows the notice or the **NEW** badge: Chrome updates it, and the worker only calls `chrome.runtime.requestUpdateCheck()` on the same 30 min rhythm. Since 1.0.6.
 
 Updating keeps the extension id, storage and keys: unzip over the old folder, press reload in `chrome://extensions`, refresh the web app.
 

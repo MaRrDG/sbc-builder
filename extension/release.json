@@ -1,4 +1,7 @@
 {
+  "1.0.6": [
+    "Ready for the Chrome Web Store: installed from there, Chrome keeps it up to date by itself"
+  ],
   "1.0.5": [
     "My Squads: your saved squads are read only when you press Calculate on FC Solver, no longer in every club sync"
   ],

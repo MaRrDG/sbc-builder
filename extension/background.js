@@ -7,6 +7,8 @@ const DEFAULT_SERVER = 'http://localhost:5178';
 const UTAS = 'https://utas.mob.v1.prd.futc-ext.gcp.ea.com/ut/game/fc27/';
 
 const VERSION = chrome.runtime.getManifest().version;
+// Installed from the Chrome Web Store (Chrome adds update_url); a zip loaded unpacked has none.
+const STORE = 'update_url' in chrome.runtime.getManifest();
 
 const state = () => chrome.storage.local.get({ server: DEFAULT_SERVER, contentGuid: null, accessKey: null, keys: [] });
 
@@ -21,10 +23,17 @@ function compareVersions(a, b) {
   return 0;
 }
 
-/** Asks the server for the latest extension; flags the icon when this copy is older. */
+/** Asks the server for the latest extension; flags the icon when this copy is older. A store copy is
+ *  updated by Chrome itself, so it never shows the download notice; it only nudges Chrome to check. */
 async function checkForUpdate(force = false) {
   const { server, updateCheckedAt = 0 } = await chrome.storage.local.get(['server', 'updateCheckedAt']);
   if (!force && Date.now() - updateCheckedAt < 30 * 60 * 1000) return;
+  if (STORE) {
+    await chrome.storage.local.set({ update: null, updateCheckedAt: Date.now() });
+    await chrome.runtime.requestUpdateCheck().catch(() => {});
+    await refreshBadge();
+    return;
+  }
   try {
     const res = await fetch(`${server ?? DEFAULT_SERVER}/api/extension/version`);
     const latest = await res.json();
