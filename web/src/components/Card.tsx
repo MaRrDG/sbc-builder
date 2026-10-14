@@ -47,6 +47,8 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
   const art = cardArt(player, meta);
   const [bgOk, setBgOk] = useState(true);
   const offPos = position !== undefined && !player.possiblePositions.includes(position);
+  // like EA: a card in a slot it can play shows that slot's position
+  const shownPos = position !== undefined && !offPos ? position : player.preferredPosition;
   const Tag = onClick ? 'button' : 'div';
   const loading = eager ? 'eager' : 'lazy';
   return (
@@ -60,7 +62,7 @@ export const Card = memo(function Card({ player, meta, position, size = 'md', se
     >
       {art.bg && bgOk && <img className="card-bg" src={art.bg} alt="" loading={loading} decoding="async" onError={() => setBgOk(false)} />}
       <div className="card-rating">{player.rating}</div>
-      <div className={`card-pos${offPos ? ' off' : ''}`}>{player.preferredPosition}</div>
+      <div className={`card-pos${offPos ? ' off' : ''}`}>{shownPos}</div>
       <img className="card-face" src={art.portrait} alt="" loading={loading} decoding="async" />
       <div className="card-name">{player.name}</div>
       <div className="card-badges">

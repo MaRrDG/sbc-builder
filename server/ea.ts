@@ -37,6 +37,8 @@ export interface ClubItem {
   preferredfoot?: number;
   gradingScore?: number; // what the card is worth in a points SBC
   gender?: number; // 0 men, 1 women
+  /** evolution upgrades ({ id: AcademyStatEnum, totalBonus }); the fields above stay the base card (upgrades.ts) */
+  academyAttributes?: { id: number; totalBonus: number }[];
 }
 
 export interface EligibilityReq {

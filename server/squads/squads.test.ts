@@ -118,3 +118,20 @@ test('detail cache wins over an older list; a newer list with players wins over 
   assert.equal(squadView(base, meta, 5)?.value.total, 2);
   assert.equal(squadView({ ...base, list: { ...base.list!, fetchedAt: 30 } }, meta, 5)?.value.total, 1);
 });
+
+test('evolved cards: the squad shows the upgraded rating, and rates starters + 7 subs like EA (real squad: 79)', () => {
+  // a real "main" squad: base ratings, evolved ones in academyAttributes (OVR = id 11); EA shows 79
+  const evolved = [80, 80, 75, 79, 71, 81, 80, 83, 84, 82, 83, 70, 65, 74, 79, 66, 80, 80, 80, 76, 77, 70, 74];
+  const club = evolved.map((r, i) => item(i + 1, { rating: r - 10, academyAttributes: [{ id: 0, totalBonus: 0 }, { id: 11, totalBonus: r }] }));
+  const input: SquadsInput = {
+    list: null,
+    details: new Map([[1, { fetchedAt: 1, data: { id: 1, name: 'main', formation: null, players: club.map((c, index) => ({ index, itemId: c.id })) } }]]),
+    active: null,
+    club,
+  };
+  const v = squadView(input, meta, 1);
+  assert.ok(v);
+  assert.equal(v.slots[10].player?.rating, 83);
+  assert.equal(v.slots[10].player?.tier, 3); // gold, from the evolved rating
+  assert.equal(v.rating, 79); // starters only would give 81; reserves (18+) do not count
+});

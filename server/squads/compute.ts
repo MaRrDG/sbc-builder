@@ -2,7 +2,8 @@
 // Pure: the reads live in io.ts.
 import type { ClubItem } from '../ea.js';
 import type { Meta } from '../meta.js';
-import { chemistry, squadRating, toPlayer, type Player } from '../squad.js';
+import { chemistry, clubSquadRating, SUB_PLAYERS, toPlayer, type Player } from '../squad.js';
+import { withUpgrades } from '../upgrades.js';
 import type { SquadDetail, SquadSlot, SquadsCache, SquadSummary } from './parse.js';
 import { STARTERS, squadValue, type SquadValue } from './value.js';
 
@@ -103,14 +104,19 @@ function build(summary: SquadSummary, input: SquadsInput, clubById: Map<number, 
   const formation = detail?.formation ?? summary.formation ?? (input.active?.squadId === summary.id ? input.active.formation ?? null : null);
   const slots = got?.slots ?? [];
   const { slots: values, value } = squadValue(slots, clubById);
+  // evolved cards as EA shows them in a squad: rating, rarity, positions and stats after the upgrades
   const players = slots.map((s) => {
     const club = clubById.get(s.itemId);
-    if (club) return toPlayer(club, meta);
-    return isCard(s.item) ? toPlayer(s.item, meta) : null;
+    if (club) return toPlayer(withUpgrades(club), meta);
+    return isCard(s.item) ? toPlayer(withUpgrades(s.item), meta) : null;
   });
-  const starters = slots.map((s, i) => (s.index < STARTERS ? players[i] : null));
-  const ratings = starters.filter((p): p is Player => !!p).map((p) => p.rating);
-  const rating = ratings.length ? squadRating(ratings) : summary.rating;
+  // starters and subs by slot index, as EA rates a club squad
+  const bySlot: (number | null)[] = Array.from({ length: STARTERS + SUB_PLAYERS }, () => null);
+  slots.forEach((s, i) => {
+    if (s.index < bySlot.length) bySlot[s.index] = players[i]?.rating ?? null;
+  });
+  const ratings = bySlot.slice(0, STARTERS).filter((r): r is number => r !== null);
+  const rating = ratings.length ? clubSquadRating(bySlot) : summary.rating;
   // chemistry needs the formation's slot types and the starters at their slot index
   const positions = formation ? meta.formations[formation] : undefined;
   let chem: number[] | null = null;

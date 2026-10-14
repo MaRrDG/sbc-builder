@@ -113,6 +113,31 @@ export function squadRating(ratings: number[]): number {
   return Math.min(Math.max(Math.floor(Math.round(total) / a), 0), 99);
 }
 
+/** Subs that count in a club squad's rating (UTSquadEntity.SUB_PLAYERS); reserves after them do not. */
+export const SUB_PLAYERS = 7;
+
+/**
+ * A club squad's rating (My Squads, not an SBC): the starters and the 7 subs, a sub above the average adding
+ * half its excess. Port of UTSquadEntity._calculateRating (float variant, getFieldAndSubPlayers); `slots[i]`
+ * is the rating in slot i (0-10 starters, 11-17 subs), null for an empty slot.
+ */
+export function clubSquadRating(slots: (number | null)[]): number {
+  const list = slots.slice(0, FIELD_PLAYERS + SUB_PLAYERS);
+  let sum = 0;
+  let a = FIELD_PLAYERS;
+  list.forEach((r, i) => {
+    if (r === null) return;
+    sum += r;
+    if (i >= FIELD_PLAYERS) a++;
+  });
+  const avg = Math.min(sum / a, 99);
+  let total = sum;
+  list.forEach((r, i) => {
+    if (r !== null && r > avg) total += i < FIELD_PLAYERS ? r - avg : 0.5 * (r - avg);
+  });
+  return Math.min(Math.max(Math.floor(Math.round(total) / a), 0), 99);
+}
+
 export function starRating(rating: number): number {
   for (let e = 0; e < STAR_RATING_THRESHOLDS.length; e++) if (rating <= STAR_RATING_THRESHOLDS[e]) return e / 2;
   return 5;

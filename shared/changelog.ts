@@ -23,13 +23,16 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: {
       en: [
         'Cheaper SBC squads: Solve now prices every card at EA\'s AVG and picks the squad with the lowest total. Untradeables still go first (they count at half their AVG), but a much cheaper tradeable now wins. Under the pitch you see the squad\'s AVG and "How it\'s calculated"',
-        'Daily leaderboard: a win in 1 guess now shows as a win (and in your win %), with its own "1st guess" column. It still doesn\'t move you up the leaderboard'],
+        'Daily leaderboard: a win in 1 guess now shows as a win (and in your win %), with its own "1st guess" column. It still doesn\'t move you up the leaderboard',
+        'My Squads: evolved players now show as in the game, with their upgraded rating, card and positions, and each card shows the position of the slot it plays in. The squad rating counts the subs too, like EA\'s'],
       ro: [
         'Echipe SBC mai ieftine: Rezolvă calculează acum fiecare card la AVG-ul de la EA și alege echipa cu totalul cel mai mic. Netranzacționabilii sunt tot primii (contează la jumătate din AVG), dar un tranzacționabil mult mai ieftin câștigă acum. Sub teren vezi AVG-ul echipei și „Cum se calculează”',
-        'Clasamentul Daily: o victorie din prima încercare apare acum ca victorie (și în procentul de victorii), cu coloana ei, „Din prima”. Tot nu te urcă în clasament'],
+        'Clasamentul Daily: o victorie din prima încercare apare acum ca victorie (și în procentul de victorii), cu coloana ei, „Din prima”. Tot nu te urcă în clasament',
+        'Echipele mele: jucătorii evoluați apar acum ca în joc, cu ratingul, cardul și pozițiile de după evoluție, iar fiecare card arată poziția pe care joacă. Ratingul echipei ține cont și de rezerve, ca la EA'],
       it: [
         'Rose SBC più economiche: Risolvi ora valuta ogni carta all\'AVG di EA e sceglie la rosa con il totale più basso. Le non scambiabili vanno ancora per prime (contano metà del loro AVG), ma una scambiabile molto più economica ora vince. Sotto il campo vedi l\'AVG della rosa e «Come si calcola»',
-        'Classifica Daily: una vittoria al primo tentativo ora conta come vittoria (anche nella percentuale), con una colonna tutta sua, «Al primo». Non ti fa comunque salire in classifica'],
+        'Classifica Daily: una vittoria al primo tentativo ora conta come vittoria (anche nella percentuale), con una colonna tutta sua, «Al primo». Non ti fa comunque salire in classifica',
+        'Le mie rose: i giocatori evoluti ora appaiono come nel gioco, con valutazione, carta e ruoli dopo l\'evoluzione, e ogni carta mostra il ruolo in cui gioca. La valutazione della rosa conta anche le riserve, come fa EA'],
     },
   },
   {
