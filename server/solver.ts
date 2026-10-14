@@ -14,6 +14,7 @@ import { ROOT } from './store.js';
 import { SessionError } from './ea.js';
 import { createGate, GateFull } from './solve-gate.js';
 import { cardRule, checkPoints, type PointsCheck } from './points.js';
+import { costOf } from './cost.js';
 
 const PYTHON = process.env.SOLVER_PYTHON ?? join(ROOT, 'solver/.venv/bin/python');
 const SCRIPT = join(ROOT, 'solver/cpsat.py');
@@ -44,16 +45,6 @@ export interface Solution {
 const isSpecial = (p: Player) => p.rareflag > 1;
 const RESTRICTED_CLUBS = new Set([112658, 114605, 132794]);
 
-/** Rough "how much would it hurt to lose this card" score; the solver minimises the sum. */
-export function playerCost(p: Player): number {
-  const r = p.rating;
-  let c = r < 65 ? 1 + (r - 40) * 0.02 : r < 75 ? 2 + (r - 65) * 0.1 : 4 * Math.pow(2, (r - 75) / 2.2);
-  if (!p.untradeable) c *= 1.35; // prefer burning untradeables
-  if (p.inStorage) c *= 0.8; // storage has little room and holds duplicates: use it first
-  if (isSpecial(p)) c *= 4;
-  if (isLegend(p) || isHero(p)) c *= 6;
-  return Math.round(c * 100) / 100;
-}
 
 export interface ActiveSquad {
   starters: number[];
@@ -135,9 +126,10 @@ function buildProblem(
   const locked = new Set(bricks.map((b) => b.index));
   const slotOfPlayer = new Map([...fixed].map(([slot, id]) => [id, slot]));
 
+  const cost = costOf(pool);
   const players = pool.map((p) => ({
     rating: p.rating,
-    cost: playerCost(p),
+    cost: cost(p),
     asset: p.assetId,
     slots: slotTypes.flatMap((t, s) => (!locked.has(s) && p.positions.includes(t) ? [s] : [])),
     fixed: slotOfPlayer.get(p.id) ?? null,
@@ -478,10 +470,11 @@ export async function solvePoints(
   pool: Player[], reqs: Requirement[], target: number, timeLimit = 10, keep: number[] = [],
 ): Promise<PointsSolution | null> {
   const kept = new Set(keep);
+  const cost = costOf(pool);
   const problem = {
     mode: 'points',
     target,
-    items: pool.map((p) => ({ points: p.points, cost: playerCost(p), group: p.assetId, ...(kept.has(p.id) ? { keep: true } : {}) })),
+    items: pool.map((p) => ({ points: p.points, cost: cost(p), group: p.assetId, ...(kept.has(p.id) ? { keep: true } : {}) })),
     timeLimit,
     workers: 4,
   };

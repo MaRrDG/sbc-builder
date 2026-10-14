@@ -3,6 +3,7 @@ import type { Challenge, Meta, Player, SolveResult } from '../api';
 import { CaretDown, Wrench, Lightning, Star, StarHalf, CheckCircle, XCircle, Circle, SealCheck, PushPin, Prohibit, Target, HourglassMedium } from '@phosphor-icons/react';
 import { BrickCard, Card, EmptyCard } from './Card';
 import { useI18n } from '../i18n';
+import { SquadAvg } from './SquadAvg';
 
 // Base x (%) per position uniqueId; left side of the screen = left positions.
 const BASE_X: Record<number, number> = {
@@ -274,6 +275,9 @@ export function Pitch({ meta, challenge, result, solving, onSolve, onToggleOptio
         )}
       </div>
 
+      {corners && result?.eval.allMet && !solving && !lock && (
+        <SquadAvg players={result.slots.flatMap((s) => (s.player ? [s.player] : []))} />
+      )}
       {corners && (
         <PitchCorners
           lock={lock} solving={solving} outOfSolves={outOfSolves} syncWait={syncWait} hasResult={!!result} localOptions={localOptions}

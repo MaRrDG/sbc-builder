@@ -36,7 +36,7 @@ Before solving, the club is filtered: loans out, the user's settings applied (ac
 
 **Assignment.** A boolean `x[i][s]` exists only for slots where player *i* is in position. Players used out of position have zero chemistry and contribute nothing to anyone, so one boolean `off[i]` covers them and they fill the remaining slots afterwards. `used[i] = in_position[i] + off[i]`, exactly 11 players are used. This alone shrank the problem by ~70 %.
 
-**Objective.** Minimise the sum of `cost[i] * used[i]`. The cost (`playerCost`) grows exponentially with rating above 75, is ×1.35 for tradeable cards (burn untradeables first), ×4 for promos and ×6 for icons / heroes.
+**Objective.** Minimise the sum of `cost[i] * used[i]`. The cost (`server/cost.ts` `playerCost`) is in coins: EA's AVG (`marketAverage`, the price the web app shows on the card; an untradeable carries the AVG of its tradeable version), ×0.5 for untradeables (a tradeable wins only under half the price) and ×0.8 in SBC Storage. A card without an AVG gets the median AVG of the pool's cards with its rating, else the nearest rating that has one, else 200 (`fallbackPrices`). Promos, icons and heroes need no extra weight: their AVG already protects them. The keep bonus in `cpsat.py` is the sum of all costs + 1, so keeping one placed player always beats any coin difference. The site shows the found squad's real AVG (untradeable / tradeable parts) under the pitch with these rules (`web/src/components/SquadAvg.tsx`, also on `/guide`).
 
 **Rating.** The live formula is
 

@@ -34,6 +34,8 @@ export interface Player {
   isLoan: boolean;
   guidAssetId?: string;
   minPrice: number;
+  /** EA's marketAverage (the AVG on the card, coins); absent when EA sends none */
+  price?: number;
   fullName: string;
   rarityName: string;
   attributes: number[]; // PAC SHO PAS DRI DEF PHY (GK: DIV HAN KIC REF SPE POS)
@@ -74,6 +76,7 @@ export function toPlayer(i: ClubItem, meta: Meta): Player {
     ...(loanMatches(i.loansInfo) !== undefined ? { loanMatches: loanMatches(i.loansInfo) } : {}),
     guidAssetId: i.guidAssetId,
     minPrice: i.marketDataMinPrice ?? 0,
+    ...(i.marketAverage && i.marketAverage > 0 ? { price: i.marketAverage } : {}),
     fullName: meta.players[i.assetId]?.full ?? '',
     rarityName: meta.names.rarity[i.rareflag] ?? '',
     attributes: i.attributeArray ?? [],

@@ -27,6 +27,8 @@ export interface Player {
   foot: 'Right' | 'Left';
   inStorage?: boolean; // in SBC storage, not in the club
   points?: number; // what a points SBC counts for this card
+  /** EA's AVG (marketAverage, coins); absent when EA sends none */
+  price?: number;
 }
 
 export type GalleryGrade = 'D' | 'C' | 'B' | 'A' | 'S';

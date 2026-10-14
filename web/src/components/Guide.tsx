@@ -1,5 +1,6 @@
 import { ArrowRight, ArrowsLeftRight, Browser, Cloud, PuzzlePiece, Lightning } from '@phosphor-icons/react';
 import { useI18n } from '../i18n';
+import { CostRules } from './SquadAvg';
 
 interface Props {
   eaLimit: number;
@@ -100,6 +101,12 @@ export function Guide({ eaLimit }: Props) {
             <li>{t('guide.solve2')}</li>
             <li>{t('guide.solve3')}</li>
           </ul>
+        </section>
+
+        <section className="howto-card">
+          <h2>{t('cost.title')}</h2>
+          <CostRules />
+          <p className="muted">{t('cost.note')}</p>
         </section>
 
         <section className="howto-card">

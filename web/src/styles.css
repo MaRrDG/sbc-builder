@@ -4978,3 +4978,18 @@ a.adm-kpi:hover { background: var(--surface-2); }
   .card-avg { max-width: var(--card-w); padding: 0 3px; font-size: 9px; overflow: hidden; }
   .card-avg .coin-value { gap: 2px; font-size: 10px; }
 }
+
+/* Squad AVG under the pitch + "How it's calculated" (components/SquadAvg.tsx) */
+.squad-avg { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 10px; padding: 10px 14px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); }
+.squad-avg-total { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; }
+.squad-avg-total .coin-value { font-size: 20px; }
+.squad-avg-parts { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+.squad-avg-how { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 12px; border-radius: var(--r-ctl); border: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.squad-avg-how:hover { background: var(--surface-3); }
+.squad-avg-how:focus-visible { outline: 2px solid var(--go); outline-offset: 2px; }
+.cost-rules { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 8px; line-height: 1.45; }
+.cost-dialog { max-width: min(560px, calc(100vw - 32px)); padding: 20px; border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface-2); color: var(--ink); }
+.cost-dialog::backdrop { background: oklch(0.1 0.02 220 / 0.6); }
+.cost-dialog h2 { margin: 0 0 12px; font-size: 18px; }
+.cost-dialog p { margin: 0 0 16px; font-size: 13px; }
+@media (max-width: 480px) { .squad-avg-how { margin-left: 0; } }

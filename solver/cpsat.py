@@ -218,7 +218,8 @@ def solve(p):
         else:
             raise ValueError(f"unknown constraint {kind}")
 
-    keep_bonus = 10_000_000
+    # keeping one placed player outweighs the cost of every card in the pool (costs are coins)
+    keep_bonus = sum(int(round(pl.get("cost", 0) * 100)) for pl in players) + 1
     if play:
         # strongest squad: ratings plus chemistry (0-3 per player) weighted by chemWeight
         w = int(p.get("chemWeight", 4))
