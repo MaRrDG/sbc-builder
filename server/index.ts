@@ -129,6 +129,8 @@ function csp(): string {
     .filter((o) => o.startsWith('https://'))
     .map((o) => `https://clerk.${new URL(o).host}`);
   const clerkAll = [...clerk, 'https://*.clerk.accounts.dev', 'https://*.clerk.com'].join(' ');
+  // Clerk bot protection probes its own hosts on non-default ports; a host source without a port allows only 443
+  const clerkProtect = 'https://*.protect.clerk.com:*';
   const stats = analyticsOrigins().join(' '); // ANALYTICS_SNIPPET (OpenWebTrack)
   // Paddle.js (script, its styles and fonts), its APIs (price preview, checkout) and the inline checkout frame (server/billing/)
   const paddleCdn = 'https://cdn.paddle.com https://sandbox-cdn.paddle.com';
@@ -137,7 +139,7 @@ function csp(): string {
   return [
     "default-src 'self'",
     `script-src 'self' ${clerkAll} https://challenges.cloudflare.com ${stats} ${paddleCdn}`,
-    `connect-src 'self' ${clerkAll} https://clerk-telemetry.com ${stats} ${paddleApi}`,
+    `connect-src 'self' ${clerkAll} ${clerkProtect} https://clerk-telemetry.com ${stats} ${paddleApi}`,
     "img-src 'self' data: blob: https:",
     `style-src 'self' 'unsafe-inline' ${paddleCdn}`,
     `font-src 'self' data: ${paddleCdn}`,
