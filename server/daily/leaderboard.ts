@@ -1,7 +1,7 @@
-// All-time Daily leaderboard: wins, then fewer guesses, then who got there first. Pure; the DB layer
-// passes only opted-in users (public) or everyone (admin). Only wins in 2+ guesses count (wins, average,
-// reachedDay): a 1-guess win may come from an answer seen elsewhere. It is neutral, not a loss: left out of
-// played and win % too. `oneGuessWins` is for admins.
+// All-time Daily leaderboard: wins in 2+ guesses, then fewer guesses, then who got there first. Pure; the DB
+// layer passes only opted-in users (public) or everyone (admin). A 1-guess win may come from an answer seen
+// elsewhere, so it never moves anyone up (ranking, average, reachedDay); it still shows as a game played and a
+// win (wins, played, win %), and apart in `oneGuessWins`.
 import { streakOf, type Play } from './streak.js';
 
 export interface LbInput { userId: string; username: string; plays: Play[] }
@@ -15,21 +15,23 @@ export function rankLeaderboard(inputs: LbInput[], today: number): LbRow[] {
     if (!i.plays.length) return [];
     const won = i.plays.filter((x) => x.won && x.guesses >= 2);
     const oneGuessWins = i.plays.filter((x) => x.won && x.guesses < 2).length;
-    const wins = won.length;
-    const played = i.plays.length - oneGuessWins;
-    const avgGuesses = wins ? Math.round((won.reduce((s, x) => s + x.guesses, 0) / wins) * 10) / 10 : null;
+    const wins = won.length + oneGuessWins;
+    const played = i.plays.length;
+    const avgGuesses = won.length ? Math.round((won.reduce((s, x) => s + x.guesses, 0) / won.length) * 10) / 10 : null;
     return [{
-      rank: 0, userId: i.userId, username: i.username, wins, played,
-      winPct: played ? Math.round((wins / played) * 100) : 0, avgGuesses,
-      streak: streakOf(i.plays, today).current,
-      reachedDay: wins ? Math.max(...won.map((x) => x.day)) : Number.MAX_SAFE_INTEGER, oneGuessWins,
+      row: {
+        rank: 0, userId: i.userId, username: i.username, wins, played,
+        winPct: Math.round((wins / played) * 100), avgGuesses,
+        streak: streakOf(i.plays, today).current,
+        reachedDay: won.length ? Math.max(...won.map((x) => x.day)) : Number.MAX_SAFE_INTEGER, oneGuessWins,
+      },
+      ranked: won.length,
     }];
   });
   rows.sort((a, b) =>
-    b.wins - a.wins ||
-    (a.avgGuesses ?? 99) - (b.avgGuesses ?? 99) ||
-    a.reachedDay - b.reachedDay ||
-    a.username.toLowerCase().localeCompare(b.username.toLowerCase()));
-  rows.forEach((r, i) => (r.rank = i + 1));
-  return rows;
+    b.ranked - a.ranked ||
+    (a.row.avgGuesses ?? 99) - (b.row.avgGuesses ?? 99) ||
+    a.row.reachedDay - b.row.reachedDay ||
+    a.row.username.toLowerCase().localeCompare(b.row.username.toLowerCase()));
+  return rows.map((r, i) => ({ ...r.row, rank: i + 1 }));
 }

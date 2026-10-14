@@ -21,9 +21,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     id: '2026-10-14',
     date: '2026-10-14',
     items: {
-      en: ['Daily leaderboard: a win in 1 guess no longer counts as a game played, so it doesn\'t lower your win % any more; these wins now have their own "1st guess" column'],
-      ro: ['Clasamentul Daily: o victorie din prima încercare nu mai intră la jocuri jucate, deci nu-ți mai scade procentul de victorii; aceste victorii au acum coloana lor, „Din prima”'],
-      it: ['Classifica Daily: una vittoria al primo tentativo non conta più come partita giocata, quindi non abbassa più la tua percentuale di vittorie; queste vittorie hanno ora una colonna tutta loro, «Al primo»'],
+      en: ['Daily leaderboard: a win in 1 guess now shows as a win (and in your win %), with its own "1st guess" column. It still doesn\'t move you up the leaderboard'],
+      ro: ['Clasamentul Daily: o victorie din prima încercare apare acum ca victorie (și în procentul de victorii), cu coloana ei, „Din prima”. Tot nu te urcă în clasament'],
+      it: ['Classifica Daily: una vittoria al primo tentativo ora conta come vittoria (anche nella percentuale), con una colonna tutta sua, «Al primo». Non ti fa comunque salire in classifica'],
     },
   },
   {

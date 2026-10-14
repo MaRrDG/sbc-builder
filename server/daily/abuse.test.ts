@@ -54,7 +54,7 @@ test('fixed D1: one-guess wins every day no longer top the leaderboard over hone
   const honest: Play[] = days.map((day) => ({ day, won: true, guesses: 3 }));
   const r = rankLeaderboard([{ userId: 'h', username: 'honest', plays: honest }, { userId: 'c', username: 'cheat', plays: cheat }], 30);
   assert.equal(r[0].userId, 'h');
-  assert.equal(r[1].wins, 0);
+  assert.equal(r[1].wins, 30); // shown as wins, but ranked below
   assert.equal(r[1].avgGuesses, null);
   assert.equal(r[1].oneGuessWins, 30);
 });

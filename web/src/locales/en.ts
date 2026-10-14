@@ -106,7 +106,7 @@ export const en = {
   'daily.lb.signIn': 'Sign in, win daily games and join the leaderboard.',
   'daily.lb.empty': 'No one on the leaderboard yet. Win a daily game and join.',
   'daily.lb.loading': 'Loading…',
-  'daily.lb.rule': "Wins in 1 guess don't count on the leaderboard, not even as games played; they're shown under 1st guess.",
+  'daily.lb.rule': "Wins in 1 guess count as wins but don't move you up the leaderboard or into the average; they're shown under 1st guess.",
   'daily.prompt.title': 'Want to appear on the leaderboard?',
   'daily.prompt.text': 'Your username, wins, games and streak will be public. You can change this anytime in Settings.',
   'daily.prompt.username': 'Username',

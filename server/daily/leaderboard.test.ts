@@ -29,13 +29,13 @@ test('row values: played, win %, avg on wins only (1 decimal), current streak, r
   assert.equal(r2.avgGuesses, 2.5);
 });
 
-test('1-guess wins are neutral (not in wins, played, win %, avg, reachedDay) but keep the streak', () => {
+test('1-guess wins show in wins, played and win % but never rank anyone up (order, avg, reachedDay); streak kept', () => {
   const [row] = rankLeaderboard([u('a', [p(1, true, 1), p(2, true, 3), p(3, true, 1)])], 3);
-  assert.deepEqual(row, { rank: 1, userId: 'a', username: 'a', wins: 1, played: 1, winPct: 100, avgGuesses: 3, streak: 3, reachedDay: 2, oneGuessWins: 2 });
+  assert.deepEqual(row, { rank: 1, userId: 'a', username: 'a', wins: 3, played: 3, winPct: 100, avgGuesses: 3, streak: 3, reachedDay: 2, oneGuessWins: 2 });
   const [only] = rankLeaderboard([u('c', [p(1, true, 1)])], 1);
-  assert.equal(only.wins, 0);
-  assert.equal(only.played, 0);
-  assert.equal(only.winPct, 0);
+  assert.equal(only.wins, 1);
+  assert.equal(only.played, 1);
+  assert.equal(only.winPct, 100);
   assert.equal(only.avgGuesses, null);
   assert.equal(only.oneGuessWins, 1);
   // an honest 2-guess winner beats a 1-guess-every-day account

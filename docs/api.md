@@ -249,7 +249,7 @@ Signed-out daily guesses (not Practice, not signed in) also bump anonymous aggre
 
 Public, optional auth, `Cache-Control: no-store`. Only users who opted in with a username are ranked (wins, then lower average guesses on wins, then who reached their last win first). Only wins in 2+ guesses count: `wins`, `winPct`, `avgGuesses` and the tie-break ignore 1-guess wins (`streak` still counts them). The ranking is cached for 60 s server-side and refreshed on a profile change.
 
-`{ rows: PublicLbRow[], me: (PublicLbRow & { inTop: boolean }) | null, total }` with `PublicLbRow = { rank, username, wins, played, winPct, avgGuesses: number | null, streak, oneGuessWins }` (`oneGuessWins`: wins in 1 guess, shown apart, not in `wins` / `played` / `winPct`). Top 50 in `rows`; `total` counts all ranked users. `me` only when signed in, opted in and ranked (`inTop` false when below the 50). No user id, email or answer data.
+`{ rows: PublicLbRow[], me: (PublicLbRow & { inTop: boolean }) | null, total }` with `PublicLbRow = { rank, username, wins, played, winPct, avgGuesses: number | null, streak, oneGuessWins }` (`oneGuessWins`: wins in 1 guess; they are in `wins` / `played` / `winPct` but never move anyone up: the order and `avgGuesses` use only wins in 2+ guesses). Top 50 in `rows`; `total` counts all ranked users. `me` only when signed in, opted in and ranked (`inTop` false when below the 50). No user id, email or answer data.
 
 ### `PUT /api/me/daily-profile`
 
