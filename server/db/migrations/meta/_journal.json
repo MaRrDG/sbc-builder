@@ -176,6 +176,13 @@
       "when": 1791911592744,
       "tag": "0024_dusty_pete_wisdom",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792054783430,
+      "tag": "0025_bright_maelstrom",
+      "breakpoints": true
     }
   ]
 }

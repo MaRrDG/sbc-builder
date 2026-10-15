@@ -52,9 +52,11 @@ export async function saveSquadList(acc: Account, res: unknown): Promise<boolean
 }
 
 /** GET /squad/{id} or /squad/active, any squad (not only the active one). */
-export async function saveSquad(acc: Account, res: unknown, pathId: number | null): Promise<boolean> {
+export async function saveSquad(
+  acc: Account, res: unknown, pathId: number | null, allow: (id: number) => Promise<boolean> = async () => true,
+): Promise<boolean> {
   const parsed = parseSquad(res, pathId);
-  if (!parsed) return false;
+  if (!parsed || !(await allow(parsed.id))) return false;
   await writeCache(detailKey(acc, parsed.id), parsed);
   return true;
 }

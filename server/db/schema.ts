@@ -32,9 +32,23 @@ export const challenges = pgTable(
     elgOperation: text('elg_operation'),
     elgReq: jsonb('elg_req').notNull(),
     raw: jsonb('raw').notNull(),
+    /** written by a trusted account or agreed by several (shared-sbc.ts shareDecision): only these seed others and take brick reports */
+    vouched: boolean('vouched').notNull().default(false),
     ...seen(),
   },
   (t) => [index('challenges_set').on(t.setId)],
+);
+
+/** Which account relayed which version (fingerprint) of a set's challenges; agreement makes it shared. */
+export const challengeSightings = pgTable(
+  'challenge_sightings',
+  {
+    setId: integer('set_id').notNull(),
+    fingerprint: text('fingerprint').notNull(),
+    personaId: bigint('persona_id', { mode: 'number' }).notNull(),
+    seenAt: timestamp('seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.setId, t.fingerprint, t.personaId] }), index('challenge_sightings_persona').on(t.personaId)],
 );
 
 /** One row per account and distinct layout it reported for a brick challenge. */

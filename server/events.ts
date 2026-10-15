@@ -14,12 +14,13 @@
 //  - academy responses (Evolutions) -> timed training rows (server/evos.ts).
 import type { ClubItem, Challenge, ChemProfilesResponse } from './ea.js';
 import type { Account } from './accounts.js';
-import { readCache, writeCache } from './store.js';
+import { cachedKeysIn, readCache, readShared, writeCache } from './store.js';
 import { markEdited, type SetsData } from './sync.js';
 import { invalidateMeta } from './meta.js';
 import { parseLayout } from './layout.js';
 import { softly } from './db/index.js';
-import { reportBricks, saveChallenges, saveSets } from './db/sbcs.js';
+import { relayChallenges, reportBricks, saveSets } from './db/sbcs.js';
+import { relayFileRefusal, type RelayFolder } from './relay-rules.js';
 import { findJob } from './jobs.js';
 import { notify } from './live.js';
 import { parseAcademy, isFullList } from './evos.js';
@@ -149,6 +150,28 @@ async function onSquad(acc: Account, squadId: number | 'active', res: { id?: num
   return 'Active squad updated from the web app';
 }
 
+/** True when this account already has challenge `id` in one of its cached challenge lists. */
+async function knownChallenge(acc: Account, id: number): Promise<boolean> {
+  for (const key of await cachedKeysIn(acc.key('challenges'))) {
+    const list = (await readShared<Challenge[]>(key))?.data;
+    if (Array.isArray(list) && list.some((c) => c?.challengeId === id)) return true;
+  }
+  return false;
+}
+
+/** A relay that would add or grow a cache file beyond relay-rules.ts limits is dropped (logged once per kind). */
+async function refuseFile(acc: Account, folder: RelayFolder, id: string, payload: unknown): Promise<boolean> {
+  const keys = await cachedKeysIn(acc.key(folder));
+  const why = relayFileRefusal(folder, {
+    bytes: JSON.stringify(payload ?? null).length,
+    exists: keys.includes(acc.key(`${folder}/${id}`)),
+    files: keys.length,
+    known: folder === 'challengeSquads' ? await knownChallenge(acc, Number(id)) : undefined,
+  });
+  if (why) console.warn(`[relay] ${acc.id} ${folder}/${id} dropped: ${why}`);
+  return !!why;
+}
+
 /** Responses the web app loaded for itself; they replace or refresh our cache. Null if not one of them. */
 async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): Promise<string | null | undefined> {
   const res = (ev.response ?? {}) as Record<string, unknown>;
@@ -169,8 +192,10 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
   const setId = ev.path.match(/^\/sbs\/setId\/(\d+)\/challenges$/)?.[1];
   if (method === 'GET' && setId) {
     if (!Array.isArray(res.challenges)) return null;
+    if (await refuseFile(acc, 'challenges', setId, res.challenges)) return null;
     await writeCache<Challenge[]>(acc.key(`challenges/${setId}`), res.challenges as Challenge[]);
-    await softly('save challenges', () => saveChallenges(Number(setId), res.challenges as Challenge[]));
+    // this account's cache always; the shared rows (other users' seed, brick reports) only when vouched
+    await softly('save challenges', () => relayChallenges(Number(setId), res.challenges, acc.id));
     return 'SBC challenges updated from the web app';
   }
   if (method === 'POST' && ev.path === '/club') {
@@ -186,13 +211,16 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
   }
   const squad = ev.path.match(/^\/squad\/(active|\d+)(?:\/user\/\d+)?$/)?.[1]; // the web app's My Squads adds /user/<personaId>
   if (method === 'GET' && squad) {
-    await softly('save squad', () => saveSquad(acc, ev.response, squad === 'active' ? null : Number(squad))); // any squad, for My Squads
+    // any squad, for My Squads (a capped number of files per account)
+    const allow = async (id: number) => !(await refuseFile(acc, 'squads', String(id), ev.response));
+    await softly('save squad', () => saveSquad(acc, ev.response, squad === 'active' ? null : Number(squad), allow));
     return onSquad(acc, squad === 'active' ? 'active' : Number(squad), res);
   }
   // A challenge's squad as the web app sees it (players already placed, EA's fixed "brick" slots).
   // Kept raw for now: the exact shape still has to be read from real responses.
   const sbcSquad = ev.path.match(/^\/sbs\/challenge\/(\d+)(\/squad)?$/);
   if (sbcSquad) {
+    if (await refuseFile(acc, 'challengeSquads', sbcSquad[1]!, ev)) return null;
     const key = acc.key(`challengeSquads/${sbcSquad[1]}`);
     const prev = (await readCache<{ method: string; path: string; request: unknown; response: unknown; at: number }[]>(key))?.data ?? [];
     await writeCache(key, [{ method, path: ev.path, request: ev.request ?? null, response: ev.response ?? null, at: Date.now() }, ...prev].slice(0, 6));

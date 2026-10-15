@@ -1,11 +1,12 @@
 // SBC history and shared brick layouts. Sets / challenges are upserted (never deleted);
 // brick reports are append-only and the shared layout is voted from them (server/bricks.ts).
-import { and, eq, gte, sql } from 'drizzle-orm';
+import { and, countDistinct, eq, gte, sql } from 'drizzle-orm';
 import type { Challenge, SbcSet } from '../ea.js';
 import type { BrickSlot } from '../layout.js';
 import { canonicalBricks, chooseLayout, layoutHash, rejectReason } from '../bricks.js';
+import { challengesFingerprint, shareableList, shareDecision } from '../shared-sbc.js';
 import { db } from './index.js';
-import { brickReports, challenges, sbcSets, trustedAccounts } from './schema.js';
+import { brickReports, challengeSightings, challenges, sbcSets, trustedAccounts } from './schema.js';
 
 const uniqueBy = <T>(list: T[], key: (x: T) => number) => [...new Map(list.map((x) => [key(x), x])).values()];
 
@@ -34,7 +35,30 @@ export async function saveSets(sets: SbcSet[]): Promise<void> {
   });
 }
 
-export async function saveChallenges(setId: number, list: Challenge[]): Promise<void> {
+/**
+ * One account relayed a set's challenges (its own cache already has them). The shared rows only take
+ * them when shared-sbc.ts shareDecision says so: a trusted account, or AGREE_PERSONAS accounts that
+ * sent the same fingerprint. Otherwise only unknown challenges get an unvouched row (names for the
+ * admin history), which seeds nobody and takes no brick report. Returns what happened.
+ */
+export async function relayChallenges(setId: number, list: unknown, personaId: number): Promise<'share' | 'hold' | 'invalid'> {
+  if (!shareableList(setId, list)) return 'invalid';
+  const fingerprint = challengesFingerprint(setId, list);
+  await db
+    .insert(challengeSightings)
+    .values({ setId, fingerprint, personaId })
+    .onConflictDoUpdate({ target: [challengeSightings.setId, challengeSightings.fingerprint, challengeSightings.personaId], set: { seenAt: sql`now()` } });
+  const trusted = (await trustedIds()).has(personaId);
+  const [agree] = await db
+    .select({ n: countDistinct(challengeSightings.personaId) })
+    .from(challengeSightings)
+    .where(and(eq(challengeSightings.setId, setId), eq(challengeSightings.fingerprint, fingerprint)));
+  const decision = shareDecision(trusted, agree?.n ?? 0);
+  await saveChallenges(setId, list, decision === 'share', trusted);
+  return decision;
+}
+
+async function saveChallenges(setId: number, list: Challenge[], vouched: boolean, trusted: boolean): Promise<void> {
   const rows = uniqueBy(list, (c) => c.challengeId).map((c) => ({
     challengeId: c.challengeId,
     setId,
@@ -44,10 +68,15 @@ export async function saveChallenges(setId: number, list: Challenge[]): Promise<
     elgOperation: c.elgOperation ?? null,
     elgReq: c.elgReq ?? [],
     raw: c,
+    vouched,
   }));
   if (!rows.length) return;
   // challenges can arrive before their set; keep the FK happy with a placeholder the set later fills
   await db.insert(sbcSets).values({ setId, raw: {} }).onConflictDoNothing();
+  if (!vouched) {
+    await db.insert(challenges).values(rows).onConflictDoNothing(); // never changes a row someone else relied on
+    return;
+  }
   await db.insert(challenges).values(rows).onConflictDoUpdate({
     target: challenges.challengeId,
     set: {
@@ -58,17 +87,22 @@ export async function saveChallenges(setId: number, list: Challenge[]): Promise<
       elgOperation: sql`excluded.elg_operation`,
       elgReq: sql`excluded.elg_req`,
       raw: sql`excluded.raw`,
+      vouched: sql`true`,
       lastSeen: sql`now()`,
     },
+    // agreeing untrusted accounts never move a vouched challenge to another set or change its type
+    ...(!trusted && {
+      setWhere: sql`${challenges.vouched} = false or (${challenges.setId} = excluded.set_id and ${challenges.type} is not distinct from excluded.type)`,
+    }),
   });
 }
 
-/** A set's challenges as last seen by any account since `since` (for seeding other accounts). */
+/** A set's vouched challenges as last seen since `since` (for seeding other accounts). */
 export async function sharedChallenges(setId: number, since: Date): Promise<Challenge[]> {
   const rows = await db
     .select({ raw: challenges.raw })
     .from(challenges)
-    .where(and(eq(challenges.setId, setId), gte(challenges.lastSeen, since)));
+    .where(and(eq(challenges.setId, setId), eq(challenges.vouched, true), gte(challenges.lastSeen, since)));
   return rows.map((r) => r.raw as Challenge);
 }
 
@@ -92,8 +126,10 @@ export async function setTrusted(personaId: number, trusted: boolean, note = '')
 export async function reportBricks(
   challengeId: number, personaId: number, bricks: BrickSlot[], capturedAt: number,
 ): Promise<string | null> {
-  const [ch] = await db.select({ type: challenges.type }).from(challenges).where(eq(challenges.challengeId, challengeId));
+  const [ch] = await db.select({ type: challenges.type, vouched: challenges.vouched }).from(challenges).where(eq(challenges.challengeId, challengeId));
   if (!ch) return 'unknown challenge';
+  // only a challenge a trusted account or several accounts vouched for: one forged list cannot invent a brick challenge
+  if (!ch.vouched) return 'challenge not vouched';
   const why = rejectReason(ch.type, bricks);
   if (why) return why;
   const layout = canonicalBricks(bricks);

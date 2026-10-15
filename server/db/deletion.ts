@@ -4,6 +4,7 @@ import { and, asc, eq, inArray, isNotNull, isNull, lte, max, sql } from 'drizzle
 import { db } from './index.js';
 import {
   brickReports,
+  challengeSightings,
   codes,
   completionMarks,
   completions,
@@ -98,6 +99,7 @@ export async function purgePersonaRows(personaId: number, userId: string): Promi
     await tx.delete(completions).where(eq(completions.personaId, personaId));
     await tx.delete(evoTrainings).where(eq(evoTrainings.personaId, personaId));
     await tx.delete(brickReports).where(eq(brickReports.personaId, personaId));
+    await tx.delete(challengeSightings).where(eq(challengeSightings.personaId, personaId));
     await tx.delete(trustedAccounts).where(eq(trustedAccounts.personaId, personaId));
     await tx.delete(personaLinks).where(and(eq(personaLinks.personaId, personaId), eq(personaLinks.userId, userId)));
     await tx.delete(personas).where(eq(personas.personaId, personaId));
@@ -191,6 +193,7 @@ export async function purgeOrphanPersonaRows(personaId: number): Promise<boolean
     await tx.delete(completions).where(eq(completions.personaId, personaId));
     await tx.delete(evoTrainings).where(eq(evoTrainings.personaId, personaId));
     await tx.delete(brickReports).where(eq(brickReports.personaId, personaId));
+    await tx.delete(challengeSightings).where(eq(challengeSightings.personaId, personaId));
     return true;
   });
 }
