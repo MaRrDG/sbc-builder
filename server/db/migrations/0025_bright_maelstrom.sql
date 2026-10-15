@@ -7,4 +7,6 @@ CREATE TABLE "challenge_sightings" (
 );
 --> statement-breakpoint
 ALTER TABLE "challenges" ADD COLUMN "vouched" boolean DEFAULT false NOT NULL;--> statement-breakpoint
-CREATE INDEX "challenge_sightings_persona" ON "challenge_sightings" USING btree ("persona_id");
+CREATE INDEX "challenge_sightings_persona" ON "challenge_sightings" USING btree ("persona_id");--> statement-breakpoint
+-- rows from before vouching came from real syncs (pre-launch): they stay shared
+UPDATE "challenges" SET "vouched" = true;
