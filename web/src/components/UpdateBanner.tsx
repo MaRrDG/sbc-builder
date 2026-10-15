@@ -6,7 +6,8 @@ import { fill } from './SetupGuide';
 
 import { type ExtensionRelease } from '../ext-version';
 
-export { compareVersions, needsUpdate, updateRequired, type ExtensionRelease } from '../ext-version';
+export { compareVersions, needsUpdate, releaseFor, updateRequired, type ExtensionRelease } from '../ext-version';
+import { STORE_URL } from '../ext-version';
 
 interface Props {
   installed: string | null | undefined;
@@ -14,10 +15,12 @@ interface Props {
   expanded: boolean;
   /** Installed version is below the server's minimum: "update required", steps open, no hide button. */
   required?: boolean;
+  /** A Chrome Web Store copy: Chrome updates it, so no zip and no unzip steps (a zip loaded over it would be a second extension). */
+  store?: boolean;
   onDismiss: () => void;
 }
 
-export function UpdateBanner({ installed, latest, expanded: startOpen, required = false, onDismiss }: Props) {
+export function UpdateBanner({ installed, latest, expanded: startOpen, required = false, store = false, onDismiss }: Props) {
   const { t } = useI18n();
   const [open, setOpen] = useState(startOpen || required);
   const [copied, setCopied] = useState(false);
@@ -32,9 +35,15 @@ export function UpdateBanner({ installed, latest, expanded: startOpen, required 
             {installed ? t('update.youHave', { v: installed }) : t('update.older')} {latest.notes.join(' · ')}
           </span>
         </div>
-        <a className="step-action primary" href={extensionZipUrl()} download onClick={() => setOpen(true)}>
-          <DownloadSimple weight="bold" /> {t('update.get')}
-        </a>
+        {store ? (
+          <button type="button" className="step-action primary" onClick={() => setOpen(true)}>
+            <ArrowCircleUp weight="bold" /> {t('update.storeHow')}
+          </button>
+        ) : (
+          <a className="step-action primary" href={extensionZipUrl()} download onClick={() => setOpen(true)}>
+            <DownloadSimple weight="bold" /> {t('update.get')}
+          </a>
+        )}
         {!required && (
           <button type="button" className="icon" onClick={onDismiss} aria-label={t('update.hide')}>
             <X weight="bold" />
@@ -43,9 +52,11 @@ export function UpdateBanner({ installed, latest, expanded: startOpen, required 
       </div>
       {open && (
         <ol className="update-steps">
-          <li>{fill(t('update.s1'), { folder: <code>fc27-sbc-builder</code> })}</li>
           <li>
-            {fill(t('update.s2'), {
+            {store ? fill(t('update.storeS1'), { store: <a href={STORE_URL} target="_blank" rel="noopener noreferrer">{t('update.storeLink')}</a> }) : fill(t('update.s1'), { folder: <code>fc27-sbc-builder</code> })}
+          </li>
+          <li>
+            {fill(store ? t('update.storeS2') : t('update.s2'), {
               url: (
             <button
               type="button"

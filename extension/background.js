@@ -53,7 +53,7 @@ async function reportVersion() {
       await fetch(`${server ?? DEFAULT_SERVER}/api/extension/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Account-Key': key },
-        body: JSON.stringify({ version: VERSION }),
+        body: JSON.stringify({ version: VERSION, install: STORE ? 'store' : 'zip' }),
       });
     } catch {
       /* server offline: the next session push reports it too */
@@ -154,7 +154,7 @@ async function hello(identity) {
     fetch(`${server}/api/hello`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...(key ? { 'X-Account-Key': key } : {}) },
-      body: JSON.stringify({ personaId: identity.personaId, contentGuid, extVersion: VERSION, ...(linkToken ? { linkToken } : {}), ...extra }),
+      body: JSON.stringify({ personaId: identity.personaId, contentGuid, extVersion: VERSION, install: STORE ? 'store' : 'zip', ...(linkToken ? { linkToken } : {}), ...extra }),
     });
   await setBusy({ label: 'Connecting' });
   try {

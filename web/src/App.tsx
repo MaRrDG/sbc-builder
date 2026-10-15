@@ -28,7 +28,7 @@ import { Guide } from './components/Guide';
 import { errorText, reasonText } from './messages';
 import { PlayerPanel } from './components/PlayerPanel';
 import { SetupGuide } from './components/SetupGuide';
-import { UpdateBanner, needsUpdate, updateRequired, type ExtensionRelease } from './components/UpdateBanner';
+import { UpdateBanner, needsUpdate, releaseFor, updateRequired, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
 import { InstallBanner, InstallNavItem } from './components/InstallApp';
@@ -174,6 +174,8 @@ export default function App({
   const [dismissedUpdate, setDismissedUpdate] = useState(() => readLocal<string | null>('sbc-dismissed-update', null));
 
   const account = linked?.find((a) => a.personaId === activeId) ?? null;
+  // a store copy only gets what Google has published; a zip copy what the server ships
+  const extRelease = releaseFor(latestExt, account?.extInstall);
   const challenge = challenges?.find((c) => c.challengeId === challengeId) ?? null;
   const scoreTarget = challenge?.scoreRequirement ?? 0; // points SBC target, 0 for squad SBCs
   const result = challengeId ? results[challengeId] ?? null : null;
@@ -1090,17 +1092,18 @@ export default function App({
 
       <RefBanner onboarded={onboarded} founders={founders} onApplied={() => void loadMe()} />
 
-      {latestExt &&
-        needsUpdate(account?.extVersion, latestExt) &&
-        (updateAsked || updateRequired(account?.extVersion, latestExt) || dismissedUpdate !== latestExt.version) && (
+      {extRelease &&
+        needsUpdate(account?.extVersion, extRelease) &&
+        (updateAsked || updateRequired(account?.extVersion, extRelease) || dismissedUpdate !== extRelease.version) && (
         <UpdateBanner
           installed={account?.extVersion}
-          latest={latestExt}
+          latest={extRelease}
           expanded={updateAsked}
-          required={updateRequired(account?.extVersion, latestExt)}
+          required={updateRequired(account?.extVersion, extRelease)}
+          store={account?.extInstall === 'store'}
           onDismiss={() => {
-            setDismissedUpdate(latestExt.version);
-            writeLocal('sbc-dismissed-update', latestExt.version);
+            setDismissedUpdate(extRelease.version);
+            writeLocal('sbc-dismissed-update', extRelease.version);
           }}
         />
       )}

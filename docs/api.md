@@ -35,8 +35,10 @@ The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extens
 Extension 0.7+. Says who is logged in to the web app, without handing over the session.
 
 ```json
-{ "personaId": 1005016552645, "contentGuid": "27A3C9F1-…", "extVersion": "0.8.0", "linkToken": "Qm9…" }
+{ "personaId": 1005016552645, "contentGuid": "27A3C9F1-…", "extVersion": "1.0.7", "install": "store", "linkToken": "Qm9…" }
 ```
+
+- `install` (optional, 1.0.7+): `store` (Chrome Web Store copy) or `zip`; kept as the account's `extInstall` and shown to the site in `account`.
 
 - With `X-Account-Key` for that same persona: accepted, nothing reaches EA.
 - Otherwise `401 { "needSid": true }`; the extension repeats the call with `"sid"` once, the server proves it with one `/usermassinfo` call and does not store it (at most 10 such proofs a minute).
@@ -731,8 +733,10 @@ Public, no auth, `Cache-Control: public, max-age=300`, under the global per-IP `
 ### `GET /api/extension/version`
 
 ```json
-{ "version": "1.0.3", "notes": ["..."], "minVersion": "1.0.0" }
+{ "version": "1.0.7", "notes": ["..."], "minVersion": "1.0.0", "storeVersion": "1.0.6" }
 ```
+
+`storeVersion`: the newest version a Chrome Web Store copy reported (`install: "store"`), i.e. what Google has published; `null` until one reports. Same object in `/api/status` `extension` and as the answer of `POST /api/extension/report` (`{ version, install? }`, extension key).
 
 ### `GET /api/extension.zip`
 

@@ -4,6 +4,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
 import { zipSync, strToU8 } from 'fflate';
 import { ROOT } from './store.js';
+import { versionLess } from './admin/query.js';
 
 const DIR = join(ROOT, 'extension');
 const DEFAULT_SERVER = 'http://localhost:5178';
@@ -15,17 +16,30 @@ export interface ExtensionRelease {
   version: string;
   notes: string[];
   minVersion: string;
+  /** Newest version a Chrome Web Store copy reported: what the store serves now (null: none seen yet). */
+  storeVersion: string | null;
 }
 
-let release: ExtensionRelease | null = null;
+/** Where the extension came from (extension 1.0.7+): the Chrome Web Store updates its copies itself, a zip is updated by hand. */
+export type ExtInstall = 'store' | 'zip';
+export const parseInstall = (v: unknown): ExtInstall | undefined => (v === 'store' || v === 'zip' ? v : undefined);
+
+let release: Omit<ExtensionRelease, 'storeVersion'> | null = null;
+let storeSeen: string | null = null;
+
+/** A store copy reported its version: Google has published at least that one. */
+export function noteStoreVersion(version: string) {
+  if (!storeSeen || versionLess(storeSeen, version)) storeSeen = version;
+}
 
 /** Version shipped from extension/manifest.json + its notes from extension/release.json. */
 export async function latestExtension(): Promise<ExtensionRelease> {
-  if (release) return release;
-  const { version } = JSON.parse(await readFile(join(DIR, 'manifest.json'), 'utf8')) as { version: string };
-  const notes = JSON.parse(await readFile(join(DIR, 'release.json'), 'utf8')) as Record<string, string[]>;
-  release = { version, notes: notes[version] ?? [], minVersion: MIN_EXTENSION };
-  return release;
+  if (!release) {
+    const { version } = JSON.parse(await readFile(join(DIR, 'manifest.json'), 'utf8')) as { version: string };
+    const notes = JSON.parse(await readFile(join(DIR, 'release.json'), 'utf8')) as Record<string, string[]>;
+    release = { version, notes: notes[version] ?? [], minVersion: MIN_EXTENSION };
+  }
+  return { ...release, storeVersion: storeSeen };
 }
 
 const LOCAL_HOST = /^[a-z*]+:\/\/(localhost|127\.0\.0\.1)(:[0-9*]+)?(\/|$)/i;

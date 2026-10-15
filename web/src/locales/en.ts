@@ -581,6 +581,10 @@ export const en = {
   'update.hide': 'Hide until next update',
   'update.s1': 'Unzip it over your old {folder} folder and replace the files.',
   'update.s2': 'In {url} press the reload arrow on FC Solver.',
+  'update.storeHow': 'How to update',
+  'update.storeS1': 'Chrome updates FC Solver from the {store} by itself, usually within a few hours. You do not need to download anything.',
+  'update.storeLink': 'Chrome Web Store',
+  'update.storeS2': 'To get it now: open {url}, turn on Developer mode (top right) and press Update.',
   'update.s3': 'Refresh the FC27 web app tab. Your settings and account stay as they are.',
 
   // onboarding

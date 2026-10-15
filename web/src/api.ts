@@ -209,6 +209,8 @@ export interface Account {
   sidUpdatedAt: number;
   session: boolean;
   extVersion?: string | null;
+  /** Where that extension came from (1.0.7+): 'store' copies are updated by Chrome. */
+  extInstall?: 'store' | 'zip' | null;
 }
 
 export interface EaRequests {

@@ -585,6 +585,10 @@ export const it: Record<Keys, string> = {
   'update.hide': 'Nascondi fino al prossimo aggiornamento',
   'update.s1': 'Estraila sopra la vecchia cartella {folder} e sostituisci i file.',
   'update.s2': 'In {url} premi la freccia di ricarica su FC Solver.',
+  'update.storeHow': 'Come aggiornare',
+  'update.storeS1': 'Chrome aggiorna FC Solver dal {store} da solo, di solito entro qualche ora. Non devi scaricare nulla.',
+  'update.storeLink': 'Chrome Web Store',
+  'update.storeS2': 'Per averla subito: apri {url}, attiva la Modalità sviluppatore (in alto a destra) e premi Aggiorna.',
   'update.s3': 'Aggiorna la scheda della web app FC27. Le tue impostazioni e il tuo account restano come sono.',
 
   // onboarding

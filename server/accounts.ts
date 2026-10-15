@@ -7,6 +7,7 @@ import { Utas, content } from './ea.js';
 import { RequestMeter } from './meter.js';
 import { webAppOpen } from './jobs.js';
 import { DATA_DIR, readCache, writeCache } from './store.js';
+import { noteStoreVersion, type ExtInstall } from './extension.js';
 
 export interface AccountInfo {
   personaId: number;
@@ -16,6 +17,7 @@ export interface AccountInfo {
   sidUpdatedAt: number;
   accessKey: string; // secret the browser uses to read this account's data
   extVersion?: string | null; // extension version that last reported a session
+  extInstall?: ExtInstall | null; // where that extension came from (1.0.7+; older ones say nothing)
   /** 'client': extension 0.7+ makes every EA request from the web app tab; the server keeps no SID. */
   mode?: 'client';
 }
@@ -47,11 +49,20 @@ export class Account {
   }
 
   /** From now on this account syncs through the web app tab; drop any stored SID. */
-  useClientMode(extVersion?: string) {
+  useClientMode(extVersion?: string, extInstall?: ExtInstall) {
     this.info.mode = 'client';
     this.info.sid = null;
     this.info.sidUpdatedAt = Date.now(); // start of this web app session (sync grace period)
-    if (extVersion) this.info.extVersion = extVersion;
+    if (extVersion) this.reportExtension(extVersion, extInstall);
+  }
+
+  /** The extension said which version it is (and, from 1.0.7, where it came from). True when something changed. */
+  reportExtension(version: string, install?: ExtInstall): boolean {
+    const changed = this.info.extVersion !== version || (!!install && this.info.extInstall !== install);
+    this.info.extVersion = version;
+    if (install) this.info.extInstall = install;
+    if (this.info.extInstall === 'store') noteStoreVersion(version);
+    return changed;
   }
 
   async save() {
@@ -81,6 +92,7 @@ export async function loadAccounts() {
     if (!c) continue;
     const acc = new Account({ ...c.data, sid: null, accessKey: c.data.accessKey || newKey() });
     if (!c.data.accessKey || c.data.sid) await acc.save(); // legacy SIDs are never kept
+    if (acc.info.extInstall === 'store' && acc.info.extVersion) noteStoreVersion(acc.info.extVersion);
     accounts.set(acc.id, acc);
   }
 }
@@ -93,13 +105,13 @@ let verifyWindow = { start: 0, count: 0 };
  * browser) the SID is sent once and proven with one /usermassinfo call, then thrown away.
  */
 export async function hello(opts: {
-  key?: string | null; personaId?: number; sid?: string; contentGuid?: string; extVersion?: string;
+  key?: string | null; personaId?: number; sid?: string; contentGuid?: string; extVersion?: string; extInstall?: ExtInstall;
 }): Promise<{ account: Account; proved: boolean } | { needSid: true }> {
   const byKey = accountByKey(opts.key);
   if (byKey && opts.personaId === byKey.id) {
     // a held key is the extension that already proved this persona; the guid resets on every deploy
     if (opts.contentGuid) content.guid = opts.contentGuid;
-    byKey.useClientMode(opts.extVersion);
+    byKey.useClientMode(opts.extVersion, opts.extInstall);
     await byKey.save();
     return { account: byKey, proved: false };
   }
@@ -118,7 +130,7 @@ export async function hello(opts: {
   }
   account.info.personaName = userInfo.personaName;
   account.info.clubName = userInfo.clubName;
-  account.useClientMode(opts.extVersion);
+  account.useClientMode(opts.extVersion, opts.extInstall);
   await account.meter.record('GET', '/usermassinfo', 200);
   await account.save();
   return { account, proved: true };

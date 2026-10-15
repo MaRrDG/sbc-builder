@@ -53,7 +53,7 @@ import { checkDailyReminders } from './daily/reminder.js';
 import { CARD_FILE } from './evo-card-svg.js';
 import { CARD_DIR } from './evo-card.js';
 import { prefsOf, setPrefs, trainingsOf } from './db/evos.js';
-import { buildExtensionZip, requestOrigin, latestExtension } from './extension.js';
+import { buildExtensionZip, requestOrigin, latestExtension, parseInstall } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 import { isKnownPath } from '../shared/paths.js';
 import { analyticsFor, analyticsOrigins, analyticsWarnings, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
@@ -508,14 +508,11 @@ app.get('/api/extension/version', () => latestExtension());
 app.get('/api/founders', () => foundersNow());
 
 /** The extension says which version it is right after install/update, no EA session needed. */
-app.post<{ Body: { version: string } }>('/api/extension/report', async (req, reply) => {
+app.post<{ Body: { version: string; install?: string } }>('/api/extension/report', async (req, reply) => {
   const acc = account(req);
   const version = req.body?.version;
   if (!version || !/^\d+(\.\d+){1,3}$/.test(version)) return reply.code(400).send({ error: 'invalid version' });
-  if (acc.info.extVersion !== version) {
-    acc.info.extVersion = version;
-    await acc.save();
-  }
+  if (acc.reportExtension(version, parseInstall(req.body?.install))) await acc.save();
   return latestExtension();
 });
 
@@ -554,8 +551,8 @@ registerDiscordSiteRoutes(app);
 
 // ---- extension 0.7+: identity and sync jobs run in the web app tab ------------------
 /** The web app says who is logged in. A held key is enough; otherwise the SID proves it once (not stored). */
-app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVersion?: string; linkToken?: string } }>('/api/hello', async (req, reply) => {
-  const { personaId, sid, contentGuid, extVersion, linkToken } = req.body ?? {};
+app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVersion?: string; install?: string; linkToken?: string } }>('/api/hello', async (req, reply) => {
+  const { personaId, sid, contentGuid, extVersion, install, linkToken } = req.body ?? {};
   if (sid !== undefined && !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
   if (sid && !accountByKey(keyOf(req)) && !proofLimit(req.ip)) throw tooMany(); // proving a new session calls EA
   const r = await hello({
@@ -564,6 +561,7 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     sid,
     contentGuid: contentGuid && /^[0-9A-F-]{36}$/i.test(contentGuid) ? contentGuid : undefined,
     extVersion: extVersion && /^\d+(\.\d+){1,3}$/.test(extVersion) ? extVersion : undefined,
+    extInstall: parseInstall(install),
   });
   if ('needSid' in r) return reply.code(401).send({ error: 'unknown account', needSid: true });
   autoSyncSoon(r.account); // a day's club / SBC sync missed while offline runs right away

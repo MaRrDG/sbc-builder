@@ -1,4 +1,7 @@
 {
+  "1.0.7": [
+    "Tells FC Solver whether it came from the Chrome Web Store, so the site shows the right way to update"
+  ],
   "1.0.6": [
     "Ready for the Chrome Web Store: installed from there, Chrome keeps it up to date by itself"
   ],

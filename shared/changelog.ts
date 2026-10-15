@@ -21,9 +21,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     id: '2026-10-15',
     date: '2026-10-15',
     items: {
-      en: ['Daily: a new History button shows the past days (30 at a time, older ones a click away), with each day\'s player, your result and how many players guessed it. Open to everyone, signed in or not'],
-      ro: ['Daily: noul buton Istoric arată zilele trecute (câte 30, iar pe cele mai vechi le încarci cu un clic), cu jucătorul fiecărei zile, rezultatul tău și câți l-au ghicit. E deschis pentru toți, cu sau fără cont'],
-      it: ['Daily: il nuovo pulsante Storico mostra i giorni passati (30 alla volta, i più vecchi a un clic), con il giocatore di ogni giorno, il tuo risultato e quanti l\'hanno indovinato. Aperto a tutti, con o senza account'],
+      en: ['Daily: a new History button shows the past days (30 at a time, older ones a click away), with each day\'s player, your result and how many players guessed it. Open to everyone, signed in or not', 'Extension from the Chrome Web Store (1.0.7+): the update notice no longer offers a zip. Chrome updates it by itself, and the notice shows how to get it right away'],
+      ro: ['Daily: noul buton Istoric arată zilele trecute (câte 30, iar pe cele mai vechi le încarci cu un clic), cu jucătorul fiecărei zile, rezultatul tău și câți l-au ghicit. E deschis pentru toți, cu sau fără cont', 'Extensia din Chrome Web Store (1.0.7+): anunțul de actualizare nu mai oferă un zip. Chrome o actualizează singur, iar anunțul arată cum o iei imediat'],
+      it: ['Daily: il nuovo pulsante Storico mostra i giorni passati (30 alla volta, i più vecchi a un clic), con il giocatore di ogni giorno, il tuo risultato e quanti l\'hanno indovinato. Aperto a tutti, con o senza account', 'Estensione dal Chrome Web Store (1.0.7+): l\'avviso di aggiornamento non propone più uno zip. Chrome la aggiorna da solo, e l\'avviso spiega come averla subito'],
     },
   },
   {

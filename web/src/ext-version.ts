@@ -5,6 +5,21 @@ export interface ExtensionRelease {
   notes: string[];
   /** Oldest extension the server still supports; older ones get a required update. */
   minVersion?: string;
+  /** Newest version a Chrome Web Store copy reported, i.e. what Google has published (null: none seen yet). */
+  storeVersion?: string | null;
+}
+
+/** FC Solver on the Chrome Web Store. */
+export const STORE_URL = 'https://chromewebstore.google.com/detail/hpohanijiplbbijpgnpdocghhhlpjlbc';
+
+/**
+ * The release a copy can get: a Chrome Web Store copy only what Google has published (the newest version a store copy
+ * reported; nothing newer while Google reviews it), a zip copy what the server ships. The minimum stays the same.
+ */
+export function releaseFor(latest: ExtensionRelease | null, install: 'store' | 'zip' | null | undefined): ExtensionRelease | null {
+  if (!latest || install !== 'store') return latest;
+  const version = latest.storeVersion ?? '0';
+  return { ...latest, version, notes: version === latest.version ? latest.notes : [] };
 }
 
 /** -1 / 0 / 1 for dotted numeric versions ("0.3.0" < "0.4.0"). */

@@ -591,6 +591,10 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'update.hide': 'Ascunde până la următorul update',
   'update.s1': 'Dezarhiveaz-o peste folderul vechi {folder} și înlocuiește fișierele.',
   'update.s2': 'În {url} apasă săgeata de reîncărcare la FC Solver.',
+  'update.storeHow': 'Cum actualizezi',
+  'update.storeS1': 'Chrome actualizează singur FC Solver din {store}, de obicei în câteva ore. Nu trebuie să descarci nimic.',
+  'update.storeLink': 'Chrome Web Store',
+  'update.storeS2': 'Ca s-o ai acum: deschide {url}, pornește Developer mode (dreapta sus) și apasă Update.',
   'update.s3': 'Dă refresh la tab-ul web app-ului FC27. Setările și contul rămân la fel.',
 
   'onb.title': 'Cele mai ieftine echipe SBC din propriul club',

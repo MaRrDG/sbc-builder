@@ -7,7 +7,7 @@ export { LEGAL_DOCS, type LegalDoc };
 const PADDLE_TERMS = 'paddle.com/legal/checkout-buyer-terms';
 
 export const OPERATOR = 'Mario Dragut';
-export const CONTACT = 'dragutmariotheodor1@gmail.com';
+export const CONTACT = 'contact@fc-solver.app';
 export const UPDATED = '2026-10-13';
 
 export interface Section {
