@@ -12,6 +12,7 @@ import { alreadyAnnounced, dailyInfoMessage, dailyPost } from './daily.js';
 import { changelogPost, toPost, type BotEntry } from './changelog.js';
 import { onAutocomplete, onCommand } from './handlers.js';
 import { onEndPoll, onPoll, postFinishedPolls } from './polls.js';
+import { memberCounter } from './member-count.js';
 
 loadEnvFile();
 const cfg = loadConfig();
@@ -20,6 +21,7 @@ const client = new Client({
   partials: [Partials.Message, Partials.Channel, Partials.Reaction, Partials.User],
 });
 const rulesIds = new Set<string>(); // the English and the Romanian rules message
+let counter: ReturnType<typeof memberCounter> | null = null; // the "👥 Members" channel at the top
 
 const roleIds = (guild: Guild, names: string[]) =>
   names.flatMap((n) => {
@@ -94,6 +96,8 @@ client.once(Events.ClientReady, async (c) => {
   console.log(`[bot] ready as ${c.user.tag}`);
   if (guild) {
     const g = guild;
+    counter = memberCounter(g);
+    counter.bump();
     void announceDaily(g);
     setInterval(() => void announceDaily(g), 60_000);
     void postChangelog(g);
@@ -227,9 +231,15 @@ client.on(Events.GuildMemberUpdate, async (before, after) => {
   }
 });
 
+client.on(Events.GuildMemberRemove, (member) => {
+  if (member.guild.id === cfg.guildId) counter?.bump();
+});
+
 // Welcome post for every new member (English); a failure is logged and never stops the bot
 client.on(Events.GuildMemberAdd, async (member) => {
-  if (member.guild.id !== cfg.guildId || member.user.bot) return;
+  if (member.guild.id !== cfg.guildId) return;
+  counter?.bump();
+  if (member.user.bot) return;
   try {
     const ch = await findText(member.guild, CAT.info, CH.welcome);
     await ch.send(memberWelcomeMessage(member.id, member.displayName, member.guild.memberCount, avatarUrl(client.user!)));
