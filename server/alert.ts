@@ -55,13 +55,24 @@ export function alertFingerprint(kind: AlertKind, e: unknown, route?: string) {
 }
 
 const gate = createAlertGate();
-const env = () => {
+export const env = () => {
   try {
     return process.env.SITE_URL ? new URL(process.env.SITE_URL).host : 'dev';
   } catch {
     return 'dev';
   }
 };
+
+/** An owner notice we write ourselves (no error, no gate), e.g. maintenance switched. Never throws. */
+export async function notify(content: string): Promise<void> {
+  const url = process.env.ALERT_WEBHOOK_URL;
+  if (!url) return;
+  try {
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: content.slice(0, 1990), allowed_mentions: { parse: [] } }), signal: AbortSignal.timeout(5000) });
+  } catch (x) {
+    console.error(`[alert] failed: ${(x as Error).message}`);
+  }
+}
 
 /** `route` must be "METHOD /route/pattern" (Fastify routeOptions.url), never a raw request URL. Never throws. */
 export async function alert(kind: AlertKind, e: unknown, route?: string): Promise<void> {

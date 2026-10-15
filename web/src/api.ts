@@ -442,10 +442,16 @@ export interface Reason {
   all?: number; // rating without the settings
 }
 
+export interface AdminMaintenance { on: boolean; since: string | null; note: string }
+
 // The Clerk session identifies the user; X-Persona says which of their EA accounts the call is about.
 let tokenFn: ((fresh: boolean) => Promise<string | null>) | null = null;
 let signedOut: () => void = () => {};
 let persona: number | null = null;
+let maintenance: () => void = () => {};
+
+/** Root shows the maintenance page when any call answers 503 `maintenance` (admins never get it). */
+export const onMaintenance = (fn: () => void) => (maintenance = fn);
 
 /** Root calls this on every render with Clerk's getToken (null while signed out). */
 export function configureAuth(getToken: typeof tokenFn, onSignedOut: () => void) {
@@ -474,6 +480,7 @@ async function req<T>(path: string, init: { method?: string; body?: unknown } = 
   if (!res.ok) {
     const d = data as { error?: string; code?: string; params?: Record<string, string | number> };
     if (d.code === 'signIn') signedOut();
+    if (d.code === 'maintenance') maintenance();
     throw new ApiError(d.error ?? `HTTP ${res.status}`, d.code ?? null, d.params ?? {});
   }
   return data as T;
@@ -614,6 +621,9 @@ export const api = {
   adminBillingAttach: (userId: string, subscriptionId: string) =>
     req<unknown>(`/api/admin/users/${encodeURIComponent(userId)}/billing-attach`, { method: 'POST', body: { subscriptionId } }),
   adminBillingResync: (userId: string) => req<unknown>(`/api/admin/users/${encodeURIComponent(userId)}/billing-resync`, { method: 'POST' }),
+  maintenance: () => req<{ maintenance: boolean; note: string }>('/api/maintenance'),
+  adminMaintenance: () => req<AdminMaintenance>('/api/admin/maintenance'),
+  adminSetMaintenance: (on: boolean, note: string) => req<AdminMaintenance>('/api/admin/maintenance', { method: 'POST', body: { on, note } }),
   adminDaily: (day: number | null) => req<AdminDailyDay>(`/api/admin/daily${day === null ? '' : `?day=${day}`}`),
   adminDailyLeaderboard: () => req<{ rows: AdminDailyLbRow[] }>('/api/admin/daily/leaderboard'),
   adminDailyClearUsername: (userId: string) =>

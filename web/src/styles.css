@@ -4063,6 +4063,13 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .adm-back { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); text-decoration: none; }
 .adm-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .adm-actions > button { width: auto; }
+.maint-title { display: flex; align-items: center; gap: 10px; font-size: 1.5rem; margin: 8px 0 0; }
+.maint-note { border: 1px solid var(--line); border-radius: var(--r-box); background: var(--surface); padding: 12px 14px; overflow-wrap: anywhere; }
+.adm-maint-on { border-color: var(--bad); }
+.adm-card h2 svg { vertical-align: -2px; }
+.adm-field { display: grid; gap: 4px; margin: 0 0 12px; max-width: 520px; }
+.adm-field span { font-size: 13px; color: var(--ink-2); }
+.adm-field input { height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--r-ctl); background: var(--bg-0); color: var(--ink); }
 .adm-actions .ghost { height: 32px; border-color: var(--line); }
 .adm-actions .adm-trust { margin-left: auto; }
 .adm-daily-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }

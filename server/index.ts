@@ -21,6 +21,7 @@ import { loadAccounts, accountByKey, accountById, hello, type Account } from './
 import { isAdmin } from './admin/auth.js';
 import { versionLess } from './admin/query.js';
 import { registerAdminRoutes } from './admin/routes.js';
+import { loadMaintenance, maintenanceGate, registerMaintenanceRoutes } from './maintenance.js';
 import { billingOf, registerBillingRoutes } from './billing/routes.js';
 import { cancelDeletion, requestDeletion, scheduleDeletions } from './deletion.js';
 import { deleteAtOf } from './db/deletion.js';
@@ -106,6 +107,7 @@ app.addHook('onRequest', async (req, reply) => {
     reply.header('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
   }
   if (req.method === 'OPTIONS') return reply.code(204).send();
+  await maintenanceGate(req);
 });
 
 app.setErrorHandler((err: Error & { statusCode?: number }, req, reply) => {
@@ -544,6 +546,7 @@ app.post<{ Params: { id: string } }>('/api/challenges/:id/read', async (req, rep
 
 // ---- admin (site, ADMIN_EMAILS): server/admin/routes.ts ----------------------------
 registerAdminRoutes(app);
+registerMaintenanceRoutes(app);
 registerBillingRoutes(app);
 registerDailyRoutes(app);
 registerBotRoutes(app);
@@ -950,6 +953,7 @@ app.setNotFoundHandler((req, reply) => {
 try {
   await initDb();
   initAuth();
+  await loadMaintenance();
 } catch (e) {
   console.error(`[startup] cannot start: ${(e as Error).message}`);
   process.exit(1);

@@ -8,7 +8,7 @@ All bodies are JSON. Errors look like `{ "error": "message" }` with a meaningful
 
 | Header | Used by | Meaning |
 |---|---|---|
-| none | `/api/session` (410), `/api/hello`, `/api/health`, `/api/meta`, `/api/extension/version`, `/api/extension.zip` | public or self-authenticating |
+| none | `/api/session` (410), `/api/hello`, `/api/health`, `/api/maintenance`, `/api/meta`, `/api/extension/version`, `/api/extension.zip` | public or self-authenticating |
 | `Authorization: Bearer <Clerk session token>` + `X-Persona: <personaId>` | **(site)** endpoints | the signed-in FC Solver user and which of their EA accounts the call is about (`/api/me*`, `/api/link-token`, `DELETE /api/personas/:id` need only the token) |
 | `X-Account-Key: <key>` | **(extension)** endpoints | secret key of one EA account, handed out by `/api/hello`; it stays inside the extension and never reaches the site |
 
@@ -19,6 +19,8 @@ The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extens
 **Limits and errors.** Per client IP: 600 `/api` requests a minute, and 5 new EA sessions a minute to prove (`/api/hello` with a `sid` but no known key; each one calls EA; plus 30 a minute for the whole server). Over it: `429` with code `rateLimited`. Unexpected server errors (`5xx` that are not ours) answer `{ "error": "Something went wrong on the FC Solver server.", "code": "internal", "params": {} }`; the details only go to the server log (and an owner alert with the route pattern and error type, never request data).
 
 **Health.** `GET /api/health` (no auth, not rate limited, `Cache-Control: no-store`): `200 { "ok": true }` when the API answers and Postgres answers `select 1` within 2 s, otherwise `503 { "ok": false }`. For the uptime monitor and the compose health check.
+
+**Maintenance.** While the admin has maintenance mode on (`server/maintenance.ts`, saved in `data/maintenance.json`), every `/api/*` call from the site answers `503 { code: "maintenance" }` and the site shows its maintenance page. Still open: `/api/health`, `/api/maintenance`, `/api/hello`, `/api/billing/webhook`, `/api/csp-report`, `/api/admin/*`, `/api/bot/*`, any call with `X-Account-Key` (the extension) and every call from an admin. `GET /api/maintenance` (public, `no-store`) → `{ maintenance, note }`. `GET /api/admin/maintenance` (admin) → `{ on, since, note }`; `POST /api/admin/maintenance` (admin) `{ on, note? }` (note trimmed, max 280 chars) switches it and posts the change to `ALERT_WEBHOOK_URL`.
 
 **Shutdown.** On `SIGTERM` the server ends open `/api/stream` streams and answers held `/api/jobs/next` polls at once (clients reconnect to the next server), stops running solves (`503 solverBusy`), lets other in-flight requests finish for up to 20 s, then closes the DB.
 

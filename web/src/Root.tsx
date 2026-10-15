@@ -2,8 +2,8 @@
 // (sign in, how it works, extension setup) and the signed-in app. Owns the one useRoute().
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { HandleSSOCallback, useAuth, useClerk } from '@clerk/react';
-import { WarningCircle } from '@phosphor-icons/react';
-import { configureAuth } from './api';
+import { WarningCircle, Wrench } from '@phosphor-icons/react';
+import { api, configureAuth, onMaintenance } from './api';
 import { safeNext } from './next';
 import { useRoute, type Route } from './route';
 import { useI18n } from './i18n';
@@ -50,6 +50,15 @@ export default function Root() {
   // Clerk says signed in but the server refused even a fresh token (e.g. SITE_ORIGINS): going to
   // /signin would bounce straight back and reload forever, so say so instead
   const [refused, setRefused] = useState(false);
+  // maintenance mode: the admin's note ('' without one); null while the site is open
+  const [maint, setMaint] = useState<string | null>(null);
+  onMaintenance(() => void api.maintenance().then((s) => setMaint(s.maintenance ? s.note : null), () => setMaint('')));
+  // back as soon as the admin switches it off
+  useEffect(() => {
+    if (maint === null) return;
+    const id = setInterval(() => void api.maintenance().then((s) => { if (!s.maintenance) window.location.reload(); }, () => {}), 60_000);
+    return () => clearInterval(id);
+  }, [maint]);
 
   // set during render: children's effects run before ours and already call the API
   configureAuth(
@@ -165,6 +174,27 @@ export default function Root() {
       </div>
     );
   }
+
+  if (maint !== null)
+    return (
+      <div className="onboarding">
+        <div className="brand onboarding-top">
+          <img src="/brand/logo-on-dark.svg" alt="FC Solver" width="186" height="48" />
+          <LangMenu lang={lang} setLang={setLang} label={t('top.language')} />
+        </div>
+        <h1 className="maint-title">
+          <Wrench weight="bold" aria-hidden="true" /> {t('maint.title')}
+        </h1>
+        <p role="status">{t('maint.body')}</p>
+        {maint && <p className="maint-note">{maint}</p>}
+        <div className="signin-row">
+          <button type="button" className="ghost wide" onClick={() => window.location.reload()}>
+            {t('auth.retry')}
+          </button>
+        </div>
+        <LegalLinks navigate={navigate} />
+      </div>
+    );
 
   if (refused)
     return (

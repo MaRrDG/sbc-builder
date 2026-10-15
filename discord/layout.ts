@@ -128,6 +128,8 @@ export const CATEGORIES: CategorySpec[] = [
     name: CAT.staff, access: 'staff', channels: [
       { name: textName('🛡️', 'staff'), kind: 'text' },
       { name: CH.modLog, kind: 'text', topic: 'Discord community updates and moderation log' },
+      // Webhook target of ALERT_WEBHOOK_URL (server/alert.ts); the webhook is made once by hand, setup only keeps the channel.
+      { name: textName('🚨', 'alerts'), kind: 'text', topic: 'Server alerts: 500s, crashes, backups, deletions, prunes' },
     ],
   },
 ];

@@ -9,6 +9,7 @@ import { adminRoute, routePath } from '../../route';
 import type { AdminProps } from './AdminLayout';
 import { BarChart } from './BarChart';
 import { KpiCard } from './KpiCard';
+import { MaintenanceCard } from './MaintenanceCard';
 import { useLoad } from './useLoad';
 
 export function Overview({ navigate }: AdminProps) {
@@ -55,6 +56,7 @@ export function Overview({ navigate }: AdminProps) {
     <>
       {error && <p className="signin-error" role="alert">{error}</p>}
       <p className="muted">{t('admin.lede', { time: ago(o.at) })}</p>
+      <MaintenanceCard />
       <div className="adm-kpis">
         <KpiCard label={t('admin.kpi.users')} value={k.users.total} sub={t('admin.kpi.usersNew', { n: k.users.new7d, count: k.users.new7d })} {...kpiLink(users(''))} />
         <KpiCard label={t('admin.kpi.active')} value={k.users.active24h} sub={t('admin.kpi.active7d', { n: k.users.active7d, count: k.users.active7d })} {...kpiLink(users('activity=24h'))} />
