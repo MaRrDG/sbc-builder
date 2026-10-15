@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { applyEvent, checkoutRefusal, logKind, PAST_DUE_GRACE_MS, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
+import { applyEvent, cancelAfterRefund, checkoutRefusal, logKind, PAST_DUE_GRACE_MS, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
 
 const SECRET = 'pdl_ntfset_test_secret';
 const BODY = '{"event_id":"evt_1","event_type":"subscription.created"}';
@@ -213,4 +213,15 @@ test('subscriptionActive measures the past_due grace from the first failed payme
   const periodEnd = NOW + 28 * 24 * 3600e3; // Paddle already moved the period forward
   assert.equal(subscriptionActive(row('past_due', periodEnd, failedAt), NOW), true);
   assert.equal(subscriptionActive(row('past_due', periodEnd, NOW - PAST_DUE_GRACE_MS), NOW), false);
+});
+
+test('cancelAfterRefund: an approved refund or chargeback ends a live subscription', () => {
+  const refund = logKind('adjustment.updated', { action: 'refund', status: 'approved', totals: { total: '499', currency_code: 'EUR' } });
+  const chargeback = logKind('adjustment.created', { action: 'chargeback', status: 'approved' });
+  assert.equal(cancelAfterRefund(refund, { status: 'active' }), true);
+  assert.equal(cancelAfterRefund(chargeback, { status: 'past_due' }), true);
+  assert.equal(cancelAfterRefund(refund, { status: 'canceled' }), false);
+  assert.equal(cancelAfterRefund(refund, null), false);
+  assert.equal(cancelAfterRefund(logKind('adjustment.created', { action: 'refund', status: 'pending_approval' }), { status: 'active' }), false);
+  assert.equal(cancelAfterRefund(logKind('subscription.canceled', {}), { status: 'active' }), false);
 });

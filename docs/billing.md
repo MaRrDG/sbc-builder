@@ -63,7 +63,7 @@ Expected: `200` (sending it again → `200`, nothing changes), a wrong secret or
 
 ## Refunds
 
-Paddle handles them (Paddle dashboard → Transactions → refund, or the user asks Paddle). Our policy (`/refunds`): full refund on request within 14 days of a payment. A refunded or charged-back payment shows in the user's admin history; cancelling the subscription is a separate action (portal or Paddle dashboard).
+Paddle handles them (Paddle dashboard → Transactions → refund, or the user asks Paddle). Our policy (`/refunds`): full refund on request within 14 days of a payment. A refunded or charged-back payment shows in the user's admin history and ends the subscription at once: on an approved `adjustment` (refund or chargeback) the webhook calls `POST /subscriptions/{id}/cancel` `{ "effective_from": "immediately" }` (`cancelAfterRefund` in `rules.ts`); our row then follows Paddle's signed `subscription.canceled`. A partial refund counts too. If the cancel call fails, the alert channel says so and the subscription must be cancelled by hand in Paddle.
 
 ## Account deletion
 

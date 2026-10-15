@@ -130,6 +130,11 @@ export function logKind(type: string, data: LooseData): LogKind | null {
   }
 }
 
+/** An approved refund or chargeback ends its subscription at once (owner decision 2026-10-15), unless Paddle already ended it. */
+export function cancelAfterRefund(kind: LogKind | null, sub: { status: SubStatus } | null): boolean {
+  return kind?.kind === 'refunded' && !!sub && sub.status !== 'canceled';
+}
+
 /** Who may not open a checkout: admins and lifetime Premium (nothing to buy), and anyone already subscribed. */
 export function checkoutRefusal(row: { plan: string; premiumUntil: Date | null }, admin: boolean, subscribed: boolean): 'alreadyPremium' | 'alreadySubscribed' | null {
   if (admin || (row.plan === 'premium' && row.premiumUntil === null)) return 'alreadyPremium';

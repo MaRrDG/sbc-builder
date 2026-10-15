@@ -11,8 +11,9 @@ import { users } from '../db/schema.js';
 import { planRow } from '../db/users.js';
 import { SessionError } from '../ea.js';
 import { createLimiter } from '../limits.js';
-import { billingConfig, getSubscription, portalUrl, type BillingConfig } from './paddle.js';
-import { applyEvent, checkoutRefusal, intervalOf, logKind, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
+import { billingConfig, cancelSubscription, getSubscription, portalUrl, type BillingConfig } from './paddle.js';
+import { notify } from '../alert.js';
+import { applyEvent, cancelAfterRefund, checkoutRefusal, intervalOf, logKind, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
 
 const webhookLimit = createLimiter({ windowMs: 60_000, max: 120 });
 const SUB_EVENTS = new Set(['subscription.created', 'subscription.activated', 'subscription.updated', 'subscription.canceled', 'subscription.past_due', 'subscription.paused', 'subscription.resumed']);
@@ -89,6 +90,17 @@ async function handle(c: BillingConfig, env: Required<Pick<Envelope, 'event_id' 
   const subscriptionId = env.data.subscription_id ?? null;
   // a deleted account's late transaction: the subscription number only (privacy policy, "what remains")
   logEvent({ type: 'billing', userId, data: gone ? { ...kind, subscriptionId } : { ...kind, transactionId: env.data.id ?? null, subscriptionId } });
+  // refunded = no more Premium: ask Paddle to end the subscription now; our row follows its signed subscription.canceled webhook
+  const sub = subscriptionId ? await subscriptionById(subscriptionId) : null;
+  if (subscriptionId && cancelAfterRefund(kind, sub)) {
+    try {
+      await cancelSubscription(c, subscriptionId, 'immediately');
+      log.info(`[billing] ${subscriptionId} canceled after ${kind.kind}`);
+    } catch (e) {
+      log.error(`[billing] cancel ${subscriptionId} after refund failed: ${(e as Error).message}`);
+      void notify(`**billing** · refund on ${subscriptionId} but the cancel failed, cancel it by hand in Paddle`);
+    }
+  }
 }
 
 export function registerBillingRoutes(app: FastifyInstance) {
