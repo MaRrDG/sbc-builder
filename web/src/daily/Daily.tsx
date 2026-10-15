@@ -2,7 +2,7 @@
 // Signed in, the server keeps today's game and stats; signed out, the browser keeps them (store.ts)
 // and sends back the server's signed state token. Practice lives in memory only.
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ChartBar, ClockCounterClockwise, Database, Question, Ranking } from '@phosphor-icons/react';
+import { CalendarBlank, ChartBar, ClockCounterClockwise, Database, Question, Ranking } from '@phosphor-icons/react';
 import { api, ApiError, type DailyAnswer, type DailyGuess, type DailyInfo, type DailyName, type DailyProfile, type DailyRow, type DailySilhouette, type DailyStats, type Meta } from '../api';
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
@@ -12,6 +12,7 @@ import { Reminder } from './Reminder';
 import { routePath, type Route } from '../route';
 import { Grid, NearLegend } from './Grid';
 import { Leaderboard } from './Leaderboard';
+import { History } from './History';
 import { ProfilePrompt } from './ProfilePrompt';
 import { Search } from './Search';
 import { Sheet, HowTo, StatsBody } from './Sheets';
@@ -44,7 +45,7 @@ const media = (q: string) => typeof window !== 'undefined' && !!window.matchMedi
 const reducedMotion = () => media('(prefers-reduced-motion: reduce)');
 /** phones get the stats as a sheet at the end; wider screens show them inline next to the card */
 const phone = () => media('(max-width: 640px)');
-type SheetKind = 'help' | 'stats' | 'lb' | 'prompt';
+type SheetKind = 'help' | 'stats' | 'lb' | 'history' | 'prompt';
 /** Streak after this game for a player without an account (from the plays this browser kept). */
 function localStreak(day: number, won: boolean, guesses: number): number {
   return localStats([...loadPlays().filter((p) => p.day !== day), { day, won, guesses }], day).current;
@@ -141,6 +142,7 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
   useEffect(() => () => window.clearTimeout(statsTimer.current), []);
   useEffect(() => {
     if (sheet === 'lb') track('daily_leaderboard');
+    if (sheet === 'history') track('daily_history');
   }, [sheet]);
 
   /** Opens a sheet once the reveal has played (at once without motion), unless another one is open. */
@@ -280,6 +282,9 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
             <button type="button" className="dg-icon-btn" aria-label={t('daily.lb.button')} title={t('daily.lb.button')} onClick={() => setSheet('lb')}>
               <Ranking weight="bold" aria-hidden="true" />
             </button>
+            <button type="button" className="dg-icon-btn" aria-label={t('daily.hist.button')} title={t('daily.hist.button')} onClick={() => setSheet('history')}>
+              <CalendarBlank weight="bold" aria-hidden="true" />
+            </button>
           </div>
         </div>
         {names.length > 0 && (
@@ -355,6 +360,9 @@ export default function Daily({ signedIn, authReady, practice, navigate }: Props
       </Sheet>
       <Sheet open={sheet === 'stats'} title={t('daily.stats')} onClose={() => setSheet(null)}>
         <StatsBody stats={stats} signedIn={signedIn} today={!practice && game.finished && game.won ? game.rows.length : null} points={points} eaLinked={info?.eaLinked} />
+      </Sheet>
+      <Sheet open={sheet === 'history'} title={t('daily.hist.title')} onClose={() => setSheet((s) => (s === 'history' ? null : s))}>
+        <History signedIn={!!info?.signedIn} meta={meta} />
       </Sheet>
       <Sheet open={sheet === 'lb'} title={t('daily.lb.title')} onClose={() => setSheet((s) => (s === 'lb' ? null : s))}>
         <Leaderboard

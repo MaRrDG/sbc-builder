@@ -1013,3 +1013,49 @@
 .dg-remind { margin: 14px 0 0; text-align: center; }
 .dg-remind .switch { justify-content: center; min-height: 44px; }
 .dg-remind-hint { margin: 2px 0 0; color: var(--ink-3); font-size: 12.5px; line-height: 1.45; }
+
+/* ---------- history (past days) ---------- */
+.dg-hist-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.dg-hist-day {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.dg-hist-day:last-child { border-bottom: 0; }
+.dg-hist-card { flex: none; }
+.dg-hist-nocard {
+  width: 64px;
+  aspect-ratio: 3 / 4;
+  border-radius: var(--r-ctl);
+  background: var(--surface-2);
+}
+.dg-hist-info {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.dg-hist-info p { margin: 0; }
+.dg-hist-when { color: var(--ink-2); font-size: 13px; }
+.dg-hist-when b { color: var(--ink); }
+.dg-hist-name {
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dg-hist-me {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-2);
+}
+.dg-hist-me svg { flex: none; }
+.dg-hist-me.won svg { color: var(--go); }
+.dg-hist-me.lost svg { color: var(--bad); }
+.dg-hist-all { color: var(--ink-2); font-size: 13px; }

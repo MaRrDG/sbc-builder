@@ -524,6 +524,8 @@ export interface DailyGame { rows: DailyRow[]; finished: boolean; won: boolean; 
 export interface DailyProfile { username: string | null; leaderboard: boolean; asked: boolean }
 export interface DailyInfo { day: number; date: string; nextAt: number; maxGuesses: number; share: string; signedIn: boolean; players: number; previous?: { day: number; answer: DailyAnswer } | null; me?: DailyProfile; /** signed in: owns an EA account (streak points need one) */ eaLinked?: boolean; game?: DailyGame }
 export interface DailyLbRow { rank: number; username: string; wins: number; played: number; winPct: number; avgGuesses: number | null; streak: number; oneGuessWins: number }
+/** A past Daily day; `me` only when signed in (null = not played), `winPct` null when nobody finished */
+export interface DailyHistoryDay { day: number; date: string; answer: DailyAnswer | null; played: number; winPct: number | null; me?: { won: boolean; guesses: number } | null }
 export interface DailyLeaderboard { rows: DailyLbRow[]; me: (DailyLbRow & { inTop: boolean }) | null; total: number }
 export interface DailyGuess { row: DailyRow; finished: boolean; won: boolean; silhouette?: DailySilhouette; answer?: DailyAnswer | null; state?: string; stats?: DailyStats; points?: { added: number; streak: number } }
 export interface DailyName { i: number; n: string; f: string; c: number }
@@ -544,6 +546,7 @@ export const api = {
     practiceGuess: (token: string, assetId: number, state?: string) =>
       req<DailyGuess>('/api/daily/practice/guess', { method: 'POST', body: { token, assetId, state } }),
     leaderboard: () => req<DailyLeaderboard>('/api/daily/leaderboard'),
+    history: () => req<{ days: DailyHistoryDay[] }>('/api/daily/history'),
     saveProfile: (p: { username?: string; leaderboard?: boolean; asked?: true }) => req<DailyProfile>('/api/me/daily-profile', { method: 'PUT', body: p }),
   },
   me: () =>

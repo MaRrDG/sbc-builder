@@ -1,5 +1,5 @@
 // Postgres side of the Daily game (rules live in server/daily/*).
-import { and, asc, desc, eq, gte, isNotNull, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNotNull, lte, sql } from 'drizzle-orm';
 import { db } from './index.js';
 import { dailyAnonStats, dailyAnswers, dailyGuessCounts, dailyPlays, personas, players, pointLedger, users } from './schema.js';
 import type { PlayerRow } from '../daily/types.js';
@@ -138,4 +138,25 @@ export async function signedGamesOf(day: number) {
 
 export async function answerDays() {
   return db.select({ day: dailyAnswers.day, date: dailyAnswers.date, assetId: dailyAnswers.assetId }).from(dailyAnswers).orderBy(desc(dailyAnswers.day));
+}
+
+/** Answers of days in [from, to] (Daily history). */
+export async function answersBetween(from: number, to: number) {
+  return db.select({ day: dailyAnswers.day, date: dailyAnswers.date, assetId: dailyAnswers.assetId }).from(dailyAnswers)
+    .where(and(gte(dailyAnswers.day, from), lte(dailyAnswers.day, to)));
+}
+
+/** Finished / won games per day in [from, to], signed-in (daily_plays) and signed-out (daily_anon_stats) together. */
+export async function dayTotals(from: number, to: number): Promise<Map<number, { finished: number; won: number }>> {
+  const signed = await db.select({
+    day: dailyPlays.day, finished: sql<number>`count(*)::int`, won: sql<number>`count(*) filter (where ${dailyPlays.won})::int`,
+  }).from(dailyPlays).where(and(isNotNull(dailyPlays.finishedAt), gte(dailyPlays.day, from), lte(dailyPlays.day, to))).groupBy(dailyPlays.day);
+  const anon = await db.select({ day: dailyAnonStats.day, finished: dailyAnonStats.finished, won: dailyAnonStats.won }).from(dailyAnonStats)
+    .where(and(gte(dailyAnonStats.day, from), lte(dailyAnonStats.day, to)));
+  const out = new Map<number, { finished: number; won: number }>();
+  for (const r of [...signed, ...anon]) {
+    const t = out.get(r.day) ?? { finished: 0, won: 0 };
+    out.set(r.day, { finished: t.finished + r.finished, won: t.won + r.won });
+  }
+  return out;
 }

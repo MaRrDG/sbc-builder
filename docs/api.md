@@ -245,6 +245,10 @@ Guess and practice calls are limited to 40 per minute per IP (`rateLimited`).
 
 Signed-out daily guesses (not Practice, not signed in) also bump anonymous aggregate counters (`daily_anon_stats`, `daily_guess_counts`: per day, games finished / won / by guesses used, and how often each player was tried). They hold no identifier, no IP and no token. Replaying an older same-day `state` token buys extra tries and can inflate them; they are for the admin overview, not for scoring.
 
+### `GET /api/daily/history`
+
+Past Daily days for everyone (signed in or not): the last 30 days before today, newest first; today is never listed (its answer stays secret until the next drop). → `{ days: [{ day, date, answer, played, winPct, me? }] }`. `answer`: as in `/api/daily` `previous.answer` (`null` when the player left the players table); `played`: finished games that day, signed in (`daily_plays`) plus signed out (`daily_anon_stats`); `winPct`: 0-100 of those won (1-guess wins included), `null` when nobody finished. `me` only when signed in: `{ won, guesses }` or `null` (not played); signed-out visitors get their own results from the browser's saved plays. The public part is cached 60 s. `Cache-Control: no-store`. Rules in `server/daily/history.ts`.
+
 ### `GET /api/daily/leaderboard`
 
 Public, optional auth, `Cache-Control: no-store`. Only users who opted in with a username are ranked (wins, then lower average guesses on wins, then who reached their last win first). Only wins in 2+ guesses count: `wins`, `winPct`, `avgGuesses` and the tie-break ignore 1-guess wins (`streak` still counts them). The ranking is cached for 60 s server-side and refreshed on a profile change.

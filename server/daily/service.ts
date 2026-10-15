@@ -9,12 +9,13 @@ import { SessionError } from '../ea.js';
 import { DATA_DIR } from '../store.js';
 import { lastSbcDrop } from '../sync.js';
 import { logDailyWin, logPoints } from '../db/events.js';
-import { answerFor, answersSince, firstAnswer, guessDaily, insertAnswer, lowestPersonaOf, playOf, playsOf, recordAnonGuess } from '../db/daily.js';
+import { answerFor, answersBetween, answersSince, dayTotals, firstAnswer, guessDaily, insertAnswer, lowestPersonaOf, playOf, playsOf, recordAnonGuess } from '../db/daily.js';
 import { leaderboardSource, profileOf } from '../db/dailyProfile.js';
 import { dayFor, dropDate, nextDropAfter, staleDay } from './day.js';
 import { applyGuess, gameView, progressOf, toPublic, type GameView, type GuessRow, type Silhouette, type Answer } from './game.js';
 import { RECENT_DAYS, pickPool, poolOf } from './pool.js';
 import { rankLeaderboard, type LbRow } from './leaderboard.js';
+import { buildHistory, HISTORY_DAYS, withMine, type HistoryDay } from './history.js';
 import { loadPlayers, namesList, playerById, playerRows } from './store.js';
 import { statsOf, type Stats } from './streak.js';
 import { openPractice, sealPractice, signState, verifyState } from './tokens.js';
@@ -156,6 +157,26 @@ export async function dailyInfo(userId: string | null) {
   const view = gameView(progressOf(guesses, t.answer.assetId), t.answer, playerById);
   // eaLinked: streak points need an EA account the user owns (server/db/daily.ts guessDaily)
   return { ...base, me: await profileOf(userId), eaLinked: (await lowestPersonaOf(userId)) !== null, game: { ...view, stats: statsOf(await playsOf(userId), t.day) } };
+}
+
+let historyCache: { day: number; at: number; p: Promise<HistoryDay<Answer>[]> } | null = null;
+
+/** The last 30 days (never today), for everyone; signed in adds the user's own result per day. */
+export async function dailyHistory(userId: string | null): Promise<{ days: HistoryDay<Answer>[] }> {
+  const today = await currentDay();
+  if (!historyCache || historyCache.day !== today || Date.now() - historyCache.at > 60_000) {
+    const p = (async () => {
+      await loadPlayers();
+      const from = today - HISTORY_DAYS;
+      const [answers, totals] = await Promise.all([answersBetween(from, today - 1), dayTotals(from, today - 1)]);
+      return buildHistory(today, answers, totals, (id) => { const r = playerById(id); return r ? answerOf(r) : null; });
+    })();
+    historyCache = { day: today, at: Date.now(), p };
+    p.catch(() => { if (historyCache?.p === p) historyCache = null; });
+  }
+  const days = await historyCache.p;
+  if (!userId) return { days };
+  return { days: withMine(days, await playsOf(userId)) };
 }
 
 let lbCache: { at: number; rows: LbRow[] } | null = null;

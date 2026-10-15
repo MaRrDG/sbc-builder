@@ -38,6 +38,7 @@ Never personal data: no email, names, user / persona ids, usernames, invite code
 | `daily_end` | game over | `mode`; `won`; `tries` 1–5; `streak` `0` / `1-6` / `7-13` / `14-29` / `30+` (daily only) |
 | `daily_share` | result copied | `mode` |
 | `daily_leaderboard` | leaderboard opened | — |
+| `daily_history` | past days (history) opened | — |
 | `invite_copy` | invite link copied | — |
 | `premium_view` | pricing section seen on the landing, "more" on the locked Daily reminder, solve quota used up | `where`: `landing` / `daily` / `quota` |
 | `discord_click` | a Discord invite link | `where`: `landing` / `daily` / `sidebar` / `accounts` |

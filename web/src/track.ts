@@ -16,6 +16,7 @@ export interface TrackEvents {
   daily_end: { mode: Mode; won: YN; tries: number; streak?: string };
   daily_share: { mode: Mode };
   daily_leaderboard: undefined;
+  daily_history: undefined;
   invite_copy: undefined;
   premium_view: { where: 'landing' | 'daily' | 'quota' };
   discord_click: { where: 'landing' | 'daily' | 'sidebar' | 'accounts' };

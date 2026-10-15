@@ -8,7 +8,7 @@ import { createLimiter } from '../limits.js';
 import { requestOrigin } from '../extension.js';
 import { publicOrigin } from '../origins.js';
 import { ipHash } from '../ip-hash.js';
-import { dailyInfo, guessPractice, guessToday, invalidateLeaderboard, newPractice, publicLeaderboard } from './service.js';
+import { dailyHistory, dailyInfo, guessPractice, guessToday, invalidateLeaderboard, newPractice, publicLeaderboard } from './service.js';
 import { normalizeUsername } from './username.js';
 import { loadPlayers, namesList } from './store.js';
 
@@ -57,6 +57,11 @@ export function registerDailyRoutes(app: FastifyInstance) {
   app.get('/api/daily/leaderboard', async (req, reply) => {
     reply.header('Cache-Control', 'no-store');
     return publicLeaderboard(await optionalSiteUser(req));
+  });
+
+  app.get('/api/daily/history', async (req, reply) => {
+    reply.header('Cache-Control', 'no-store');
+    return dailyHistory(await optionalSiteUser(req));
   });
 
   app.put<{ Body: { username?: unknown; leaderboard?: unknown; asked?: unknown } }>('/api/me/daily-profile', async (req) => {
