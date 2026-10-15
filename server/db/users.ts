@@ -1,7 +1,7 @@
 // FC Solver users and which EA personas they own. Personas are never deleted here except by
 // their own user ("Disconnect"); a takeover keeps the previous owner for the "taken over" notice.
 import { and, asc, eq, gt, isNotNull, isNull, lt, or, sql } from 'drizzle-orm';
-import { hashToken, newLinkToken } from '../auth-rules.js';
+import { hashToken, linkDecision, newLinkToken, overLinkLimit } from '../auth-rules.js';
 import type { OnboardingAnswer } from '../onboarding.js';
 import type { PlanRow, Tier } from '../plan.js';
 import { earnsSpot } from '../founders.js';
@@ -42,18 +42,40 @@ export async function takenOverFrom(userId: string): Promise<boolean> {
   return !!row;
 }
 
-export async function setOwner(personaId: number, userId: string): Promise<void> {
-  await db.transaction(async (tx) => {
-    await tx
-      .insert(personas)
-      .values({ personaId, userId })
-      .onConflictDoUpdate({
-        target: personas.personaId,
-        set: { previousUserId: sql`${personas.userId}`, userId, linkedAt: sql`now()` },
-      });
-    await tx.insert(personaLinks).values({ personaId, userId }).onConflictDoNothing();
-    await tx.update(users).set({ linkBlockedAt: null }).where(eq(users.id, userId));
+const PERSONA_LINK_LOCK = 4153; // per persona: (PERSONA_LINK_LOCK, personaId); the link limit and owner checks run under it
+
+/**
+ * Link a persona to a user, with the 3-accounts-ever limit and the owner rule (auth-rules.ts) checked
+ * again under a per-persona advisory lock, so two parallel links cannot both pass. `proved`: this
+ * request proved the EA session (a takeover needs that). The caller's earlier, unlocked checks are a
+ * fast path only.
+ */
+export async function linkPersona(personaId: number, userId: string, proved: boolean): Promise<'already' | 'linked' | 'limit' | 'needSid'> {
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(${PERSONA_LINK_LOCK}, hashtext(${String(personaId)}))`);
+    const [row] = await tx.select({ userId: personas.userId }).from(personas).where(eq(personas.personaId, personaId));
+    const owner = row?.userId ?? null;
+    const linked = (await tx.select({ userId: personaLinks.userId }).from(personaLinks).where(eq(personaLinks.personaId, personaId))).map((r) => r.userId);
+    if (owner !== userId && overLinkLimit(linked, userId)) return 'limit';
+    const decision = linkDecision(owner, userId, proved);
+    if (decision === 'already' || decision === 'needSid') return decision;
+    await writeOwner(tx, personaId, userId);
+    return 'linked';
   });
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+async function writeOwner(tx: Tx, personaId: number, userId: string): Promise<void> {
+  await tx
+    .insert(personas)
+    .values({ personaId, userId })
+    .onConflictDoUpdate({
+      target: personas.personaId,
+      set: { previousUserId: sql`${personas.userId}`, userId, linkedAt: sql`now()` },
+    });
+  await tx.insert(personaLinks).values({ personaId, userId }).onConflictDoNothing();
+  await tx.update(users).set({ linkBlockedAt: null }).where(eq(users.id, userId));
 }
 
 /** Every user this persona was ever linked to (auth-rules.ts overLinkLimit). */

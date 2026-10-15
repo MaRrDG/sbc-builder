@@ -4,6 +4,13 @@ import { createHash, randomBytes } from 'node:crypto';
 export type LinkDecision = 'already' | 'link' | 'needSid' | 'takeover';
 
 /**
+ * /api/hello calls EA (/usermassinfo) to prove a SID unless the held key already belongs to that very
+ * persona. Every such call is rate limited, whether the key is unknown or valid for another persona.
+ */
+export const sidProofRuns = (keyPersonaId: number | null, personaId: number | undefined, sid: string | undefined) =>
+  !!sid && !(keyPersonaId !== null && personaId === keyPersonaId);
+
+/**
  * A persona nobody owns (or already ours) links on the key the extension holds.
  * Owned by someone else: only a fresh EA session proof (SID) moves it.
  */

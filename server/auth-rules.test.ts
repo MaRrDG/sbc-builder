@@ -1,6 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hashToken, linkDecision, newLinkToken, overLinkLimit, PERSONA_USER_LIMIT } from './auth-rules.js';
+import { hashToken, linkDecision, newLinkToken, overLinkLimit, PERSONA_USER_LIMIT, sidProofRuns } from './auth-rules.js';
+
+test('sidProofRuns: every SID that reaches EA, also with a valid key for another persona', () => {
+  assert.equal(sidProofRuns(null, 1, 'sid'), true); // unknown key
+  assert.equal(sidProofRuns(2, 1, 'sid'), true); // valid key, other persona
+  assert.equal(sidProofRuns(1, undefined, 'sid'), true); // no persona: proved
+  assert.equal(sidProofRuns(1, 1, 'sid'), false); // held key for this persona: no EA call
+  assert.equal(sidProofRuns(null, 1, undefined), false); // no SID: answered needSid, no EA call
+});
 
 test('linkDecision', () => {
   assert.equal(linkDecision(null, 'user_a', false), 'link');

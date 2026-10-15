@@ -16,7 +16,7 @@ Site auth errors carry a `code`: `signIn` (401, missing or invalid Clerk token),
 
 The EA session id (`X-UT-SID`) is only ever sent **to** the server by the extension; the API never returns it.
 
-**Limits and errors.** Per client IP: 600 `/api` requests a minute, and 5 new EA sessions a minute to prove (`/api/hello` with a `sid` but no known key; each one calls EA; plus 30 a minute for the whole server). Over it: `429` with code `rateLimited`. Unexpected server errors (`5xx` that are not ours) answer `{ "error": "Something went wrong on the FC Solver server.", "code": "internal", "params": {} }`; the details only go to the server log (and an owner alert with the route pattern and error type, never request data).
+**Limits and errors.** Per client IP: 600 `/api` requests a minute, and 5 EA sessions a minute to prove (`/api/hello` with a `sid` whenever the proof runs: an unknown key, or a valid key for another persona; each one calls EA), also 5 a minute per `X-Account-Key`, plus 30 a minute for the whole server. Per signed-in user: 6 solves a minute (`/api/solve` and `/api/objectives/solve` together, found or not), 10 a minute each on `POST`/`DELETE /api/me/discord` and `POST /api/billing/portal`. Over it: `429` with code `rateLimited`. Unexpected server errors (`5xx` that are not ours) answer `{ "error": "Something went wrong on the FC Solver server.", "code": "internal", "params": {} }`; the details only go to the server log (and an owner alert with the route pattern and error type, never request data).
 
 **Health.** `GET /api/health` (no auth, not rate limited, `Cache-Control: no-store`): `200 { "ok": true }` when the API answers and Postgres answers `select 1` within 2 s, otherwise `503 { "ok": false }`. For the uptime monitor and the compose health check.
 
@@ -41,11 +41,12 @@ Extension 0.7+. Says who is logged in to the web app, without handing over the s
 - `install` (optional, 1.0.7+): `store` (Chrome Web Store copy) or `zip`; kept as the account's `extInstall` and shown to the site in `account`.
 
 - With `X-Account-Key` for that same persona: accepted, nothing reaches EA.
-- Otherwise `401 { "needSid": true }`; the extension repeats the call with `"sid"` once, the server proves it with one `/usermassinfo` call and does not store it (at most 10 such proofs a minute).
+- Otherwise `401 { "needSid": true }`; the extension repeats the call with `"sid"` once, the server proves it with one `/usermassinfo` call and does not store it (5 proofs a minute per IP and per key, 30 for the whole server; `429 rateLimited`). A held key for another persona plus a `sid` is a proof too and counts the same.
+- `contentGuid` (EA's content CDN folder, global: card art for everyone) is only taken from a call whose `sid` was just proved; a call on a held key alone never changes it.
 
 - `linkToken` (optional, 0.8+): a token from `POST /api/link-token` that the signed-in site handed the extension. A valid unused token links this persona to that user (and is used up). If the persona already belongs to another user, the answer is `401 { "needSid": true }` until the request carries a `sid` (the token stays usable for that resend). Unknown, expired or used tokens never fail the call.
 
-Returns `{ ok, account, accessKey, linked, linkRejected, clubQueued }` and switches the account to client mode (its stored SID, if any, is deleted). `linked`: the persona id when this call linked it (or it already was this user's), else `null`; `linkRejected`: a token was sent but was not valid, or the persona hit the link limit; `linkLimit: true` (only then): the persona was already linked to 3 other FC Solver accounts (`persona_links`, ever), so this user was not linked and `/api/me` reports `linkBlocked`. The limit is checked before any SID proof; `clubQueued`: this call newly linked the persona (not `already`) and queued a club sync for the web app tab (same limits as any sync: club syncs per day, EA budget; skipped quietly when over them).
+Returns `{ ok, account, accessKey, linked, linkRejected, clubQueued }` and switches the account to client mode (its stored SID, if any, is deleted). `linked`: the persona id when this call linked it (or it already was this user's), else `null`; `linkRejected`: a token was sent but was not valid, or the persona hit the link limit; `linkLimit: true` (only then): the persona was already linked to 3 other FC Solver accounts (`persona_links`, ever), so this user was not linked and `/api/me` reports `linkBlocked`. The limit is checked before any SID proof, and again with the owner rule under a per-persona lock right before the link is written (two parallel links cannot both pass); `clubQueued`: this call newly linked the persona (not `already`) and queued a club sync for the web app tab (same limits as any sync: club syncs per day, EA budget; skipped quietly when over them).
 
 ### `GET /api/jobs/next` (extension)
 
@@ -103,7 +104,7 @@ Optional `"code"`: an invite, promo or gift code typed on the survey. The answer
 
 `{ "discord": { "username": "mario" } | null, "invite": "https://discord.gg/…" | null }`. `invite` is `DISCORD_INVITE_URL`. The Discord bot (`/sbc`, `/stats`) uses the user's most recently linked EA account.
 
-Connecting runs in the browser with Clerk (`user.createExternalAccount({ strategy: 'oauth_discord' })`, Discord connection enabled in Clerk for connecting only). `POST` then reads the user's verified Discord account from Clerk server-side (the request body is ignored) and stores its id: `400 discordNotConnected` when Clerk has none, `409 discordTaken` when another FC Solver user already holds it (the rejected Discord account is then removed from the Clerk user so another can be connected). Clerk always imports the Discord email as an extra address (`verification.strategy` `from_oauth_discord`) and refuses to delete it while Discord is linked to it; the Sign-in card hides every Discord-sourced address. `POST` deletes leftover non-primary Discord addresses that are no longer linked to anything (from earlier Discord accounts); `DELETE` removes every Discord external account from the Clerk user, then deletes the now-unlinked Discord addresses and clears the link (idempotent). Email cleanup is best effort, failures only logged.
+Connecting runs in the browser with Clerk (`user.createExternalAccount({ strategy: 'oauth_discord' })`, Discord connection enabled in Clerk for connecting only). `POST` then reads the user's verified Discord account from Clerk server-side (the request body is ignored) and stores its id: `400 discordNotConnected` when Clerk has none, `409 discordTaken` when another FC Solver user already holds it (the rejected Discord account is then removed from the Clerk user so another can be connected). Clerk always imports the Discord email as an extra address (`verification.strategy` `from_oauth_discord`) and refuses to delete it while Discord is linked to it; the Sign-in card hides every Discord-sourced address. `POST` deletes leftover non-primary Discord addresses that are no longer linked to anything (from earlier Discord accounts); `DELETE` removes every Discord external account from the Clerk user, then deletes the now-unlinked Discord addresses and clears the link (idempotent). Email cleanup is best effort, failures only logged. `POST` and `DELETE` each call Clerk: 10 a minute per user (`429 rateLimited`).
 
 ### `GET /api/evos` (site, Premium)
 
@@ -205,7 +206,7 @@ Recurring Premium through Paddle (Merchant of Record), see [billing.md](billing.
 
 ### `POST /api/billing/portal` (site)
 
-→ `{ "url": "https://customer-portal.paddle.com/…" }`, a short-lived Paddle customer portal link (cancel, card, invoices, switch plan) for the user's subscription. `404 noSubscription`, `502 billingDown`.
+→ `{ "url": "https://customer-portal.paddle.com/…" }`, a short-lived Paddle customer portal link (cancel, card, invoices, switch plan) for the user's subscription. `404 noSubscription`, `502 billingDown`, `429 rateLimited` (10 a minute per user; each link is a Paddle API call).
 
 ### `POST /api/billing/webhook` (Paddle)
 
@@ -529,7 +530,7 @@ Every CP-SAT run goes through one server-wide gate (2 at once, 12 waiting): a fu
 - `{ "code": "selfClash" }`: proven (optimal, nothing covered) that its own conditions cannot all be met at once in this formation.
 - `{ "code": "timeout" }`: not fitted before the time limit; nothing is proven, more may fit (without `objectiveId`: no squad at all within the limit).
 
-Errors: `400 badFormation`, `400 noObjectives`, `409 clubEmpty`, `403 premiumOnly`, `429 busy` (one objectives solve per user at a time: another one sent while it runs is refused). Logged as a `solve` event with `kind: "objectives"` (+ `found`, `partial`, `optimal`, `objectives`); no quota.
+Errors: `400 badFormation`, `400 noObjectives`, `409 clubEmpty`, `403 premiumOnly`, `429 busy` (one objectives solve per user at a time: another one sent while it runs is refused), `429 rateLimited` (6 solves a minute per user, shared with `/api/solve`). Logged as a `solve` event with `kind: "objectives"` (+ `found`, `partial`, `optimal`, `objectives`); no quota.
 
 ### `GET /api/sets` (site)
 
@@ -706,19 +707,23 @@ A copy of one web app call, relayed by the extension's page hook. Only these pat
 | `PUT /item` with `{ itemData: [{ id, pile }] }` | `pile: "club"`: Unassigned or SBC storage → club. Any other pile: leaves club, Unassigned and SBC storage |
 | `DELETE /item/:id` or `/item?itemIds=…` | quick sold: leaves club, Unassigned and SBC storage |
 | `GET /sbs/hub/v2`, `GET /sbs/sets` | replaces the cached SBC list (`hub/v2` is what the web app loads when points SBCs are on) |
-| `GET /sbs/setId/:id/challenges` | replaces that set's cached challenges |
+| `GET /sbs/setId/:id/challenges` | replaces that set's cached challenges; the shared `challenges` rows (other accounts' seed, brick reports) only take them once vouched, see below |
 | `POST /club` | players upserted; a complete unfiltered scan (pages from `start: 0` to a short last page) replaces the club. With `jobId` (a club sync job's page): collected per job in any order, nothing upserted, and the club is replaced once page 0 through the short last page are all in |
 | `GET /squad/list`, `GET /squad/:id`, `GET /squad/:id/user/:personaId`, `GET /squad/active` | the active squad (`squad`), and every saved squad for My Squads: the list (`squads`, raw response kept) and each squad loaded (`squads/<id>`) |
 | `GET /chemistry/profiles` | replaces the promo chemistry profiles |
 | `GET /academy/*` (Evolutions) | timed trainings saved per slot and level; a full unfiltered `/academy/hub/v2` list (first page, short) also replaces the tracked set and stamps `fetchedAt` |
 | `GET /storagepile` | replaces the cached SBC storage (players from `itemData`) |
-| `POST /sbs/challenge/:id`, `GET/PUT /sbs/challenge/:id/squad` | the challenge's squad: locked slots and players already placed (last 6 kept raw in `challengeSquads/{id}`) |
+| `POST /sbs/challenge/:id`, `GET/PUT /sbs/challenge/:id/squad` | the challenge's squad: locked slots and players already placed (last 6 kept raw in `challengeSquads/{id}`); only for a challenge already in one of this account's cached challenge lists |
 
 ```json
 { "method": "PUT", "path": "/item", "query": "", "request": { "itemData": [{ "id": 945213335495, "pile": "club" }] }, "response": { "itemData": [{ "id": 945213335495, "success": true }] } }
 ```
 
 Optional `jobId`: set by extension 0.8.3+ on responses loaded for a sync job.
+
+Limits (`server/relay-rules.ts`), per EA account: 1500 relays / 150 MB an hour and 6000 / 500 MB a day; over it the relay is dropped with `429 { ok: false, summary: null }` (the extension does not retry; the next sync catches up). Files a relay may add: at most 400 `challenges/<setId>`, 400 `challengeSquads/<id>` and 200 `squads/<id>` per account, each relay for them at most 512 KB; an update of an existing file always fits. A refused file is skipped quietly (`summary: null`).
+
+Shared SBC data: a relayed challenge list always fills the account's own cache. The shared `challenges` rows only take it (`vouched`) when a trusted account sent it, or when 2 distinct accounts sent the very same list (`challenge_sightings`, fingerprint without per-account progress, `server/shared-sbc.ts`); untrusted agreement never moves a vouched challenge to another set or changes its type. Only vouched rows seed other accounts and accept brick reports.
 
 Returns `{ "ok": true, "summary": "1 added to club" }`. Items the server has no data for (for example moved back from the transfer list) are picked up by the next club sync.
 

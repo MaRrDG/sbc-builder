@@ -109,8 +109,8 @@ export async function hello(opts: {
 }): Promise<{ account: Account; proved: boolean } | { needSid: true }> {
   const byKey = accountByKey(opts.key);
   if (byKey && opts.personaId === byKey.id) {
-    // a held key is the extension that already proved this persona; the guid resets on every deploy
-    if (opts.contentGuid) content.guid = opts.contentGuid;
+    // a held key is the extension that already proved this persona. Its content guid is NOT taken: the
+    // guid is global (card art for everyone), so only a session EA just accepted may set it (below)
     byKey.useClientMode(opts.extVersion, opts.extInstall);
     await byKey.save();
     return { account: byKey, proved: false };

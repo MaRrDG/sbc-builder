@@ -16,6 +16,7 @@ import { notify } from '../alert.js';
 import { applyEvent, cancelAfterRefund, checkoutRefusal, intervalOf, logKind, subscriptionActive, verifySignature, type PaddleSubEvent, type SubRow } from './rules.js';
 
 const webhookLimit = createLimiter({ windowMs: 60_000, max: 120 });
+const portalLimit = createLimiter({ windowMs: 60_000, max: 10 }); // per user: each portal link is a Paddle API call
 const SUB_EVENTS = new Set(['subscription.created', 'subscription.activated', 'subscription.updated', 'subscription.canceled', 'subscription.past_due', 'subscription.paused', 'subscription.resumed']);
 
 function needConfig(): BillingConfig {
@@ -131,6 +132,7 @@ export function registerBillingRoutes(app: FastifyInstance) {
   app.post('/api/billing/portal', async (req) => {
     const c = needConfig();
     const userId = await siteUser(req);
+    if (!portalLimit(userId)) throw new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
     const [sub, [u]] = await Promise.all([subscriptionOf(userId), db.select({ customerId: users.paddleCustomerId }).from(users).where(eq(users.id, userId))]);
     const customerId = u?.customerId ?? sub?.customerId;
     if (!customerId) throw new SessionError('No subscription yet.', 404, 'noSubscription');

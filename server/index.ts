@@ -27,7 +27,7 @@ import { cancelDeletion, requestDeletion, scheduleDeletions } from './deletion.j
 import { deleteAtOf } from './db/deletion.js';
 import { schedulePrune } from './prune.js';
 import { initAuth, optionalSiteAccount, siteAccount, siteContext, siteUser } from './auth.js';
-import { linkDecision, overLinkLimit, PERSONA_USER_LIMIT } from './auth-rules.js';
+import { linkDecision, overLinkLimit, PERSONA_USER_LIMIT, sidProofRuns } from './auth-rules.js';
 import { backfillFounders, foundersNow, grantFounderSpot, grantInviteOnLink, planFor } from './plans.js';
 import {
   blockLink,
@@ -39,7 +39,7 @@ import {
   personasOf,
   takenOverFrom,
   saveOnboarding,
-  setOwner,
+  linkPersona,
   unlinkPersona,
 } from './db/users.js';
 import { parseOnboarding } from './onboarding.js';
@@ -59,6 +59,7 @@ import { isKnownPath } from '../shared/paths.js';
 import { analyticsFor, analyticsOrigins, analyticsWarnings, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
+import { createRelayBudget } from './relay-rules.js';
 import { buildExport } from './export.js';
 import { galleryFor } from './gallery/compute.js';
 import { installLedger } from './gallery/ledger.js';
@@ -89,7 +90,10 @@ const DEV = process.env.NODE_ENV !== 'production';
 
 // Per-IP limits: plenty for the site and the extension polling, not for a script hammering us.
 const apiLimit = createLimiter({ windowMs: 60_000, max: 600 });
-const proofLimit = createLimiter({ windowMs: 60_000, max: 5 }); // new EA sessions to prove (each one calls EA)
+const proofLimit = createLimiter({ windowMs: 60_000, max: 5 }); // EA sessions to prove (each one calls EA)
+const proofKeyLimit = createLimiter({ windowMs: 60_000, max: 5 }); // the same, per account key (rotating IPs does not help)
+const solveLimit = createLimiter({ windowMs: 60_000, max: 6 }); // per user: SBC and objectives solves (CP-SAT runs)
+const relayBudget = createRelayBudget(); // per EA account: what the extension relays (/api/webapp-event)
 const redeemLimit = createLimiter({ windowMs: 60_000, max: 10 }); // codes cannot be guessed by trying
 const redeemUserLimit = createLimiter({ windowMs: 86_400_000, max: 20 }); // per user: rotating IPs does not help either
 const reportLimit = createLimiter({ windowMs: 60_000, max: 20 });
@@ -554,7 +558,12 @@ registerDiscordSiteRoutes(app);
 app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVersion?: string; install?: string; linkToken?: string } }>('/api/hello', async (req, reply) => {
   const { personaId, sid, contentGuid, extVersion, install, linkToken } = req.body ?? {};
   if (sid !== undefined && !/^[0-9a-f-]{36}$/i.test(sid)) return reply.code(400).send({ error: 'invalid sid' });
-  if (sid && !accountByKey(keyOf(req)) && !proofLimit(req.ip)) throw tooMany(); // proving a new session calls EA
+  // proving a session calls EA: per IP and per key, whenever the proof will run (not only for unknown keys)
+  const key = keyOf(req);
+  if (sidProofRuns(accountByKey(key)?.id ?? null, Number.isInteger(personaId) ? personaId : undefined, sid)) {
+    if (!proofLimit(req.ip)) throw tooMany();
+    if (key && !proofKeyLimit(key)) throw tooMany();
+  }
   const r = await hello({
     key: keyOf(req),
     personaId: Number.isInteger(personaId) ? personaId : undefined,
@@ -574,15 +583,23 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     const owner = (await personaRow(r.account.id))?.userId ?? null;
     // already linked to PERSONA_USER_LIMIT other accounts: refused before any SID proof (no EA call);
     // ok for the extension (it keeps its key and drops the token), the site shows "contact support"
-    if (owner !== userId && overLinkLimit(await personaLinkUsers(r.account.id), userId)) {
+    const limited = async () => {
       await blockLink(userId);
       await consumeLinkToken(token!);
       return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked: null, linkRejected: true, linkLimit: true, clubQueued: false };
-    }
-    const decision = linkDecision(owner, userId, r.proved);
+    };
+    if (owner !== userId && overLinkLimit(await personaLinkUsers(r.account.id), userId)) return limited();
     // owned by someone else: only a fresh EA proof moves it; the token stays usable for the resend
-    if (decision === 'needSid') return reply.code(401).send({ error: 'EA account linked to another user', needSid: true });
-    if (decision !== 'already') await setOwner(r.account.id, userId);
+    const needSid = () => reply.code(401).send({ error: 'EA account linked to another user', needSid: true });
+    let decision = linkDecision(owner, userId, r.proved);
+    if (decision === 'needSid') return needSid();
+    if (decision !== 'already') {
+      // checked again under a per-persona lock: two parallel links cannot both pass the limit
+      const done = await linkPersona(r.account.id, userId, r.proved);
+      if (done === 'limit') return limited();
+      if (done === 'needSid') return needSid();
+      if (done === 'already') decision = 'already';
+    }
     // Founding 50: the first links get Premium for life; on 'already' too, so a grant a DB hiccup
     // swallowed is retried (it returns at once for a founder)
     await grantFounderSpot(userId, r.account.id);
@@ -701,6 +718,9 @@ app.post<{ Body: WebAppEvent }>('/api/webapp-event', { bodyLimit: 2 * 1024 * 102
   const ev = req.body;
   if (!ev || typeof ev.method !== 'string' || typeof ev.path !== 'string' || !WATCHED_PATH.test(ev.path))
     return reply.code(400).send({ error: 'unsupported event' });
+  // per-account budget (relay-rules.ts): over it the relay is dropped; the extension does not retry
+  const bytes = Number(req.headers['content-length']) || JSON.stringify(ev).length;
+  if (!relayBudget(acc.id, bytes)) return reply.code(429).send({ ok: false, summary: null });
   return { ok: true, summary: await applyWebAppEvent(acc, ev) };
 });
 
@@ -803,6 +823,7 @@ app.post<{ Body: { objectiveIds?: unknown; formation?: unknown; options?: { excl
   async (req, reply) => {
     const { userId, acc } = await siteContext(req);
     if ((await planFor(userId)).tier !== 'premium') throw new SessionError('Objectives squads are a Premium feature.', 403, 'premiumOnly');
+    if (!solveLimit(userId)) throw tooMany(); // per user, on top of one at a time
     const key = String(userId);
     if (objectivesSolving.has(key)) return reply.code(429).send({ error: 'a solve is already running', code: 'busy', params: {} });
     objectivesSolving.add(key);
@@ -886,6 +907,7 @@ app.get<{ Params: { id: string } }>('/api/sets/:id/challenges', async (req) => {
 
 app.post<{ Body: SolveBody }>('/api/solve', async (req) => {
   const { userId, acc } = await siteContext(req);
+  if (!solveLimit(userId)) throw tooMany(); // each solve is a CP-SAT run, found or not
   return runSolve(userId, acc, req.body);
 });
 

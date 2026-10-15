@@ -24,6 +24,7 @@ import { toBotSolution, type BotStats } from './solution.js';
 import { APP_VERSION, CHANGELOG, latestEnglish } from '../../shared/changelog.js';
 
 const solving = new Set<string>(); // Discord ids with a solve running: one at a time, so the quota check cannot race
+const linkLimit = createLimiter({ windowMs: 60_000, max: 10 }); // per user: connect / disconnect each call Clerk
 const solveLimit = createLimiter({ windowMs: 60_000, max: 6 }); // per Discord user, on top of the bot's 30 s cooldown
 
 /** The FC Solver user behind a Discord id and the EA account the bot uses for them. */
@@ -189,6 +190,7 @@ export function registerDiscordSiteRoutes(app: FastifyInstance): void {
 
   app.post('/api/me/discord', async (req) => {
     const userId = await siteUser(req);
+    if (!linkLimit(userId)) throw new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
     // read from Clerk, never from the request: only a verified Discord account counts
     const externals = (await clerkApi().users.getUser(userId)).externalAccounts;
     const acc = discordAccountOf(externals);
@@ -216,6 +218,7 @@ export function registerDiscordSiteRoutes(app: FastifyInstance): void {
 
   app.delete('/api/me/discord', async (req) => {
     const userId = await siteUser(req);
+    if (!linkLimit(userId)) throw new SessionError('Too many requests, slow down a little.', 429, 'rateLimited');
     const user = await clerkApi().users.getUser(userId);
     for (const externalAccountId of discordAccountIds(user.externalAccounts))
       await clerkApi().users.deleteUserExternalAccount({ userId, externalAccountId });
