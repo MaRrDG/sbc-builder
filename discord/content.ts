@@ -1,6 +1,6 @@
 // The bot's fixed messages, in the FC Solver brand: rules (banner + one language per channel), welcome, role pickers.
 // Built with discord.js builders (no client needed). `icon` = the bot's avatar URL (the FC Solver logo).
-import { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, StringSelectMenuBuilder } from 'discord.js';
+import { ActionRowBuilder, AttachmentBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, StringSelectMenuBuilder, escapeMarkdown } from 'discord.js';
 import { ASSETS, BRAND, assetPath } from './brand.js';
 import { CH, PICKERS, ROLE, type PickerGroup } from './layout.js';
 
@@ -87,10 +87,11 @@ export function welcomeMessage(siteUrl: string, ch: { language: string; rules: s
   return { embeds: [e], components: [linkRow('FC Solver', siteUrl)] };
 }
 
-/** Posted in the welcome channel when someone joins: one English line with the member count; only that user can be mentioned. */
-export function memberWelcomeMessage(userId: string, count: number, icon?: string) {
-  const text = `👋 Welcome <@${userId}>! You are member **#${count}**.`;
-  return { embeds: [brandEmbed(icon, BRAND.lime).setDescription(text)], allowedMentions: { parse: [] as [], users: [userId] } };
+/** Posted in the welcome channel when someone joins: one English line with the member count; only that user can be mentioned.
+ *  The mention sits in `content`: inside an embed it shows as a raw `<@id>` to anyone whose client has not cached that user. */
+export function memberWelcomeMessage(userId: string, name: string, count: number, icon?: string) {
+  const text = `👋 Welcome **${escapeMarkdown(name)}**! You are member **#${count}**.`;
+  return { content: `<@${userId}>`, embeds: [brandEmbed(icon, BRAND.lime).setDescription(text)], allowedMentions: { parse: [] as [], users: [userId] } };
 }
 
 export const LANGUAGE_BUTTONS = [

@@ -232,7 +232,7 @@ client.on(Events.GuildMemberAdd, async (member) => {
   if (member.guild.id !== cfg.guildId || member.user.bot) return;
   try {
     const ch = await findText(member.guild, CAT.info, CH.welcome);
-    await ch.send(memberWelcomeMessage(member.id, member.guild.memberCount, avatarUrl(client.user!)));
+    await ch.send(memberWelcomeMessage(member.id, member.displayName, member.guild.memberCount, avatarUrl(client.user!)));
   } catch (e) {
     console.warn(`[bot] member welcome: ${(e as Error).message}`);
   }

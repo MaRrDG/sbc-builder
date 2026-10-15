@@ -72,11 +72,13 @@ test('language message: English only, buttons English and Română with lang:EN 
   assert.deepEqual(buttons.map((b) => [b.label, b.custom_id]), [['English', 'lang:EN'], ['Română', 'lang:RO']]);
 });
 
-test('member welcome: mentions the member, English only, count, only that user may be mentioned', () => {
-  const m = memberWelcomeMessage('42', 1234, 'https://cdn/icon.png');
+test('member welcome: mention in content (resolves for everyone), name + count in the embed, only that user may be mentioned', () => {
+  const m = memberWelcomeMessage('42', 'bo_b*', 1234, 'https://cdn/icon.png');
   const e = m.embeds[0].toJSON();
   const text = e.description ?? '';
-  assert.match(text, /<@42>/);
+  assert.equal(m.content, '<@42>');
+  assert.doesNotMatch(text, /<@/);
+  assert.match(text, /\*\*bo\\_b\\\*\*\*/);
   assert.match(text, /#1234/);
   assert.match(text, /^👋 Welcome/);
   assert.doesNotMatch(text, /Bine ai venit|<#/);
