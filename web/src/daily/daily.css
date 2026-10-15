@@ -1059,3 +1059,8 @@
 .dg-hist-me.won svg { color: var(--go); }
 .dg-hist-me.lost svg { color: var(--bad); }
 .dg-hist-all { color: var(--ink-2); font-size: 13px; }
+.dg-hist-more {
+  display: flex;
+  width: 100%;
+  margin-top: 12px;
+}

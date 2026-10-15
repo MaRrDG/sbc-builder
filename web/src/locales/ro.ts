@@ -101,6 +101,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'daily.hist.games_few': "{countText} jocuri",
   'daily.hist.games_other': "{countText} de jocuri",
   'daily.hist.noGames': "Nimeni n-a terminat ziua asta",
+  'daily.hist.more': "Arată zile mai vechi",
   'daily.hist.empty': "Încă nu sunt zile trecute. Revino după următorul drop.",
   'daily.hist.localNote': "Rezultatele tale vin din acest browser. Conectează-te ca să le ai pe orice dispozitiv.",
   'daily.lb.button': 'Clasament',

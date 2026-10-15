@@ -21,9 +21,9 @@ export const CHANGELOG: ChangelogEntry[] = [
     id: '2026-10-15',
     date: '2026-10-15',
     items: {
-      en: ['Daily: a new History button shows the last 30 days, with each day\'s player, your result and how many players guessed it. Open to everyone, signed in or not'],
-      ro: ['Daily: noul buton Istoric arată ultimele 30 de zile, cu jucătorul fiecărei zile, rezultatul tău și câți l-au ghicit. E deschis pentru toți, cu sau fără cont'],
-      it: ['Daily: il nuovo pulsante Storico mostra gli ultimi 30 giorni, con il giocatore di ogni giorno, il tuo risultato e quanti l\'hanno indovinato. Aperto a tutti, con o senza account'],
+      en: ['Daily: a new History button shows the past days (30 at a time, older ones a click away), with each day\'s player, your result and how many players guessed it. Open to everyone, signed in or not'],
+      ro: ['Daily: noul buton Istoric arată zilele trecute (câte 30, iar pe cele mai vechi le încarci cu un clic), cu jucătorul fiecărei zile, rezultatul tău și câți l-au ghicit. E deschis pentru toți, cu sau fără cont'],
+      it: ['Daily: il nuovo pulsante Storico mostra i giorni passati (30 alla volta, i più vecchi a un clic), con il giocatore di ogni giorno, il tuo risultato e quanti l\'hanno indovinato. Aperto a tutti, con o senza account'],
     },
   },
   {

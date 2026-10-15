@@ -106,6 +106,7 @@ export const it: Record<Keys, string> = {
   'daily.hist.games_one': "{countText} partita",
   'daily.hist.games_other': "{countText} partite",
   'daily.hist.noGames': "Nessuno ha finito questo giorno",
+  'daily.hist.more': "Mostra giorni precedenti",
   'daily.hist.empty': "Ancora nessun giorno passato. Torna dopo il prossimo drop.",
   'daily.hist.localNote': "I tuoi risultati vengono da questo browser. Accedi per averli su ogni dispositivo.",
   'daily.lb.button': 'Classifica',

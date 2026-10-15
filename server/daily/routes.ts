@@ -59,9 +59,9 @@ export function registerDailyRoutes(app: FastifyInstance) {
     return publicLeaderboard(await optionalSiteUser(req));
   });
 
-  app.get('/api/daily/history', async (req, reply) => {
+  app.get<{ Querystring: { before?: string } }>('/api/daily/history', async (req, reply) => {
     reply.header('Cache-Control', 'no-store');
-    return dailyHistory(await optionalSiteUser(req));
+    return dailyHistory(await optionalSiteUser(req), req.query.before);
   });
 
   app.put<{ Body: { username?: unknown; leaderboard?: unknown; asked?: unknown } }>('/api/me/daily-profile', async (req) => {

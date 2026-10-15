@@ -3,8 +3,19 @@
 // signed-in user, their own result. Pure; the DB layer feeds it.
 import type { Play } from './streak.js';
 
-/** Days the history shows, newest first. */
+/** Days per history page, newest first. */
 export const HISTORY_DAYS = 30;
+
+/**
+ * The page that ends just before `before` (`?before=` from the client), never reaching today: a missing or bad
+ * value (not an integer, today or later) is the first page. Days start at 1, so `more` = older days exist.
+ */
+export function historyPage(today: number, before: unknown): { until: number; from: number; more: boolean } {
+  const n = typeof before === 'string' && /^\d{1,6}$/.test(before) ? Number(before) : NaN;
+  const until = Number.isInteger(n) && n >= 1 && n < today ? n : today;
+  const from = Math.max(1, until - HISTORY_DAYS);
+  return { until, from, more: from > 1 };
+}
 
 export interface DayTotals { finished: number; won: number }
 
@@ -22,13 +33,13 @@ export interface HistoryDay<A> {
 }
 
 export function buildHistory<A>(
-  today: number,
+  until: number,
   answers: { day: number; date: string; assetId: number }[],
   totals: Map<number, DayTotals>,
   answerOf: (assetId: number) => A | null,
 ): HistoryDay<A>[] {
   return answers
-    .filter((a) => a.day < today && a.day >= today - HISTORY_DAYS)
+    .filter((a) => a.day < until && a.day >= until - HISTORY_DAYS)
     .sort((a, b) => b.day - a.day)
     .map((a) => {
       const t = totals.get(a.day) ?? { finished: 0, won: 0 };

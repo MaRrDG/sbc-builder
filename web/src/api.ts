@@ -546,7 +546,7 @@ export const api = {
     practiceGuess: (token: string, assetId: number, state?: string) =>
       req<DailyGuess>('/api/daily/practice/guess', { method: 'POST', body: { token, assetId, state } }),
     leaderboard: () => req<DailyLeaderboard>('/api/daily/leaderboard'),
-    history: () => req<{ days: DailyHistoryDay[] }>('/api/daily/history'),
+    history: (before?: number) => req<{ days: DailyHistoryDay[]; more: boolean }>(`/api/daily/history${before === undefined ? '' : `?before=${before}`}`),
     saveProfile: (p: { username?: string; leaderboard?: boolean; asked?: true }) => req<DailyProfile>('/api/me/daily-profile', { method: 'PUT', body: p }),
   },
   me: () =>

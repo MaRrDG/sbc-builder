@@ -15,7 +15,7 @@ import { dayFor, dropDate, nextDropAfter, staleDay } from './day.js';
 import { applyGuess, gameView, progressOf, toPublic, type GameView, type GuessRow, type Silhouette, type Answer } from './game.js';
 import { RECENT_DAYS, pickPool, poolOf } from './pool.js';
 import { rankLeaderboard, type LbRow } from './leaderboard.js';
-import { buildHistory, HISTORY_DAYS, withMine, type HistoryDay } from './history.js';
+import { buildHistory, historyPage, withMine, type HistoryDay } from './history.js';
 import { loadPlayers, namesList, playerById, playerRows } from './store.js';
 import { statsOf, type Stats } from './streak.js';
 import { openPractice, sealPractice, signState, verifyState } from './tokens.js';
@@ -161,22 +161,29 @@ export async function dailyInfo(userId: string | null) {
 
 let historyCache: { day: number; at: number; p: Promise<HistoryDay<Answer>[]> } | null = null;
 
-/** The last 30 days (never today), for everyone; signed in adds the user's own result per day. */
-export async function dailyHistory(userId: string | null): Promise<{ days: HistoryDay<Answer>[] }> {
+async function historyDays(until: number, from: number): Promise<HistoryDay<Answer>[]> {
+  await loadPlayers();
+  const [answers, totals] = await Promise.all([answersBetween(from, until - 1), dayTotals(from, until - 1)]);
+  return buildHistory(until, answers, totals, (id) => { const r = playerById(id); return r ? answerOf(r) : null; });
+}
+
+/**
+ * 30 past days (never today) ending before `before` (first page without it), for everyone; signed in adds the
+ * user's own result per day. Only the first page is cached (60 s); older pages are rare and change little.
+ */
+export async function dailyHistory(userId: string | null, before?: unknown): Promise<{ days: HistoryDay<Answer>[]; more: boolean }> {
   const today = await currentDay();
-  if (!historyCache || historyCache.day !== today || Date.now() - historyCache.at > 60_000) {
-    const p = (async () => {
-      await loadPlayers();
-      const from = today - HISTORY_DAYS;
-      const [answers, totals] = await Promise.all([answersBetween(from, today - 1), dayTotals(from, today - 1)]);
-      return buildHistory(today, answers, totals, (id) => { const r = playerById(id); return r ? answerOf(r) : null; });
-    })();
-    historyCache = { day: today, at: Date.now(), p };
-    p.catch(() => { if (historyCache?.p === p) historyCache = null; });
-  }
-  const days = await historyCache.p;
-  if (!userId) return { days };
-  return { days: withMine(days, await playsOf(userId)) };
+  const { until, from, more } = historyPage(today, before);
+  let days: HistoryDay<Answer>[];
+  if (until === today) {
+    if (!historyCache || historyCache.day !== today || Date.now() - historyCache.at > 60_000) {
+      const p = historyDays(until, from);
+      historyCache = { day: today, at: Date.now(), p };
+      p.catch(() => { if (historyCache?.p === p) historyCache = null; });
+    }
+    days = await historyCache.p;
+  } else days = await historyDays(until, from);
+  return { days: userId ? withMine(days, await playsOf(userId)) : days, more };
 }
 
 let lbCache: { at: number; rows: LbRow[] } | null = null;

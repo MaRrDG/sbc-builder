@@ -102,6 +102,7 @@ export const en = {
   'daily.hist.games_one': "{countText} game",
   'daily.hist.games_other': "{countText} games",
   'daily.hist.noGames': "Nobody finished this day",
+  'daily.hist.more': "Show older days",
   'daily.hist.empty': "No past days yet. Come back after the next drop.",
   'daily.hist.localNote': "Your results come from this browser. Sign in to keep them on every device.",
   'daily.lb.button': 'Leaderboard',
