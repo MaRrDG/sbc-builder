@@ -57,3 +57,56 @@ export const shareableList = (setId: number, list: unknown): list is Challenge[]
 export function shareDecision(trusted: boolean, agreeing: number): 'share' | 'hold' {
   return trusted || agreeing >= AGREE_PERSONAS ? 'share' : 'hold';
 }
+
+// ---- the public copy of a set ------------------------------------------------------------
+// `sbc_sets` name / description / raw take whatever any account relays (the app's own data). The
+// public SBC pages read only `public_snapshot`, which follows the same rule as the shared challenges:
+// a trusted account, or AGREE_PERSONAS accounts that relayed the very same public fields.
+
+/** The fields of a set that the public pages show; nothing per account. */
+export interface SetSnapshot {
+  name: string;
+  description: string;
+  categoryId: number | null;
+  repeatabilityMode: string | null;
+  endTime: number | null;
+  raw: {
+    releaseTime: number | null;
+    hidden: boolean | null;
+    awards: unknown[];
+    repeats: number | null;
+    repeatRefreshInterval: number | null;
+    challengesCount: number | null;
+  };
+}
+
+const numOr = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+const strOr = (v: unknown, d: string | null) => (typeof v === 'string' ? v : d);
+
+/** A relayed set fit to snapshot at all: an object with a positive integer setId. */
+export const shareableSet = (s: unknown): s is SbcSet =>
+  !!s && typeof s === 'object' && !Array.isArray(s) && Number.isInteger((s as SbcSet).setId) && (s as SbcSet).setId > 0;
+
+/** The public fields of a relayed set, normalized (wrong types become null, so they fail closed later). */
+export function setSnapshot(s: SbcSet): SetSnapshot {
+  const r = s as unknown as Record<string, unknown>;
+  return {
+    name: strOr(r.name, '') ?? '',
+    description: strOr(r.description, '') ?? '',
+    categoryId: numOr(r.categoryId),
+    repeatabilityMode: strOr(r.repeatabilityMode, null),
+    endTime: numOr(r.endTime),
+    raw: {
+      releaseTime: numOr(r.releaseTime),
+      hidden: typeof r.hidden === 'boolean' ? r.hidden : null,
+      awards: Array.isArray(r.awards) ? r.awards : [],
+      repeats: numOr(r.repeats),
+      repeatRefreshInterval: numOr(r.repeatRefreshInterval),
+      challengesCount: numOr(r.challengesCount),
+    },
+  };
+}
+
+/** Fingerprint of a set's public fields; the `set:` prefix keeps it apart from challenge fingerprints in challenge_sightings. */
+export const setFingerprint = (setId: number, snap: SetSnapshot): string =>
+  `set:${createHash('sha256').update(stable({ setId, snap })).digest('hex')}`;

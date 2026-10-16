@@ -1,10 +1,10 @@
 // SBC history and shared brick layouts. Sets / challenges are upserted (never deleted);
 // brick reports are append-only and the shared layout is voted from them (server/bricks.ts).
-import { and, countDistinct, eq, gte, sql } from 'drizzle-orm';
+import { and, countDistinct, eq, gte, inArray, sql } from 'drizzle-orm';
 import type { Challenge, SbcSet } from '../ea.js';
 import type { BrickSlot } from '../layout.js';
 import { canonicalBricks, chooseLayout, layoutHash, rejectReason } from '../bricks.js';
-import { challengesFingerprint, shareableList, shareDecision } from '../shared-sbc.js';
+import { challengesFingerprint, setFingerprint, setSnapshot, shareableList, shareableSet, shareDecision } from '../shared-sbc.js';
 import { db } from './index.js';
 import { brickReports, challengeSightings, challenges, sbcSets, trustedAccounts } from './schema.js';
 
@@ -33,6 +33,48 @@ export async function saveSets(sets: SbcSet[]): Promise<void> {
       lastSeen: sql`now()`,
     },
   });
+}
+
+/**
+ * One account relayed the SBC list: the app's rows (saveSets) always take it, the public snapshot of
+ * each set only when shareDecision says so (a trusted account, or AGREE_PERSONAS accounts that sent the
+ * same public fields; sightings share challenge_sightings under a `set:` fingerprint). Returns how many
+ * snapshots were written.
+ */
+export async function relaySets(sets: unknown[], personaId: number): Promise<number> {
+  const list = uniqueBy(sets.filter(shareableSet), (s) => s.setId);
+  await saveSets(list);
+  if (!list.length) return 0;
+  const seen = list.map((s) => {
+    const snap = setSnapshot(s);
+    return { setId: s.setId, snap, fingerprint: setFingerprint(s.setId, snap) };
+  });
+  await db
+    .insert(challengeSightings)
+    .values(seen.map(({ setId, fingerprint }) => ({ setId, fingerprint, personaId })))
+    .onConflictDoUpdate({ target: [challengeSightings.setId, challengeSightings.fingerprint, challengeSightings.personaId], set: { seenAt: sql`now()` } });
+  const trusted = (await trustedIds()).has(personaId);
+  const agree = new Map<string, number>();
+  if (!trusted) {
+    const rows = await db
+      .select({ fingerprint: challengeSightings.fingerprint, n: countDistinct(challengeSightings.personaId) })
+      .from(challengeSightings)
+      .where(inArray(challengeSightings.fingerprint, seen.map((x) => x.fingerprint)))
+      .groupBy(challengeSightings.fingerprint);
+    for (const r of rows) agree.set(r.fingerprint, r.n);
+  }
+  let written = 0;
+  for (const x of seen) {
+    if (shareDecision(trusted, agree.get(x.fingerprint) ?? 0) !== 'share') continue;
+    // unchanged snapshots are left alone, so public_at is when the public text last changed
+    const done = await db
+      .update(sbcSets)
+      .set({ publicSnapshot: x.snap, publicAt: sql`now()` })
+      .where(and(eq(sbcSets.setId, x.setId), sql`${sbcSets.publicSnapshot} is distinct from ${JSON.stringify(x.snap)}::jsonb`))
+      .returning({ setId: sbcSets.setId });
+    written += done.length;
+  }
+  return written;
 }
 
 /**

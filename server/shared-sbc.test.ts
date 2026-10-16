@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { Challenge } from './ea.js';
-import { AGREE_PERSONAS, challengesFingerprint, seedChallenges, shareableList, shareDecision } from './shared-sbc.js';
+import type { Challenge, SbcSet } from './ea.js';
+import { AGREE_PERSONAS, challengesFingerprint, seedChallenges, setFingerprint, setSnapshot, shareableList, shareableSet, shareDecision } from './shared-sbc.js';
 
 const ch = (challengeId: number, priority: number, extra: Partial<Challenge> = {}) =>
   ({ challengeId, setId: 7, name: `c${challengeId}`, priority, status: 'COMPLETED', timesCompleted: 4, formation: 'f442', repeatable: false, elgReq: [], elgOperation: 'AND', awards: [], endTime: 1, description: '', ...extra }) as Challenge;
@@ -66,4 +66,45 @@ test('share decision: trusted alone, or enough distinct accounts agreeing', () =
   assert.equal(shareDecision(true, 1), 'share');
   assert.equal(shareDecision(false, 1), 'hold');
   assert.equal(shareDecision(false, AGREE_PERSONAS), 'share');
+});
+
+const sbcSet = (extra: Partial<SbcSet> = {}) =>
+  ({ setId: 16, name: 'Marquee Matchups', description: 'Swap', categoryId: 3, challengesCount: 4, challengesCompletedCount: 2, hidden: false, repeatable: true,
+    repeatabilityMode: 'REFRESH', repeats: 1, repeatRefreshInterval: 86400, timesCompleted: 3, timesCompletedInInterval: 1, lastCompletedTime: 99,
+    releaseTime: 100, endTime: 200, setImageId: 'x', awards: [{ type: 'pack', value: 1 }], ...extra }) as SbcSet;
+
+test('set snapshot keeps only the public fields', () => {
+  assert.deepEqual(setSnapshot(sbcSet()), {
+    name: 'Marquee Matchups', description: 'Swap', categoryId: 3, repeatabilityMode: 'REFRESH', endTime: 200,
+    raw: { releaseTime: 100, hidden: false, awards: [{ type: 'pack', value: 1 }], repeats: 1, repeatRefreshInterval: 86400, challengesCount: 4 },
+  });
+});
+
+test('set snapshot: wrong types become null / empty', () => {
+  const s = setSnapshot(sbcSet({ name: 5 as unknown as string, releaseTime: 'soon' as unknown as number, hidden: 'no' as unknown as boolean, awards: {} as unknown[] }));
+  assert.equal(s.name, '');
+  assert.equal(s.raw.releaseTime, null);
+  assert.equal(s.raw.hidden, null);
+  assert.deepEqual(s.raw.awards, []);
+});
+
+test('set fingerprint ignores per-account progress, follows public fields, never looks like a challenge one', () => {
+  const fp = setFingerprint(16, setSnapshot(sbcSet()));
+  assert.ok(fp.startsWith('set:'));
+  assert.equal(setFingerprint(16, setSnapshot(sbcSet({ timesCompleted: 9, challengesCompletedCount: 0, lastCompletedTime: 1 }))), fp);
+  assert.notEqual(setFingerprint(16, setSnapshot(sbcSet({ name: 'Free coins here' }))), fp);
+  assert.notEqual(setFingerprint(17, setSnapshot(sbcSet())), fp);
+  assert.notEqual(fp.slice(4), challengesFingerprint(16, []));
+});
+
+test('a single untrusted relay with a changed name does not write the public snapshot', () => {
+  // the forged name is a new fingerprint: only its own sender has sighted it
+  assert.equal(shareDecision(false, 1), 'hold');
+  assert.equal(shareDecision(false, AGREE_PERSONAS), 'share');
+  assert.equal(shareDecision(true, 1), 'share');
+});
+
+test('shareable set: an object with a positive integer setId', () => {
+  assert.ok(shareableSet(sbcSet()));
+  for (const bad of [null, [], 'x', { setId: 0 }, { setId: 1.5 }, { name: 'x' }]) assert.equal(shareableSet(bad), false);
 });

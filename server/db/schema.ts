@@ -17,6 +17,9 @@ export const sbcSets = pgTable('sbc_sets', {
   repeatabilityMode: text('repeatability_mode'),
   endTime: bigint('end_time', { mode: 'number' }), // unix seconds
   raw: jsonb('raw').notNull(),
+  /** what the public SBC pages show (shared-sbc.ts SetSnapshot); written only by a trusted account or agreeing accounts, null = not public */
+  publicSnapshot: jsonb('public_snapshot'),
+  publicAt: timestamp('public_at', { withTimezone: true }),
   ...seen(),
 });
 

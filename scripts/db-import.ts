@@ -7,7 +7,7 @@ import type { SetsData } from '../server/sync.js';
 import { DATA_DIR, readCache } from '../server/store.js';
 import { parseLayout } from '../server/layout.js';
 import { closeDb, initDb } from '../server/db/index.js';
-import { reportBricks, saveChallenges, saveSets } from '../server/db/sbcs.js';
+import { relayChallenges, relaySets, reportBricks } from '../server/db/sbcs.js';
 
 const ids = async (dir: string) =>
   (await readdir(dir).catch(() => [] as string[])).map((f) => f.replace(/\.json$/, '')).filter((f) => /^\d+$/.test(f)).map(Number);
@@ -20,11 +20,11 @@ let sets = 0, chals = 0, bricks = 0, refused = 0;
 for (const persona of accounts) {
   const s = await readCache<SetsData>(`accounts/${persona}/sets`);
   const list = s?.data.categories.flatMap((c) => c.sets) ?? [];
-  await saveSets(list);
+  await relaySets(list, persona); // public snapshot only for trusted / agreeing accounts, as for a live relay
   sets += list.length;
   for (const setId of await ids(join(DATA_DIR, 'accounts', String(persona), 'challenges'))) {
     const ch = (await readCache<Challenge[]>(`accounts/${persona}/challenges/${setId}`))?.data ?? [];
-    await saveChallenges(setId, ch);
+    await relayChallenges(setId, ch, persona);
     chals += ch.length;
   }
 }

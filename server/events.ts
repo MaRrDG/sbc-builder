@@ -19,7 +19,7 @@ import { markEdited, type SetsData } from './sync.js';
 import { invalidateMeta } from './meta.js';
 import { parseLayout } from './layout.js';
 import { softly } from './db/index.js';
-import { relayChallenges, reportBricks, saveSets } from './db/sbcs.js';
+import { relayChallenges, relaySets, reportBricks } from './db/sbcs.js';
 import { relayFileRefusal, type RelayFolder } from './relay-rules.js';
 import { findJob } from './jobs.js';
 import { notify } from './live.js';
@@ -179,7 +179,7 @@ async function applyLoadedData(acc: Account, method: string, ev: WebAppEvent): P
   if (method === 'GET' && (ev.path === '/sbs/hub/v2' || ev.path === '/sbs/sets')) {
     if (!Array.isArray(res.categories)) return null;
     await writeCache<SetsData>(acc.key('sets'), { categories: res.categories as SetsData['categories'] });
-    await softly('save sets', () => saveSets((res.categories as SetsData['categories']).flatMap((c) => c.sets ?? [])));
+    await softly('save sets', () => relaySets((res.categories as SetsData['categories']).flatMap((c) => c.sets ?? []), acc.id));
     return 'SBC list updated from the web app';
   }
   if (method === 'GET' && ev.path === OBJECTIVES_PATH) {
