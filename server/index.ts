@@ -56,7 +56,10 @@ import { prefsOf, setPrefs, trainingsOf } from './db/evos.js';
 import { buildExtensionZip, requestOrigin, latestExtension, parseInstall } from './extension.js';
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 import { isKnownPath } from '../shared/paths.js';
-import { analyticsFor, analyticsOrigins, analyticsWarnings, isCanonicalHost, pageMeta, renderHead, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
+import { hubData, setData, sitemapEntries, startIndexNow } from './sbcpages/service.js';
+import { parseSetSlug } from './sbcpages/rules.js';
+import { hubBody, hubHead, hubJsonLd, setBody, setHead, setJsonLd } from './sbcpages/html.js';
+import { analyticsFor, analyticsOrigins, analyticsWarnings, isCanonicalHost, pageMeta, renderHead, type DynamicPage, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 import { publicOrigin, siteOrigins } from './origins.js';
 import { createLimiter } from './limits.js';
 import { createRelayBudget } from './relay-rules.js';
@@ -905,6 +908,14 @@ app.get<{ Params: { id: string } }>('/api/sets/:id/challenges', async (req) => {
   };
 });
 
+app.get('/api/public/sbcs', async (_req, reply) => reply.header('Cache-Control', 'public, max-age=600').send({ sets: await hubData() }));
+app.get<{ Params: { id: string } }>('/api/public/sbcs/:id', async (req, reply) => {
+  const id = /^\d{1,9}$/.test(req.params.id) ? Number(req.params.id) : 0;
+  const set = id ? await setData(id) : null;
+  if (!set) return reply.code(404).send({ error: 'not found' });
+  return reply.header('Cache-Control', 'public, max-age=600').send({ set });
+});
+
 app.post<{ Body: SolveBody }>('/api/solve', async (req) => {
   const { userId, acc } = await siteContext(req);
   if (!solveLimit(userId)) throw tooMany(); // each solve is a CP-SAT run, found or not
@@ -928,8 +939,30 @@ async function sendPage(req: FastifyRequest, reply: FastifyReply, path: string) 
   // the host decides indexing; the URLs we print are always one of our own origins
   const claimed = requestOrigin(req.headers, req.protocol);
   const canonical = isCanonicalHost(claimed);
-  if (!canonical || !pageMeta(path)) reply.header('X-Robots-Tag', 'noindex, nofollow');
-  return reply.header('Cache-Control', 'no-cache').type('text/html').send(renderHead(indexHtml, path, siteUrl(publicOrigin(claimed)), canonical, ogVersion));
+  let page: DynamicPage | undefined;
+  let failed = false;
+  const [, top, seg] = path.split('/');
+  if (top === 'sbcs') {
+    try {
+      const base = siteUrl(publicOrigin(claimed));
+      if (!seg) {
+        page = { meta: hubHead(), body: hubBody(await hubData()), jsonLd: hubJsonLd(base), canonical: '/sbcs' };
+      } else {
+        const ref = parseSetSlug(seg);
+        const set = ref ? await setData(ref.setId) : null;
+        if (!set) reply.code(404);
+        else if (path !== set.path) return reply.redirect(set.path, 301);
+        else page = { meta: setHead(set), body: setBody(set), jsonLd: setJsonLd(set, base), canonical: set.path };
+      }
+    } catch (e) {
+      console.warn('[sbcpages]', (e as Error).message);
+      page = undefined;
+      failed = true;
+    }
+  }
+  if (!canonical || failed || !(page || pageMeta(path))) reply.header('X-Robots-Tag', 'noindex, nofollow');
+  const out = renderHead(indexHtml, path, siteUrl(publicOrigin(claimed)), canonical && !failed, ogVersion, page);
+  return reply.header('Cache-Control', 'no-cache').type('text/html').send(out);
 }
 app.get('/robots.txt', (req, reply) => {
   const claimed = requestOrigin(req.headers, req.protocol);
@@ -938,12 +971,13 @@ app.get('/robots.txt', (req, reply) => {
     .header('Cache-Control', 'public, max-age=3600')
     .send(robotsTxt(siteUrl(publicOrigin(claimed)), isCanonicalHost(claimed)));
 });
-app.get('/sitemap.xml', (req, reply) =>
+app.get('/sitemap.xml', async (req, reply) =>
   reply
     .type('application/xml')
     .header('Cache-Control', 'public, max-age=3600')
-    .send(sitemapXml(siteUrl(publicOrigin(requestOrigin(req.headers, req.protocol))))),
+    .send(sitemapXml(siteUrl(publicOrigin(requestOrigin(req.headers, req.protocol))), await sitemapEntries().catch(() => []))),
 );
+if (process.env.INDEXNOW_KEY) app.get(`/${process.env.INDEXNOW_KEY}.txt`, (_q, r) => r.type('text/plain').send(process.env.INDEXNOW_KEY));
 
 if (existsSync(dist))
   await app.register(fastifyStatic, {
@@ -982,6 +1016,7 @@ installLedger();
 installDailyIngest();
 installHistory();
 scheduleDaily();
+if (process.env.SITE_URL) startIndexNow(siteUrl(process.env.SITE_URL));
 scheduleDeletions();
 schedulePrune();
 void pruneEvents();

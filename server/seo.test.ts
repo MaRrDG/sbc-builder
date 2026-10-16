@@ -14,7 +14,8 @@ const HTML = `<html><head>
 <meta name="twitter:title" content="old" />
 <meta name="twitter:description" content="old" />
 <meta name="twitter:image" content="/og.png" />
-</head></html>`;
+</head><body><div id="root"><main class="seo-fallback">old</main></div>
+<script type="module" src="/x.js"></script></body></html>`;
 
 test('public pages have their own meta, the app has none', () => {
   assert.ok(pageMeta('/')?.title);
@@ -121,4 +122,29 @@ test('home and guide meta carry the search terms', () => {
   assert.match(home.title, /Builder/);
   assert.match(home.description, /SBC builder/i);
   assert.match(pageMeta('/guide')!.description, /SBC solver/i);
+});
+
+test('a dynamic page fills head, body and json-ld', () => {
+  const out = renderHead(HTML, '/sbcs/marquee-matchups-16', 'https://fc-solver.app', true, '', {
+    meta: { title: 'MM SBC', description: 'desc' }, body: '<main>NEW</main>', jsonLd: '<script type="application/ld+json">{}</script>', canonical: '/sbcs/marquee-matchups-16',
+  });
+  assert.match(out, /<title>MM SBC<\/title>/);
+  assert.match(out, /<meta name="robots" content="index, follow" \/>/);
+  assert.match(out, /href="https:\/\/fc-solver\.app\/sbcs\/marquee-matchups-16"/);
+  assert.match(out, /<div id="root"><main>NEW<\/main><\/div>/);
+  assert.ok(!out.includes('old'));
+  assert.match(out, /application\/ld\+json">\{\}<\/script>\s*<\/head>/);
+  assert.match(out, /<script type="module" src="\/x.js">/);
+});
+
+test('sitemap takes extra entries with lastmod', () => {
+  const xml = sitemapXml('https://fc-solver.app', [{ path: '/sbcs/a-1', lastmod: '2026-10-16' }]);
+  assert.match(xml, /<loc>https:\/\/fc-solver\.app\/sbcs\/a-1<\/loc><lastmod>2026-10-16<\/lastmod>/);
+});
+
+test('a dynamic page replaces the root when the script sits in the head', () => {
+  const html = '<html><head><title>x</title></head><body>\n<div id="root">\n<main>old</main>\n</div>\n</body></html>';
+  const out = renderHead(html, '/sbcs', 'https://a.b', true, '', { meta: { title: 't', description: 'd' }, body: '<main>NEW</main>', jsonLd: '', canonical: '/sbcs' });
+  assert.match(out, /<div id="root"><main>NEW<\/main><\/div>/);
+  assert.ok(!out.includes('old'));
 });

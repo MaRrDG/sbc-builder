@@ -2,7 +2,7 @@
 // answers them with status 404 (server/index.ts), so both read this one list.
 
 /** First path segments outside the app. */
-const PUBLIC = new Set(['signin', 'setup', 'guide', 'daily', 'terms', 'privacy', 'cookies', 'refunds', 'changelog']);
+const PUBLIC = new Set(['signin', 'setup', 'guide', 'daily', 'terms', 'privacy', 'cookies', 'refunds', 'changelog', 'sbcs']);
 /** App screens, under /dashboard (old links without /dashboard still work). */
 const APP = new Set(['sbc', 'club', 'evolutions', 'settings', 'accounts', 'invite', 'upgrade', 'objectives', 'gallery', 'squads', 'admin']);
 

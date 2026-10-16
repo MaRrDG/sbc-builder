@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { isKnownPath } from './paths.js';
 
 test('site pages, app screens and old app links are known', () => {
-  for (const p of ['/', '', '/daily/practice', '/signin/callback', '/terms', '/changelog', '/dashboard', '/dashboard/', '/dashboard/sbc/16/39', '/dashboard/admin/users/x', '/club', '/sbc/16'])
+  for (const p of ['/', '', '/daily/practice', '/signin/callback', '/terms', '/changelog', '/dashboard', '/dashboard/', '/dashboard/sbc/16/39', '/dashboard/admin/users/x', '/club', '/sbc/16', '/sbcs', '/sbcs/marquee-matchups-16'])
     assert.equal(isKnownPath(p), true, p);
 });
 

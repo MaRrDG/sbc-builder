@@ -176,6 +176,18 @@ Same as `/api/evos/unsubscribe`, for the Daily reminder email (link + `List-Unsu
 ### `GET /api/evos/card/:file.png` (public)
 The player card shown in an evolution email, rendered when the email is sent (`server/evo-card.ts`) from the item EA sent with the training (`slot.player`, so every evolution and claimed level so far) and EA's card art. No sign-in, since mail clients fetch it without a session: the name is 32 hex chars, an HMAC of persona, slot and level (`EMAIL_SECRET`). `Cache-Control: public, max-age=2592000, immutable`. Files are kept 30 days; unknown or malformed names: `404`.
 
+## Public SBC pages (no auth)
+
+Read from `sbc_sets` / `sbc_challenges` / `sbc_solves` (relayed by users, never EA calls). Both answers are cached 10 minutes in memory and with `Cache-Control: public, max-age=600`. Only sets that pass the public rule (`server/sbcpages/rules.ts`) are returned.
+
+### `GET /api/public/sbcs`
+`{ sets: SbcListItem[] }`, live sets first by end time, then expired. `SbcListItem`: `id`, `path` (`/sbcs/<slug>-<id>`), `name`, `endTime` (unix seconds or null), `expired`, `challenges` (count), `rewards` (strings).
+
+### `GET /api/public/sbcs/:id`
+`{ set: SbcSetView }`. `SbcSetView`: `id`, `path`, `name`, `description`, `categoryId`, `endTime`, `expired`, `repeatability` (`once` / `unlimited` / `refresh`), `repeats`, `refreshHours`, `rewards`, `challenges[]` (`id`, `name`, `formation`, `requirements[]`, `rewards[]`), `stats` (`{ solvers, foundPct }` or null). Unknown, non-numeric or non-public id: 404 `{ error: 'not found' }`.
+
+The HTML pages `/sbcs` and `/sbcs/<slug>-<id>` are served by the SPA fallback with a per-page head and server-rendered content; a wrong slug answers 301 to the canonical path, a non-public set 404.
+
 ## Referrals (site)
 
 Invite codes, promo codes, gift codes and points. Nothing here talks to EA. Prices: 7 days = 2 points, 14 days = 3, 30 days = 5. Error `code`s (translated as `err.<code>`): `codeInvalid` (unknown, disabled, expired or used-up code: one answer for all four, so guessing learns nothing about which codes exist), `codeOwn`, `inviteUsed` (this user already used an invite), `codeUsed` (promo or gift already used), `giftLimit` (the receiver already redeemed 2 gift codes in the last 30 days), `giftSameEa` (the gift's owner and the receiver share an EA account, current owner or ever linked, either side), `pointsLow`, `pointsLifetime` (lifetime Premium cannot spend points on days), plus `rateLimited` (429).

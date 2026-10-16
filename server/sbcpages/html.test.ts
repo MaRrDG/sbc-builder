@@ -25,3 +25,9 @@ test('head names the set and the search terms', () => {
   assert.equal(h.title, 'Marquee Matchups SBC · cheapest solution from your club · FC Solver');
   assert.match(h.description, /SBC solver/);
 });
+
+test('a broken end time does not throw', () => {
+  const bad = { ...evil, endTime: 1e20 };
+  assert.doesNotThrow(() => setBody(bad));
+  assert.ok(!setBody(bad).includes('Ends'));
+});

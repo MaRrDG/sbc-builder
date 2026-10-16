@@ -83,10 +83,17 @@ const meta = (attr: 'name' | 'property', key: string) => new RegExp(`(<meta ${at
  * goes into the preview image URL: Discord, Facebook and CDNs cache images by URL, so a new
  * picture needs a new URL.
  */
-export function renderHead(html: string, path: string, base: string, canonicalHost: boolean, imageVersion = ''): string {
-  const page = pageMeta(path);
+export interface DynamicPage {
+  meta: PageMeta;
+  body: string;
+  jsonLd: string;
+  canonical: string;
+}
+
+export function renderHead(html: string, path: string, base: string, canonicalHost: boolean, imageVersion = '', dynamic?: DynamicPage): string {
+  const page = dynamic?.meta ?? pageMeta(path);
   const indexable = canonicalHost && !!page;
-  const url = `${base}${page ? canonicalPath(path) : '/'}`;
+  const url = `${base}${dynamic ? dynamic.canonical : page ? canonicalPath(path) : '/'}`;
   const image = `${base}/og.png${imageVersion ? `?v=${imageVersion}` : ''}`;
   let out = html.replace(/__SITE__/g, base); // JSON-LD and anything else that needs the origin
   out = setAttr(out, meta('name', 'robots'), indexable ? 'index, follow' : 'noindex, nofollow');
@@ -105,6 +112,10 @@ export function renderHead(html: string, path: string, base: string, canonicalHo
     ] as const)
       out = setAttr(out, meta(attr, key), value);
   }
+  if (dynamic) {
+    out = out.replace(/<div id="root">[\s\S]*?<\/div>(?=\s*(?:<script type="module"|<\/body>))/, () => `<div id="root">${dynamic.body}</div>`);
+    out = out.replace('</head>', () => `${dynamic.jsonLd}\n  </head>`);
+  }
   return out;
 }
 
@@ -122,11 +133,14 @@ export function robotsTxt(base: string, canonicalHost: boolean): string {
   ].join('\n');
 }
 
-export function sitemapXml(base: string): string {
+export function sitemapXml(base: string, extra: { path: string; lastmod?: string }[] = []): string {
   const urls = Object.keys(PAGES)
     .map((p) => `  <url><loc>${esc(base + p)}</loc><changefreq>weekly</changefreq><priority>${p === '/' ? '1.0' : LEGAL_PATHS.has(p) ? '0.3' : '0.6'}</priority></url>`)
     .join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+  const more = extra
+    .map((e) => `\n  <url><loc>${esc(base + e.path)}</loc>${e.lastmod ? `<lastmod>${e.lastmod}</lastmod>` : ''}<changefreq>daily</changefreq><priority>${e.path === '/sbcs' ? '0.8' : '0.7'}</priority></url>`)
+    .join('');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}${more}\n</urlset>\n`;
 }
 
 // Analytics (OpenWebTrack, cookieless): the <script> tag its dashboard generates, pasted into

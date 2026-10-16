@@ -4,7 +4,10 @@ import type { SbcListItem, SbcSetView } from './view.js';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const ld = (o: unknown) => `<script type="application/ld+json">${JSON.stringify(o).replace(/</g, '\\u003c')}</script>`;
-const date = (sec: number) => new Date(sec * 1000).toISOString().slice(0, 10);
+const date = (sec: number) => {
+  const d = new Date(sec * 1000);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+};
 const LINK = 'style="color: #c8f53c"';
 const WRAP = 'style="max-width: 720px; margin: 48px auto; padding: 0 16px; color: #f3f1ea; font-family: system-ui, sans-serif; line-height: 1.5"';
 
@@ -26,7 +29,7 @@ export const hubHead = () => ({
 
 export function setBody(v: SbcSetView): string {
   const meta = [
-    v.expired ? 'Expired' : v.endTime ? `Ends ${date(v.endTime)}` : null,
+    v.expired ? 'Expired' : v.endTime && date(v.endTime) ? `Ends ${date(v.endTime)}` : null,
     v.repeatability === 'unlimited' ? 'Repeatable' : v.repeatability === 'refresh' ? `Repeatable${v.repeats ? ` ${v.repeats}×` : ''}${v.refreshHours ? ` every ${v.refreshHours} h` : ''}` : 'One time',
   ].filter(Boolean).join(' · ');
   const list = (xs: string[]) => (xs.length ? `<ul>${xs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '');
@@ -46,7 +49,7 @@ ${v.challenges.map((c) => `<section><h3>${esc(c.name)}</h3>${c.formation ? `<p>F
 }
 
 export function hubBody(items: SbcListItem[]): string {
-  const row = (x: SbcListItem) => `<li><a href="${esc(x.path)}" ${LINK}>${esc(x.name)}</a>${x.expired ? ' · Expired' : x.endTime ? ` · ends ${date(x.endTime)}` : ''}</li>`;
+  const row = (x: SbcListItem) => `<li><a href="${esc(x.path)}" ${LINK}>${esc(x.name)}</a>${x.expired ? ' · Expired' : x.endTime && date(x.endTime) ? ` · ends ${date(x.endTime)}` : ''}</li>`;
   const active = items.filter((x) => !x.expired);
   const old = items.filter((x) => x.expired);
   return `<main ${WRAP}>
