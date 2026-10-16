@@ -28,6 +28,8 @@
 .sbcp-error { padding: 14px 16px; border: 1px solid var(--bad); border-radius: var(--r-box); background: var(--surface); }
 .sbcp-error button { cursor: pointer; font: inherit; }
 .sbcp .step-action { cursor: pointer; border: 0; font: inherit; font-weight: 600; }
+.legal article a.step-action.primary { color: var(--go-ink); text-decoration: none; }
+.legal article a.step-action.ghost-strong { color: var(--ink); }
 .sbcp .step-action.ghost-strong { border: 1px solid var(--line); }
 .sbcp .step-action:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .sbcp-skel { display: grid; gap: 8px; }

@@ -1040,6 +1040,7 @@ export const en = {
   'sbcpages.howTitle': 'How do I complete {name} cheaply?',
   'sbcpages.howBody': 'Open it in FC Solver and press Solve: it builds the cheapest squad that meets every requirement from your own club, SBC storage included, and checks chemistry like the game. You build it in the web app yourself. FC Solver never buys, sells or submits anything.',
   'sbcpages.cta': 'Solve it with your own club',
+  'sbcpages.seeLive': 'See live SBCs',
   'sbcpages.error': 'Could not load the SBCs.',
   'sbcpages.retry': 'Try again',
   'sbcpages.crumbs': 'Breadcrumb',

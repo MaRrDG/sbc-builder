@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type MouseEvent, type ReactNode } fro
 import { useI18n } from '../i18n';
 import { LangMenu } from '../components/LangMenu';
 import { publicSbc, publicSbcs, type SbcChallengeView, type SbcListItem, type SbcSetView } from '../api';
+import { formationLabel } from '../../../shared/formation';
 import { track, yn } from '../track';
 import type { Route } from '../route';
 import './sbcpages.css';
@@ -175,7 +176,7 @@ function Challenge({ c }: { c: SbcChallengeView }) {
       <h3>{c.name}</h3>
       {c.formation && (
         <p className="sbcp-sub">
-          {t('sbcpages.formation')}: {c.formation}
+          {t('sbcpages.formation')}: {formationLabel(c.formation)}
         </p>
       )}
       {c.requirements.length > 0 && (
@@ -228,9 +229,19 @@ export function SbcPage({ setId, navigate, signedIn }: { setId: number; navigate
       : set.repeatability === 'once'
         ? t('sbcpages.repeat.once')
         : t('sbcpages.repeat.unlimited');
-  const solve = () => {
+  const ctaPath = signedIn ? `/dashboard/sbc/${set.id}` : `/signin?next=${encodeURIComponent(`/dashboard/sbc/${set.id}`)}`;
+  const solve = (e: MouseEvent) => {
     track('sbc_page_cta', { signed_in: yn(signedIn) });
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
     navigate(signedIn ? { view: 'sbcs', setId: set.id, challengeId: null } : { view: 'signin', next: `/dashboard/sbc/${set.id}` });
+    window.scrollTo(0, 0);
+  };
+  const toHub = (e: MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+    e.preventDefault();
+    navigate({ view: 'sbcHub' });
+    window.scrollTo(0, 0);
   };
   return (
     <Shell navigate={navigate} signedIn={signedIn}>
@@ -250,9 +261,15 @@ export function SbcPage({ setId, navigate, signedIn }: { setId: number; navigate
         )}
         {set.stats && <p className="sbcp-stats">{t('sbcpages.stats', { count: set.stats.solvers, pct: set.stats.foundPct })}</p>}
         <p>
-          <button type="button" className="step-action primary" onClick={solve}>
-            {t('sbcpages.cta')}
-          </button>
+          {set.expired ? (
+            <a className="step-action ghost-strong" href="/sbcs" onClick={toHub}>
+              {t('sbcpages.seeLive')}
+            </a>
+          ) : (
+            <a className="step-action primary" href={ctaPath} onClick={solve}>
+              {t('sbcpages.cta')}
+            </a>
+          )}
         </p>
         <h2>{t('sbcpages.challengesTitle')}</h2>
         <ul className="sbcp-grid">

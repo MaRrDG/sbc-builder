@@ -1,5 +1,6 @@
 // Server HTML for the public SBC pages: what crawlers read inside #root before the app takes over.
 // Plain, escaped, inline-styled like the index.html fallback. EA text stays as sent.
+import { formationLabel } from '../../shared/formation.js';
 import type { SbcListItem, SbcSetView } from './view.js';
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -41,10 +42,10 @@ export function setBody(v: SbcSetView): string {
 ${v.rewards.length ? `<h2>Rewards</h2>${list(v.rewards)}` : ''}
 ${v.stats ? `<p>Solved by ${v.stats.solvers} FC Solver players · ${v.stats.foundPct}% found a squad</p>` : ''}
 <h2>Challenges</h2>
-${v.challenges.map((c) => `<section><h3>${esc(c.name)}</h3>${c.formation ? `<p>Formation: ${esc(c.formation)}</p>` : ''}${list(c.requirements)}${c.rewards.length ? `<p>Reward: ${esc(c.rewards.join(', '))}</p>` : ''}</section>`).join('\n')}
+${v.challenges.map((c) => `<section><h3>${esc(c.name)}</h3>${c.formation ? `<p>Formation: ${esc(formationLabel(c.formation))}</p>` : ''}${list(c.requirements)}${c.rewards.length ? `<p>Reward: ${esc(c.rewards.join(', '))}</p>` : ''}</section>`).join('\n')}
 <h2>How do I complete ${esc(v.name)} cheaply?</h2>
 <p>${esc(howTo(v.name))}</p>
-<p><a href="/signin" ${LINK}>Solve it with your own club</a></p>
+<p>${v.expired ? `<a href="/sbcs" ${LINK}>See live SBCs</a>` : `<a href="/signin" ${LINK}>Solve it with your own club</a>`}</p>
 </main>`;
 }
 

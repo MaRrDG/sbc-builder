@@ -31,3 +31,12 @@ test('a broken end time does not throw', () => {
   assert.doesNotThrow(() => setBody(bad));
   assert.ok(!setBody(bad).includes('Ends'));
 });
+
+test('formation reads as 4-4-2; expired sets have no solve link', () => {
+  const live = setBody({ ...evil, challenges: [{ ...evil.challenges[0], formation: 'f442' }] });
+  assert.match(live, /Formation: 4-4-2/);
+  assert.match(live, /href="\/signin"/);
+  const old = setBody({ ...evil, expired: true });
+  assert.ok(!old.includes('/signin'));
+  assert.match(old, /href="\/sbcs"[^>]*>See live SBCs/);
+});

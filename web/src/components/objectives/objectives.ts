@@ -24,13 +24,7 @@ export function timeLeft(endsAt: number | null, now: number): { days: number; ho
   return { days: Math.floor(h / 24), hours: h % 24 };
 }
 
-/** EA formation name -> "4-3-3", "4-3-3 (2)" for the a / b / c variants. */
-export function formationLabel(f: string): string {
-  const m = /^f(\d+)([a-z]?)$/.exec(f);
-  if (!m) return f;
-  const base = m[1].split('').join('-');
-  return m[2] ? `${base} (${m[2].charCodeAt(0) - 95})` : base;
-}
+export { formationLabel } from '../../../../shared/formation';
 
 /**
  * One reward in words: a player item by name ("Ekitike 82 ST", the name filled in by the server), other items by

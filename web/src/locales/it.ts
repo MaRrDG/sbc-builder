@@ -1044,6 +1044,7 @@ export const it: Record<Keys, string> = {
   'sbcpages.howTitle': 'Come completo {name} spendendo poco?',
   'sbcpages.howBody': 'Aprilo in FC Solver e premi Risolvi: costruisce la squadra più economica che rispetta tutti i requisiti con il tuo club, deposito SBC compreso, e controlla l\'intesa come nel gioco. La squadra la crei tu nella web app. FC Solver non compra, non vende e non invia nulla.',
   'sbcpages.cta': 'Risolvilo con il tuo club',
+  'sbcpages.seeLive': 'Vedi gli SBC attivi',
   'sbcpages.error': 'Impossibile caricare gli SBC.',
   'sbcpages.retry': 'Riprova',
   'sbcpages.crumbs': 'Percorso',
