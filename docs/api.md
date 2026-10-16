@@ -178,7 +178,7 @@ The player card shown in an evolution email, rendered when the email is sent (`s
 
 ## Public SBC pages (no auth)
 
-Read from `sbc_sets` / `sbc_challenges` / `sbc_solves` (relayed by users, never EA calls). Both answers are cached 10 minutes in memory and with `Cache-Control: public, max-age=600`. Only sets that pass the public rule (`server/sbcpages/rules.ts`) are returned.
+Read from the vouched set snapshot (`sbc_sets.public_snapshot`, written only by a trusted account or agreeing accounts), the vouched `challenges` rows and `events` of type `solve` (relayed by users, never EA calls). Both answers are cached 10 minutes in memory and with `Cache-Control: public, max-age=600`. Only sets that pass the public rule (`server/sbcpages/rules.ts`) are returned.
 
 ### `GET /api/public/sbcs`
 `{ sets: SbcListItem[] }`, live sets first by end time, then expired. `SbcListItem`: `id`, `path` (`/sbcs/<slug>-<id>`), `name`, `endTime` (unix seconds or null), `expired`, `challenges` (count), `rewards` (strings).
@@ -186,7 +186,10 @@ Read from `sbc_sets` / `sbc_challenges` / `sbc_solves` (relayed by users, never 
 ### `GET /api/public/sbcs/:id`
 `{ set: SbcSetView }`. `SbcSetView`: `id`, `path`, `name`, `description`, `categoryId`, `endTime`, `expired`, `repeatability` (`once` / `unlimited` / `refresh`), `repeats`, `refreshHours`, `rewards`, `challenges[]` (`id`, `name`, `formation`, `requirements[]`, `rewards[]`), `stats` (`{ solvers, foundPct }` or null). Unknown, non-numeric or non-public id: 404 `{ error: 'not found' }`.
 
-The HTML pages `/sbcs` and `/sbcs/<slug>-<id>` are served by the SPA fallback with a per-page head and server-rendered content; a wrong slug answers 301 to the canonical path, a non-public set 404.
+The HTML pages `/sbcs` and `/sbcs/<slug>-<id>` are served by the SPA fallback with a per-page head and server-rendered content; a wrong slug answers 301 to the canonical path (the query string is kept), a non-public set 404. Expired sets stay in the list for 60 days after their end (the sitemap window).
+
+### `GET /<INDEXNOW_KEY>.txt`
+Only when `INDEXNOW_KEY` is set and valid (8–128 hex characters, dashes allowed): answers the key as `text/plain`, so IndexNow can verify the site. Prod only.
 
 ## Referrals (site)
 
