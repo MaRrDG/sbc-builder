@@ -4,3 +4,6 @@ export function onboardingMode({ present, phone, fromInstall }: { present: boole
   if (phone) return 'phone';
   return present || fromInstall ? 'linking' : 'install';
 }
+
+/** The Web Store listing installs the build that talks to production: any other origin (dev site, localhost) shows the zip first. */
+export const storeFirst = (origin: string) => origin === 'https://fc-solver.app';

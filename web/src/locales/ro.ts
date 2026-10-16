@@ -587,6 +587,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'setup.store1p': 'Instaleaz-o din Chrome Web Store. Nu ai nimic de setat.',
   'setup.store1b': 'Deschide Chrome Web Store',
   'setup.zipSummary': 'Nu poți folosi Chrome Web Store? Instalează din arhivă zip',
+  'setup.zipThen': 'Apoi continuă cu pasul 2 de mai sus.',
 
   'update.required': 'Actualizare obligatorie: extensia {v}',
   'update.requiredWhy': 'FC Solver nu mai funcționează cu extensii mai vechi de {min}. Actualizează ca sincronizarea să meargă în continuare.',

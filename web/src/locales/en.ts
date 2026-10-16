@@ -576,6 +576,7 @@ export const en = {
   'setup.store1p': 'Install it from the Chrome Web Store. Nothing to configure.',
   'setup.store1b': 'Open Chrome Web Store',
   'setup.zipSummary': 'Can\'t use the Chrome Web Store? Install it from a zip',
+  'setup.zipThen': 'Then continue with step 2 above.',
 
   // update banner
   'update.required': 'Update required: extension {v}',

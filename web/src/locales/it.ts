@@ -580,6 +580,7 @@ export const it: Record<Keys, string> = {
   'setup.store1p': 'Installala dal Chrome Web Store. Niente da impostare.',
   'setup.store1b': 'Apri Chrome Web Store',
   'setup.zipSummary': 'Non puoi usare il Chrome Web Store? Installa da file zip',
+  'setup.zipThen': 'Poi continua con il passaggio 2 qui sopra.',
 
   // update banner
   'update.required': 'Aggiornamento obbligatorio: estensione {v}',

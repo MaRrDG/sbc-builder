@@ -2,6 +2,7 @@ import { Fragment, useState, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { extensionZipUrl } from '../api';
 import { STORE_URL } from '../ext-version';
+import { storeFirst } from '../onboarding';
 import { Check, Copy, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react';
 
 const EXTENSIONS_URL = 'chrome://extensions';
@@ -44,66 +45,85 @@ const FOLDER = <code>fc27-sbc-builder</code>;
 export function SetupGuide({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
   const cls = `guide${compact ? ' compact' : ''}`;
+  const prod = storeFirst(window.location.origin);
+  const storeStep = (
+    <li>
+      <div>
+        <h3>{t('setup.store1')}</h3>
+        <p>{t('setup.store1p')}</p>
+      </div>
+      <a className="step-action primary" href={STORE_URL} target="_blank" rel="noopener noreferrer">
+        {t('setup.store1b')} <ArrowSquareOut weight="bold" />
+      </a>
+    </li>
+  );
+  const webAppStep = (
+    <li>
+      <div>
+        <h3>{t('setup.s5')}</h3>
+        <p>{t('setup.s5p')}</p>
+      </div>
+      <a className="step-action ghost-strong" href={WEB_APP} target="_blank" rel="noreferrer">
+        {t('setup.s5b')} <ArrowSquareOut weight="bold" />
+      </a>
+    </li>
+  );
+  const openStep = (
+    <li>
+      <div>
+        <h3>{t('setup.s6')}</h3>
+        <p>{fill(t('setup.s6p'), { open: <b>{t('setup.openSolver')}</b> })}</p>
+      </div>
+    </li>
+  );
+  const zipSteps = [
+    <li key="s1">
+      <div>
+        <h3>{t('setup.s1')}</h3>
+        <p>{t('setup.s1p')}</p>
+      </div>
+      <a className="step-action ghost-strong" href={extensionZipUrl()} download>
+        <DownloadSimple weight="bold" /> {t('setup.s1b')}
+      </a>
+    </li>,
+    <li key="s2">
+      <div>
+        <h3>{t('setup.s2')}</h3>
+        <p>{fill(t('setup.s2p'), { folder: FOLDER })}</p>
+      </div>
+    </li>,
+    <li key="s3">
+      <div>
+        <h3>{t('setup.s3')}</h3>
+        <p>{fill(t('setup.s3p'), { url: <code>{EXTENSIONS_URL}</code>, dev: <b>{t('setup.devMode')}</b> })}</p>
+      </div>
+      <CopyUrl />
+    </li>,
+    <li key="s4">
+      <div>
+        <h3>{t('setup.s4')}</h3>
+        <p>{fill(t('setup.s4p'), { load: <b>{t('setup.loadUnpacked')}</b>, folder: FOLDER })}</p>
+      </div>
+    </li>,
+  ];
+  // the Store listing installs the production build: elsewhere (dev site, localhost) the zip is the main path
+  if (!prod)
+    return (
+      <>
+        <ol className={cls}>{zipSteps}{webAppStep}{openStep}</ol>
+        <details className="setup-zip">
+          <summary>{t('setup.store1')}</summary>
+          <ol className={cls}>{storeStep}</ol>
+        </details>
+      </>
+    );
   return (
     <>
-      <ol className={cls}>
-        <li>
-          <div>
-            <h3>{t('setup.store1')}</h3>
-            <p>{t('setup.store1p')}</p>
-          </div>
-          <a className="step-action primary" href={STORE_URL} target="_blank" rel="noopener noreferrer">
-            {t('setup.store1b')} <ArrowSquareOut weight="bold" />
-          </a>
-        </li>
-        <li>
-          <div>
-            <h3>{t('setup.s5')}</h3>
-            <p>{t('setup.s5p')}</p>
-          </div>
-          <a className="step-action ghost-strong" href={WEB_APP} target="_blank" rel="noreferrer">
-            {t('setup.s5b')} <ArrowSquareOut weight="bold" />
-          </a>
-        </li>
-        <li>
-          <div>
-            <h3>{t('setup.s6')}</h3>
-            <p>{fill(t('setup.s6p'), { open: <b>{t('setup.openSolver')}</b> })}</p>
-          </div>
-        </li>
-      </ol>
+      <ol className={cls}>{storeStep}{webAppStep}{openStep}</ol>
       <details className="setup-zip">
         <summary>{t('setup.zipSummary')}</summary>
-        <ol className={cls}>
-          <li>
-            <div>
-              <h3>{t('setup.s1')}</h3>
-              <p>{t('setup.s1p')}</p>
-            </div>
-            <a className="step-action ghost-strong" href={extensionZipUrl()} download>
-              <DownloadSimple weight="bold" /> {t('setup.s1b')}
-            </a>
-          </li>
-          <li>
-            <div>
-              <h3>{t('setup.s2')}</h3>
-              <p>{fill(t('setup.s2p'), { folder: FOLDER })}</p>
-            </div>
-          </li>
-          <li>
-            <div>
-              <h3>{t('setup.s3')}</h3>
-              <p>{fill(t('setup.s3p'), { url: <code>{EXTENSIONS_URL}</code>, dev: <b>{t('setup.devMode')}</b> })}</p>
-            </div>
-            <CopyUrl />
-          </li>
-          <li>
-            <div>
-              <h3>{t('setup.s4')}</h3>
-              <p>{fill(t('setup.s4p'), { load: <b>{t('setup.loadUnpacked')}</b>, folder: FOLDER })}</p>
-            </div>
-          </li>
-        </ol>
+        <ol className={cls}>{zipSteps}</ol>
+        <p className="muted">{t('setup.zipThen')}</p>
       </details>
     </>
   );
