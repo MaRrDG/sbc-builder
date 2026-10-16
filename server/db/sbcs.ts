@@ -59,7 +59,8 @@ export async function relaySets(sets: unknown[], personaId: number): Promise<num
     const rows = await db
       .select({ fingerprint: challengeSightings.fingerprint, n: countDistinct(challengeSightings.personaId) })
       .from(challengeSightings)
-      .where(inArray(challengeSightings.fingerprint, seen.map((x) => x.fingerprint)))
+      // set_id first: it leads the primary key, so this seeks instead of scanning every sighting
+      .where(and(inArray(challengeSightings.setId, seen.map((x) => x.setId)), inArray(challengeSightings.fingerprint, seen.map((x) => x.fingerprint))))
       .groupBy(challengeSightings.fingerprint);
     for (const r of rows) agree.set(r.fingerprint, r.n);
   }
