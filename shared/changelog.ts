@@ -23,18 +23,18 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: {
       en: [
         'Installed the extension first? FC Solver now opens right after the install and tells you the one step left: sign in with the FC27 web app open. The extension popup shows "Almost done" with a "Sign in to FC Solver" button until your EA account is linked, and a small notice in the FC27 web app says one step is left',
-        'Setup now puts the Chrome Web Store first (the zip is still there), and if the extension is already installed, signed-in users see "Extension found — open the FC27 web app in this browser" instead of the install steps',
+        'Setup now puts the Chrome Web Store first (the zip is still there). If the extension is already installed, signed-in users see "Extension found" with a button to open the FC27 web app, instead of the install steps',
         'The changelog now shows a version for each release',
       ],
       ro: [
-        'Ai instalat extensia prima? FC Solver se deschide acum imediat după instalare și îți spune ce pas a mai rămas: conectează-te cu aplicația web FC27 deschisă. Fereastra extensiei arată „Aproape gata” cu un buton „Conectează-te la FC Solver” până când contul tău EA e legat, iar în aplicația web FC27 apare un mic anunț că mai ai un pas',
-        'Configurarea pune acum Chrome Web Store pe primul loc (zip-ul rămâne disponibil), iar dacă extensia e deja instalată, utilizatorii conectați văd „Extensie găsită — deschide aplicația web FC27 în acest browser” în loc de pașii de instalare',
-        'Istoricul modificărilor arată acum o versiune pentru fiecare lansare',
+        'Ai instalat mai întâi extensia? FC Solver se deschide acum imediat după instalare și îți spune ce pas a mai rămas: intră în cont cu web app-ul FC27 deschis. Fereastra extensiei arată „Almost done” cu un buton „Sign in to FC Solver” până când contul tău EA e legat, iar în web app-ul FC27 apare un mic anunț că mai ai un pas',
+        'Configurarea pune acum Chrome Web Store pe primul loc (zip-ul rămâne disponibil), iar dacă extensia e deja instalată, utilizatorii conectați văd „Extensie găsită” cu un buton care deschide web app-ul FC27, în loc de pașii de instalare',
+        'Pagina Noutăți arată acum o versiune pentru fiecare lansare',
       ],
       it: [
-        'Hai installato prima l\'estensione? FC Solver ora si apre subito dopo l\'installazione e ti dice qual è l\'ultimo passo: accedi con la web app FC27 aperta. Il popup dell\'estensione mostra «Quasi fatto» con un pulsante «Accedi a FC Solver» finché il tuo account EA non è collegato, e un piccolo avviso nella web app FC27 ricorda che manca un passo',
-        'La configurazione ora mette il Chrome Web Store al primo posto (lo zip c\'è ancora), e se l\'estensione è già installata, chi ha effettuato l\'accesso vede «Estensione trovata — apri la web app FC27 in questo browser» al posto dei passaggi di installazione',
-        'Il changelog ora mostra una versione per ogni rilascio',
+        'Hai installato prima l\'estensione? FC Solver ora si apre subito dopo l\'installazione e ti dice qual è l\'ultimo passo: accedi con la web app FC27 aperta. Il popup dell\'estensione mostra «Almost done» con un pulsante «Sign in to FC Solver» finché il tuo account EA non è collegato, e un piccolo avviso nella web app FC27 ricorda che manca un passo',
+        'La configurazione ora mette il Chrome Web Store al primo posto (lo zip c\'è ancora), e se l\'estensione è già installata, chi ha effettuato l\'accesso vede «Estensione trovata» con un pulsante per aprire la web app FC27, al posto dei passaggi di installazione',
+        'La pagina Novità ora mostra una versione per ogni rilascio',
       ],
     },
   },

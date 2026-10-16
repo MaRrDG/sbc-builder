@@ -13,7 +13,7 @@ export const changelogMessage = (id: string) => `Changelog ${id}`;
 const dateLabel = (date: string) =>
   new Date(`${date}T12:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
-/** Content line + brand embed (v1, the date, the items as bullets) + a button to the page. No pings. */
+/** Content line + brand embed (title with the version, the date, the items as bullets) + a button to the page. No pings. */
 export function changelogPost(e: BotEntry, siteUrl: string, icon?: string) {
   const url = changelogUrl(siteUrl);
   let text = e.items.map((s) => `• ${s}`).join('\n');

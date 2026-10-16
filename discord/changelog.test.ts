@@ -6,7 +6,7 @@ const entry = (id: string, items = ['a']): BotEntry => ({ id, date: id.slice(0, 
 const bot = 'B';
 const posted = (...ids: string[]) => ids.map((id) => ({ authorId: bot, content: changelogMessage(id) }));
 
-test('post: content line, title with v1 and the date, bullets, button to /changelog, no pings', () => {
+test('post: content line, title with the version and the date, bullets, button to /changelog, no pings', () => {
   const p = changelogPost(entry('2026-10-12', ['First', 'Second']), 'https://fcsolver.gg/', 'https://cdn/icon.png');
   assert.equal(p.content, 'Changelog 2026-10-12');
   const e = p.embeds[0].toJSON();
