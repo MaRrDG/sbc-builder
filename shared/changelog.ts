@@ -18,6 +18,15 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-16',
+    date: '2026-10-16',
+    items: {
+      en: ['New public SBC pages: every live SBC with its requirements, rewards and how many FC Solver players solved it, at fc-solver.app/sbcs. Open one and solve it with your own club in one click'],
+      ro: ['Pagini publice pentru SBC-uri: fiecare SBC activ cu cerințele, recompensele și câți jucători FC Solver l-au rezolvat, la fc-solver.app/sbcs. Deschide unul și rezolvă-l cu clubul tău dintr-un clic'],
+      it: ['Nuove pagine pubbliche per gli SBC: ogni SBC attivo con requisiti, premi e quanti giocatori FC Solver l\'hanno risolto, su fc-solver.app/sbcs. Aprine uno e risolvilo con il tuo club in un clic'],
+    },
+  },
+  {
     id: '2026-10-15',
     date: '2026-10-15',
     items: {

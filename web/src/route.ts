@@ -42,6 +42,8 @@ export type Route =
   | { view: 'admin'; page: AdminPage; userId: string | null; query: string }
   | { view: 'legal'; doc: LegalDoc }
   | { view: 'changelog' }
+  | { view: 'sbcHub' }
+  | { view: 'sbcPage'; setId: number; slug: string }
   | { view: 'signin'; next: string }
   | { view: 'ssoCallback' }
   | { view: 'notFound'; path: string };
@@ -80,6 +82,11 @@ export function parseRoute(path: string, search = '', hash = ''): Route {
   if (a === 'daily') return { view: 'daily', practice: b === 'practice' };
   if (a === 'terms' || a === 'privacy' || a === 'cookies' || a === 'refunds') return { view: 'legal', doc: a };
   if (a === 'changelog') return { view: 'changelog' };
+  if (a === 'sbcs') {
+    if (!b) return { view: 'sbcHub' };
+    const m = /^(?:([a-z0-9-]*)-)?(\d{1,9})$/.exec(b);
+    return m && Number(m[2]) > 0 ? { view: 'sbcPage', setId: Number(m[2]), slug: m[1] ?? '' } : { view: 'notFound', path };
+  }
   const [x, y, z] = a === 'dashboard' ? parts.slice(1) : parts;
   if (x === 'club') return { view: 'club' };
   if (x === 'evolutions') return { view: 'evolutions' };
@@ -127,6 +134,10 @@ export function routePath(r: Route): string {
     case 'guide':
     case 'changelog':
       return `/${r.view}`;
+    case 'sbcHub':
+      return '/sbcs';
+    case 'sbcPage':
+      return `/sbcs/${r.slug || 'sbc'}-${r.setId}`;
     case 'daily':
       return r.practice ? '/daily/practice' : '/daily';
     case 'club':

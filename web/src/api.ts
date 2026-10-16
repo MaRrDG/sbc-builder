@@ -719,3 +719,15 @@ export type AdminSyncResult =
 
 /** The extension download; the query keeps any cache from handing out a zip from before an update. */
 export const extensionZipUrl = () => `/api/extension.zip?t=${Date.now()}`;
+
+// Public SBC pages (/sbcs): no sign-in needed. Same shapes as server/sbcpages/view.ts.
+export interface SbcChallengeView { id: number; name: string; formation: string | null; requirements: string[]; rewards: string[] }
+export interface SbcSetView {
+  id: number; path: string; name: string; description: string; categoryId: number | null;
+  endTime: number | null; expired: boolean; repeatability: 'once' | 'unlimited' | 'refresh';
+  repeats: number | null; refreshHours: number | null; rewards: string[];
+  challenges: SbcChallengeView[]; stats: { solvers: number; foundPct: number } | null;
+}
+export interface SbcListItem { id: number; path: string; name: string; endTime: number | null; expired: boolean; challenges: number; rewards: string[] }
+export const publicSbcs = () => req<{ sets: SbcListItem[] }>('/api/public/sbcs');
+export const publicSbc = (id: number) => req<{ set: SbcSetView }>(`/api/public/sbcs/${id}`);

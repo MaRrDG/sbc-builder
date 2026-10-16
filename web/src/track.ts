@@ -17,6 +17,7 @@ export interface TrackEvents {
   daily_share: { mode: Mode };
   daily_leaderboard: undefined;
   daily_history: undefined;
+  sbc_page_cta: { signed_in: YN };
   invite_copy: undefined;
   premium_view: { where: 'landing' | 'daily' | 'quota' };
   discord_click: { where: 'landing' | 'daily' | 'sidebar' | 'accounts' };

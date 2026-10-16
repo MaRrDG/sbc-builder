@@ -147,3 +147,14 @@ test('unknown paths are the 404 page and stay where they are', () => {
   assert.equal(canonicalPath(parseRoute('/nope'), '/nope'), null);
   assert.deepEqual(parseRoute('/club'), { view: 'club' });
 });
+
+test('public SBC pages', () => {
+  assert.deepEqual(parseRoute('/sbcs'), { view: 'sbcHub' });
+  assert.deepEqual(parseRoute('/sbcs/marquee-matchups-16'), { view: 'sbcPage', setId: 16, slug: 'marquee-matchups' });
+  assert.deepEqual(parseRoute('/sbcs/16'), { view: 'sbcPage', setId: 16, slug: '' });
+  assert.equal(parseRoute('/sbcs/abc').view, 'notFound');
+  assert.equal(routePath({ view: 'sbcHub' }), '/sbcs');
+  assert.equal(routePath({ view: 'sbcPage', setId: 16, slug: 'marquee-matchups' }), '/sbcs/marquee-matchups-16');
+  assert.deepEqual(parseRoute('/sbc/16'), { view: 'sbcs', setId: 16, challengeId: null });
+  assert.deepEqual(parseRoute('/dashboard/sbc/16'), { view: 'sbcs', setId: 16, challengeId: null });
+});

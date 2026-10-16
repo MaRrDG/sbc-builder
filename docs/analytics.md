@@ -39,6 +39,7 @@ Never personal data: no email, names, user / persona ids, usernames, invite code
 | `daily_share` | result copied | `mode` |
 | `daily_leaderboard` | leaderboard opened | — |
 | `daily_history` | past days (history) opened | — |
+| `sbc_page_cta` | "Solve it with your own club" clicked on a public SBC page (`/sbcs/...`) | `signed_in` (yes / no) |
 | `invite_copy` | invite link copied | — |
 | `premium_view` | pricing section seen on the landing, "more" on the locked Daily reminder, solve quota used up | `where`: `landing` / `daily` / `quota` |
 | `discord_click` | a Discord invite link | `where`: `landing` / `daily` / `sidebar` / `accounts` |

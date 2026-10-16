@@ -22,6 +22,8 @@ if (window.location.pathname.startsWith('/dashboard')) void loadApp();
 const App = lazy(loadApp);
 const LegalPage = lazy(() => import('./legal/LegalPage').then((m) => ({ default: m.LegalPage })));
 const ChangelogPage = lazy(() => import('./changelog/ChangelogPage').then((m) => ({ default: m.ChangelogPage })));
+const SbcHub = lazy(() => import('./sbcpages/SbcPages').then((m) => ({ default: m.SbcHub })));
+const SbcPage = lazy(() => import('./sbcpages/SbcPages').then((m) => ({ default: m.SbcPage })));
 const Guide = lazy(() => import('./components/Guide').then((m) => ({ default: m.Guide })));
 const SetupGuide = lazy(() => import('./components/SetupGuide').then((m) => ({ default: m.SetupGuide })));
 const Landing = lazy(() => import('./landing/Landing'));
@@ -66,7 +68,7 @@ export default function Root() {
     isSignedIn ? () => setRefused(true) : () => navigate(toSignIn(), true),
   );
 
-  const publicView = route.view === 'landing' || route.view === 'legal' || route.view === 'changelog' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup' || route.view === 'daily' || route.view === 'notFound';
+  const publicView = route.view === 'landing' || route.view === 'legal' || route.view === 'changelog' || route.view === 'sbcHub' || route.view === 'sbcPage' || route.view === 'signin' || route.view === 'ssoCallback' || route.view === 'guide' || route.view === 'setup' || route.view === 'daily' || route.view === 'notFound';
   useEffect(() => {
     if (!isLoaded) return;
     if (!isSignedIn && !publicView) navigate(toSignIn(), true);
@@ -98,6 +100,19 @@ export default function Root() {
     return (
       <Lazy>
         <ChangelogPage navigate={navigate} signedIn={!!isSignedIn} />
+      </Lazy>
+    );
+
+  if (route.view === 'sbcHub')
+    return (
+      <Lazy>
+        <SbcHub navigate={navigate} signedIn={!!isSignedIn} />
+      </Lazy>
+    );
+  if (route.view === 'sbcPage')
+    return (
+      <Lazy>
+        <SbcPage key={route.setId} setId={route.setId} navigate={navigate} signedIn={!!isSignedIn} />
       </Lazy>
     );
 

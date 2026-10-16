@@ -182,6 +182,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
               <li>{link({ view: 'guide' }, 'lp-foot-link', t('landing.footer.guide'))}</li>
               <li><a className="lp-foot-link" href="#pricing">{t('landing.nav.pricing')}</a></li>
               <li>{link({ view: 'changelog' }, 'lp-foot-link', t('landing.footer.changelog'))}</li>
+              <li>{link({ view: 'sbcHub' }, 'lp-foot-link', t('landing.footer.sbcs'))}</li>
               <li><a className="lp-foot-link" href="mailto:contact@fc-solver.app">{t('landing.footer.contact')}</a></li>
             </ul>
           </div>
