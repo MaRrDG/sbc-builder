@@ -69,6 +69,7 @@ export interface SetSnapshot {
   description: string;
   categoryId: number | null;
   repeatabilityMode: string | null;
+  /** absolute unix seconds (EA sends seconds left); null: no end */
   endTime: number | null;
   raw: {
     releaseTime: number | null;
@@ -87,15 +88,25 @@ const strOr = (v: unknown, d: string | null) => (typeof v === 'string' ? v : d);
 export const shareableSet = (s: unknown): s is SbcSet =>
   !!s && typeof s === 'object' && !Array.isArray(s) && Number.isInteger((s as SbcSet).setId) && (s as SbcSet).setId > 0;
 
-/** The public fields of a relayed set, normalized (wrong types become null, so they fail closed later). */
-export function setSnapshot(s: SbcSet): SetSnapshot {
+/** EA's set `endTime` is seconds left; further than this means a set without an end (Gold Upgrade: ~9 years). */
+const NO_END_SEC = 5 * 365 * 86400;
+const END_GRID_SEC = 300;
+
+/** Absolute end (unix seconds) from EA's seconds-left, on a 5 min grid so accounts relaying moments apart agree. */
+function absoluteEnd(left: number | null, nowSec: number): number | null {
+  if (left === null || left >= NO_END_SEC) return null;
+  return Math.round((nowSec + Math.max(0, left)) / END_GRID_SEC) * END_GRID_SEC;
+}
+
+/** The public fields of a set relayed at `nowSec`, normalized (wrong types become null, so they fail closed later). */
+export function setSnapshot(nowSec: number, s: SbcSet): SetSnapshot {
   const r = s as unknown as Record<string, unknown>;
   return {
     name: strOr(r.name, '') ?? '',
     description: strOr(r.description, '') ?? '',
     categoryId: numOr(r.categoryId),
     repeatabilityMode: strOr(r.repeatabilityMode, null),
-    endTime: numOr(r.endTime),
+    endTime: absoluteEnd(numOr(r.endTime), nowSec),
     raw: {
       releaseTime: numOr(r.releaseTime),
       hidden: typeof r.hidden === 'boolean' ? r.hidden : null,

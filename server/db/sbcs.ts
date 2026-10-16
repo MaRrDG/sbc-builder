@@ -45,8 +45,9 @@ export async function relaySets(sets: unknown[], personaId: number): Promise<num
   const list = uniqueBy(sets.filter(shareableSet), (s) => s.setId);
   await saveSets(list);
   if (!list.length) return 0;
+  const nowSec = Math.floor(Date.now() / 1000);
   const seen = list.map((s) => {
-    const snap = setSnapshot(s);
+    const snap = setSnapshot(nowSec, s);
     return { setId: s.setId, snap, fingerprint: setFingerprint(s.setId, snap) };
   });
   await db

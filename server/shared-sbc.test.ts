@@ -74,14 +74,14 @@ const sbcSet = (extra: Partial<SbcSet> = {}) =>
     releaseTime: 100, endTime: 200, setImageId: 'x', awards: [{ type: 'pack', value: 1 }], ...extra }) as SbcSet;
 
 test('set snapshot keeps only the public fields', () => {
-  assert.deepEqual(setSnapshot(sbcSet()), {
-    name: 'Marquee Matchups', description: 'Swap', categoryId: 3, repeatabilityMode: 'REFRESH', endTime: 200,
+  assert.deepEqual(setSnapshot(NOW, sbcSet()), {
+    name: 'Marquee Matchups', description: 'Swap', categoryId: 3, repeatabilityMode: 'REFRESH', endTime: NOW + 300,
     raw: { releaseTime: 100, hidden: false, awards: [{ type: 'pack', value: 1 }], repeats: 1, repeatRefreshInterval: 86400, challengesCount: 4 },
   });
 });
 
 test('set snapshot: wrong types become null / empty', () => {
-  const s = setSnapshot(sbcSet({ name: 5 as unknown as string, releaseTime: 'soon' as unknown as number, hidden: 'no' as unknown as boolean, awards: {} as unknown[] }));
+  const s = setSnapshot(NOW, sbcSet({ name: 5 as unknown as string, releaseTime: 'soon' as unknown as number, hidden: 'no' as unknown as boolean, awards: {} as unknown[] }));
   assert.equal(s.name, '');
   assert.equal(s.raw.releaseTime, null);
   assert.equal(s.raw.hidden, null);
@@ -89,12 +89,26 @@ test('set snapshot: wrong types become null / empty', () => {
 });
 
 test('set fingerprint ignores per-account progress, follows public fields, never looks like a challenge one', () => {
-  const fp = setFingerprint(16, setSnapshot(sbcSet()));
+  const fp = setFingerprint(16, setSnapshot(NOW, sbcSet()));
   assert.ok(fp.startsWith('set:'));
-  assert.equal(setFingerprint(16, setSnapshot(sbcSet({ timesCompleted: 9, challengesCompletedCount: 0, lastCompletedTime: 1 }))), fp);
-  assert.notEqual(setFingerprint(16, setSnapshot(sbcSet({ name: 'Free coins here' }))), fp);
-  assert.notEqual(setFingerprint(17, setSnapshot(sbcSet())), fp);
+  assert.equal(setFingerprint(16, setSnapshot(NOW, sbcSet({ timesCompleted: 9, challengesCompletedCount: 0, lastCompletedTime: 1 }))), fp);
+  assert.notEqual(setFingerprint(16, setSnapshot(NOW, sbcSet({ name: 'Free coins here' }))), fp);
+  assert.notEqual(setFingerprint(17, setSnapshot(NOW, sbcSet())), fp);
   assert.notEqual(fp.slice(4), challengesFingerprint(16, []));
+});
+
+const NOW = 1_800_000_000;
+
+test('set snapshot: EA endTime is seconds left, stored as an absolute time on a 5 min grid', () => {
+  // two accounts relaying a few seconds apart get the same snapshot (and fingerprint)
+  assert.equal(setSnapshot(NOW, sbcSet({ endTime: 17_636 })).endTime, NOW + 17_700);
+  assert.equal(setSnapshot(NOW + 40, sbcSet({ endTime: 17_596 })).endTime, NOW + 17_700);
+  assert.equal(setFingerprint(16, setSnapshot(NOW, sbcSet({ endTime: 17_636 }))), setFingerprint(16, setSnapshot(NOW + 40, sbcSet({ endTime: 17_596 }))));
+  // years away (permanent sets like Gold Upgrade) or missing: no end
+  assert.equal(setSnapshot(NOW, sbcSet({ endTime: 279_089_636 })).endTime, null);
+  assert.equal(setSnapshot(NOW, sbcSet({ endTime: undefined as unknown as number })).endTime, null);
+  // already over: ends now
+  assert.equal(setSnapshot(NOW, sbcSet({ endTime: -5 })).endTime, NOW);
 });
 
 test('a single untrusted relay with a changed name does not write the public snapshot', () => {
