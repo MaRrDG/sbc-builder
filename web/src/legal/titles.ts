@@ -1,6 +1,9 @@
 // Document names, kept apart from docs.ts (the whole texts) so the footer links stay in the small first chunk.
 import type { Lang } from '../i18n';
 
+/** Contact address on the legal pages and the landing footer. */
+export const CONTACT = 'contact@fc-solver.app';
+
 export type LegalDoc = 'terms' | 'privacy' | 'cookies' | 'refunds';
 export const LEGAL_DOCS: LegalDoc[] = ['terms', 'privacy', 'cookies', 'refunds'];
 

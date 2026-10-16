@@ -1,6 +1,6 @@
 // Public landing page (/): what FC Solver does and why it beats market-price solvers.
 // Lazy-loaded by Root for everyone (signed in or not); the app itself lives under /dashboard.
-import { LEGAL_DOCS, LEGAL_TITLES } from '../legal/titles';
+import { CONTACT, LEGAL_DOCS, LEGAL_TITLES } from '../legal/titles';
 import { APP_VERSION } from '../../../shared/changelog';
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { billingConfig } from '../billing/paddle';
@@ -183,7 +183,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
               <li><a className="lp-foot-link" href="#pricing">{t('landing.nav.pricing')}</a></li>
               <li>{link({ view: 'changelog' }, 'lp-foot-link', t('landing.footer.changelog'))}</li>
               <li>{link({ view: 'sbcHub' }, 'lp-foot-link', t('landing.footer.sbcs'))}</li>
-              <li><a className="lp-foot-link" href="mailto:contact@fc-solver.app">{t('landing.footer.contact')}</a></li>
+              <li><a className="lp-foot-link" href={`mailto:${CONTACT}`}>{t('landing.footer.contact')}</a></li>
             </ul>
           </div>
           <div>

@@ -2,12 +2,11 @@
 // whole documents instead of t() keys; docs.test.ts keeps the languages in step.
 // Change UPDATED whenever a document's meaning changes.
 import type { Lang } from '../i18n';
-import { LEGAL_DOCS, type LegalDoc } from './titles';
-export { LEGAL_DOCS, type LegalDoc };
+import { CONTACT, LEGAL_DOCS, type LegalDoc } from './titles';
+export { CONTACT, LEGAL_DOCS, type LegalDoc };
 const PADDLE_TERMS = 'paddle.com/legal/checkout-buyer-terms';
 
 export const OPERATOR = 'Mario Dragut';
-export const CONTACT = 'contact@fc-solver.app';
 export const UPDATED = '2026-10-13';
 
 export interface Section {
