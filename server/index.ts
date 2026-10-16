@@ -589,7 +589,7 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     const limited = async () => {
       await blockLink(userId);
       await consumeLinkToken(token!);
-      return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked: null, linkRejected: true, linkLimit: true, clubQueued: false };
+      return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked: null, linkRejected: true, linkLimit: true, clubQueued: false, owned: true };
     };
     if (owner !== userId && overLinkLimit(await personaLinkUsers(r.account.id), userId)) return limited();
     // owned by someone else: only a fresh EA proof moves it; the token stays usable for the resend
@@ -612,7 +612,9 @@ app.post<{ Body: { personaId?: number; sid?: string; contentGuid?: string; extVe
     // newly linked here: load the club now (the site re-sends tokens every few minutes, so not on 'already')
     if (decision !== 'already') clubQueued = await syncOnLink(r.account);
   }
-  return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked, linkRejected: !!token && !userId, clubQueued };
+  // owned = the persona has any FC Solver owner (not necessarily this site user)
+  const owned = linked !== null || !!(await personaRow(r.account.id))?.userId;
+  return { ok: true, account: r.account, accessKey: r.account.info.accessKey, linked, linkRejected: !!token && !userId, clubQueued, owned };
 });
 
 const LONG_POLL_MS = 20_000; // under nginx's 60 s proxy timeout and the 30 s open / live windows
