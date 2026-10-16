@@ -965,7 +965,7 @@ if (existsSync(dist)) app.get('/', (req, reply) => sendPage(req, reply, '/'));
 app.setNotFoundHandler((req, reply) => {
   const path = req.url.split('?')[0];
   // files (with an extension) that do not exist stay 404, so a stale page never gets HTML as JS
-  if (req.method === 'GET' && !path.startsWith('/api/') && !/\.[a-z0-9]+$/i.test(path) && existsSync(dist))
+  if ((req.method === 'GET' || req.method === 'HEAD') && !path.startsWith('/api/') && !/\.[a-z0-9]+$/i.test(path) && existsSync(dist))
     return sendPage(req, reply, path.replace(/\/+$/, '') || '/');
   return reply.code(404).send({ error: 'not found' });
 });
