@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { CHANGELOG, checkEntries, hasUnread, latestEnglish, type ChangelogEntry } from './changelog.js';
+import { APP_VERSION, CHANGELOG, checkEntries, compareVersions, hasUnread, latestEnglish, type ChangelogEntry } from './changelog.js';
 
 const entry = (id: string, n = 1): ChangelogEntry => {
   const items = Array.from({ length: n }, (_, i) => `item ${i}`);
@@ -48,4 +48,21 @@ test('hasUnread: only when the newest entry was not seen', () => {
   assert.equal(hasUnread(list, '2026-10-12'), true);
   assert.equal(hasUnread(list, '2026-10-13'), false);
   assert.equal(hasUnread([], null), false);
+});
+
+test('versions are semver and only go up, newest first', () => {
+  const versioned = CHANGELOG.filter((e) => e.version);
+  assert.ok(versioned.length >= 1);
+  for (const e of versioned) assert.match(e.version!, /^\d+\.\d+\.\d+$/);
+  for (let i = 1; i < versioned.length; i++) assert.ok(compareVersions(versioned[i - 1].version!, versioned[i].version!) > 0);
+});
+
+test('APP_VERSION is the newest entry version', () => {
+  assert.equal(APP_VERSION, CHANGELOG.find((e) => e.version)!.version);
+});
+
+test('compareVersions', () => {
+  assert.ok(compareVersions('1.10.0', '1.9.3') > 0);
+  assert.ok(compareVersions('1.0.0', '1.0.1') < 0);
+  assert.equal(compareVersions('2.0.0', '2.0.0'), 0);
 });

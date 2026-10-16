@@ -2,7 +2,7 @@
 // Discord itself is the state: the bot looks for its own post of an entry before posting it.
 import { brandEmbed, linkRow } from './content.js';
 
-export interface BotEntry { id: string; date: string; items: string[] }
+export interface BotEntry { id: string; date: string; version?: string; items: string[] }
 type Seen = { authorId: string; content: string }[];
 
 const changelogUrl = (siteUrl: string) => `${siteUrl.replace(/\/+$/, '')}/changelog`;
@@ -18,7 +18,7 @@ export function changelogPost(e: BotEntry, siteUrl: string, icon?: string) {
   const url = changelogUrl(siteUrl);
   let text = e.items.map((s) => `• ${s}`).join('\n');
   if (text.length > 4000) text = `${text.slice(0, 3999)}…`; // embed descriptions stop at 4096
-  const embed = brandEmbed(icon).setTitle(`FC Solver v1 · ${dateLabel(e.date)}`).setURL(url).setDescription(text);
+  const embed = brandEmbed(icon).setTitle(`FC Solver v${e.version ?? '1'} · ${dateLabel(e.date)}`).setURL(url).setDescription(text);
   return { content: changelogMessage(e.id), embeds: [embed], components: [linkRow('Read the changelog', url)], allowedMentions: { parse: [] as [] } };
 }
 

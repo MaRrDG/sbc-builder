@@ -11,6 +11,8 @@ test('post: content line, title with v1 and the date, bullets, button to /change
   assert.equal(p.content, 'Changelog 2026-10-12');
   const e = p.embeds[0].toJSON();
   assert.equal(e.title, 'FC Solver v1 · 12 Oct 2026');
+  const v = changelogPost({ ...entry('2026-10-16'), version: '1.2.0' }, 'https://fcsolver.gg/').embeds[0].toJSON();
+  assert.equal(v.title, 'FC Solver v1.2.0 · 16 Oct 2026');
   assert.equal(e.url, 'https://fcsolver.gg/changelog');
   assert.equal(e.description, '• First\n• Second');
   assert.equal((p.components[0].toJSON().components[0] as { url?: string }).url, 'https://fcsolver.gg/changelog');

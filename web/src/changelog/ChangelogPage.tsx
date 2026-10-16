@@ -37,6 +37,7 @@ export function ChangelogPage({ navigate, signedIn }: { navigate: (r: Route) => 
           <section key={e.id} id={e.id}>
             <h2>
               <time dateTime={e.date}>{date(e.date)}</time>
+              {e.version && <span className="changelog-version"> {t('changelog.version', { v: e.version })}</span>}
             </h2>
             <ul>
               {e.items[lang].map((s) => (

@@ -2,9 +2,6 @@
 // One entry per deploy day with user-visible changes, newest first. Each language is written for its readers, not
 // machine-translated. A second entry on the same day gets the id `YYYY-MM-DD-2`. `npm test` checks the list.
 
-/** The product version. Stays "1" until the public launch. */
-export const APP_VERSION = '1';
-
 export type ChangelogLang = 'en' | 'ro' | 'it';
 export const CHANGELOG_LANGS: readonly ChangelogLang[] = ['en', 'ro', 'it'];
 
@@ -13,6 +10,8 @@ export interface ChangelogEntry {
   id: string;
   /** YYYY-MM-DD */
   date: string;
+  /** Semver of the release this entry shipped in; entries before 2026-10-16 have none. */
+  version?: string;
   items: Record<ChangelogLang, string[]>;
 }
 
@@ -20,6 +19,7 @@ export const CHANGELOG: ChangelogEntry[] = [
   {
     id: '2026-10-16',
     date: '2026-10-16',
+    version: '1.0.0',
     items: {
       en: ['New public SBC pages: every live SBC with its requirements, rewards and how many FC Solver players solved it, at fc-solver.app/sbcs. Open one and solve it with your own club in one click'],
       ro: ['Pagini publice pentru SBC-uri: fiecare SBC activ cu cerințele, recompensele și câți jucători FC Solver l-au rezolvat, la fc-solver.app/sbcs. Deschide unul și rezolvă-l cu clubul tău dintr-un clic'],
@@ -158,9 +158,18 @@ export function checkEntries(entries: ChangelogEntry[]): string[] {
   return out;
 }
 
+export function compareVersions(a: string, b: string): number {
+  const pa = a.split('.').map(Number), pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if (pa[i] !== pb[i]) return pa[i] - pb[i];
+  return 0;
+}
+
+/** The product version: the newest changelog entry's. Semver since v1 shipped (2026-10-16). */
+export const APP_VERSION = CHANGELOG.find((e) => e.version)?.version ?? '1.0.0';
+
 /** The newest `n` entries with their English items: what the Discord bot posts. */
 export const latestEnglish = (entries: ChangelogEntry[], n: number) =>
-  entries.slice(0, n).map((e) => ({ id: e.id, date: e.date, items: e.items.en }));
+  entries.slice(0, n).map((e) => ({ id: e.id, date: e.date, ...(e.version ? { version: e.version } : {}), items: e.items.en }));
 
 /** True when the newest entry is not the last one the user saw. */
 export const hasUnread = (entries: ChangelogEntry[], seen: string | null) => entries.length > 0 && entries[0].id !== seen;
