@@ -19,7 +19,7 @@ async function renderStatus() {
   const paused = !!syncPaused && live && !working;
   const almost = live && !working && !paused && ownedBy[currentPersona] === false;
   $('signin').hidden = !almost;
-  $('signin').onclick = () => chrome.tabs.create({ url: `${server}/signin?next=%2Fdashboard` });
+  $('signin').onclick = () => /^https?:\/\//i.test(server) && chrome.tabs.create({ url: `${server}/signin?next=%2Fdashboard` });
   el.className = working ? 'busy' : paused ? 'paused' : almost ? 'almost' : live ? 'live' : 'off';
   el.replaceChildren();
   const title = document.createElement('b');
@@ -59,8 +59,12 @@ $('pause').onclick = async () => {
 };
 
 $('save').onclick = async () => {
-  const server = $('server').value.replace(/\/$/, '');
-  await chrome.storage.local.set({ server, keys: [], accessKey: null, personaKeys: {}, connectedAs: null });
+  const server = $('server').value.trim().replace(/\/$/, '');
+  if (!/^https?:\/\//i.test(server)) {
+    await chrome.storage.local.set({ lastStatus: 'Server error: the address must start with http:// or https://', lastAt: Date.now() });
+    return;
+  }
+  await chrome.storage.local.set({ server, keys: [], accessKey: null, personaKeys: {}, connectedAs: null, ownedBy: {}, currentPersona: null });
   await chrome.storage.session.remove('helloFor');
   $('open').href = openUrl(server);
   await chrome.storage.session.remove('lastPollOkAt');

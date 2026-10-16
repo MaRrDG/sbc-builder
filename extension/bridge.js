@@ -204,8 +204,8 @@ function showLinkNotice(server) {
 async function syncLinkNotice() {
   let closed = false;
   try { closed = sessionStorage.getItem('fcsolver-link-notice') === '1'; } catch {}
-  const { ownedBy = {}, currentPersona, server } = await chrome.storage.local.get(['ownedBy', 'currentPersona', 'server']);
-  const unowned = !!server && ownedBy[currentPersona] === false;
+  const { ownedBy, currentPersona, server } = await chrome.storage.local.get({ server: 'http://localhost:5178', ownedBy: {}, currentPersona: null });
+  const unowned = /^https?:\/\//i.test(server) && ownedBy[currentPersona] === false;
   if (!unowned) document.getElementById('fc-solver-link')?.remove();
   else if (!closed) showLinkNotice(server);
 }

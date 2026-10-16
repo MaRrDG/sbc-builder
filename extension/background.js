@@ -122,7 +122,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   // first install only (never on updates): show where the one step left happens
   if (details.reason === 'install') {
     const { server } = await state();
-    chrome.tabs.create({ url: `${server}/dashboard?ext=installed` }).catch(() => {});
+    if (/^https?:\/\//i.test(server)) chrome.tabs.create({ url: `${server}/dashboard?ext=installed` }).catch(() => {});
   }
 });
 
