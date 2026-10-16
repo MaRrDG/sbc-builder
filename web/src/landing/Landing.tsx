@@ -1,6 +1,6 @@
 // Public landing page (/): what FC Solver does and why it beats market-price solvers.
 // Lazy-loaded by Root for everyone (signed in or not); the app itself lives under /dashboard.
-import { LEGAL, LEGAL_DOCS } from '../legal/docs';
+import { LEGAL_DOCS, LEGAL_TITLES } from '../legal/titles';
 import { APP_VERSION } from '../../../shared/changelog';
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react';
 import { billingConfig } from '../billing/paddle';
@@ -204,7 +204,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
             <h2>{t('landing.footer.legalTitle')}</h2>
             <ul>
               {LEGAL_DOCS.map((d) => (
-                <li key={d}>{link({ view: 'legal', doc: d }, 'lp-foot-link', LEGAL[lang][d].title)}</li>
+                <li key={d}>{link({ view: 'legal', doc: d }, 'lp-foot-link', LEGAL_TITLES[lang][d])}</li>
               ))}
             </ul>
           </div>
