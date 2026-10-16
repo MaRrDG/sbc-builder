@@ -113,12 +113,17 @@ chrome.runtime.onStartup.addListener(() => {
   startAlarm();
   refreshBadge();
 });
-chrome.runtime.onInstalled.addListener(() => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   reportVersion();
   checkForUpdate(true);
   startAlarm();
   refreshBadge();
   injectSiteScript();
+  // first install only (never on updates): show where the one step left happens
+  if (details.reason === 'install') {
+    const { server } = await state();
+    chrome.tabs.create({ url: `${server}/dashboard?ext=installed` }).catch(() => {});
+  }
 });
 
 /** Content scripts only reach pages loaded after install: give FC Solver tabs already open site.js now, so they link without a reload. */
@@ -171,7 +176,11 @@ async function hello(identity) {
       await chrome.storage.local.set({ lastStatus: `Server error: ${body.error ?? res.status}`, lastAt: Date.now() });
       return;
     }
+    // a server without `owned` (older) counts as owned: no false alarm
+    const { ownedBy = {} } = await chrome.storage.local.get({ ownedBy: {} });
     await chrome.storage.local.set({
+      ownedBy: { ...ownedBy, [identity.personaId]: body.owned !== false },
+      currentPersona: identity.personaId,
       accessKey: body.accessKey,
       personaKeys: { ...personaKeys, [identity.personaId]: body.accessKey },
       keys: [...new Set([body.accessKey, ...keys])],

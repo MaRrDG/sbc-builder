@@ -15,6 +15,7 @@
       #status.live { background: #3ecf6e1a; border-color: #3ecf6e55; color: #7ee2a0; }
       #status.off { background: #e5484d1f; border-color: #e5484d66; color: #ff9a9d; }
       #status.paused { background: #8a96901f; border-color: #8a969066; color: #c9d2cd; }
+      #status.almost { background: #f59e0b1f; border-color: #f59e0b80; color: #fbbf24; }
       #status.busy { background: #f5c5421f; border-color: #f5c54266; color: #ffd66b; }
       #status.busy::before { animation: pulse 900ms ease-in-out infinite alternate; }
       @keyframes pulse { from { opacity: 1; } to { opacity: .35; } }
@@ -22,6 +23,7 @@
       #status b { font-weight: 600; }
       #status small { grid-column: 2; color: #f3f1ea99; }
       button, a { margin-top: 10px; display: inline-block; padding: 6px 10px; border-radius: 6px; border: 0; background: #c8f53c; color: #0d1411; font-weight: 600; text-decoration: none; cursor: pointer; }
+      [hidden] { display: none !important; }
       #pause { display: block; width: 100%; background: transparent; color: #f3f1ea; border: 1px solid #2a3a33; }
       #pause[aria-pressed='true'] { border-color: #c8f53c; color: #c8f53c; }
     </style>
@@ -29,6 +31,7 @@
   <body>
     <h1><img src="icons/icon-48.png" alt="" /> FC Solver <span id="version"></span></h1>
     <div id="status" class="off" role="status"><b>Not connected</b></div>
+    <button id="signin" type="button" hidden>Sign in to FC Solver</button>
     <button id="pause" type="button" aria-pressed="false">Pause sync</button>
     <div id="update" hidden></div>
     <label for="server">FC Solver server</label>

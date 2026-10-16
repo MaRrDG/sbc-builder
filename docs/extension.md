@@ -28,6 +28,13 @@ The extension is the bridge between the player's logged-in FC27 web app and FC S
 
 The extension is **connected** when a web app tab polled FC Solver successfully in the last 30 s. It connects by itself when you open the web app (identity → `/api/hello` → first poll). The toolbar badge shows a green dot when connected, a yellow dot while connecting or running a sync job (the popup names it: club, SBC list, challenges, SBC squad, Evolutions, squads) and a red dot when not connected (**NEW** wins while an update is waiting); an `alarms` tick every 30 s turns it red soon after the tab closes. The popup shows the same state in green or red, with the linked account. Without a key (first run, server address changed, failed hello) the next poll asks the tab to introduce itself again, so no web app reload is needed; proving an account with the SID happens at most once a minute. When not connected the popup also shows the last error.
 
+### First install and the "one step left" state (1.1.0)
+
+- On a **fresh install** (never on an update) the worker opens `<server>/dashboard?ext=installed`, so the person sees the one step left.
+- `/api/hello` answers `owned` (does the EA account have an FC Solver owner). The worker stores `ownedBy[personaId]` and `currentPersona` in `chrome.storage.local`; a server without `owned` counts as owned (no false alarm).
+- Popup states: red (not connected), **amber "Almost done"** (connected, but `ownedBy[currentPersona] === false`; shows **Sign in to FC Solver**, opening `<server>/signin?next=/dashboard`), green (connected), yellow (busy), grey (paused). Busy and paused win over amber.
+- In the web app, `bridge.js` shows a dismissible notice (bottom left, shadow DOM, so it never overlaps the update notice at the top or the sync toasts at the bottom right) while the account is unowned. It reads `chrome.storage.local` and follows `chrome.storage.onChanged`, so it disappears once the link succeeds. Closing it (×) hides it for that tab session (`sessionStorage['fcsolver-link-notice']`).
+
 ## Access keys and "Open FC Solver"
 
 Access keys stay inside the extension (`X-Account-Key` on its own requests). Since 0.8 the popup opens `<server>/dashboard` (or `<server>/dashboard?update=1`); you sign in to FC Solver itself, and the site finds your EA accounts through `/api/me`. Older versions opened `<server>/#keys=…`; `/` with that hash (or an `?update=1` query) still routes straight to the app instead of the landing page, and the site reads the keys once, only to move saved solver settings to the persona.

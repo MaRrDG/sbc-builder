@@ -9,7 +9,7 @@ const LIVE_MS = 30 * 1000;
 
 /** Green when a web app tab talked to FC Solver in the last 30 s, red otherwise. */
 async function renderStatus() {
-  const { connectedAs, accessKey, lastStatus, syncPaused } = await chrome.storage.local.get(['connectedAs', 'accessKey', 'lastStatus', 'syncPaused']);
+  const { connectedAs, accessKey, lastStatus, syncPaused, ownedBy = {}, currentPersona, server = 'http://localhost:5178' } = await chrome.storage.local.get(['connectedAs', 'accessKey', 'lastStatus', 'syncPaused', 'ownedBy', 'currentPersona', 'server']);
   $('pause').textContent = syncPaused ? 'Resume sync' : 'Pause sync';
   $('pause').setAttribute('aria-pressed', syncPaused ? 'true' : 'false');
   const { lastPollOkAt = 0, busy } = await chrome.storage.session.get(['lastPollOkAt', 'busy']);
@@ -17,19 +17,24 @@ async function renderStatus() {
   const working = !!busy && Date.now() - busy.since < 3 * 60 * 1000;
   const el = $('status');
   const paused = !!syncPaused && live && !working;
-  el.className = working ? 'busy' : paused ? 'paused' : live ? 'live' : 'off';
+  const almost = live && !working && !paused && ownedBy[currentPersona] === false;
+  $('signin').hidden = !almost;
+  $('signin').onclick = () => chrome.tabs.create({ url: `${server}/signin?next=%2Fdashboard` });
+  el.className = working ? 'busy' : paused ? 'paused' : almost ? 'almost' : live ? 'live' : 'off';
   el.replaceChildren();
   const title = document.createElement('b');
-  title.textContent = working ? `${busy.label}…` : paused ? 'Sync paused' : live ? 'Connected' : 'Not connected';
+  title.textContent = working ? `${busy.label}…` : paused ? 'Sync paused' : almost ? 'Almost done' : live ? 'Connected' : 'Not connected';
   const detail = document.createElement('small');
   const problem = /error|not reachable|failed/i.test(lastStatus ?? '') ? ` Last: ${lastStatus}` : '';
   detail.textContent = working
     ? connectedAs ?? 'Talking to EA from your web app tab'
     : paused
     ? 'FC Solver asks EA for nothing until you resume. Syncs you start wait until then.'
+    : almost
+    ? `Connected to EA as ${connectedAs ?? 'your account'}, but not to an FC Solver account yet. Sign in on FC Solver with this web app open.`
     : live
     ? connectedAs ?? 'Web app open'
-    : (accessKey ? 'Open the FC27 web app in this browser.' : 'Open the FC27 web app and log in to link your account.') + problem;
+    : 'Open the FC27 web app in this browser and log in to EA.' + problem;
   el.append(title, detail);
 }
 renderStatus();

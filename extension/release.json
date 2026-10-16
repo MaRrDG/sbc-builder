@@ -1,4 +1,7 @@
 {
+  "1.1.0": [
+    "Opens FC Solver right after you install it, and tells you (in the popup and in the web app) when your EA account still needs an FC Solver sign-in"
+  ],
   "1.0.7": [
     "Tells FC Solver whether it came from the Chrome Web Store, so the site shows the right way to update"
   ],

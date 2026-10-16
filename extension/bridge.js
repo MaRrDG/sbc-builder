@@ -168,3 +168,50 @@ chrome.runtime.sendMessage({ type: 'update-status' }, (res) => {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => showUpdateNotice(res));
   else showUpdateNotice(res);
 });
+
+// "One step left" notice while this EA account has no FC Solver owner. Bottom left: the update
+// notice sits top centre and the sync toasts bottom right, so nothing overlaps.
+function showLinkNotice(server) {
+  if (document.getElementById('fc-solver-link')) return;
+  const host = document.createElement('div');
+  host.id = 'fc-solver-link';
+  const root = host.attachShadow({ mode: 'closed' });
+  root.innerHTML = `
+    <style>
+      .bar { position: fixed; left: 16px; bottom: 16px; z-index: 2147483647; display: flex; align-items: center;
+        gap: 12px; max-width: min(460px, calc(100vw - 32px)); padding: 10px 8px 10px 14px; border-radius: 12px;
+        background: #0d1411; color: #f3f1ea; border: 1px solid #f59e0b99; box-shadow: 0 12px 32px #0009;
+        font: 13px/1.4 system-ui, sans-serif; }
+      b { color: #fbbf24; }
+      a, button { font: inherit; font-weight: 600; border-radius: 8px; cursor: pointer; white-space: nowrap; flex: none; }
+      a { padding: 6px 12px; background: #c8f53c; color: #0d1411; text-decoration: none; }
+      button { padding: 4px 8px; border: 0; background: transparent; color: #a9bcc1; }
+      button:hover { color: #fff; }
+    </style>
+    <div class="bar" role="status">
+      <div><b>FC Solver:</b> one step left. Sign in on FC Solver to link this EA account.</div>
+      <a target="_blank" rel="noopener">Sign in</a>
+      <button type="button" aria-label="Close">×</button>
+    </div>`;
+  root.querySelector('a').href = `${server}/signin?next=%2Fdashboard`;
+  root.querySelector('button').onclick = () => {
+    try { sessionStorage.setItem('fcsolver-link-notice', '1'); } catch {}
+    host.remove();
+  };
+  document.documentElement.appendChild(host);
+}
+
+async function syncLinkNotice() {
+  let closed = false;
+  try { closed = sessionStorage.getItem('fcsolver-link-notice') === '1'; } catch {}
+  const { ownedBy = {}, currentPersona, server } = await chrome.storage.local.get(['ownedBy', 'currentPersona', 'server']);
+  const unowned = !!server && ownedBy[currentPersona] === false;
+  if (!unowned) document.getElementById('fc-solver-link')?.remove();
+  else if (!closed) showLinkNotice(server);
+}
+const startLinkNotice = () => { syncLinkNotice().catch(() => {}); };
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startLinkNotice);
+else startLinkNotice();
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && (changes.ownedBy || changes.currentPersona || changes.server)) startLinkNotice();
+});
