@@ -11,14 +11,14 @@ export interface PageMeta {
 /** Public, indexable pages. Everything else (the app under /dashboard, sign-in) is noindex. */
 const PAGES: Record<string, PageMeta> = {
   '/': {
-    title: 'FC Solver · EA FC 27 SBC solver for your own club',
+    title: 'FC Solver · SBC Solver & Builder for EA FC 27',
     description:
-      'Solve EA FC 27 Squad Building Challenges with the players you already own. FC Solver finds the cheapest valid squad from your club and SBC storage, checks every requirement and chemistry, and never buys, sells or submits anything.',
+      'Automatic SBC solver and SBC builder for EA FC 27: FC Solver finds the cheapest valid squad from the players you already own, club and SBC storage included, checks every requirement and chemistry, and never buys, sells or submits anything.',
   },
   '/guide': {
-    title: 'How FC Solver works · EA FC 27 SBC solver',
+    title: 'How the FC Solver SBC solver works · EA FC 27',
     description:
-      'How FC Solver reads your EA FC 27 club and SBC list through a small Chrome extension, finds the cheapest squad for each challenge and leaves the building to you in the web app.',
+      'How the FC Solver SBC solver reads your EA FC 27 club and SBC list through a small Chrome extension, builds the cheapest squad for each challenge automatically and leaves the submitting to you.',
   },
   '/setup': {
     title: 'Install the FC Solver extension · EA FC 27',

@@ -13,7 +13,7 @@ export const en = {
   // browser tab titles of the public pages
   'legal.nav': 'Legal',
   'legal.updated': 'Last updated: {date}',
-  'meta.landing': 'FC Solver · EA FC 27 SBC solver for your own club',
+  'meta.landing': 'FC Solver · SBC Solver & Builder for EA FC 27',
   'meta.guide': 'How FC Solver works · EA FC 27 SBC solver',
   'meta.setup': 'Install the FC Solver extension · EA FC 27',
   'meta.daily': "FC Solver Daily · Guess today's EA FC player",
@@ -1018,6 +1018,7 @@ export const en = {
   'landing.footer.setup': 'Setup guide',
   'landing.footer.guide': 'How it works',
   'landing.footer.changelog': 'Changelog',
+  'landing.footer.contact': 'Contact',
   'landing.how.title': 'Up and running in three steps',
   'landing.how.s1.title': 'Install the extension',
   'landing.how.s1.body': 'A small Chrome extension links your EA web app tab to FC Solver. It never asks for your EA password.',

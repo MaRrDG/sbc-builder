@@ -8,7 +8,7 @@ type Plural<K> = K extends `${infer B}_other` ? `${B}_few` : never;
 export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = {
   'legal.nav': 'Informații legale',
   'legal.updated': 'Ultima actualizare: {date}',
-  'meta.landing': 'FC Solver · soluții SBC EA FC 27 din clubul tău',
+  'meta.landing': 'FC Solver · SBC Solver și Builder pentru EA FC 27',
   'meta.guide': 'Cum funcționează FC Solver · SBC-uri EA FC 27',
   'meta.setup': 'Instalează extensia FC Solver · EA FC 27',
   'meta.daily': 'FC Solver Daily · Ghicește jucătorul EA FC al zilei',
@@ -1037,6 +1037,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'landing.footer.setup': 'Ghid de instalare',
   'landing.footer.guide': 'Cum funcționează',
   'landing.footer.changelog': 'Noutăți',
+  'landing.footer.contact': 'Contact',
   'landing.how.title': 'Gata de folosit în trei pași',
   'landing.how.s1.title': 'Instalezi extensia',
   'landing.how.s1.body': 'O extensie mică de Chrome leagă tab-ul tău de web app EA de FC Solver. Nu îți cere niciodată parola EA.',

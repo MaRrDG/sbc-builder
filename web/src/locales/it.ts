@@ -17,7 +17,7 @@ export const it: Record<Keys, string> = {
   // browser tab titles of the public pages
   'legal.nav': 'Note legali',
   'legal.updated': 'Ultimo aggiornamento: {date}',
-  'meta.landing': 'FC Solver · risolvi le SBC di EA FC 27 con il tuo club',
+  'meta.landing': 'FC Solver · SBC Solver e Builder per EA FC 27',
   'meta.guide': 'Come funziona FC Solver · SBC di EA FC 27',
   'meta.setup': 'Installa l’estensione FC Solver · EA FC 27',
   'meta.daily': 'FC Solver Daily · Indovina il giocatore EA FC di oggi',
@@ -1022,6 +1022,7 @@ export const it: Record<Keys, string> = {
   'landing.footer.setup': 'Guida di configurazione',
   'landing.footer.guide': 'Come funziona',
   'landing.footer.changelog': 'Novità',
+  'landing.footer.contact': 'Contatti',
   'landing.how.title': 'Pronto in tre passi',
   'landing.how.s1.title': 'Installa l’estensione',
   'landing.how.s1.body': 'Una piccola estensione per Chrome collega la scheda della tua web app EA a FC Solver. Non chiede mai la tua password EA.',

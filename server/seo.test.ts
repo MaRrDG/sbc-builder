@@ -114,3 +114,11 @@ test('analytics snippet warnings: cookieless, deferred, site and domain set', ()
   assert.equal(analyticsWarnings(ok.replace(' data-domain="fc-solver.app"', '')).length, 1);
   assert.equal(analyticsWarnings(ok.replace(' data-website-id="abc"', '')).length, 1);
 });
+
+test('home and guide meta carry the search terms', () => {
+  const home = pageMeta('/')!;
+  assert.match(home.title, /SBC Solver/);
+  assert.match(home.title, /Builder/);
+  assert.match(home.description, /SBC builder/i);
+  assert.match(pageMeta('/guide')!.description, /SBC solver/i);
+});
