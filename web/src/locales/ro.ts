@@ -612,7 +612,7 @@ export const ro: Record<Keys, string> & Partial<Record<Plural<Keys>, string>> = 
   'onb.linkTitleInstalled': 'Extensie instalată',
   'onb.linkLede': 'Deschide web app-ul FC27 în acest browser și intră în EA. Contul tău EA se leagă singur de FC Solver în câteva secunde. Ține acest tab deschis.',
   'onb.openWebApp': 'Deschide web app-ul FC27',
-  'onb.waiting': 'Aștept web app-ul…',
+  'onb.waiting': 'Se așteaptă web app-ul…',
   'onb.needInstall': 'Ai nevoie de ghidul de instalare?',
   'sync.phoneLive': 'Web app-ul EA e deschis pe PC: sincronizările rulează acolo acum.',
   'sync.phoneOffline': 'Deschide web app-ul EA pe PC ca să sincronizezi. Rulează acolo, nu pe telefon.',

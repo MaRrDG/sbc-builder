@@ -1825,9 +1825,13 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, present
   // the extension opens /dashboard?ext=installed on its first install
   const fromInstall = new URLSearchParams(window.location.search).get('ext') === 'installed';
   const mode = onboardingMode({ present, phone, fromInstall });
+  // a late `present` must not record a false `install`: report the mode once it has settled
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   useEffect(() => {
-    track('onboarding_mode', { mode });
-  }, [mode]);
+    const id = setTimeout(() => track('onboarding_mode', { mode: modeRef.current }), 1500);
+    return () => clearTimeout(id);
+  }, []);
   return (
     <div className="onboarding">
       <div className="brand onboarding-top">

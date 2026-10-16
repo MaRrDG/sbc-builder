@@ -5001,6 +5001,20 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .cost-dialog p { margin: 0 0 16px; font-size: 13px; }
 @media (max-width: 480px) { .squad-avg-how { margin-left: 0; } }
 
+/* disclosures: visible chevron + focus ring */
+.setup-zip summary, .onb-phone-guide summary { gap: 8px; list-style: none; }
+.setup-zip summary::-webkit-details-marker, .onb-phone-guide summary::-webkit-details-marker { display: none; }
+.setup-zip summary::before, .onb-phone-guide summary::before {
+  content: ''; flex: none; width: 8px; height: 8px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  transform: translateY(-2px) rotate(-45deg);
+}
+.setup-zip[open] > summary::before, .onb-phone-guide[open] > summary::before { transform: translateY(-2px) rotate(45deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .setup-zip summary::before, .onb-phone-guide summary::before { transition: transform 0.15s; }
+}
+.setup-zip summary:focus-visible, .onb-phone-guide summary:focus-visible { outline: 2px solid var(--go); outline-offset: 2px; border-radius: 6px; }
+
 /* extension-first onboarding: Store step, zip fallback, "extension found" title */
 .setup-zip { margin-top: 12px; max-width: 760px; }
 .setup-zip summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--ink-2); }

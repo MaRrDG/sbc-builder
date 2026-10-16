@@ -80,7 +80,7 @@ export function SetupGuide({ compact = false }: { compact?: boolean }) {
               <h3>{t('setup.s1')}</h3>
               <p>{t('setup.s1p')}</p>
             </div>
-            <a className="step-action primary" href={extensionZipUrl()} download>
+            <a className="step-action ghost-strong" href={extensionZipUrl()} download>
               <DownloadSimple weight="bold" /> {t('setup.s1b')}
             </a>
           </li>
