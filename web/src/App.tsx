@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from 'react';
-import { ArrowLeft, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Strategy, Target, UsersThree, X } from '@phosphor-icons/react';
+import { ArrowLeft, ArrowSquareOut, ArrowsClockwise, Barbell, BookOpenText, ClockCounterClockwise, Cards, ChartBar, CheckCircle, Crown, FrameCorners, GearSix, Gift, LinkSimple, List, Prohibit, Question, SlidersHorizontal, SoccerBall, Strategy, Target, UsersThree, X } from '@phosphor-icons/react';
 import { BootSkeleton } from './components/BootSkeleton';
 import { DiscordIcon } from './components/DiscordIcon';
 import {
@@ -27,7 +27,8 @@ import { LangMenu } from './components/LangMenu';
 import { Guide } from './components/Guide';
 import { errorText, reasonText } from './messages';
 import { PlayerPanel } from './components/PlayerPanel';
-import { SetupGuide } from './components/SetupGuide';
+import { SetupGuide, WEB_APP } from './components/SetupGuide';
+import { onboardingMode } from './onboarding';
 import { UpdateBanner, needsUpdate, releaseFor, updateRequired, type ExtensionRelease } from './components/UpdateBanner';
 import { AccountMenu } from './components/AccountMenu';
 import { PlanCard } from './components/PlanCard';
@@ -427,7 +428,7 @@ export default function App({
     track('extension_linked');
     void migrateLegacyKeys().then(loadMe);
   }, [loadMe]);
-  useExtensionLink(true, onLinked);
+  const { present: extPresent } = useExtensionLink(true, onLinked);
 
   // the persona was disconnected or taken over elsewhere: reload who we are
   const onApiError = useCallback(
@@ -934,7 +935,7 @@ export default function App({
       <>
         {survey}
         {deletionBanner}
-        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver}
+        <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} present={extPresent}
           yourData={<YourDataCard deleteAt={deleteAt} onChange={() => void loadMe().catch(onApiError)} />} />
       </>
     );
@@ -1081,9 +1082,13 @@ export default function App({
       {!account?.session && (
         <div className="notice">
           {t('notice.webAppClosed')}{' '}
-          <button type="button" className="text" onClick={() => go('setup')}>
-            {t('notice.noExtension')}
-          </button>{' '}
+          {!extPresent && (
+            <>
+              <button type="button" className="text" onClick={() => go('setup')}>
+                {t('notice.noExtension')}
+              </button>{' '}
+            </>
+          )}
           <button type="button" className="text" onClick={() => go('guide')}>
             {t('notice.howItWorks')}
           </button>
@@ -1808,12 +1813,21 @@ export default function App({
   );
 }
 
-function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, yourData }: {
+function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, present, yourData }: {
   error: string | null; lang: Lang; setLang: (l: Lang) => void; email: string; onSignOut: () => void; takenOver: boolean;
+  /** the extension announced itself on this page */
+  present: boolean;
   /** Settings "Your data": without an EA account Settings can't be reached, so export / delete live here too */
   yourData: ReactNode;
 }) {
   const { t } = useI18n();
+  const phone = isPhone(navigator.userAgent);
+  // the extension opens /dashboard?ext=installed on its first install
+  const fromInstall = new URLSearchParams(window.location.search).get('ext') === 'installed';
+  const mode = onboardingMode({ present, phone, fromInstall });
+  useEffect(() => {
+    track('onboarding_mode', { mode });
+  }, [mode]);
   return (
     <div className="onboarding">
       <div className="brand onboarding-top">
@@ -1828,7 +1842,7 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, yourDat
       {takenOver && <p className="banner" role="status">{t('notice.takenOver')}</p>}
       {/* phones without an EA account land here, not in the dashboard: offer the install here too */}
       <InstallBanner />
-      {isPhone(navigator.userAgent) ? (
+      {mode === 'phone' ? (
         // the extension cannot run on a phone: say where the setup happens, keep the guide readable
         <>
           <h1>{t('onb.phoneTitle')}</h1>
@@ -1836,6 +1850,25 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, yourDat
           <details className="onb-phone-guide">
             <summary>{t('onb.phoneGuide')}</summary>
             <SetupGuide compact />
+          </details>
+        </>
+      ) : mode === 'linking' ? (
+        // the extension is here (or was just installed): only the EA web app visit is left
+        <>
+          <h1 className="onb-link-title">
+            {present && <CheckCircle weight="fill" aria-hidden="true" />}
+            {present ? t('onb.linkTitle') : t('onb.linkTitleInstalled')}
+          </h1>
+          <p className="lede">{t('onb.linkLede')}</p>
+          <p>
+            <a className="step-action primary" href={WEB_APP} target="_blank" rel="noreferrer">
+              {t('onb.openWebApp')} <ArrowSquareOut weight="bold" />
+            </a>
+          </p>
+          <p className="muted onb-waiting" role="status" aria-live="polite">{t('onb.waiting')}</p>
+          <details className="onb-phone-guide">
+            <summary>{t('onb.needInstall')}</summary>
+            <SetupGuide />
           </details>
         </>
       ) : (

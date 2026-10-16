@@ -26,6 +26,7 @@ Never personal data: no email, names, user / persona ids, usernames, invite code
 |---|---|---|
 | `cta_click` | landing "start" / "sign in" (signed out), the Pricing "Go Premium" button | `where`: `header` / `hero` / `pricing` / `premium` / `invite` |
 | `signin_done` | sign-in completed | `method`: `google` / `email`; `new`: `yes` / `no` (Google: account created < 10 min ago) |
+| `onboarding_mode` | a signed-in user without an EA account sees the setup screen | `mode`: `linking` (extension found or just installed) / `install` / `phone` |
 | `extension_linked` | the extension linked an EA account | — |
 | `sync_done` | a club / SBC sync finished (seen in an open dashboard) | `kind`: `club` / `sbcs`; `ok`: `yes` / `no` |
 | `sbc_open` | an SBC set opened from the list | — |

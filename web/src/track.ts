@@ -9,6 +9,7 @@ export interface TrackEvents {
   cta_click: { where: 'header' | 'hero' | 'pricing' | 'premium' | 'invite' | 'daily' };
   signin_done: { method: 'google' | 'email'; new: YN };
   extension_linked: undefined;
+  onboarding_mode: { mode: 'linking' | 'install' | 'phone' };
   sync_done: { kind: 'club' | 'sbcs'; ok: YN };
   sbc_open: undefined;
   solve: { found: YN; deep: YN };

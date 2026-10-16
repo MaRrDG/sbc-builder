@@ -551,7 +551,7 @@ export const en = {
   // setup guide
   'setup.title': 'Set up the extension',
   'setup.close': 'Close setup guide',
-  'setup.lede': 'Each friend installs it once in their own Chrome. It only reads your club and SBC list.',
+  'setup.lede': 'FC Solver needs a small Chrome extension, installed once. It only reads your club and SBC list; it never buys, sells or submits anything.',
   'setup.more': 'How the extension and the web app work together',
   'setup.s1': 'Download the extension',
   'setup.s1p': 'It is already set up for this site. Nothing to configure.',
@@ -572,6 +572,10 @@ export const en = {
   'setup.s6': 'Open FC Solver',
   'setup.s6p': 'Click the extension icon, then {open}. Your club and SBCs load in about a minute.',
   'setup.openSolver': 'Open FC Solver',
+  'setup.store1': 'Add FC Solver to Chrome',
+  'setup.store1p': 'Install it from the Chrome Web Store. Nothing to configure.',
+  'setup.store1b': 'Open Chrome Web Store',
+  'setup.zipSummary': 'Can\'t use the Chrome Web Store? Install it from a zip',
 
   // update banner
   'update.required': 'Update required: extension {v}',
@@ -595,6 +599,12 @@ export const en = {
   'onb.phoneTitle': 'Set up FC Solver on your PC',
   'onb.phoneLede': 'Syncing with EA runs in the EA web app on a computer, through the FC Solver extension for Chrome. Install it there once and link your EA account; after that your club, SBCs, solutions and the Daily all work from this phone too.',
   'onb.phoneGuide': 'How the setup works',
+  'onb.linkTitle': 'Extension found',
+  'onb.linkTitleInstalled': 'Extension installed',
+  'onb.linkLede': 'Open the FC27 web app in this browser and log in to EA. Your EA account links to FC Solver by itself within a few seconds. Keep this tab open.',
+  'onb.openWebApp': 'Open the FC27 web app',
+  'onb.waiting': 'Waiting for the web app…',
+  'onb.needInstall': 'Need the install guide?',
   'sync.phoneLive': 'Your PC’s EA web app is open: syncs run there now.',
   'sync.phoneOffline': 'Open the EA web app on your PC to sync. It runs there, not on the phone.',
 
@@ -695,6 +705,7 @@ export const en = {
   // sign in
   'auth.title': 'Sign in to FC Solver',
   'auth.lede': 'One account for all your devices. Your EA account links itself when you open the web app with the extension.',
+  'auth.extInstalled': 'Extension installed ✓ Create an account or sign in to finish. It takes a few seconds.',
   'auth.google': 'Continue with Google',
   'auth.or': 'or',
   'auth.email': 'Email',
@@ -1061,6 +1072,8 @@ export const en = {
   'landing.how.scene.synced': 'Club and SBC list synced',
   'landing.how.setup': 'Setup guide',
   'landing.how.more': 'How it works in detail',
+  'landing.how.haveExt': 'Already have the extension?',
+  'landing.how.signIn': 'Sign in',
   'landing.price.title': 'Start free, go Premium for unlimited solves',
   'landing.price.period': 'Billing period',
   'landing.price.monthly': 'Monthly',

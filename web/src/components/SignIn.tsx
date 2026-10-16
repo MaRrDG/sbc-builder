@@ -20,6 +20,8 @@ function errKey(e: ClerkErr): string {
 
 export function SignIn({ next, onDone }: { next: string; onDone: (path: string) => void }) {
   const { t } = useI18n();
+  // the extension's first-install tab is /dashboard?ext=installed, which signed out lands here as `next`
+  const fromInstall = /[?&]ext=installed(&|$)/.test(next) || new URLSearchParams(window.location.search).get('ext') === 'installed';
   const { signIn } = useSignIn();
   const { signUp } = useSignUp();
   const [step, setStep] = useState<'email' | 'code'>('email');
@@ -100,6 +102,7 @@ export function SignIn({ next, onDone }: { next: string; onDone: (path: string) 
   return (
     <section className="signin" aria-labelledby="signin-title">
       <h1 id="signin-title">{t('auth.title')}</h1>
+      {fromInstall && <p className="banner" role="status">{t('auth.extInstalled')}</p>}
       <p className="muted">{t('auth.lede')}</p>
 
       {step === 'email' ? (

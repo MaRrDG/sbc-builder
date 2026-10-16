@@ -5000,3 +5000,11 @@ a.adm-kpi:hover { background: var(--surface-2); }
 .cost-dialog h2 { margin: 0 0 12px; font-size: 18px; }
 .cost-dialog p { margin: 0 0 16px; font-size: 13px; }
 @media (max-width: 480px) { .squad-avg-how { margin-left: 0; } }
+
+/* extension-first onboarding: Store step, zip fallback, "extension found" title */
+.setup-zip { margin-top: 12px; max-width: 760px; }
+.setup-zip summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--ink-2); }
+.setup-zip .guide { margin-top: 4px; }
+.onb-link-title { display: flex; align-items: center; gap: 10px; }
+.onb-link-title svg { color: var(--go); flex: none; }
+.onb-waiting { margin: 4px 0 8px; }

@@ -170,6 +170,9 @@ export function Steps({ link }: Props) {
           <Demo step={active} live={seen} />
         </div>
       </div>
+      <p className="lp-more">
+        {t('landing.how.haveExt')} {link({ view: 'signin', next: '/dashboard' }, 'lp-link', t('landing.how.signIn'))}
+      </p>
       <p className="lp-more">{link({ view: 'guide' }, 'lp-link', t('landing.how.more'))}</p>
     </section>
   );

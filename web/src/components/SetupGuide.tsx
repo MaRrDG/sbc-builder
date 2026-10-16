@@ -1,10 +1,11 @@
 import { Fragment, useState, type ReactNode } from 'react';
 import { useI18n } from '../i18n';
 import { extensionZipUrl } from '../api';
+import { STORE_URL } from '../ext-version';
 import { Check, Copy, DownloadSimple, ArrowSquareOut } from '@phosphor-icons/react';
 
 const EXTENSIONS_URL = 'chrome://extensions';
-const WEB_APP = 'https://www.ea.com/ea-sports-fc/ultimate-team/web-app/';
+export const WEB_APP = 'https://www.ea.com/ea-sports-fc/ultimate-team/web-app/';
 
 /** Fills {name} slots of a translated sentence with elements (code, bold words). */
 export function fill(text: string, parts: Record<string, ReactNode>): ReactNode[] {
@@ -42,51 +43,68 @@ const FOLDER = <code>fc27-sbc-builder</code>;
 /** Step-by-step install of the session extension. Browsers block links to chrome:// pages, hence the copy button. */
 export function SetupGuide({ compact = false }: { compact?: boolean }) {
   const { t } = useI18n();
+  const cls = `guide${compact ? ' compact' : ''}`;
   return (
-    <ol className={`guide${compact ? ' compact' : ''}`}>
-      <li>
-        <div>
-          <h3>{t('setup.s1')}</h3>
-          <p>{t('setup.s1p')}</p>
-        </div>
-        <a className="step-action primary" href={extensionZipUrl()} download>
-          <DownloadSimple weight="bold" /> {t('setup.s1b')}
-        </a>
-      </li>
-      <li>
-        <div>
-          <h3>{t('setup.s2')}</h3>
-          <p>{fill(t('setup.s2p'), { folder: FOLDER })}</p>
-        </div>
-      </li>
-      <li>
-        <div>
-          <h3>{t('setup.s3')}</h3>
-          <p>{fill(t('setup.s3p'), { url: <code>{EXTENSIONS_URL}</code>, dev: <b>{t('setup.devMode')}</b> })}</p>
-        </div>
-        <CopyUrl />
-      </li>
-      <li>
-        <div>
-          <h3>{t('setup.s4')}</h3>
-          <p>{fill(t('setup.s4p'), { load: <b>{t('setup.loadUnpacked')}</b>, folder: FOLDER })}</p>
-        </div>
-      </li>
-      <li>
-        <div>
-          <h3>{t('setup.s5')}</h3>
-          <p>{t('setup.s5p')}</p>
-        </div>
-        <a className="step-action ghost-strong" href={WEB_APP} target="_blank" rel="noreferrer">
-          {t('setup.s5b')} <ArrowSquareOut weight="bold" />
-        </a>
-      </li>
-      <li>
-        <div>
-          <h3>{t('setup.s6')}</h3>
-          <p>{fill(t('setup.s6p'), { open: <b>{t('setup.openSolver')}</b> })}</p>
-        </div>
-      </li>
-    </ol>
+    <>
+      <ol className={cls}>
+        <li>
+          <div>
+            <h3>{t('setup.store1')}</h3>
+            <p>{t('setup.store1p')}</p>
+          </div>
+          <a className="step-action primary" href={STORE_URL} target="_blank" rel="noopener noreferrer">
+            {t('setup.store1b')} <ArrowSquareOut weight="bold" />
+          </a>
+        </li>
+        <li>
+          <div>
+            <h3>{t('setup.s5')}</h3>
+            <p>{t('setup.s5p')}</p>
+          </div>
+          <a className="step-action ghost-strong" href={WEB_APP} target="_blank" rel="noreferrer">
+            {t('setup.s5b')} <ArrowSquareOut weight="bold" />
+          </a>
+        </li>
+        <li>
+          <div>
+            <h3>{t('setup.s6')}</h3>
+            <p>{fill(t('setup.s6p'), { open: <b>{t('setup.openSolver')}</b> })}</p>
+          </div>
+        </li>
+      </ol>
+      <details className="setup-zip">
+        <summary>{t('setup.zipSummary')}</summary>
+        <ol className={cls}>
+          <li>
+            <div>
+              <h3>{t('setup.s1')}</h3>
+              <p>{t('setup.s1p')}</p>
+            </div>
+            <a className="step-action primary" href={extensionZipUrl()} download>
+              <DownloadSimple weight="bold" /> {t('setup.s1b')}
+            </a>
+          </li>
+          <li>
+            <div>
+              <h3>{t('setup.s2')}</h3>
+              <p>{fill(t('setup.s2p'), { folder: FOLDER })}</p>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>{t('setup.s3')}</h3>
+              <p>{fill(t('setup.s3p'), { url: <code>{EXTENSIONS_URL}</code>, dev: <b>{t('setup.devMode')}</b> })}</p>
+            </div>
+            <CopyUrl />
+          </li>
+          <li>
+            <div>
+              <h3>{t('setup.s4')}</h3>
+              <p>{fill(t('setup.s4p'), { load: <b>{t('setup.loadUnpacked')}</b>, folder: FOLDER })}</p>
+            </div>
+          </li>
+        </ol>
+      </details>
+    </>
   );
 }

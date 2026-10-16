@@ -555,7 +555,7 @@ export const it: Record<Keys, string> = {
   // setup guide
   'setup.title': 'Configura l’estensione',
   'setup.close': 'Chiudi la guida di configurazione',
-  'setup.lede': 'Ogni amico la installa una volta nel proprio Chrome. Legge solo il tuo club e la lista SBC.',
+  'setup.lede': 'FC Solver richiede una piccola estensione di Chrome, da installare una sola volta. Legge solo il tuo club e la lista SBC; non compra, vende né invia nulla.',
   'setup.more': 'Come lavorano insieme l’estensione e la web app',
   'setup.s1': 'Scarica l’estensione',
   'setup.s1p': 'È già configurata per questo sito. Niente da impostare.',
@@ -576,6 +576,10 @@ export const it: Record<Keys, string> = {
   'setup.s6': 'Apri FC Solver',
   'setup.s6p': 'Clicca l’icona dell’estensione, poi {open}. Il tuo club e le SBC si caricano in circa un minuto.',
   'setup.openSolver': 'Apri FC Solver',
+  'setup.store1': 'Aggiungi FC Solver a Chrome',
+  'setup.store1p': 'Installala dal Chrome Web Store. Niente da impostare.',
+  'setup.store1b': 'Apri Chrome Web Store',
+  'setup.zipSummary': 'Non puoi usare il Chrome Web Store? Installa da file zip',
 
   // update banner
   'update.required': 'Aggiornamento obbligatorio: estensione {v}',
@@ -599,6 +603,12 @@ export const it: Record<Keys, string> = {
   'onb.phoneTitle': 'Configura FC Solver sul PC',
   'onb.phoneLede': 'La sincronizzazione con EA gira nella web app EA su un computer, tramite l’estensione FC Solver per Chrome. Installala lì una volta e collega il tuo account EA; dopo, club, SBC, soluzioni e Daily funzionano anche da questo telefono.',
   'onb.phoneGuide': 'Come funziona la configurazione',
+  'onb.linkTitle': 'Estensione trovata',
+  'onb.linkTitleInstalled': 'Estensione installata',
+  'onb.linkLede': 'Apri la web app FC27 in questo browser e accedi a EA. Il tuo account EA si collega da solo a FC Solver in pochi secondi. Tieni aperta questa scheda.',
+  'onb.openWebApp': 'Apri la web app FC27',
+  'onb.waiting': 'In attesa della web app…',
+  'onb.needInstall': 'Ti serve la guida all’installazione?',
   'sync.phoneLive': 'La web app EA è aperta sul tuo PC: le sincronizzazioni girano lì adesso.',
   'sync.phoneOffline': 'Apri la web app EA sul tuo PC per sincronizzare. Gira lì, non sul telefono.',
 
@@ -699,6 +709,7 @@ export const it: Record<Keys, string> = {
   // sign in
   'auth.title': 'Accedi a FC Solver',
   'auth.lede': 'Un solo account per tutti i tuoi dispositivi. Il tuo account EA si collega da solo quando apri la web app con l’estensione.',
+  'auth.extInstalled': 'Estensione installata ✓ Crea un account o accedi per finire. Bastano pochi secondi.',
   'auth.google': 'Continua con Google',
   'auth.or': 'oppure',
   'auth.email': 'Email',
@@ -1065,6 +1076,8 @@ export const it: Record<Keys, string> = {
   'landing.how.scene.synced': 'Club e lista SBC sincronizzati',
   'landing.how.setup': 'Guida di configurazione',
   'landing.how.more': 'Come funziona nel dettaglio',
+  'landing.how.haveExt': 'Hai già l’estensione?',
+  'landing.how.signIn': 'Accedi',
   'landing.price.title': 'Inizia gratis, passa a Premium per risoluzioni illimitate',
   'landing.price.period': 'Periodo di fatturazione',
   'landing.price.monthly': 'Mensile',
