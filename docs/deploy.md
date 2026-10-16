@@ -161,6 +161,8 @@ Analytics (setup, events, funnels: [analytics.md](analytics.md)): `ANALYTICS_SNI
 
 `SITE_URL` in `.env` names the canonical domain. Every other host that reaches the app (the old domain, an IP) gets `robots.txt: Disallow: /` and `noindex`, so only one copy is indexed. Without it, every host counts as canonical.
 
+IndexNow (prod only): `INDEXNOW_KEY` in the prod `.env` (compose forwards it to `app`), e.g. `openssl rand -hex 16`. The app then serves `/<key>.txt` and, with `SITE_URL` set, pings IndexNow (Bing, Yandex…) hourly about SBC pages that became public. Dev leaves it empty so it never pings. A key that is not 8–128 hex characters (dashes allowed) is ignored with a `[indexnow]` warning in the log.
+
 Moving to a new domain:
 
 1. Cloudflare: add the zone, point it at the server; nginx: a vhost for the new name (copy `deploy/sbc-builder.nginx.conf`).

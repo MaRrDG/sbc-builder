@@ -50,6 +50,8 @@ services:
       PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET:-}
       PADDLE_PRICE_MONTH: ${PADDLE_PRICE_MONTH:-}
       PADDLE_PRICE_YEAR: ${PADDLE_PRICE_YEAR:-}
+      # IndexNow key (prod only: dev leaves it empty so it never pings); serves /<key>.txt, empty = off
+      INDEXNOW_KEY: ${INDEXNOW_KEY:-}
       # tuning and owner settings; empty = the server default (readers treat '' as unset)
       SUPPORT_EMAIL: ${SUPPORT_EMAIL:-}
       ADMIN_EMAILS: ${ADMIN_EMAILS:-}

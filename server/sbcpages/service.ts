@@ -34,10 +34,8 @@ export const sitemapEntries = () =>
     ...(await publicSetRows(now())).filter((s) => inSitemap(s.endTime, now())).map((s) => ({ path: setPath(s.setId, s.name), lastmod: s.lastSeen.toISOString().slice(0, 10) })),
   ]);
 
-/** Hourly: sets that became public since the last run are sent to IndexNow (Bing, Yandex…). Off without INDEXNOW_KEY. */
-export function startIndexNow(base: string): void {
-  const key = process.env.INDEXNOW_KEY;
-  if (!key) return;
+/** Hourly: sets that became public since the last run are sent to IndexNow (Bing, Yandex…). `key` is the validated INDEXNOW_KEY. */
+export function startIndexNow(base: string, key: string): void {
   const run = async () => {
     try {
       const rows = await publicSetRows(now());

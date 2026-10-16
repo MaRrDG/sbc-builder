@@ -29,6 +29,12 @@ export function isPublic(s: { raw: { releaseTime?: number; hidden?: boolean } },
   return !s.raw.releaseTime || s.raw.releaseTime <= nowSec;
 }
 
+/** The IndexNow key when it is safe to serve as `/<key>.txt` (hex and dashes, 8–128), else null. */
+export const indexNowKey = (raw: string | undefined): string | null => {
+  const k = raw?.trim();
+  return k && /^[a-f0-9-]{8,128}$/i.test(k) ? k : null;
+};
+
 export const isExpired = (endTime: number | null, nowSec: number) => !!endTime && endTime < nowSec;
 export const inSitemap = (endTime: number | null, nowSec: number) => !endTime || endTime + SITEMAP_GRACE_DAYS * 86400 >= nowSec;
 

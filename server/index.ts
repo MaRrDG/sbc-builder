@@ -57,7 +57,7 @@ import { buildExtensionZip, requestOrigin, latestExtension, parseInstall } from 
 import { applyWebAppEvent, WATCHED_PATH, type WebAppEvent } from './events.js';
 import { isKnownPath } from '../shared/paths.js';
 import { hubData, setData, sitemapEntries, startIndexNow } from './sbcpages/service.js';
-import { parseSetSlug } from './sbcpages/rules.js';
+import { indexNowKey, parseSetSlug } from './sbcpages/rules.js';
 import { hubBody, hubHead, hubJsonLd, setBody, setHead, setJsonLd } from './sbcpages/html.js';
 import { analyticsFor, analyticsOrigins, analyticsWarnings, isCanonicalHost, pageMeta, renderHead, type DynamicPage, robotsTxt, siteUrl, sitemapXml, withAnalytics } from './seo.js';
 import { publicOrigin, siteOrigins } from './origins.js';
@@ -977,7 +977,10 @@ app.get('/sitemap.xml', async (req, reply) =>
     .header('Cache-Control', 'public, max-age=3600')
     .send(sitemapXml(siteUrl(publicOrigin(requestOrigin(req.headers, req.protocol))), await sitemapEntries().catch(() => []))),
 );
-if (process.env.INDEXNOW_KEY) app.get(`/${process.env.INDEXNOW_KEY}.txt`, (_q, r) => r.type('text/plain').send(process.env.INDEXNOW_KEY));
+// prod only (dev must not ping); a key that is not plain hex is never put in a route
+const indexNow = indexNowKey(process.env.INDEXNOW_KEY);
+if (process.env.INDEXNOW_KEY?.trim() && !indexNow) console.warn('[indexnow] INDEXNOW_KEY is not 8-128 hex characters: IndexNow is off');
+if (indexNow) app.get(`/${indexNow}.txt`, (_q, r) => r.type('text/plain').send(indexNow));
 
 if (existsSync(dist))
   await app.register(fastifyStatic, {
@@ -1016,7 +1019,7 @@ installLedger();
 installDailyIngest();
 installHistory();
 scheduleDaily();
-if (process.env.SITE_URL) startIndexNow(siteUrl(process.env.SITE_URL));
+if (process.env.SITE_URL && indexNow) startIndexNow(siteUrl(process.env.SITE_URL), indexNow);
 scheduleDeletions();
 schedulePrune();
 void pruneEvents();

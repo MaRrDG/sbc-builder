@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatAward, inSitemap, isExpired, isPublic, parseSetSlug, setPath, slugify } from './rules.js';
+import { formatAward, indexNowKey, inSitemap, isExpired, isPublic, parseSetSlug, setPath, slugify } from './rules.js';
 
 const NOW = 1_800_000_000;
 
@@ -69,4 +69,10 @@ test('formatAward coin without a finite value is null, not 0 or NaN coins', () =
 
 test('isPublic fails closed on a NaN voucher count', () => {
   assert.equal(isPublic({ raw: {} }, NaN, NOW), false);
+});
+
+test('indexNowKey: only hex / dashes, 8 to 128 chars', () => {
+  assert.equal(indexNowKey('0123456789abcdef0123456789ABCDEF'), '0123456789abcdef0123456789ABCDEF');
+  assert.equal(indexNowKey(' abcd-1234 '), 'abcd-1234');
+  for (const bad of [undefined, '', 'abc', '../etc/passwd', 'zzzzzzzzzz', 'a'.repeat(129), 'abcd1234.txt']) assert.equal(indexNowKey(bad), null);
 });
