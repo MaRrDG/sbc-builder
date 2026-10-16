@@ -49,3 +49,24 @@ test('formatAward', () => {
   assert.equal(formatAward({ type: 'item' }), 'Item');
   assert.equal(formatAward(null), null);
 });
+
+test('formatAward returns null for a non-string type instead of throwing', () => {
+  assert.equal(formatAward({ type: 5 }), null);
+  assert.equal(formatAward({ type: { x: 1 } }), null);
+});
+
+test('formatAward item falls back to Item unless the description is a non-empty string', () => {
+  assert.equal(formatAward({ type: 'item', itemDataReduced: { description: '' } }), 'Item');
+  assert.equal(formatAward({ type: 'item', itemDataReduced: { description: 7 } }), 'Item');
+});
+
+test('formatAward coin without a finite value is null, not 0 or NaN coins', () => {
+  assert.equal(formatAward({ type: 'coin' }), null);
+  assert.equal(formatAward({ type: 'coin', value: null }), null);
+  assert.equal(formatAward({ type: 'coin', value: NaN }), null);
+  assert.equal(formatAward({ type: 'coin', value: Infinity }), null);
+});
+
+test('isPublic fails closed on a NaN voucher count', () => {
+  assert.equal(isPublic({ raw: {} }, NaN, NOW), false);
+});

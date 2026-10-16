@@ -25,7 +25,7 @@ export function parseSetSlug(segment: string): { setId: number; slug: string } |
 }
 
 export function isPublic(s: { raw: { releaseTime?: number; hidden?: boolean } }, vouchedCount: number, nowSec: number): boolean {
-  if (vouchedCount < 1 || s.raw.hidden === true) return false;
+  if (!(vouchedCount >= 1) || s.raw.hidden === true) return false;
   return !s.raw.releaseTime || s.raw.releaseTime <= nowSec;
 }
 
@@ -35,10 +35,16 @@ export const inSitemap = (endTime: number | null, nowSec: number) => !endTime ||
 /** One reward line in English (EA sends no pack names with SBC awards). */
 export function formatAward(a: unknown): string | null {
   if (!a || typeof a !== 'object') return null;
-  const x = a as { type?: string; value?: number; count?: number; isUntradeable?: boolean; itemDataReduced?: { description?: string } };
+  const x = a as { type?: unknown; value?: unknown; count?: number; isUntradeable?: boolean; itemDataReduced?: { description?: unknown } };
+  if (typeof x.type !== 'string' || !x.type) return null;
   const times = x.count && x.count > 1 ? `${x.count}× ` : '';
-  if (x.type === 'coin') return `${(x.value ?? 0).toLocaleString('en-US')} coins`;
+  if (x.type === 'coin') {
+    return typeof x.value === 'number' && Number.isFinite(x.value) ? `${x.value.toLocaleString('en-US')} coins` : null;
+  }
   if (x.type === 'pack') return `${times}Pack${x.isUntradeable ? ' (untradeable)' : ''}`;
-  if (x.type === 'item') return x.itemDataReduced?.description || 'Item';
-  return x.type ? `${times}${x.type[0].toUpperCase()}${x.type.slice(1)}` : null;
+  if (x.type === 'item') {
+    const d = x.itemDataReduced?.description;
+    return typeof d === 'string' && d ? d : 'Item';
+  }
+  return `${times}${x.type[0].toUpperCase()}${x.type.slice(1)}`;
 }
