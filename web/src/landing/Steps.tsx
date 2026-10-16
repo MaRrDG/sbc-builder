@@ -12,6 +12,8 @@ import { Backdrop } from './Backdrop';
 
 interface Props {
   link: (r: Route, className: string, children: ReactNode) => ReactNode;
+  /** auth is loaded and nobody is signed in: only then offer "Already have the extension? Sign in" */
+  offerSignIn: boolean;
 }
 
 const STEPS = ['s1', 's2', 's3'] as const;
@@ -142,7 +144,7 @@ function InlineDemo({ step }: { step: number }) {
   );
 }
 
-export function Steps({ link }: Props) {
+export function Steps({ link, offerSignIn }: Props) {
   const { t } = useI18n();
   const items = useRef<(HTMLLIElement | null)[]>([]);
   const active = useActiveIndex(items);
@@ -170,9 +172,11 @@ export function Steps({ link }: Props) {
           <Demo step={active} live={seen} />
         </div>
       </div>
-      <p className="lp-more">
-        {t('landing.how.haveExt')} {link({ view: 'signin', next: '/dashboard' }, 'lp-link', t('landing.how.signIn'))}
-      </p>
+      {offerSignIn && (
+        <p className="lp-more">
+          {t('landing.how.haveExt')} {link({ view: 'signin', next: '/dashboard' }, 'lp-link', t('landing.how.signIn'))}
+        </p>
+      )}
       <p className="lp-more">{link({ view: 'guide' }, 'lp-link', t('landing.how.more'))}</p>
     </section>
   );

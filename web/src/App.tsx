@@ -936,6 +936,7 @@ export default function App({
         {survey}
         {deletionBanner}
         <Onboarding error={error} lang={lang} setLang={setLang} email={me?.email ?? ''} onSignOut={doSignOut} takenOver={takenOver} present={extPresent}
+          linkBlocked={linkBlocked} onDismissBlocked={() => setLinkBlocked(null)} refresh={() => void loadMe().catch(onApiError)}
           yourData={<YourDataCard deleteAt={deleteAt} onChange={() => void loadMe().catch(onApiError)} />} />
       </>
     );
@@ -1128,22 +1129,7 @@ export default function App({
         </div>
       )}
 
-      {linkBlocked && (
-        <div className="notice" role="alert">
-          {t('notice.linkLimit', { limit: linkBlocked.limit })}{' '}
-          {linkBlocked.supportEmail ? (
-            <>
-              {t('notice.linkLimitContact')}{' '}
-              <a href={`mailto:${linkBlocked.supportEmail}`}>{linkBlocked.supportEmail}</a>.{' '}
-            </>
-          ) : (
-            <>{t('notice.linkLimitNoContact')} </>
-          )}
-          <button type="button" className="text" onClick={() => setLinkBlocked(null)}>
-            {t('code.dismiss')}
-          </button>
-        </div>
-      )}
+      {linkBlocked && <LinkLimitNotice blocked={linkBlocked} onDismiss={() => setLinkBlocked(null)} />}
 
       {takenOver && (
         <div className="notice" role="status">
@@ -1813,10 +1799,37 @@ export default function App({
   );
 }
 
-function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, present, yourData }: {
+type LinkBlocked = { at: number; limit: number; supportEmail: string | null };
+
+/** The persona is already linked to the most FC Solver accounts allowed: say so and where to ask. */
+function LinkLimitNotice({ blocked, onDismiss }: { blocked: LinkBlocked; onDismiss: () => void }) {
+  const { t } = useI18n();
+  return (
+    <div className="notice" role="alert">
+      {t('notice.linkLimit', { limit: blocked.limit })}{' '}
+      {blocked.supportEmail ? (
+        <>
+          {t('notice.linkLimitContact')}{' '}
+          <a href={`mailto:${blocked.supportEmail}`}>{blocked.supportEmail}</a>.{' '}
+        </>
+      ) : (
+        <>{t('notice.linkLimitNoContact')} </>
+      )}
+      <button type="button" className="text" onClick={onDismiss}>
+        {t('code.dismiss')}
+      </button>
+    </div>
+  );
+}
+
+function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, present, linkBlocked, onDismissBlocked, refresh, yourData }: {
   error: string | null; lang: Lang; setLang: (l: Lang) => void; email: string; onSignOut: () => void; takenOver: boolean;
   /** the extension announced itself on this page */
   present: boolean;
+  linkBlocked: LinkBlocked | null;
+  onDismissBlocked: () => void;
+  /** re-read /api/me: the link (or the block) happens in another tab */
+  refresh: () => void;
   /** Settings "Your data": without an EA account Settings can't be reached, so export / delete live here too */
   yourData: ReactNode;
 }) {
@@ -1832,6 +1845,14 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, present
     const id = setTimeout(() => track('onboarding_mode', { mode: modeRef.current }), 1500);
     return () => clearTimeout(id);
   }, []);
+  // waiting for the link from another tab: pick up the link (or the block) without a reload
+  const refreshRef = useRef(refresh);
+  refreshRef.current = refresh;
+  useEffect(() => {
+    if (mode !== 'linking') return;
+    const id = setInterval(() => refreshRef.current(), 20_000);
+    return () => clearInterval(id);
+  }, [mode]);
   return (
     <div className="onboarding">
       <div className="brand onboarding-top">
@@ -1844,6 +1865,7 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, present
       </p>
       {/* the account taken over may have been the only one: say why it is gone */}
       {takenOver && <p className="banner" role="status">{t('notice.takenOver')}</p>}
+      {linkBlocked && <LinkLimitNotice blocked={linkBlocked} onDismiss={onDismissBlocked} />}
       {/* phones without an EA account land here, not in the dashboard: offer the install here too */}
       <InstallBanner />
       {mode === 'phone' ? (
@@ -1869,7 +1891,7 @@ function Onboarding({ error, lang, setLang, email, onSignOut, takenOver, present
               {t('onb.openWebApp')} <ArrowSquareOut weight="bold" />
             </a>
           </p>
-          <p className="muted onb-waiting" role="status" aria-live="polite">{t('onb.waiting')}</p>
+          <p className="muted onb-waiting">{t('onb.waiting')}</p>
           <details className="onb-phone-guide">
             <summary>{t('onb.needInstall')}</summary>
             <SetupGuide />

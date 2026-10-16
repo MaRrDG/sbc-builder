@@ -156,7 +156,7 @@ export default function Landing({ signedIn, authReady, navigate }: Props) {
         <DailyTeaser link={link} />
         <Pillars />
         <Objectives />
-        <Steps link={link} />
+        <Steps link={link} offerSignIn={authReady && !signedIn} />
         <Pricing
           cta={cta('pricing')}
           founders={founders}
