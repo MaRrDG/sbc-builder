@@ -208,9 +208,9 @@ export function SbcPage({ setId, navigate, signedIn }: { setId: number; navigate
   }, [error, navigate]);
   useEffect(() => {
     if (!set) return;
-    document.title = `${set.name} SBC · FC Solver`;
+    document.title = t('meta.sbcSet', { name: set.name });
     if (window.location.pathname !== set.path) history.replaceState(history.state, '', set.path + window.location.search + window.location.hash);
-  }, [set]);
+  }, [set, t]);
   if (error && error.message !== 'not found')
     return (
       <Shell navigate={navigate} signedIn={signedIn}>
@@ -279,7 +279,7 @@ export function SbcPage({ setId, navigate, signedIn }: { setId: number; navigate
         </ul>
         <section>
           <h2>{t('sbcpages.howTitle', { name: set.name })}</h2>
-          <p>{t('sbcpages.howBody')}</p>
+          <p>{t('sbcpages.howBody', { name: set.name })}</p>
         </section>
       </article>
     </Shell>

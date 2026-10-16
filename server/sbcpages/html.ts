@@ -12,8 +12,12 @@ const date = (sec: number) => {
 const LINK = 'style="color: #c8f53c"';
 const WRAP = 'style="max-width: 720px; margin: 48px auto; padding: 0 16px; color: #f3f1ea; font-family: system-ui, sans-serif; line-height: 1.5"';
 
-const howTo = (name: string) =>
+/** Visible FAQ answer and JSON-LD answer; the app shows the same text (en `sbcpages.howBody`, html.test.ts). */
+export const howTo = (name: string) =>
   `Pick ${name} in FC Solver and press Solve: the SBC solver builds the cheapest squad that meets every requirement from the players you already own, SBC storage included, and checks chemistry the way the game does. You then build it in the web app yourself. FC Solver never buys, sells or submits anything.`;
+
+/** Hub intro; the app shows the same text (en `sbcpages.hubIntro`). */
+export const HUB_INTRO = 'Requirements and rewards of every Squad Building Challenge. FC Solver is an SBC solver and SBC builder: it finds the cheapest squad for each one from the players you already own.';
 
 export function setHead(v: SbcSetView) {
   const reqs = v.challenges.flatMap((c) => c.requirements).slice(0, 3).join(', ');
@@ -55,7 +59,7 @@ export function hubBody(items: SbcListItem[]): string {
   const old = items.filter((x) => x.expired);
   return `<main ${WRAP}>
 <h1>All EA FC 27 SBCs</h1>
-<p>Requirements and rewards of every Squad Building Challenge. FC Solver is an SBC solver and SBC builder: it finds the cheapest squad for each one from the players you already own.</p>
+<p>${esc(HUB_INTRO)}</p>
 <h2>Live SBCs</h2><ul>${active.map(row).join('')}</ul>
 ${old.length ? `<h2>Expired SBCs</h2><ul>${old.map(row).join('')}</ul>` : ''}
 </main>`;

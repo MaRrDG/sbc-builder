@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { setBody, setHead, setJsonLd } from './html.js';
+import { en } from '../../web/src/locales/en.js';
+import { HUB_INTRO, howTo, hubBody, hubHead, setBody, setHead, setJsonLd } from './html.js';
 import type { SbcSetView } from './view.js';
 
 const evil: SbcSetView = { id: 9, path: '/sbcs/x-9', name: 'A <b>&"</script>', description: '<img src=x onerror=1>', categoryId: null, endTime: null, expired: false,
@@ -39,4 +40,15 @@ test('formation reads as 4-4-2; expired sets have no solve link', () => {
   const old = setBody({ ...evil, expired: true });
   assert.ok(!old.includes('/signin'));
   assert.match(old, /href="\/sbcs"[^>]*>See live SBCs/);
+});
+
+test('the app shows the same SEO text as the server HTML (en)', () => {
+  const name = 'Marquee Matchups';
+  const fill = (k: keyof typeof en) => en[k].replace('{name}', name);
+  assert.equal(fill('meta.sbcSet'), setHead({ ...evil, name }).title);
+  assert.equal(en['meta.sbcHub'], hubHead().title);
+  assert.equal(fill('sbcpages.howBody'), howTo(name));
+  assert.equal(en['sbcpages.hubIntro'], HUB_INTRO);
+  assert.ok(hubBody([]).includes(`<h1>${en['sbcpages.hubTitle']}</h1>`));
+  assert.ok(setJsonLd({ ...evil, name }, 'https://x').includes(JSON.stringify(howTo(name)).slice(1, -1)));
 });
