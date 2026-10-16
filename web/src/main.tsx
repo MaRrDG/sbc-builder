@@ -46,7 +46,8 @@ if (ref) saveRef(ref);
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY}>
+    {/* own sign-in UI on hooks, no Clerk components: do not fetch the ~300 kB @clerk/ui scripts */}
+    <ClerkProvider publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY} prefetchUI={false}>
       <I18nProvider>
         <Root />
       </I18nProvider>
