@@ -19,7 +19,10 @@ async function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
   return v;
 }
 
-export const hubData = () => cached('hub', async (): Promise<SbcListItem[]> => sortList((await publicSetRows(now())).map((s) => listItem(s, now()))));
+// expired sets leave the hub with the sitemap window (their pages stay reachable)
+export const hubData = () =>
+  cached('hub', async (): Promise<SbcListItem[]> =>
+    sortList((await publicSetRows(now())).filter((s) => inSitemap(s.endTime, now())).map((s) => listItem(s, now()))));
 
 export const setData = (setId: number) =>
   cached(`set:${setId}`, async (): Promise<SbcSetView | null> => {

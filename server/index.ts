@@ -951,7 +951,10 @@ async function sendPage(req: FastifyRequest, reply: FastifyReply, path: string) 
         const ref = parseSetSlug(seg);
         const set = ref ? await setData(ref.setId) : null;
         if (!set) reply.code(404);
-        else if (path !== set.path) return reply.redirect(set.path, 301);
+        else if (path !== set.path) {
+          const q = req.url.indexOf('?');
+          return reply.redirect(set.path + (q >= 0 ? req.url.slice(q) : ''), 301); // keep the query (utm_…)
+        }
         else page = { meta: setHead(set), body: setBody(set), jsonLd: setJsonLd(set, base), canonical: set.path };
       }
     } catch (e) {
