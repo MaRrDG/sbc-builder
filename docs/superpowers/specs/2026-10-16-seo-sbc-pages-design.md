@@ -27,14 +27,14 @@ URLs / hreflang, backlinks and Search Console setup (owner does those).
 
 ### URLs
 
-- `/sbcs` hub: active sets (newest first, grouped by category), then expired.
+- `/sbcs` hub: active sets (ending soonest first; EA sends only category ids, so no grouping), then sets that ended in the last 60 days.
 - `/sbcs/<slug>-<setId>`: one set, e.g. `/sbcs/marquee-matchups-16`. The id keeps the URL stable; a
   request with a wrong/old slug and a valid id answers 301 to the current slug.
 - `/sbc/...` stays the legacy app path (`shared/paths.ts` APP); `sbcs` is added to `PUBLIC`.
 
 ### What gets published (automatic, no new EA calls)
 
-Source: `sbc_sets` + `challenges` (Postgres), already filled by every sync / relay. A set is public when:
+Source: the vouched public snapshot of `sbc_sets` (`public_snapshot`, written only by a trusted account or when several accounts relayed the same public fields) + vouched `challenges`, all filled by every sync / relay. A set is public when:
 
 - it has at least one `vouched` challenge (a forged relay cannot create an indexed page), and
 - `raw.releaseTime` is unset or in the past (never publish an unreleased SBC), and
